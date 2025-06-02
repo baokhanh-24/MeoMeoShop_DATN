@@ -1,12 +1,15 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+﻿using MeoMeo.Domain.Commons;
 
 namespace MeoMeo.Domain.Entities
 {
-    internal class CustomersBank
+    public class CustomersBank : BaseEntity
     {
+        public Guid CustomerId { get; set; }
+        public Guid BankId { get; set; }
+        public string AccountNumber { get; set; }
+        public string Beneficiary { get; set; }
+        public DateTime CreationTime { get; set; } = DateTime.Now;
+        public DateTime? LastModifiedTime { get; set; }
+
     }
 }

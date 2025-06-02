@@ -1,12 +1,9 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+﻿using MeoMeo.Domain.Commons;
 
 namespace MeoMeo.Domain.Entities
 {
-    internal class Season
+    public class Season : BaseEntity
     {
+        public string Description { get; set; }
     }
 }
