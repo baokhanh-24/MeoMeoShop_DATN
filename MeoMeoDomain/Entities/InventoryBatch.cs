@@ -14,5 +14,7 @@ namespace MeoMeo.Domain.Entities
         public int Quantity { get; set; }
         public int Status { get; set; }
         public string Note { get; set; }
+
+        public Guid ProductDetailId { get; set; }
     }
 }

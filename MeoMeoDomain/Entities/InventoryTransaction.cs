@@ -14,5 +14,7 @@ namespace MeoMeo.Domain.Entities
         public int CreateBy { get; set; }
         public int Type { get; set; }
         public string Note { get; set; }
+
+        public Guid InventoryBatchId { get; set; }
     }
 }

@@ -6,7 +6,15 @@ using System.Threading.Tasks;
 
 namespace MeoMeo.Domain.Entities
 {
-    internal class PromotionDetail
+    public class PromotionDetail
     {
+        public Guid Id { get; set; }
+        public float Discount { get; set; }
+        public string Note { get; set; }
+        public DateTime CreationTime { get; set; }
+        public DateTime LastModificationTime { get; set; }
+
+
+        public Guid PromotionId { get; set; }
     }
 }
