@@ -6,7 +6,9 @@ using System.Threading.Tasks;
 
 namespace MeoMeo.Domain.Entities
 {
-    internal class ProductSeason
+    public class ProductSeason
     {
+        public Guid SeasonId { get; set; }
+        public Guid ProductId { get; set; }
     }
 }

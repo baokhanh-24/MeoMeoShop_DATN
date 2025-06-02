@@ -13,5 +13,7 @@ namespace MeoMeo.Domain.Entities
         public string Name { get; set; }
         public string Thumbnail { get; set; }
 
+        public Guid BrandId { get; set; }
+
     }
 }
