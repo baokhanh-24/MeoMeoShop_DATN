@@ -1,12 +1,10 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+﻿using MeoMeo.Domain.Commons;
 
 namespace MeoMeo.Domain.Entities
 {
-    internal class Size
+    public class Size : BaseEntity
     {
+        public string Value { get; set; }
+        public string Code { get; set; }
     }
 }

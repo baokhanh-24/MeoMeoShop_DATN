@@ -1,12 +1,9 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-
-namespace MeoMeo.Domain.Entities
+﻿namespace MeoMeo.Domain.Entities
 {
-    internal class Bank
+    public class Bank
     {
+        public Guid Id { get; set; }
+        public string Name { get; set; }
+        public string Logo { get; set; }
     }
 }
