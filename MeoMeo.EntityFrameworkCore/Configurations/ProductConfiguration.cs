@@ -9,7 +9,7 @@ namespace MeoMeo.EntityFrameworkCore.Configurations
 
         public void Configure(EntityTypeBuilder<Product> builder)
         {
-            builder.ToTable("Product");
+            builder.ToTable("Products");
             builder.HasKey(x => x.Id);
             builder.Property(x => x.Name).HasMaxLength(255).HasColumnType("nvarchar(255)");
             builder.Property(x => x.Thumbnail).HasMaxLength(100).HasColumnType("varchar(500)");

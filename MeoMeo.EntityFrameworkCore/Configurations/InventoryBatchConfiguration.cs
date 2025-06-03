@@ -8,7 +8,7 @@ namespace MeoMeo.EntityFrameworkCore.Configurations
     {
         public void Configure(EntityTypeBuilder<InventoryBatch> builder)
         {
-            builder.ToTable("InventoryBatch");
+            builder.ToTable("InventoryBatches");
             builder.HasKey(x => x.Id);
             builder.Property(x => x.Code).HasMaxLength(10).HasColumnType("varchar(10)");
             builder.Property(x => x.Note).HasMaxLength(500).HasColumnType("nvarchar(500)");

@@ -8,7 +8,7 @@ namespace MeoMeo.EntityFrameworkCore.Configurations
     {
         public void Configure(EntityTypeBuilder<Image> builder)
         {
-            builder.ToTable("Image");
+            builder.ToTable("Images");
             builder.HasKey(x => x.Id);
             builder.Property(x => x.Name).HasMaxLength(100).HasColumnType("nvarchar(100)");
             builder.Property(x => x.URL).HasMaxLength(1000).HasColumnType("varchar(1000)");

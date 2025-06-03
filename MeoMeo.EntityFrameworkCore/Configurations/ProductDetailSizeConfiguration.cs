@@ -8,7 +8,7 @@ namespace MeoMeo.EntityFrameworkCore.Configurations
     {
         public void Configure(EntityTypeBuilder<ProductDetailSize> builder)
         {
-            builder.ToTable("ProductDetailSize");
+            builder.ToTable("ProductDetailSizes");
             builder.HasKey(x => x.ProductDetailId);
             builder.HasKey(x => x.SizeId);
             builder.HasOne(x => x.ProductDetail).WithMany(x => x.ProductDetailSizes).HasForeignKey(x => x.ProductDetailId);

@@ -8,6 +8,7 @@ namespace MeoMeo.EntityFrameworkCore.Configurations
     {
         public void Configure(EntityTypeBuilder<User> builder)
         {
+            builder.ToTable("Users");
             builder.HasKey(x => x.Id);
             builder.Property(x => x.UserName).HasMaxLength(100).HasColumnType("varchar(100)");
             builder.Property(x => x.PasswordHash).HasMaxLength(100).HasColumnType("varchar(100)");

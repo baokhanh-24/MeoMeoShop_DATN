@@ -8,7 +8,7 @@ namespace MeoMeo.EntityFrameworkCore.Configurations
     {
         public void Configure(EntityTypeBuilder<Cart> builder)
         {
-            builder.ToTable("Cart");
+            builder.ToTable("Carts");
             builder.HasKey(x => x.Id);
             builder.HasOne(x => x.Customers).WithOne(x => x.Cart).HasForeignKey<Cart>(x => x.CustomerId);
         }

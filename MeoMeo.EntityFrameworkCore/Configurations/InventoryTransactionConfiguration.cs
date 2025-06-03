@@ -8,7 +8,7 @@ namespace MeoMeo.EntityFrameworkCore.Configurations
     {
         public void Configure(EntityTypeBuilder<InventoryTransaction> builder)
         {
-            builder.ToTable("InventoryTransaction");
+            builder.ToTable("InventoryTransactions");
             builder.HasKey(x => x.Id);
             builder.Property(x => x.Note).HasMaxLength(500).HasColumnType("nvarchar(500)");
             builder.HasOne(x => x.InventoryBatch).WithMany(x => x.InventoryTransactions).HasForeignKey(x => x.InventoryBatchId);

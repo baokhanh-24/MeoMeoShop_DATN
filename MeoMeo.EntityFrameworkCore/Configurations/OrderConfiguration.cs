@@ -8,7 +8,7 @@ namespace MeoMeo.EntityFrameworkCore.Configurations
     {
         public void Configure(EntityTypeBuilder<Order> builder)
         {
-            builder.ToTable("Order");
+            builder.ToTable("Orders");
             builder.HasKey(x => x.Id);
             builder.Property(x => x.EmployeeName).HasMaxLength(100).HasColumnType("nvarchar(100)");
             builder.Property(x => x.CustomerName).HasMaxLength(100).HasColumnType("nvarchar(100)");
