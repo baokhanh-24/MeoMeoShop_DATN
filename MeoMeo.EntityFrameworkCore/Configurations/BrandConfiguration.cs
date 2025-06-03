@@ -14,7 +14,6 @@ namespace MeoMeo.EntityFrameworkCore.Configurations
             builder.Property(x => x.Code).HasMaxLength(100).HasColumnType("varchar(100)");
             builder.Property(x => x.Country).HasMaxLength(100).HasColumnType("nvarchar(100)");
             builder.Property(x => x.Description).HasMaxLength(500).HasColumnType("nvarchar(500)");
-            builder.Property(x => x.Description).HasMaxLength(500).HasColumnType("varchar(500)");
         }
     }
 }
