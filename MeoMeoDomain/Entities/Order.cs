@@ -27,5 +27,10 @@ namespace MeoMeo.Domain.Entities
         public string? Note { get; set; }
         public DateTime? CancelDate { get; set; }
         public string? Reason { get; set; }
+        public virtual Customers Customers { get; set; }
+        public virtual Employee Employee { get; set; }
+        public virtual Voucher? Voucher { get; set; }
+        public virtual DeliveryAddress? Address { get; set; }
+        public virtual ICollection<OrderDetail> OrderDetails { get; set; }
     }
 }

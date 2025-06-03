@@ -9,5 +9,6 @@ namespace MeoMeo.Domain.Entities
         public bool WaterProof { get; set; }
         public int Weight { get; set; }
         public string Description { get; set; }
+        public virtual ICollection<ProductDetailMaterial> ProductDetailMaterials { get; set; }
     }
 }

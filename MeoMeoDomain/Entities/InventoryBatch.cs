@@ -1,20 +1,17 @@
 ﻿using MeoMeo.Domain.Commons;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace MeoMeo.Domain.Entities
 {
     public class InventoryBatch : BaseEnitityAudited
     {
+        public Guid ProductDetailId { get; set; }
         public float OriginalPrice { get; set; }
         public string Code { get; set; }
         public int Quantity { get; set; }
-        public int Status { get; set; }
         public string Note { get; set; }
-
-        public Guid ProductDetailId { get; set; }
+        public int Status { get; set; }
+        public virtual ProductDetail ProductDetail { get; set; }
+        public virtual ICollection<InventoryTransaction> InventoryTransactions { get; set; }
+        public virtual ICollection<OrderDetail> OrderDetails { get; set; }
     }
 }

@@ -1,20 +1,15 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-
-namespace MeoMeo.Domain.Entities
+﻿namespace MeoMeo.Domain.Entities
 {
     public class PromotionDetail
     {
+        public Guid PromotionId { get; set; }
         public Guid Id { get; set; }
         public float Discount { get; set; }
         public string Note { get; set; }
         public DateTime CreationTime { get; set; }
         public DateTime LastModificationTime { get; set; }
-
-
-        public Guid PromotionId { get; set; }
+        public virtual Promotion Promotion { get; set; }
+        public virtual ICollection<OrderDetail> OrderDetails { get; set; }
+        public virtual ICollection<CartDetail> CartDetails { get; set; }
     }
 }

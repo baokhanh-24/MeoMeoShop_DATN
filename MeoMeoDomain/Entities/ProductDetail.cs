@@ -1,14 +1,10 @@
 ﻿using MeoMeo.Domain.Commons;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace MeoMeo.Domain.Entities
 {
     public class ProductDetail : BaseEntity
     {
+        public Guid ProductId { get; set; }
         public string Barcode { get; set; }
         public string Sku { get; set; }
         public float Price { get; set; }
@@ -19,9 +15,14 @@ namespace MeoMeo.Domain.Entities
         public int OutOfStock { get; set; }
         public bool AllowReturn { get; set; }
         public DateTime CreationTime { get; set; }
-        public DateTime LastModification { get; set; }
-
-
-        public Guid ProductId { get; set; }
+        public DateTime? LastModificationTime { get; set; }
+        public virtual Product Product { get; set; }
+        public virtual ICollection<OrderDetail> OrderDetails { get; set; }
+        public virtual ICollection<CartDetail> CartDetails { get; set; }
+        public virtual ICollection<InventoryBatch> InventoryBatches { get; set; }
+        public virtual ICollection<ProductDetailColour> ProductDetailColours { get; set; }
+        public virtual ICollection<ProductDetailSize> ProductDetailSizes { get; set; }
+        public virtual ICollection<ProductDetailMaterial> ProductDetailMaterials { get; set; }
+        public virtual ICollection<Image> Images { get; set; }
     }
 }

@@ -1,0 +1,87 @@
+﻿using MeoMeo.Domain.Entities;
+using Microsoft.EntityFrameworkCore;
+
+namespace MeoMeo.EntityFrameworkCore.Configurations.Contexts
+{
+    public class MeoMeoDbContext : DbContext
+    {
+        public MeoMeoDbContext(DbContextOptions options) : base(options)
+        {
+        }
+
+        public DbSet<Bank> banks { get; set; }
+        public DbSet<Brand> brands { get; set; }
+        public DbSet<Cart> carts { get; set; }
+        public DbSet<CartDetail> cartDetails { get; set; }
+        public DbSet<Colour> colours { get; set; }
+        public DbSet<Commune> communes { get; set; }
+        public DbSet<Customers> customers { get; set; }
+        public DbSet<CustomersBank> customersBanks { get; set; }
+        public DbSet<DeliveryAddress> deliveryAddresses { get; set; }
+        public DbSet<District> districts { get; set; }
+        public DbSet<Employee> employees { get; set; }
+        public DbSet<Image> images { get; set; }
+        public DbSet<InventoryBatch> inventoryBatches { get; set; }
+        public DbSet<InventoryTransaction> inventoryTransactions { get; set; }
+        public DbSet<Material> materials { get; set; }
+        public DbSet<Order> orders { get; set; }
+        public DbSet<OrderDetail> orderDetails { get; set; }
+        public DbSet<Product> products { get; set; }
+        public DbSet<ProductDetail> productDetails { get; set; }
+        public DbSet<ProductDetailColour> productDetailColours { get; set; }
+        public DbSet<ProductDetailMaterial> productDetailMaterials { get; set; }
+        public DbSet<ProductDetailSize> productDetailSizes { get; set; }
+        public DbSet<ProductSeason> productSeasons { get; set; }
+        public DbSet<Promotion> promotions { get; set; }
+        public DbSet<PromotionDetail> promotionDetails { get; set; }
+        public DbSet<Province> provinces { get; set; }
+        public DbSet<ResetPasswordHistory> resetPasswordHistories { get; set; }
+        public DbSet<Season> seasons { get; set; }
+        public DbSet<Size> sizes { get; set; }
+        public DbSet<SystemConfig> systemConfigs { get; set; }
+        public DbSet<User> users { get; set; }
+        public DbSet<Voucher> vouchers { get; set; }
+
+        protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
+        {
+            base.OnConfiguring(optionsBuilder);
+        }
+
+        protected override void OnModelCreating(ModelBuilder modelBuilder)
+        {
+            base.OnModelCreating(modelBuilder);
+            modelBuilder.ApplyConfiguration(new BankConfiguration());
+            modelBuilder.ApplyConfiguration(new BrandConfiguration());
+            modelBuilder.ApplyConfiguration(new CartConfiguration());
+            modelBuilder.ApplyConfiguration(new CartDetailConfiguration());
+            modelBuilder.ApplyConfiguration(new ColourConfiguration());
+            modelBuilder.ApplyConfiguration(new CommuneConfiguration());
+            modelBuilder.ApplyConfiguration(new CustomersBankConfiguration());
+            modelBuilder.ApplyConfiguration(new CustomersConfiguration());
+            modelBuilder.ApplyConfiguration(new DeliveryAddressConfiguration());
+            modelBuilder.ApplyConfiguration(new DistrictConfiguration());
+            modelBuilder.ApplyConfiguration(new EmployeeConfiguration());
+            modelBuilder.ApplyConfiguration(new ImageConfiguration());
+            modelBuilder.ApplyConfiguration(new InventoryBatchConfiguration());
+            modelBuilder.ApplyConfiguration(new InventoryTransactionConfiguration());
+            modelBuilder.ApplyConfiguration(new MaterialConfiguration());
+            modelBuilder.ApplyConfiguration(new OrderConfiguration());
+            modelBuilder.ApplyConfiguration(new OrderDetailConfiguration());
+            modelBuilder.ApplyConfiguration(new ProductConfiguration());
+            modelBuilder.ApplyConfiguration(new ProductDetailConfiguration());
+            modelBuilder.ApplyConfiguration(new ProductDetailColourConfiguration());
+            modelBuilder.ApplyConfiguration(new ProductDetailMaterialConfiguration());
+            modelBuilder.ApplyConfiguration(new ProductDetailSizeConfiguration());
+            modelBuilder.ApplyConfiguration(new ProductSeasonConfiguration());
+            modelBuilder.ApplyConfiguration(new PromotionConfiguration());
+            modelBuilder.ApplyConfiguration(new PromotionDetailConfiguration());
+            modelBuilder.ApplyConfiguration(new ProvinceConfiguration());
+            modelBuilder.ApplyConfiguration(new ResetPasswordHistoryConfiguration());
+            modelBuilder.ApplyConfiguration(new SeasonConfiguration());
+            modelBuilder.ApplyConfiguration(new SizeConfiguration());
+            modelBuilder.ApplyConfiguration(new SystemConfigConfiguration());
+            modelBuilder.ApplyConfiguration(new UserConfiguration());
+            modelBuilder.ApplyConfiguration(new VoucherConfiguration());
+        }
+    }
+}

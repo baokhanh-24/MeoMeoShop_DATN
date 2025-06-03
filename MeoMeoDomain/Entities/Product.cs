@@ -1,19 +1,14 @@
 ﻿using MeoMeo.Domain.Commons;
-using System;
-using System.Collections.Generic;
-using System.ComponentModel.DataAnnotations.Schema;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace MeoMeo.Domain.Entities
 {
     public class Product : BaseEnitityAudited
     {
+        public Guid BrandId { get; set; }
         public string Name { get; set; }
         public string Thumbnail { get; set; }
-
-        public Guid BrandId { get; set; }
-
+        public virtual Brand Brand { get; set; }
+        public virtual ICollection<ProductDetail> ProductDetails { get; set; }
+        public virtual ICollection<ProductSeason> ProductSeasons { get; set; }
     }
 }

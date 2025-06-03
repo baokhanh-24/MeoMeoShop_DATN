@@ -1,17 +1,12 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+﻿using MeoMeo.Domain.Commons;
 
 namespace MeoMeo.Domain.Entities
 {
-    public class Cart
+    public class Cart : BaseEnitityAudited
     {
-        public Guid Id { get; set; }
+        public Guid CustomerId { get; set; }
         public decimal TotalPrice { get; set; }
-        public DateTime CreationTime { get; set; }
-        public Guid CreatedBy { get; set; }
-        public DateTime LastModificationTime { get; set; }
+        public virtual ICollection<CartDetail> CartDetails { get; set; }
+        public virtual Customers Customers { get; set; }
     }
 }

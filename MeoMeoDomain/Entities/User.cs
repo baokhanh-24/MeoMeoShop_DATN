@@ -11,5 +11,8 @@ namespace MeoMeo.Domain.Entities
         public DateTime LastLogin { get; set; }
         public DateTime CreationTime { get; set; } = DateTime.Now;
         public string Email { get; set; }
+        public virtual Customers Customers { get; set; }
+        public virtual Employee Employee { get; set; }
+        public virtual ICollection<ResetPasswordHistory> ResetPasswordHistories { get; set; }
     }
 }

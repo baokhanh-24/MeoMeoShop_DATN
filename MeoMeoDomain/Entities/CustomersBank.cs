@@ -10,6 +10,7 @@ namespace MeoMeo.Domain.Entities
         public string Beneficiary { get; set; }
         public DateTime CreationTime { get; set; } = DateTime.Now;
         public DateTime? LastModifiedTime { get; set; }
-
+        public virtual Customers Customers { get; set; }
+        public virtual Bank Bank { get; set; }
     }
 }

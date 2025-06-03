@@ -2,7 +2,7 @@ using MeoMeo.Application.IServices;
 using MeoMeo.Application.Services;
 using MeoMeo.Contract;
 using MeoMeo.Domain.IRepositories;
-using MeoMeo.EntityFrameworkCore.Configurations;
+using MeoMeo.EntityFrameworkCore.Configurations.Contexts;
 using MeoMeo.EntityFrameworkCore.Repositories;
 using Microsoft.EntityFrameworkCore;
 

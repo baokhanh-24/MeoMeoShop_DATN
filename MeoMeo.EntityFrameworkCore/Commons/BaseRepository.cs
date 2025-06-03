@@ -4,7 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using MeoMeo.Domain.Commons;
-using MeoMeo.EntityFrameworkCore.Configurations;
+using MeoMeo.EntityFrameworkCore.Configurations.Contexts;
 using Microsoft.EntityFrameworkCore;
 
 namespace MeoMeo.EntityFrameworkCore.Commons

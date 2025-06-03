@@ -1,0 +1,17 @@
+﻿using MeoMeo.Domain.Entities;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Metadata.Builders;
+
+namespace MeoMeo.EntityFrameworkCore.Configurations
+{
+    public class PromotionDetailConfiguration : IEntityTypeConfiguration<PromotionDetail>
+    {
+        public void Configure(EntityTypeBuilder<PromotionDetail> builder)
+        {
+            builder.ToTable("PromotionDetail");
+            builder.HasKey(x => x.Id);
+            builder.Property(x => x.Note).HasMaxLength(1000).HasColumnType("nvarchar(1000)");
+            builder.HasOne(x => x.Promotion).WithMany(x => x.PromotionDetails).HasForeignKey(x => x.PromotionId);
+        }
+    }
+}

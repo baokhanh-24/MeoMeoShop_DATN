@@ -2,7 +2,7 @@
 using MeoMeo.Domain.Entities;
 using MeoMeo.Domain.IRepositories;
 using MeoMeo.EntityFrameworkCore.Commons;
-using MeoMeo.EntityFrameworkCore.Configurations;
+using MeoMeo.EntityFrameworkCore.Configurations.Contexts;
 using Microsoft.EntityFrameworkCore;
 using System;
 using System.Collections.Generic;

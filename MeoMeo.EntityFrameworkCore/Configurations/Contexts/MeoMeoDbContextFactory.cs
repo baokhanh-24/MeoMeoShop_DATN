@@ -8,7 +8,7 @@ using System.Text;
 using System.Threading.Tasks;
 
 
-namespace MeoMeo.EntityFrameworkCore.Configurations
+namespace MeoMeo.EntityFrameworkCore.Configurations.Contexts
 {
     public class MeoMeoDbContextFactory : IDesignTimeDbContextFactory<MeoMeoDbContext>
     {
