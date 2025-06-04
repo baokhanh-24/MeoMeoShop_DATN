@@ -8,7 +8,7 @@ namespace MeoMeo.Domain.Entities
         public string Name { get; set; }
         public int Type { get; set; }
         public string URL { get; set; }
-        public string Status { get; set; }
+        public int Status { get; set; }
         public virtual ProductDetail ProductDetail { get; set; }
     }
 }

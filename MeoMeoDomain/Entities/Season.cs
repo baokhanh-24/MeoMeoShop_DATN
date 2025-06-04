@@ -6,7 +6,7 @@ namespace MeoMeo.Domain.Entities
     {
         public string Name { get; set; }
         public string Description { get; set; }
-        public string Status { get; set; }
+        public int Status { get; set; }
         public virtual ICollection<ProductSeason> ProductSeasons { get; set; }
     }
 }

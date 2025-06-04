@@ -17,7 +17,7 @@ namespace MeoMeo.Domain.Entities
         public bool AllowReturn { get; set; }
         public DateTime CreationTime { get; set; }
         public DateTime? LastModificationTime { get; set; }
-        public string Status { get; set; }
+        public int Status { get; set; }
         public virtual Product Product { get; set; }
         public virtual ICollection<OrderDetail> OrderDetails { get; set; }
         public virtual ICollection<CartDetail> CartDetails { get; set; }
