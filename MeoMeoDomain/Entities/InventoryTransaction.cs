@@ -1,4 +1,6 @@
-﻿namespace MeoMeo.Domain.Entities
+﻿using MeoMeo.Domain.Commons.Enums;
+
+namespace MeoMeo.Domain.Entities
 {
     public class InventoryTransaction
     {
@@ -7,7 +9,7 @@
         public int Quantity { get; set; }
         public DateTime CreationTime { get; set; }
         public int CreateBy { get; set; }
-        public int Type { get; set; }
+        public EInventoryTranctionType Type { get; set; }
         public string Note { get; set; }
         public virtual InventoryBatch InventoryBatch { get; set; }
     }

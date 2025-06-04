@@ -1,4 +1,5 @@
 ﻿using MeoMeo.Domain.Commons;
+using MeoMeo.Domain.Commons.Enums;
 
 namespace MeoMeo.Domain.Entities
 {
@@ -8,7 +9,7 @@ namespace MeoMeo.Domain.Entities
         public DateTime StartDate { get; set; }
         public DateTime EndDate { get; set; }
         public string Description { get; set; }
-        public int Status { get; set; }
+        public EPromotionStatus Status { get; set; }
         public virtual ICollection<PromotionDetail> PromotionDetails { get; set; }
     }
 }

@@ -8,6 +8,7 @@ namespace MeoMeo.Domain.Entities
         public Guid BankId { get; set; }
         public string AccountNumber { get; set; }
         public string Beneficiary { get; set; }
+        public string Status { get; set; }
         public DateTime CreationTime { get; set; } = DateTime.Now;
         public DateTime? LastModifiedTime { get; set; }
         public virtual Customers Customers { get; set; }

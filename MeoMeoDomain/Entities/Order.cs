@@ -1,4 +1,5 @@
 ﻿using MeoMeo.Domain.Commons;
+using MeoMeo.Domain.Commons.Enums;
 
 namespace MeoMeo.Domain.Entities
 {
@@ -16,17 +17,18 @@ namespace MeoMeo.Domain.Entities
         public string? EmployeeEmail { get; set; }
         public string? CustomerEmail { get; set; }
         public Decimal TotalPrice { get; set; }
-        public int PaymentMethod { get; set; }
+        public EOrderPaymentMethod PaymentMethod { get; set; }
         public string? DeliveryAddress { get; set; }
         public DateTime? DeliveryDate { get; set; }
         public DateTime? ReceiveDate { get; set; }
         public DateTime? ExpectReceiveDate { get; set; }
-        public int Type { get; set; }
+        public EOrderType Type { get; set; }
         public DateTime CreationTime { get; set; } = DateTime.Now;
         public DateTime? LastModifiedTime { get; set; }
         public string? Note { get; set; }
         public DateTime? CancelDate { get; set; }
         public string? Reason { get; set; }
+        public EOrderStatus Status { get; set; }
         public virtual Customers Customers { get; set; }
         public virtual Employee Employee { get; set; }
         public virtual Voucher? Voucher { get; set; }

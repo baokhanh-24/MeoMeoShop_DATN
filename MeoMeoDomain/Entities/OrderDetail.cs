@@ -1,4 +1,5 @@
 ﻿using MeoMeo.Domain.Commons;
+using MeoMeo.Domain.Commons.Enums;
 
 namespace MeoMeo.Domain.Entities
 {
@@ -15,6 +16,7 @@ namespace MeoMeo.Domain.Entities
         public float Discount { get; set; }
         public string Note { get; set; }
         public string Image { get; set; }
+        public EOrderStatus Status { get; set; }
         public virtual Order Order { get; set; }
         public virtual ProductDetail ProductDetail { get; set; }
         public virtual PromotionDetail PromotionDetail { get; set; }

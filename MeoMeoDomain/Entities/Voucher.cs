@@ -1,4 +1,5 @@
 ﻿using MeoMeo.Domain.Commons;
+using MeoMeo.Domain.Commons.Enums;
 
 namespace MeoMeo.Domain.Entities
 {
@@ -8,7 +9,7 @@ namespace MeoMeo.Domain.Entities
         public string Code { get; set; }
         public DateTime StartDate { get; set; }
         public DateTime EndDate { get; set; }
-        public int Type { get; set; }
+        public EVoucherType Type { get; set; }
         public Decimal MinOrder { get; set; }
         public float MaxDiscount { get; set; }
         public int? MaxTotalUse { get; set; }

@@ -1,4 +1,5 @@
 ﻿using MeoMeo.Domain.Commons;
+using MeoMeo.Domain.Commons.Enums;
 
 namespace MeoMeo.Domain.Entities
 {
@@ -9,13 +10,14 @@ namespace MeoMeo.Domain.Entities
         public string Sku { get; set; }
         public float Price { get; set; }
         public string Description { get; set; }
-        public int Gender { get; set; }
+        public EProductDetailGender Gender { get; set; }
         public float StockHeight { get; set; }
         public float ShoeLength { get; set; }
         public int OutOfStock { get; set; }
         public bool AllowReturn { get; set; }
         public DateTime CreationTime { get; set; }
         public DateTime? LastModificationTime { get; set; }
+        public string Status { get; set; }
         public virtual Product Product { get; set; }
         public virtual ICollection<OrderDetail> OrderDetails { get; set; }
         public virtual ICollection<CartDetail> CartDetails { get; set; }
