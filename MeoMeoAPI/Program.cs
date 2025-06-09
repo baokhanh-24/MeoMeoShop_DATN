@@ -22,6 +22,15 @@ builder.Services.AddDbContext<MeoMeoDbContext>(options =>
 builder.Services.AddScoped<IProductRepository, ProductRepository>();
 builder.Services.AddScoped<IProductServices, ProductService>();
 
+builder.Services.AddScoped<IPromotionRepository, PromotionRepository>();
+builder.Services.AddScoped<IPromotionServices, PromotionServices>();
+
+builder.Services.AddScoped<IPromotionDetailRepository, PromotionDetailRepository>();
+builder.Services.AddScoped<IPromotionDetailServices, PromotionDetailServices>();
+
+builder.Services.AddScoped<IVoucherRepository, VoucherRepository>();
+builder.Services.AddScoped<IVoucherServices, VoucherServices>();
+
 builder.Services.AddAutoMapper(typeof(MeoMeoAutoMapperProfile));
 
 
