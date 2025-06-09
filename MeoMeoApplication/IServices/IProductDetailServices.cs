@@ -8,11 +8,13 @@ using System.Threading.Tasks;
 
 namespace MeoMeo.Application.IServices
 {
-    public interface IProductServices
+    public interface IProductDetailServices
     {
-        Task<Product> GetProductAsync(Guid id);
-        Task<Product> CreateProductAsync(CreateOrUpdateProductDTO product);
-        Task UpdateAsync(Product model);
+        Task<IEnumerable<ProductDetail>> GetProductDetails();
+        Task<ProductDetail?> GetByIdAsync(Guid id);
+        Task AddAsync(ProductDetail entity);
+        Task UpdateAsync(ProductDetail entity);
         Task DeleteAsync(Guid id);
+        
     }
 }

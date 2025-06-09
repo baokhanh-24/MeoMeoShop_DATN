@@ -1,5 +1,6 @@
 ﻿using MeoMeo.Application.IServices;
 using MeoMeo.Contract.DTOs;
+using MeoMeo.Domain.Entities;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 
@@ -28,6 +29,20 @@ namespace MeoMeo.API.Controllers
         {
             var result = await _productServices.CreateProductAsync(product);
             return Ok(result);
+        }
+        [HttpPut("{id}")]
+        public async Task<IActionResult> Update(Guid id, Product model)
+        {
+            if (id != model.Id) return BadRequest();
+            await _productServices.UpdateAsync(model);
+            return Ok();
+        }
+
+        [HttpDelete("{id}")]
+        public async Task<IActionResult> Delete(Guid id)
+        {
+            await _productServices.DeleteAsync(id);
+            return Ok();
         }
     }
 }

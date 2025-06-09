@@ -33,5 +33,30 @@ namespace MeoMeo.Application.Services
         {
             return _repository.GetProductAsync(id);
         }
+        public async Task<IEnumerable<Product>> GetAllAsync()
+        {
+            return await _repository.GetAllAsync();
+        }
+
+        public async Task<Product?> GetByIdAsync(Guid id)
+        {
+            return await _repository.GetByIdAsync(id);
+        }
+
+        public async Task AddAsync(Product entity)
+        {
+            await _repository.AddAsync(entity);
+        }
+
+        public async Task UpdateAsync(Product entity)
+        {
+            await _repository.UpdateAsync(entity);
+        }
+
+        public async Task DeleteAsync(Guid id)
+        {
+            await _repository.DeleteAsync(id);
+        }
     }
 }
+

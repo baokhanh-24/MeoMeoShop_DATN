@@ -23,5 +23,33 @@ namespace MeoMeo.EntityFrameworkCore.Repositories
              var product = await GetByIdAsync(id);
             return product;
         }
+        public async Task<IEnumerable<Product>> GetAllAsync()
+        {
+            return await _context.products.ToListAsync();
+        }
+        public async Task<Product?> GetByIdAsnyc (Guid id)
+        {
+            return await _context.products.FindAsync(id);
+        }
+        public async Task AddAsync(Product entity)
+        {
+            await _context.products.AddAsync(entity);
+            await _context.SaveChangesAsync();
+        }
+        public async Task UpdateAsync(Product entity)
+        {
+            _context.products.Update(entity);
+            await _context.SaveChangesAsync();
+        }
+        public async Task DeleteAsync(Guid id)
+        {
+            var product = await _context.products.FindAsync(id);
+            if (product != null)
+            {
+                _context.products.Remove(product);
+                await _context.SaveChangesAsync();
+            }
+        }
+
     }
 }
