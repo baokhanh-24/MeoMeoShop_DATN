@@ -22,6 +22,22 @@ builder.Services.AddDbContext<MeoMeoDbContext>(options =>
 builder.Services.AddScoped<IProductRepository, ProductRepository>();
 builder.Services.AddScoped<IProductServices, ProductService>();
 
+builder.Services.AddScoped<IIventoryBtachReposiory, InventoryBatchRepository>();
+builder.Services.AddScoped<IInventoryBatchServices, InventoryBatchService>();
+
+builder.Services.AddScoped<IInventoryTranSactionRepository, InventoryTranSactionRepository>();
+builder.Services.AddScoped<IIventoryTranSactionServices, InventoryTranSactionService>();
+
+builder.Services.AddScoped<IProductSeasonRepository, ProductSeasonRepository>();
+builder.Services.AddScoped<IProductSeasonServices, ProductSeasonService>();
+
+builder.Services.AddScoped<ISeasonRepository, SeasonRepository>();
+builder.Services.AddScoped<ISeasonServices, SeasonService>();
+
+builder.Services.AddScoped<IBrandRepository, BrandRepository>();
+builder.Services.AddScoped<IBrandServices, BrandService>();
+
+
 builder.Services.AddAutoMapper(typeof(MeoMeoAutoMapperProfile));
 
 
