@@ -5,6 +5,7 @@ using MeoMeo.Domain.IRepositories;
 using MeoMeo.EntityFrameworkCore.Configurations.Contexts;
 using MeoMeo.EntityFrameworkCore.Repositories;
 using Microsoft.EntityFrameworkCore;
+using System.Text.Json.Serialization;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -21,9 +22,19 @@ builder.Services.AddDbContext<MeoMeoDbContext>(options =>
 
 builder.Services.AddScoped<IProductRepository, ProductRepository>();
 builder.Services.AddScoped<IProductServices, ProductService>();
-
+builder.Services.AddScoped<ICartRepository, CartRepository>();
+builder.Services.AddScoped<ICartDetaillRepository, CartDetaillRepository>();
+builder.Services.AddScoped<IImageRepository, ImageRepository>();
+builder.Services.AddScoped<IColourRepository,  ColourRepository>();
+builder.Services.AddScoped<IProductDetaillColourRepository, ProductDetaillColourRepository>();
+builder.Services.AddScoped<IProductDetaillSizeRepository, ProductDetaillSizeRepository>();
+builder.Services.AddScoped<ISizeRepository, SizeRepository>();
 builder.Services.AddAutoMapper(typeof(MeoMeoAutoMapperProfile));
-
+builder.Services.AddControllers().AddJsonOptions(options =>
+{
+    options.JsonSerializerOptions.ReferenceHandler = ReferenceHandler.Preserve;
+    options.JsonSerializerOptions.WriteIndented = true;
+});
 
 var app = builder.Build();
 
