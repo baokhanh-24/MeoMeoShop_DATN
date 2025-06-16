@@ -26,24 +26,21 @@ namespace MeoMeo.Application.Services
         {
             var mappedPromotion = _mapper.Map<Promotion>(promotion);
             mappedPromotion.Id = Guid.NewGuid();
-            return await _repository.AddAsync(mappedPromotion);
+            return await _repository.CreatePromotionAsync(mappedPromotion);
         }
 
         public async Task<bool> DeletePromotionAsync(Guid id)
         {
 
-            var lstAllPromotion = await _repository.GetAllAsync();
-
-            var promotionToDelete = lstAllPromotion.FirstOrDefault(x => x.Id == id);
+            var promotionToDelete = await _repository.GetPromotionByIdAsync(id);
 
             if (promotionToDelete == null)
             {
                 return false;
             }
 
-            var result = await _repository.DeletePromotionAsync(promotionToDelete);
-
-            return result;
+            await _repository.DeletePromotionAsync(promotionToDelete.Id);
+            return true;
 
         }
 
@@ -54,22 +51,17 @@ namespace MeoMeo.Application.Services
 
         public async Task<Promotion> GetPromotionByIdAsync(Guid id)
         {
-            return await _repository.GetPromotionAsync(id);
+            return await _repository.GetPromotionByIdAsync(id);
         }
 
         public async Task<Promotion> UpdatePromotionAsync(CreateOrUpdatePromotionDTO promotion)
         {
-            Promotion promotionDB = new Promotion();
+            Promotion promotionCheck = new Promotion();
 
-            promotionDB.Id = promotion.Id;
-            promotionDB.Title = promotion.Title;
-            promotionDB.StartDate = promotion.StartDate;
-            promotionDB.EndDate = promotion.EndDate;
-            promotionDB.Description = promotion.Description;
-            promotionDB.Status = promotion.Status;
+            promotionCheck = _mapper.Map<Promotion>(promotion);
 
+            var result = await _repository.UpdatePromotionAsync(promotionCheck);
 
-            var result = await _repository.UpdatePromotionAsync(promotionDB);
             return result;
         }
     }

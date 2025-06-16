@@ -10,9 +10,10 @@ namespace MeoMeo.Domain.IRepositories
 {
     public interface IVoucherRepository : IBaseRepository<Voucher>
     {
+        Task<Voucher> CreateVoucherAsync(Voucher voucher);
         Task<List<Voucher>> GetAllVoucherAsync();
         Task<Voucher> GetVoucherByIdAsync(Guid id);
         Task<Voucher> UpdateVoucherAsync(Voucher voucher);
-        Task<bool> DeleteVoucherAsync(Voucher voucher);
+        Task<bool> DeleteVoucherAsync(Guid id);
     }
 }

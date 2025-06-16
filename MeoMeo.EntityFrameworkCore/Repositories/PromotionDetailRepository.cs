@@ -17,28 +17,15 @@ namespace MeoMeo.EntityFrameworkCore.Repositories
         {
         }
 
-        public async Task<List<PromotionDetail>> CreatePromotionDetailAsync(PromotionDetail promotionDetail)
+        public async Task<PromotionDetail> CreatePromotionDetailAsync(PromotionDetail promotionDetail)
         {
-            var promotionDetailAdded = _context.promotionDetails.Add(promotionDetail);
-
-            await _context.SaveChangesAsync();
-
-            return await _context.promotionDetails.ToListAsync();
+            var promotionDetailAdded = await AddAsync(promotionDetail);
+            return promotionDetailAdded;
         }
 
-        public async Task<bool> DeletePromotionDetailAsync(PromotionDetail promotionDetail)
+        public async Task<bool> DeletePromotionDetailAsync(Guid id)
         {
-            try
-            {
-                var promotionDetailDeleted = _context.promotionDetails.Remove(promotionDetail);
-
-                await _context.SaveChangesAsync();
-            }
-            catch (Exception)
-            {
-
-                throw;
-            }
+            await DeleteAsync(id);
             return true;
         }
 
@@ -56,11 +43,8 @@ namespace MeoMeo.EntityFrameworkCore.Repositories
 
         public async Task<PromotionDetail> UpdatePromotionDetailAsync(PromotionDetail promotionDetail)
         {
-            var promotionDetailUpdated = _context.promotionDetails.Update(promotionDetail);
-
-            await _context.SaveChangesAsync();
-
-            return promotionDetail;
+            var promotionDetailUpdated = await UpdateAsync(promotionDetail);
+            return promotionDetailUpdated;
         }
     }
 }

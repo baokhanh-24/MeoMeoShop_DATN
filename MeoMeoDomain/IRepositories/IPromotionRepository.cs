@@ -10,9 +10,10 @@ namespace MeoMeo.Domain.IRepositories
 {
     public interface IPromotionRepository : IBaseRepository<Promotion>
     {
+        Task<Promotion> CreatePromotionAsync(Promotion promotion);
         Task<List<Promotion>> GetAllPromotionAsync();
-        Task<Promotion> GetPromotionAsync(Guid id);
+        Task<Promotion> GetPromotionByIdAsync(Guid id);
         Task<Promotion> UpdatePromotionAsync(Promotion promotion);
-        Task<bool> DeletePromotionAsync(Promotion promotion);
+        Task<bool> DeletePromotionAsync(Guid id);
     }
 }

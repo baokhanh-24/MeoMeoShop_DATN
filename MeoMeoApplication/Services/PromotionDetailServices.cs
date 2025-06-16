@@ -22,35 +22,24 @@ namespace MeoMeo.Application.Services
             _mapper = mapper;
         }
 
-        public async Task<List<PromotionDetail>> CreatePromotionDetailAsync(CreateOrUpdatePromotionDetailDTO promotionDetail)
+        public async Task<PromotionDetail> CreatePromotionDetailAsync(CreateOrUpdatePromotionDetailDTO promotionDetail)
         {
-            PromotionDetail promotionDetailDB = new PromotionDetail();
-
-            promotionDetailDB.PromotionId = promotionDetail.PromotionId;
-            promotionDetailDB.Discount = promotionDetail.Discount;
-            promotionDetailDB.Note = promotionDetail.Note;
-            promotionDetailDB.CreationTime = promotionDetail.CreationTime;
-            promotionDetailDB.LastModificationTime = promotionDetail.LastModificationTime;
-
-
-            var result = await _repository.CreatePromotionDetailAsync(promotionDetailDB);
-            return result;
+            var mappedPromotionDetail = _mapper.Map<PromotionDetail>(promotionDetail);
+            mappedPromotionDetail.Id = Guid.NewGuid();
+            return await _repository.CreatePromotionDetailAsync(mappedPromotionDetail);
         }
 
         public async Task<bool> DeletePromotionDetailAsync(Guid id)
         {
-            var lstAllPromotionDetail = await _repository.GetAllAsync();
-
-            var promotionDetailToDelete = lstAllPromotionDetail.FirstOrDefault(x => x.Id == id);
+            var promotionDetailToDelete = await _repository.GetPromotionDetailByIdAsync(id);
 
             if (promotionDetailToDelete == null)
             {
                 return false;
             }
 
-            var result = await _repository.DeletePromotionDetailAsync(promotionDetailToDelete);
-
-            return result;
+            await _repository.DeletePromotionDetailAsync(promotionDetailToDelete.Id);
+            return true;
         }
 
         public async Task<List<PromotionDetail>> GetAllPromotionDetailAsync()
@@ -65,17 +54,12 @@ namespace MeoMeo.Application.Services
 
         public async Task<PromotionDetail> UpdatePromotionDetailAsync(CreateOrUpdatePromotionDetailDTO promotionDetail)
         {
-            PromotionDetail promotionDetailDB = new PromotionDetail();
+            PromotionDetail promotionDetailCheck = new PromotionDetail();
 
-            promotionDetailDB.Id = promotionDetail.Id;
-            promotionDetailDB.PromotionId = promotionDetail.PromotionId;
-            promotionDetailDB.Discount = promotionDetail.Discount;
-            promotionDetailDB.Note = promotionDetail.Note;
-            promotionDetailDB.CreationTime = promotionDetail.CreationTime;
-            promotionDetailDB.LastModificationTime = promotionDetail.LastModificationTime;
-            
+            promotionDetailCheck = _mapper.Map<PromotionDetail>(promotionDetail);
 
-            var result = await _repository.UpdatePromotionDetailAsync(promotionDetailDB);
+            var result = await _repository.UpdatePromotionDetailAsync(promotionDetailCheck);
+
             return result;
         }
     }

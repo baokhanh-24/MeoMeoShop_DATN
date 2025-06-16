@@ -7,14 +7,17 @@ using System.Threading.Tasks;
 
 namespace MeoMeo.Contract.DTOs
 {
-    public class CreateOrUpdatePromotionDTO
+    public class CreateOrUpdateCustomerDTO
     {
         public Guid Id { get; set; }
-        public string Title { get; set; }
-        public DateTime StartDate { get; set; }
-        public DateTime EndDate { get; set; }
-        public string Description { get; set; }
-        public EPromotionStatus Status { get; set; }
+        public Guid UserId { get; set; }
+        public string Name { get; set; }
+        public string Code { get; set; }
+        public string PhoneNumber { get; set; }
+        public DateTime? DateOfBirth { get; set; }
+        public string? TaxCode { get; set; }
+        public string? Address { get; set; }
+        public ECustomerStatus Status { get; set; }
         public DateTime CreationTime { get; set; } = DateTime.Now;
         public DateTime? LastModificationTime { get; set; }
         public Guid CreatedBy { get; set; }

@@ -4,6 +4,7 @@ using MeoMeo.Contract.DTOs;
 using MeoMeo.Domain.Commons.Enums;
 using MeoMeo.Domain.Entities;
 using MeoMeo.Domain.IRepositories;
+using Microsoft.EntityFrameworkCore;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -27,23 +28,20 @@ namespace MeoMeo.Application.Services
         {
             var mappedVoucher = _mapper.Map<Voucher>(voucher);
             mappedVoucher.Id = Guid.NewGuid();
-            return await _repository.AddAsync(mappedVoucher);
+            return await _repository.CreateVoucherAsync(mappedVoucher);
         }
 
         public async Task<bool> DeleteVoucherAsync(Guid id)
         {
-            var lstAllVoucher = await _repository.GetAllAsync();
-
-            var voucherToDelete = lstAllVoucher.FirstOrDefault(x => x.Id == id);
+            var voucherToDelete = await _repository.GetVoucherByIdAsync(id);
 
             if (voucherToDelete == null)
             {
                 return false;
             }
 
-            var result = await _repository.DeleteVoucherAsync(voucherToDelete);
-
-            return result;
+            await _repository.DeleteVoucherAsync(voucherToDelete.Id);
+            return true;
         }
 
         public async Task<List<Voucher>> GetAllVoucherAsync()
@@ -58,21 +56,12 @@ namespace MeoMeo.Application.Services
 
         public async Task<Voucher> UpdateVoucherAsync(CreateOrUpdateVoucherDTO voucher)
         {
-            Voucher voucherDB = new Voucher();
+            Voucher voucherCheck = new Voucher();
 
-            voucherDB.Id = voucher.Id;
-            voucherDB.Discount = voucher.Discount;
-            voucherDB.Code = voucher.Code;
-            voucherDB.StartDate = voucher.StartDate;
-            voucherDB.EndDate = voucher.EndDate;
-            voucherDB.Type = voucher.Type;
-            voucherDB.MinOrder = voucher.MinOrder;
-            voucherDB.MaxDiscount = voucher.MaxDiscount;
-            voucherDB.MaxTotalUse = voucher.MaxTotalUse;
-            voucherDB.MaxTotalUsePerCustomer = voucher.MaxTotalUsePerCustomer;
+            voucherCheck = _mapper.Map<Voucher>(voucher);
 
+            var result = await _repository.UpdateVoucherAsync(voucherCheck);
 
-            var result = await _repository.UpdateVoucherAsync(voucherDB);
             return result;
         }
     }

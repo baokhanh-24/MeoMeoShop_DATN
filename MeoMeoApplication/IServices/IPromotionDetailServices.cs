@@ -12,7 +12,7 @@ namespace MeoMeo.Application.IServices
     {
         Task<List<PromotionDetail>> GetAllPromotionDetailAsync();
         Task<PromotionDetail> GetPromotionDetailByIdAsync(Guid id);
-        Task<List<PromotionDetail>> CreatePromotionDetailAsync(CreateOrUpdatePromotionDetailDTO promotionDetail);
+        Task<PromotionDetail> CreatePromotionDetailAsync(CreateOrUpdatePromotionDetailDTO promotionDetail);
         Task<PromotionDetail> UpdatePromotionDetailAsync(CreateOrUpdatePromotionDetailDTO promotionDetail);
         Task<bool> DeletePromotionDetailAsync(Guid id);
     }

@@ -25,30 +25,30 @@ namespace MeoMeo.API.Controllers
         }
 
         [HttpGet("find-voucher-by-id-async/{id}")]
-        public async Task<IActionResult> GetVoucherById(Guid id)
+        public async Task<IActionResult> GetVoucherByIdAsync(Guid id)
         {
             var result = await _voucherServices.GetVoucherByIdAsync(id);
             return Ok(result);
         }
 
         [HttpPost("create-voucher-async")]
-        public async Task<IActionResult> CreateVoucher([FromBody] CreateOrUpdateVoucherDTO voucher)
+        public async Task<IActionResult> CreateVoucherAsync([FromBody] CreateOrUpdateVoucherDTO voucher)
         {
             var result = await _voucherServices.CreateVoucherAsync(voucher);
             return Ok(result);
         }
 
         [HttpDelete("delete-voucher-async/{id}")]
-        public async Task<IActionResult> DeleteVoucher(Guid id)
+        public async Task<IActionResult> DeleteVoucherAsync(Guid id)
         {
             var result = await _voucherServices.DeleteVoucherAsync(id);
             return Ok(result);
         }
 
-        [HttpPut("update-promotion-async")]
-        public async Task<IActionResult> UpdatePromotion([FromBody] CreateOrUpdateVoucherDTO voucher)
+        [HttpPut("update-voucher-async/{id}")]
+        public async Task<IActionResult> UpdateVoucherAsync(Guid id,[FromBody] CreateOrUpdateVoucherDTO voucher)
         {
-            var result = await _voucherServices.UpdateVoucherAsync(voucher);
+            var result = await _voucherServices.UpdateVoucherAsync( voucher);
             return Ok(result);
         }
     }

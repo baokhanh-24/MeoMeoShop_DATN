@@ -25,28 +25,28 @@ namespace MeoMeo.API.Controllers
         }
 
         [HttpGet("find-promotion-detail-by-id-async/{id}")]
-        public async Task<IActionResult> GetPromotionDetailById(Guid id)
+        public async Task<IActionResult> GetPromotionDetailByIdAsync(Guid id)
         {
             var result = await _promotionDetailServices.GetPromotionDetailByIdAsync(id);
             return Ok(result);
         }
 
         [HttpPost("create-promotion-detail-async")]
-        public async Task<IActionResult> CreatePromotionDetail([FromBody] CreateOrUpdatePromotionDetailDTO promotionDetail)
+        public async Task<IActionResult> CreatePromotionDetailAsync([FromBody] CreateOrUpdatePromotionDetailDTO promotionDetail)
         {
             var result = await _promotionDetailServices.CreatePromotionDetailAsync(promotionDetail);
             return Ok(result);
         }
 
         [HttpDelete("delete-promotion-detail-async/{id}")]
-        public async Task<IActionResult> DeletePromotionDetail(Guid id)
+        public async Task<IActionResult> DeletePromotionDetailAsync(Guid id)
         {
             var result = await _promotionDetailServices.DeletePromotionDetailAsync(id);
             return Ok(result);
         }
 
-        [HttpPut("update-promotion-detail-async")]
-        public async Task<IActionResult> UpdatePromotionDetail([FromBody] CreateOrUpdatePromotionDetailDTO promotionDetail)
+        [HttpPut("update-promotion-detail-async/{id}")]
+        public async Task<IActionResult> UpdatePromotionDetailAsync(Guid id,[FromBody] CreateOrUpdatePromotionDetailDTO promotionDetail)
         {
             var result = await _promotionDetailServices.UpdatePromotionDetailAsync(promotionDetail);
             return Ok(result);

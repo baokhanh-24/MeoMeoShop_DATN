@@ -16,19 +16,15 @@ namespace MeoMeo.EntityFrameworkCore.Repositories
         {
         }
 
-        public async Task<bool> DeleteVoucherAsync(Voucher voucher)
+        public async Task<Voucher> CreateVoucherAsync(Voucher voucher)
         {
-            try
-            {
-                var voucherDeleted = _context.vouchers.Remove(voucher);
+            var voucherAdded = await AddAsync(voucher);
+            return voucherAdded;    
+        }
 
-                await _context.SaveChangesAsync();
-            }
-            catch (Exception)
-            {
-
-                throw;
-            }
+        public async Task<bool> DeleteVoucherAsync(Guid id)
+        {
+            await DeleteAsync(id);
             return true;
         }
 
@@ -46,11 +42,8 @@ namespace MeoMeo.EntityFrameworkCore.Repositories
 
         public async Task<Voucher> UpdateVoucherAsync(Voucher voucher)
         {
-            var voucherUpdated = _context.vouchers.Update(voucher);
-
-            await _context.SaveChangesAsync();
-
-            return voucher;
+            var voucherUpdated = await UpdateAsync(voucher);
+            return voucherUpdated;
         }
     }
 }

@@ -9,7 +9,7 @@ namespace MeoMeo.Contract.DTOs
 {
     public class CreateOrUpdateVoucherDTO
     {
-        public Guid Id { get; set; }
+        public Guid? Id { get; set; }
         public float Discount { get; set; }
         public string Code { get; set; }
         public DateTime StartDate { get; set; }
@@ -19,5 +19,9 @@ namespace MeoMeo.Contract.DTOs
         public float MaxDiscount { get; set; }
         public int? MaxTotalUse { get; set; }
         public int? MaxTotalUsePerCustomer { get; set; }
+        public DateTime CreationTime { get; set; } = DateTime.Now;
+        public DateTime? LastModificationTime { get; set; }
+        public Guid CreatedBy { get; set; }
+        public Guid? UpdatedBy { get; set; }
     }
 }

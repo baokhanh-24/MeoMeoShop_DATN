@@ -16,19 +16,15 @@ namespace MeoMeo.EntityFrameworkCore.Repositories
         {
         }
 
-        public async Task<bool> DeletePromotionAsync(Promotion promotion)
+        public async Task<Promotion> CreatePromotionAsync(Promotion promotion)
         {
-            try
-            {
-                var promotionDeleted = _context.promotions.Remove(promotion);
+            var promotionAdded = await AddAsync(promotion);
+            return promotionAdded;
+        }
 
-                await _context.SaveChangesAsync();
-            }
-            catch (Exception)
-            {
-
-                throw;
-            }
+        public async Task<bool> DeletePromotionAsync(Guid id)
+        {
+            await DeleteAsync(id);
             return true;
         }
 
@@ -38,7 +34,7 @@ namespace MeoMeo.EntityFrameworkCore.Repositories
             return getAllPromotion.ToList();
         }
 
-        public async Task<Promotion> GetPromotionAsync(Guid id)
+        public async Task<Promotion> GetPromotionByIdAsync(Guid id)
         {
             var promotion = await GetByIdAsync(id);
             return promotion;
@@ -46,11 +42,8 @@ namespace MeoMeo.EntityFrameworkCore.Repositories
 
         public async Task<Promotion> UpdatePromotionAsync(Promotion promotion)
         {
-            var promotionUpdated = _context.promotions.Update(promotion);
-
-            await _context.SaveChangesAsync();
-
-            return promotion;
+            var promotionUpdated = await UpdateAsync(promotion);
+            return promotionUpdated;
         }
     }
 }

@@ -31,6 +31,24 @@ builder.Services.AddScoped<IPromotionDetailServices, PromotionDetailServices>();
 builder.Services.AddScoped<IVoucherRepository, VoucherRepository>();
 builder.Services.AddScoped<IVoucherServices, VoucherServices>();
 
+builder.Services.AddScoped<IUserRepository, UserRepository>();
+builder.Services.AddScoped<IUserServices, UserServices>();
+
+builder.Services.AddScoped<IEmployeeRepository, EmployeeRepository>();
+builder.Services.AddScoped<IEmployeeServices, EmployeeServices>();
+
+builder.Services.AddScoped<ICustomerRepository, CustomerRepository>();
+builder.Services.AddScoped<ICustomerServices, CustomerServices>();
+
+builder.Services.AddScoped<IResetPasswordHistoryRepository, ResetPasswordHistoryRepository>();
+builder.Services.AddScoped<IResetPasswordHistoryServices, ResetPasswordHistoryServices>();
+
+builder.Services.AddScoped<IBankRepository, BankRepository>();
+builder.Services.AddScoped<IBankServices, BankServices>();
+
+builder.Services.AddScoped<ICustomersBankRepository, CustomersBankRepository>();
+builder.Services.AddScoped<ICustomersBankServices, CustomersBankServices>();
+
 builder.Services.AddAutoMapper(typeof(MeoMeoAutoMapperProfile));
 
 
