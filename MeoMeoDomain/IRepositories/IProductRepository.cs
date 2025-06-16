@@ -10,6 +10,11 @@ namespace MeoMeo.Domain.IRepositories
 {
     public interface IProductRepository : IBaseRepository<Product>
     {
-       public Task<Product> GetProductAsync(Guid id);
+       
+       public Task<IEnumerable<Product>> GetAllProductAsync();
+        public Task<Product> GetProductByIdAsync(Guid id);
+       public Task<Product> AddProductAsync(Product entity);
+       public Task<Product> UpdateProductAsync(Product entity);
+        public Task<bool> DeleteProductAsync(Guid id);
     }
 }

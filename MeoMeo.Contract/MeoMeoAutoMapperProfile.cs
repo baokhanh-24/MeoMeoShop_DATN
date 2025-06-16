@@ -14,6 +14,7 @@ namespace MeoMeo.Contract
         public MeoMeoAutoMapperProfile()
         {
             CreateMap<CreateOrUpdateProductDTO, Product>();
+            CreateMap<CreateOrUpdateProductDetailDTO, ProductDetail>();
         }
         
     }

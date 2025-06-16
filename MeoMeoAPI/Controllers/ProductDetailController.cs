@@ -1,4 +1,5 @@
 ﻿using MeoMeo.Application.IServices;
+using MeoMeo.Application.Services;
 using MeoMeo.Contract.DTOs;
 using MeoMeo.Domain.Entities;
 using Microsoft.AspNetCore.Http;
@@ -16,44 +17,54 @@ namespace MeoMeo.API.Controllers
         {
             _productdetailservices = productdetailservices;
         }
-        [HttpGet]
+        [HttpGet()]
         public async Task<IActionResult> GetAll()
         {
-            var result = await _productdetailservices.GetAllAsync();
-            return Ok(result);
+            var productDetails = await _productdetailservices.GetProductDetailAllAsync();
+            return Ok(productDetails);
         }
 
-        [HttpGet("{id}")]
+        [HttpGet("find-productdetail-by-id/{id}")]
         public async Task<IActionResult> GetById(Guid id)
         {
-            var result = await _productdetailservices.GetByIdAsync(id);
-            if (result == null) return NotFound();
-            return Ok(result);
+            var productDetail = await _productdetailservices.GetProductDetailByIdAsync(id);
+
+            return Ok(productDetail);
         }
 
         [HttpPost]
-        public async Task<IActionResult> Create(ProductDetail model)
+        public async Task<IActionResult> Create([FromBody] CreateOrUpdateProductDetailDTO productDetail)
         {
-            await _productdetailservices.AddAsync(model);
-            return Ok();
+            var result = await _productdetailservices.AddProductDetailAsync(productDetail);
+            return Ok(result);
         }
 
+       
         [HttpPut("{id}")]
-        public async Task<IActionResult> Update(Guid id, ProductDetail model)
+        public async Task<IActionResult> Update(Guid id, [FromBody] CreateOrUpdateProductDetailDTO productDetail)
         {
-            if (id != model.Id) return BadRequest();
-            await _productdetailservices.UpdateAsync(model);
-            return Ok();
+           
+
+            var existing = await _productdetailservices.GetProductDetailByIdAsync(id);
+            if (existing == null)
+                return NotFound("ProductDetail not found.");
+
+            await _productdetailservices.UpdateProductDetailAsync(productDetail);
+            return NoContent();
         }
 
         [HttpDelete("{id}")]
         public async Task<IActionResult> Delete(Guid id)
         {
-            await _productdetailservices.DeleteAsync(id);
-            return Ok();
+            var existing = await _productdetailservices.GetProductDetailByIdAsync(id);
+            if (existing == null)
+                return NotFound("ProductDetail not found.");
+
+            await _productdetailservices.DeleteProductDetailAsync(id);
+            return NoContent();
         }
     }
 }
-
+   
 
 

@@ -24,38 +24,47 @@ namespace MeoMeo.Application.Services
 
         public async Task<Product> CreateProductAsync(CreateOrUpdateProductDTO product)
         {
-            var mappedProduct = _mapper.Map<Product>(product);
-            mappedProduct.Id = Guid.NewGuid();
-            return await _repository.AddAsync(mappedProduct);
-        }
-
-        public Task<Product> GetProductAsync(Guid id)
-        {
-            return _repository.GetProductAsync(id);
-        }
-        public async Task<IEnumerable<Product>> GetAllAsync()
-        {
-            return await _repository.GetAllAsync();
-        }
-
-        public async Task<Product?> GetByIdAsync(Guid id)
-        {
-            return await _repository.GetByIdAsync(id);
-        }
-
-        public async Task AddAsync(Product entity)
-        {
-            await _repository.AddAsync(entity);
-        }
-
-        public async Task UpdateAsync(Product entity)
-        {
-            await _repository.UpdateAsync(entity);
+            var mapper = _mapper.Map<Product>(product);
+            mapper.Id = Guid.NewGuid();
+            var result = await _repository.AddProductAsync(mapper);
+            return result;
         }
 
         public async Task DeleteAsync(Guid id)
         {
-            await _repository.DeleteAsync(id);
+            var product = await _repository.GetProductByIdAsync(id);
+                
+            if (product == null)
+            {
+                throw new Exception("Sản phẩm không tồn tại.");
+            }
+            await _repository.DeleteProductAsync(id);
+        }
+
+        public async Task<IEnumerable<Product>> GetAllAsync()
+        {
+            return await _repository.GetAllProductAsync();
+        }
+
+        public async Task<Product> GetProductByIdAsync(Guid id)
+        {
+            return await _repository.GetProductByIdAsync(id);
+        }
+
+        public async Task UpdateAsync(Product model)
+        {
+            var product = await _repository.GetProductByIdAsync(model.Id); 
+            if (product == null)
+                throw new Exception("Sản phẩm không tồn tại.");
+            _mapper.Map(model, product);
+
+
+            product.Name = model.Name;
+            product.Thumbnail = model.Thumbnail;
+            product.Brand = model.Brand;
+            product.BrandId = model.BrandId;
+
+            await _repository.UpdateProductAsync(product);
         }
     }
 }

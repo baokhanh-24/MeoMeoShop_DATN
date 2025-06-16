@@ -16,40 +16,36 @@ namespace MeoMeo.EntityFrameworkCore.Repositories
     {
         public ProductRepository(MeoMeoDbContext context) : base(context)
         {
+          
         }
 
-       public async Task<Product> GetProductAsync(Guid id)
+        public async Task<Product> AddProductAsync(Product entity)
         {
-             var product = await GetByIdAsync(id);
+            var product = await AddAsync(entity);
             return product;
         }
-        public async Task<IEnumerable<Product>> GetAllAsync()
+
+        public async Task<bool> DeleteProductAsync(Guid id)
         {
-            return await _context.products.ToListAsync();
-        }
-        public async Task<Product?> GetByIdAsnyc (Guid id)
-        {
-            return await _context.products.FindAsync(id);
-        }
-        public async Task AddAsync(Product entity)
-        {
-            await _context.products.AddAsync(entity);
-            await _context.SaveChangesAsync();
-        }
-        public async Task UpdateAsync(Product entity)
-        {
-            _context.products.Update(entity);
-            await _context.SaveChangesAsync();
-        }
-        public async Task DeleteAsync(Guid id)
-        {
-            var product = await _context.products.FindAsync(id);
-            if (product != null)
-            {
-                _context.products.Remove(product);
-                await _context.SaveChangesAsync();
-            }
+            await DeleteAsync(id);
+            return true;
+
         }
 
+        public async Task<IEnumerable<Product>> GetAllProductAsync()
+        {
+            return await GetAllAsync();
+        }
+
+        public async Task<Product?> GetProductByIdAsync(Guid id)
+        {
+            return await GetByIdAsync(id);
+        }
+
+        public async Task<Product> UpdateProductAsync(Product entity)
+        {
+            var product = await UpdateAsync(entity);
+            return product;
+        }
     }
 }

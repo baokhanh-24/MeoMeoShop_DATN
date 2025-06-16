@@ -21,6 +21,8 @@ builder.Services.AddDbContext<MeoMeoDbContext>(options =>
 
 builder.Services.AddScoped<IProductRepository, ProductRepository>();
 builder.Services.AddScoped<IProductServices, ProductService>();
+builder.Services.AddScoped<IProductsDetailRepository, ProductsDetailRepository>();
+builder.Services.AddScoped<IProductDetailServices, ProductDetailService>();
 
 builder.Services.AddAutoMapper(typeof(MeoMeoAutoMapperProfile));
 

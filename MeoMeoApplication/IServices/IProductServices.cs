@@ -10,9 +10,10 @@ namespace MeoMeo.Application.IServices
 {
     public interface IProductServices
     {
-        Task<Product> GetProductAsync(Guid id);
-        Task<Product> CreateProductAsync(CreateOrUpdateProductDTO product);
-        Task UpdateAsync(Product model);
-        Task DeleteAsync(Guid id);
+       public Task<Product> GetProductByIdAsync(Guid id);
+       public Task<IEnumerable<Product>> GetAllAsync();
+        public Task<Product> CreateProductAsync(CreateOrUpdateProductDTO product);
+        public Task UpdateAsync(Product model);
+        public Task DeleteAsync(Guid id);
     }
 }
