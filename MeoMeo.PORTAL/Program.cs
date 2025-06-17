@@ -1,5 +1,3 @@
-using AntDesign;
-using AntDesign.Locales;
 using MeoMeo.PORTAL.Components;
 var builder = WebApplication.CreateBuilder(args);
 // Add services to the container.
@@ -8,10 +6,10 @@ builder.Services.AddRazorComponents()
 builder.Services.AddAntDesign();
 
 builder.Services.AddInteractiveStringLocalizer();
-builder.WebHost.ConfigureKestrel(options =>
-{
-    options.ListenAnyIP(80); 
-});
+//builder.WebHost.ConfigureKestrel(options =>
+//{
+//    options.ListenAnyIP(80); 
+//});
 var app = builder.Build();
 
 if (!app.Environment.IsDevelopment())
