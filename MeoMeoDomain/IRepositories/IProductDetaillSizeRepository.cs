@@ -1,4 +1,5 @@
-﻿using MeoMeo.Domain.Entities;
+﻿using MeoMeo.Domain.Commons;
+using MeoMeo.Domain.Entities;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -7,12 +8,12 @@ using System.Threading.Tasks;
 
 namespace MeoMeo.Domain.IRepositories
 {
-    public interface IProductDetaillSizeRepository
+    public interface IProductDetaillSizeRepository : IBaseRepository<ProductDetailSize>
     {
-        Task<List<ProductDetailSize>> GetAllProductDetaillSize();
-        Task<ProductDetailSize> GetProductDetaillSizeById(Guid id);
-        Task Create(ProductDetailSize productDetailSize);
-        Task Update(Guid Id, Guid ProductDetaillId);
-        Task Delete(Guid id);
+        public Task<IEnumerable<ProductDetailSize>> GetAllProductDetaillSize();
+        public Task<ProductDetailSize> GetProductDetaillSizeById(Guid id);
+        public Task<ProductDetailSize> Create(ProductDetailSize productDetailSize);
+        public Task<ProductDetailSize> Update(ProductDetailSize productDetailSize);
+        public Task<bool> Delete(Guid id);
     }
 }

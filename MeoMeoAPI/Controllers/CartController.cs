@@ -1,4 +1,6 @@
-﻿using MeoMeo.Contract.DTOs;
+﻿using MeoMeo.Application.IServices;
+using MeoMeo.Application.Services;
+using MeoMeo.Contract.DTOs;
 using MeoMeo.Domain.Entities;
 using MeoMeo.Domain.IRepositories;
 using MeoMeo.EntityFrameworkCore.Configurations.Contexts;
@@ -13,80 +15,94 @@ namespace MeoMeo.API.Controllers
     [ApiController]
     public class CartController : ControllerBase
     {
-        private readonly ICartRepository _cartRepo;
-        private readonly MeoMeoDbContext _context;
-        public CartController(ICartRepository cartRepo, MeoMeoDbContext context)
+        private readonly ICartService _cartService;
+        public CartController(ICartService cartService)
         {
-            _cartRepo = cartRepo;
-            _context = context;
-        }
-        [HttpGet]
-        public async Task<ActionResult<IEnumerable<Cart>>> GetCart()
-        {
-            try
-            {
-                return await _cartRepo.GetAllCart();
-            }
-            catch (Exception ex)
-            {
-                return Problem(ex.Message);
-            }
+            _cartService = cartService;
         }
         //
-        [HttpGet("GetCartById")]
-        public async Task<ActionResult<Cart>> GetByIdCart(Guid id)
+        [HttpGet]
+        public async Task<IActionResult> GetAll()
         {
-            try
+            var images = await _cartService.GetAllCartsAsync();
+            var result = images.Select(img => new CartDTO
             {
-                return await _cartRepo.GetCartById(id);
-            }
-            catch (Exception ex)
+                Id = img.Id,
+                CustomersId = img.CustomerId,
+                createBy = img.CreatedBy,
+                NgayTao = img.CreationTime,
+                TongTien = img.TotalPrice,
+            }).ToList();
+
+            return Ok(result);
+        }
+        //
+        [HttpGet("{id}")]
+        public async Task<IActionResult> GetById(Guid id)
+        {
+            var img = await _cartService.GetCartByIdAsync(id);
+            if (img == null) return NotFound();
+
+            var dto = new CartDTO
             {
-                return Problem(ex.Message);
-            }
+                Id = img.Id,
+                CustomersId = img.CustomerId,
+                createBy = img.CreatedBy,
+                NgayTao = img.CreationTime,
+                TongTien = img.TotalPrice,
+            };
+
+            return Ok(dto);
         }
         //add
         [HttpPost]
-        public async Task<ActionResult<Cart>> PostCart(Cart cart)
+        public async Task<IActionResult> Create([FromBody] CartDTO cartDTO)
         {
+            var newCart = new Cart
+            {
+                Id = cartDTO.Id,
+                CustomerId = cartDTO.CustomersId,
+                TotalPrice = cartDTO.TongTien,
+                CreationTime = cartDTO.NgayTao,
+                LastModificationTime = cartDTO.lastModificationTime,
+
+            };
             try
             {
-                Cart ct = new Cart()
-                {
-                    Id = cart.Id,
-                    Customers = cart.Customers,
-                    CustomerId = cart.CustomerId
-                };
-                await _cartRepo.Create(ct);
-                await _cartRepo.Savechanges();
+                await _cartService.CreateCartAsync(cartDTO);
+                return CreatedAtAction(nameof(GetById), new { id = newCart.Id }, cartDTO);
             }
-            catch (Exception ex)
+            catch (DuplicateWaitObjectException ex)
             {
-                return Problem(ex.Message);
+                return Conflict(new { message = ex.Message });
             }
-            return Content("Thanh cong");
         }
         //
         [HttpPut("{id}")]
-        public async Task<IActionResult> PutCart(Cart cart)
+        public async Task<IActionResult> Update(Guid id, [FromBody] CartDTO cartDto)
         {
+            if (id != cartDto.Id)
+            {
+                return BadRequest("ID mismatch");
+            }
+
             try
             {
-                Cart ct = new Cart()
+                // Tìm entity hiện tại
+                var entity = await _cartService.UpdateCartAsync(cartDto);
+                if (entity == null)
                 {
-                    Id = cart.Id,
-                    Customers = cart.Customers,
-                    CustomerId = cart.CustomerId
-                };
-                await _cartRepo.Create(ct);
-                await _cartRepo.Savechanges();
+                    return NotFound($"Image with ID {id} not found.");
+                }
+
+                await _cartService.UpdateCartAsync(cartDto);
+
+                return Ok("Sửa ảnh thành công.");
             }
             catch (Exception ex)
             {
-                return Problem(ex.Message);
+                return StatusCode(500, ex.Message);
             }
-            return Content("Thanh cong");
-
         }
     }
 }

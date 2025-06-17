@@ -1,4 +1,6 @@
-﻿using MeoMeo.Contract.DTOs;
+﻿using MeoMeo.Application.IServices;
+using MeoMeo.Application.Services;
+using MeoMeo.Contract.DTOs;
 using MeoMeo.Domain.Entities;
 using MeoMeo.Domain.IRepositories;
 using Microsoft.AspNetCore.Http;
@@ -10,16 +12,16 @@ namespace MeoMeo.API.Controllers
     [ApiController]
     public class ColourController : ControllerBase
     {
-        private readonly IColourRepository _IColourRepo;
-        public ColourController(IColourRepository colourRepository)
+        private readonly IColourService _colourService;
+        public ColourController(IColourService colourService)
         {
-            _IColourRepo = colourRepository;
+            _colourService = colourService;
         }
         //
         [HttpGet]
-        public async Task<ActionResult<List<ColourDTO>>> GetAll()
+        public async Task<IActionResult>GetAll()
         {
-            var colour = await _IColourRepo.GetAllColour();
+            var colour = await _colourService.GetAllColoursAsync();
             var result = colour.Select(img => new ColourDTO
             {
                 Id = img.Id,
@@ -32,9 +34,9 @@ namespace MeoMeo.API.Controllers
         }
         //
         [HttpGet("{id}")]
-        public async Task<ActionResult<ColourDTO>> GetById(Guid id)
+        public async Task<IActionResult> GetById(Guid id)
         {
-            var img = await _IColourRepo.GetColourById(id);
+            var img = await _colourService.GetColourByIdAsync(id);
             if (img == null) return NotFound();
 
             var dto = new ColourDTO
@@ -53,14 +55,13 @@ namespace MeoMeo.API.Controllers
         {
             var newColour = new Colour
             {
-                Id = colourDTO.Id ?? Guid.NewGuid(),
                 Name = colourDTO.Name,
                 Code = colourDTO.Code,
                 Status = colourDTO.Status,
             };
             try
             {
-                await _IColourRepo.Create(newColour);
+                await _colourService.CreateColourAsync(colourDTO);
                 return CreatedAtAction(nameof(GetById), new { id = newColour.Id }, colourDTO);
             }
             catch (DuplicateWaitObjectException ex)
@@ -80,28 +81,15 @@ namespace MeoMeo.API.Controllers
             try
             {
                 // Tìm entity hiện tại
-                var entity = await _IColourRepo.GetColourById(id);
+                var entity = await _colourService.UpdateColourAsync(dto);
                 if (entity == null)
                 {
                     return NotFound($"Image with ID {id} not found.");
                 }
 
-                // Kiểm tra productDetailId hợp lệ
-                //var productExists = await _imgRepo.CheckProductDetailExist(dto.ProductDetailId);
-                //if (!productExists)
-                //{
-                //    return NotFound($"ProductDetail with ID {dto.ProductDetailId} not found.");
-                //}
+                await _colourService.UpdateColourAsync(dto);
 
-                // Gán dữ liệu từ DTO sang Entity
-
-                entity.Name = dto.Name;
-                entity.Code = dto.Code;
-                entity.Status = dto.Status;
-
-                await _IColourRepo.Update(dto.Id.Value);
-
-                return Ok("Update successful.");
+                return Ok("Sửa ảnh thành công.");
             }
             catch (Exception ex)
             {
@@ -112,8 +100,19 @@ namespace MeoMeo.API.Controllers
         [HttpDelete("{id}")]
         public async Task<IActionResult> Delete(Guid id)
         {
-            await _IColourRepo.Delete(id);
-            return Ok("Image updated successfully.");
+            try
+            {
+                var result = await _colourService.DeleteColourAsync(id);
+                return Ok(new { message = "Xóa ảnh thành công", result });
+            }
+            catch (ArgumentException ex)
+            {
+                return NotFound(new { message = ex.Message });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { message = "Đã xảy ra lỗi khi xóa ảnh", detail = ex.Message });
+            }
         }
     }
 }

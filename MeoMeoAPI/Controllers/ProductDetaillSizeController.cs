@@ -1,4 +1,6 @@
-﻿using MeoMeo.Contract.DTOs;
+﻿using MeoMeo.Application.IServices;
+using MeoMeo.Application.Services;
+using MeoMeo.Contract.DTOs;
 using MeoMeo.Domain.Entities;
 using MeoMeo.Domain.IRepositories;
 using MeoMeo.EntityFrameworkCore.Repositories;
@@ -11,16 +13,16 @@ namespace MeoMeo.API.Controllers
     [ApiController]
     public class ProductDetaillSizeController : ControllerBase
     {
-        private readonly IProductDetaillSizeRepository _productDetaillSizeRepo;
-        public ProductDetaillSizeController(IProductDetaillSizeRepository productDetaillSizeRepository)
+        private readonly IProductDetaillSizeService _productDetaillSizeService;
+        public ProductDetaillSizeController(IProductDetaillSizeService productDetaillSizeService)
         {
-            _productDetaillSizeRepo = productDetaillSizeRepository;
+            _productDetaillSizeService = productDetaillSizeService;
         }
         //
         [HttpGet]
-        public async Task<ActionResult<List<ProductDetaillSizeDTO>>> GetAll()
+        public async Task<IActionResult> GetAll()
         {
-            var images = await _productDetaillSizeRepo.GetAllProductDetaillSize();
+            var images = await _productDetaillSizeService.GetAllProductDetaillSizeAsync();
             var result = images.Select(img => new ProductDetaillSizeDTO
             {
                 SizeId = img.SizeId,
@@ -31,9 +33,9 @@ namespace MeoMeo.API.Controllers
         }
         //
         [HttpGet("{id}")]
-        public async Task<ActionResult<ProductDetaillSizeDTO>> GetById(Guid id)
+        public async Task<IActionResult> GetById(Guid id)
         {
-            var img = await _productDetaillSizeRepo.GetProductDetaillSizeById(id);
+            var img = await _productDetaillSizeService.GetProductDetaillSizeByIdAsync(id);
             if (img == null) return NotFound();
 
             var dto = new ProductDetaillSizeDTO
@@ -57,7 +59,7 @@ namespace MeoMeo.API.Controllers
 
             try
             {
-                await _productDetaillSizeRepo.Create(newItem);
+                await _productDetaillSizeService.CreateProductDetaillSizeAsync(productDetaillSizeDTO);
                 return CreatedAtAction(nameof(GetById), new { id = newItem.SizeId }, productDetaillSizeDTO);
             }
             catch (DuplicateWaitObjectException ex)
@@ -77,20 +79,15 @@ namespace MeoMeo.API.Controllers
             try
             {
                 // Tìm entity hiện tại
-                var entity = await _productDetaillSizeRepo.GetProductDetaillSizeById(id);
+                var entity = await _productDetaillSizeService.UpdateProductDetaillSizeAsync(dto);
                 if (entity == null)
                 {
-                    return NotFound($"ProductDetaillSize with ID {id} not found.");
+                    return NotFound($"Image with ID {id} not found.");
                 }
 
-                // Gán dữ liệu từ DTO sang Entity
+                await _productDetaillSizeService.UpdateProductDetaillSizeAsync(dto);
 
-                entity.SizeId = dto.SizeId;
-                entity.ProductDetailId = dto.ProductDetaillId;
-
-                await _productDetaillSizeRepo.Update(dto.SizeId, dto.ProductDetaillId);
-
-                return Ok("Update successful.");
+                return Ok("Sửa ảnh thành công.");
             }
             catch (Exception ex)
             {
@@ -101,8 +98,19 @@ namespace MeoMeo.API.Controllers
         [HttpDelete("{id}")]
         public async Task<IActionResult> Delete(Guid id)
         {
-            await _productDetaillSizeRepo.Delete(id);
-            return Ok("Xoa thanh cong.");
+            try
+            {
+                var result = await _productDetaillSizeService.DeleteProductDetaillSizeAsync(id);
+                return Ok(new { message = "Xóa ảnh thành công", result });
+            }
+            catch (ArgumentException ex)
+            {
+                return NotFound(new { message = ex.Message });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { message = "Đã xảy ra lỗi khi xóa ảnh", detail = ex.Message });
+            }
         }
     }
 }

@@ -1,4 +1,6 @@
-﻿using MeoMeo.Contract.DTOs;
+﻿using MeoMeo.Application.IServices;
+using MeoMeo.Application.Services;
+using MeoMeo.Contract.DTOs;
 using MeoMeo.Domain.Entities;
 using MeoMeo.Domain.IRepositories;
 using MeoMeo.EntityFrameworkCore.Configurations.Contexts;
@@ -14,25 +16,34 @@ namespace MeoMeo.API.Controllers
     [ApiController]
     public class CartDetaillController : ControllerBase
     {
-        private readonly MeoMeoDbContext _context;
-        private readonly ICartDetaillRepository _cartDetailRepo;
-        public CartDetaillController(MeoMeoDbContext context, ICartDetaillRepository cartDetaillRepo)
+        private readonly ICartDetaillService _cartDetaillService;
+        public CartDetaillController(ICartDetaillService cartDetaillService)
         {
-            _context = context;
-            _cartDetailRepo = cartDetaillRepo;
+            _cartDetaillService = cartDetaillService;
         }
         //
         [HttpGet("GetAllCartDetail")]
         public async Task<IActionResult> GetAllCartDetai() 
         {
-            var cartDetail = await _cartDetailRepo.GetAllCartDetail();
-            return Ok(cartDetail);
+            var images = await _cartDetaillService.GetAllCartDetaillAsync();
+            var result = images.Select(p => new CartDetailDTO
+            {
+                Id = p.Id,
+                CartId = p.CartId,
+                ProductId = p.ProductDetailId,
+                PonmotionId = p.PromotionDetailId,
+                Discount = p.Discount,
+                Quantity = p.Quantity,
+                Price = p.Price,
+            }).ToList();
+
+            return Ok(result);
         }
         //
         [HttpGet("{id}")]
-        public async Task<IActionResult> GetCartDetailById(Guid id)
+        public async Task<ActionResult<CartDetailDTO>> GetCartDetailById(Guid id)
         {
-            var img = await _cartDetailRepo.GetCartDetailById(id);
+            var img = await _cartDetaillService.GetCartDetaillByIdAsync(id);
             if (img == null) return NotFound();
 
             var dto = new CartDetailDTO
@@ -53,7 +64,6 @@ namespace MeoMeo.API.Controllers
         {
             var newCartDetaill = new CartDetail
             {
-                Id = cartDetailDTO.Id ?? Guid.NewGuid(),
                 ProductDetailId = cartDetailDTO.ProductId,
                 PromotionDetailId = cartDetailDTO.PonmotionId,
                 Discount = cartDetailDTO.Discount,
@@ -63,7 +73,7 @@ namespace MeoMeo.API.Controllers
 
             try
             {
-                await _cartDetailRepo.Create(newCartDetaill);
+                await _cartDetaillService.CreateCartDetaillAsync(cartDetailDTO);
                 return CreatedAtAction(nameof(GetCartDetailById), new { id = newCartDetaill.Id }, cartDetailDTO);
             }
             catch (DuplicateWaitObjectException ex)
@@ -83,23 +93,15 @@ namespace MeoMeo.API.Controllers
             try
             {
                 // Tìm entity hiện tại
-                var entity = await _cartDetailRepo.GetCartDetailById(id);
-                //if (entity == null)
-                //{
-                //    return NotFound($"CartDetaill with ID {id} not found.");
-                //}
+                var entity = await _cartDetaillService.UpdataCartDetaillAsync(dto);
+                if (entity == null)
+                {
+                    return NotFound($"Image with ID {id} not found.");
+                }
 
-                // Gán dữ liệu từ DTO sang Entity
-                entity.CartId = dto.CartId;
-                entity.ProductDetailId = dto.ProductId;
-                entity.PromotionDetailId = dto.PonmotionId;
-                entity.Discount = dto.Discount;
-                entity.Price = dto.Price;
-                entity.Quantity = dto.Quantity;
+                await _cartDetaillService.UpdataCartDetaillAsync(dto);
 
-                await _cartDetailRepo.Update(dto.CartId, dto.ProductId, dto.Quantity);
-
-                return Ok("Update successful.");
+                return Ok("Sửa ảnh thành công.");
             }
             catch (Exception ex)
             {
@@ -110,8 +112,19 @@ namespace MeoMeo.API.Controllers
         [HttpDelete("Delete")]
         public async Task<IActionResult> Delete(Guid id)
         {
-            await _cartDetailRepo.Delete(id);
-            return Ok("Xóa giỏ hàng chi tiết thành công.");
+            try
+            {
+                var result = await _cartDetaillService.DeleteCartDetaillAsync(id);
+                return Ok(new { message = "Xóa ảnh thành công", result });
+            }
+            catch (ArgumentException ex)
+            {
+                return NotFound(new { message = ex.Message });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { message = "Đã xảy ra lỗi khi xóa ảnh", detail = ex.Message });
+            }
         }
     }
 }

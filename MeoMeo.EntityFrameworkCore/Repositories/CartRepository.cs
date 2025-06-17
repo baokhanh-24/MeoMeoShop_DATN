@@ -18,39 +18,35 @@ namespace MeoMeo.EntityFrameworkCore.Repositories
            
         }
 
-        public async Task Create(Cart cart)
+        public async Task<Cart> Create(Cart cart)
         {
-            if (await GetCartById(cart.Id) != null) throw new DuplicateWaitObjectException($"Cart : {cart.Id} is existed");
-            await  _context.carts.AddAsync(cart);
-            await _context.SaveChangesAsync();
+            bool exists = await _context.carts.AnyAsync(c => c.Id == cart.Id);
+            if (exists)
+            {
+                throw new DuplicateWaitObjectException("This cartDetails is existed!");
+            }
+            await AddAsync(cart);
+            await SaveChangesAsync();
+            return cart;
         }
 
-        public async Task<List<Cart>> GetAllCart()
+        public async Task<IEnumerable<Cart>> GetAllCart()
         {
-            return await _context.carts.Include(p => p.Customers).Select(p=> new Cart
+            var Img = await _context.carts.Include(p => p.Customers).Select(p => new Cart
             {
                 Id = p.Id,
                 CustomerId = p.CustomerId,
-                TotalPrice = p.TotalPrice,
-                LastModificationTime = p.LastModificationTime,
                 CreatedBy = p.CreatedBy,
+                LastModificationTime = p.LastModificationTime,
+                TotalPrice = p.TotalPrice,
                 UpdatedBy = p.UpdatedBy,
-                CreationTime = p.CreationTime,
             }).ToListAsync();
+            return Img;
         }
 
         public async Task<Cart> GetCartById(Guid id)
         {
-            return await _context.carts.Include(p => p.Customers).Select(p=>  new Cart
-            {
-                Id = p.Id,
-                CustomerId = p.CustomerId,
-                TotalPrice = p.TotalPrice,
-                LastModificationTime = p.LastModificationTime,
-                CreatedBy = p.CreatedBy,
-                UpdatedBy = p.UpdatedBy,
-                CreationTime = p.CreationTime,
-            }).FirstOrDefaultAsync();
+            return await GetByIdAsync(id);
         }
 
         public async Task Savechanges()
@@ -58,10 +54,24 @@ namespace MeoMeo.EntityFrameworkCore.Repositories
             await _context.SaveChangesAsync();
         }
 
-        public async Task Update(Cart cart)
+        public async Task<Cart> Update(Cart cart)
         {
-            if (await GetCartById(cart.Id) == null) throw new KeyNotFoundException("Not found this Id");
-            _context.Entry(cart).State = EntityState.Modified;
+            var updateImg = await _context.carts.FindAsync(cart.Id);
+            if (updateImg == null)
+            {
+                throw new KeyNotFoundException($"Image with Id {cart.Id} not found.");
+            }
+            // Kiểm tra ProductDetailId có tồn tại hay không
+            bool productDetailExists = await _context.customers.AnyAsync(p => p.Id == cart.CustomerId);
+            if (!productDetailExists)
+            {
+                throw new KeyNotFoundException($"ProductDetail with Id {cart.CustomerId} does not exist.");
+            }
+            // Cập nhật nếu hợp lệ
+            updateImg.CustomerId= cart.CustomerId;
+            await UpdateAsync(updateImg);
+            await SaveChangesAsync();
+            return updateImg;
         }
     }
 }

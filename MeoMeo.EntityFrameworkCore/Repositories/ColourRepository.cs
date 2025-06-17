@@ -1,5 +1,6 @@
 ﻿using MeoMeo.Domain.Entities;
 using MeoMeo.Domain.IRepositories;
+using MeoMeo.EntityFrameworkCore.Commons;
 using MeoMeo.EntityFrameworkCore.Configurations.Contexts;
 using Microsoft.EntityFrameworkCore;
 using System;
@@ -10,36 +11,32 @@ using System.Threading.Tasks;
 
 namespace MeoMeo.EntityFrameworkCore.Repositories
 {
-    public class ColourRepository : IColourRepository
-    {
-        private readonly MeoMeoDbContext _context;
-        public ColourRepository(MeoMeoDbContext context)
+    public class ColourRepository : BaseRepository<Colour>, IColourRepository
+    {      
+        public ColourRepository(MeoMeoDbContext context) : base(context)
         {
-            _context = context;
+            
         }
-        public async Task Create(Colour colour)
+        public async Task<Colour> Create(Colour colour)
         {
             bool exists = await _context.colours.AnyAsync(c => c.Id == colour.Id);
             if (exists)
             {
                 throw new DuplicateWaitObjectException("This cartDetails is existed!");
             }
-            await _context.colours.AddAsync(colour);
-            await _context.SaveChangesAsync();
+            await AddAsync(colour);
+            await SaveChangesAsync();
+            return colour;
         }
 
-        public async Task Delete(Guid id)
+        public async Task<bool> Delete(Guid id)
         {
-            var deleteItem = await _context.colours.FindAsync(id);
-            if (deleteItem == null)
-            {
-                throw new KeyNotFoundException($"Colours with Id {id} not found.");
-            }
-            _context.colours.Remove(deleteItem);
-            await _context.SaveChangesAsync();
+            await DeleteAsync(id);
+            await SaveChangesAsync();
+            return true;
         }
 
-        public async Task<List<Colour>> GetAllColour()
+        public async Task<IEnumerable<Colour>> GetAllColour()
         {
             var colour = await _context.colours.Select(p => new Colour
             {
@@ -53,19 +50,19 @@ namespace MeoMeo.EntityFrameworkCore.Repositories
 
         public async Task<Colour> GetColourById(Guid id)
         {
-            return await _context.colours.FindAsync(id);
+            return await GetByIdAsync(id);
         }
 
-        public async Task Update(Guid Id)
+        public async Task<Colour> Update(Colour colour)
         {
-            var updateColour = await _context.colours.FindAsync(Id);
-            if (updateColour == null)
+            var updateImg = await _context.colours.FindAsync(colour.Id);
+            if (updateImg == null)
             {
-                throw new KeyNotFoundException($"Image with Id {Id} not found.");
+                throw new KeyNotFoundException($"Image with Id {colour.Id} not found.");
             }
-            // Cập nhật nếu hợp lệ
-            _context.colours.Update(updateColour);
-            await _context.SaveChangesAsync();
+            await UpdateAsync(updateImg);
+            await SaveChangesAsync();
+            return updateImg;
         }
     }
 }

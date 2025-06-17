@@ -14,6 +14,13 @@ namespace MeoMeo.Contract
         public MeoMeoAutoMapperProfile()
         {
             CreateMap<CreateOrUpdateProductDTO, Product>();
+            CreateMap<CartDTO, Cart>();
+            CreateMap<CartDetailDTO, CartDetail>();
+            CreateMap<ImageDTO, Image>();
+            CreateMap<ColourDTO, Colour>();
+            CreateMap<ProductDetaillColourDTO, ProductDetailColour>();
+            CreateMap<SizeDTO,  Size>();
+            CreateMap<ProductDetaillSizeDTO, ProductDetailSize>();
         }
         
     }

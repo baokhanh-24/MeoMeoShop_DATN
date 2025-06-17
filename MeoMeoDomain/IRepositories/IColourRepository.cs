@@ -1,4 +1,5 @@
-﻿using MeoMeo.Domain.Entities;
+﻿using MeoMeo.Domain.Commons;
+using MeoMeo.Domain.Entities;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -7,12 +8,12 @@ using System.Threading.Tasks;
 
 namespace MeoMeo.Domain.IRepositories
 {
-    public interface IColourRepository
+    public interface IColourRepository : IBaseRepository<Colour>
     {
-        Task<List<Colour>> GetAllColour();
-        Task<Colour> GetColourById(Guid id);
-        Task Create(Colour colour);
-        Task Update(Guid Id);
-        Task Delete(Guid id);
+        public Task<IEnumerable<Colour>> GetAllColour();
+        public Task<Colour> GetColourById(Guid id);
+        public Task<Colour> Create(Colour colour);
+        public Task<Colour> Update(Colour colour);
+        public Task<bool> Delete(Guid id);
     }
 }

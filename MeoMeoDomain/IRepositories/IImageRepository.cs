@@ -1,4 +1,5 @@
-﻿using MeoMeo.Domain.Entities;
+﻿using MeoMeo.Domain.Commons;
+using MeoMeo.Domain.Entities;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -7,12 +8,12 @@ using System.Threading.Tasks;
 
 namespace MeoMeo.Domain.IRepositories
 {
-    public interface IImageRepository
+    public interface IImageRepository : IBaseRepository<Image>
     {
-        Task<List<Image>> GetAllImage();
-        Task<Image> GetImageById(Guid id);
-        Task Create(Image img);
-        Task Update(Guid Id, Guid producDetailId);
-        Task Delete(Guid id);
+        public Task<IEnumerable<Image>> GetAllImage();
+        public Task<Image> GetImageById(Guid id);
+        public Task<Image> CreateImage(Image img);
+        public Task<Image> UpdateImage(Image img);
+        public Task<bool> DeleteImage(Guid id);
     }
 }

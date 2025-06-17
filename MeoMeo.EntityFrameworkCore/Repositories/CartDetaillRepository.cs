@@ -1,5 +1,6 @@
 ﻿using MeoMeo.Domain.Entities;
 using MeoMeo.Domain.IRepositories;
+using MeoMeo.EntityFrameworkCore.Commons;
 using MeoMeo.EntityFrameworkCore.Configurations.Contexts;
 using Microsoft.EntityFrameworkCore;
 using System;
@@ -10,36 +11,33 @@ using System.Threading.Tasks;
 
 namespace MeoMeo.EntityFrameworkCore.Repositories
 {
-    public class CartDetaillRepository : ICartDetaillRepository
+    public class CartDetaillRepository : BaseRepository<CartDetail>, ICartDetaillRepository
     {
-        private readonly MeoMeoDbContext _context;
-        public CartDetaillRepository(MeoMeoDbContext context)
+        public CartDetaillRepository(MeoMeoDbContext context) : base(context)
         {
-            _context = context;
+            
         }
-        public async Task Create(CartDetail cartDetails)
+        public async Task<CartDetail> Create(CartDetail cartDetails)
         {
             bool exists = await _context.cartDetails.AnyAsync(c => c.Id == cartDetails.Id);
             if (exists)
             {
                 throw new DuplicateWaitObjectException("This cartDetails is existed!");
             }
-            await _context.cartDetails.AddAsync(cartDetails);
-            await _context.SaveChangesAsync();
+            await AddAsync(cartDetails);
+            await SaveChangesAsync();
+            return cartDetails;
         }
 
-        public async Task Delete(Guid id)
+        public async Task<bool> Delete(Guid id)
         {
-            var deleteItem = await _context.cartDetails.FindAsync(id);
-            if (deleteItem == null)
-            {
-                throw new KeyNotFoundException($"CartDetail with Id {id} not found.");
-            }
-            _context.cartDetails.Remove(deleteItem);
-            await _context.SaveChangesAsync();
+            
+            await DeleteAsync(id);
+            await SaveChangesAsync();
+            return true;
         }
 
-        public async Task<List<CartDetail>> GetAllCartDetail()
+        public async Task<IEnumerable<CartDetail>> GetAllCartDetail()
         {
             var cartDetail = await _context.cartDetails.Include(p => p.ProductDetails.Product).Include(p => p.Cart).Select(p=> new CartDetail
             {
@@ -57,26 +55,27 @@ namespace MeoMeo.EntityFrameworkCore.Repositories
 
         public async Task<CartDetail> GetCartDetailById(Guid id)
         {
-            return await _context.cartDetails.FindAsync(id);
+            return await GetByIdAsync(id);
         }
 
-        public async Task Update(Guid cartDetailId, Guid productId, int quantity)
+        public async Task<CartDetail> Update(CartDetail cartDetail)
         {
-            var updateCartDecaill = await _context.cartDetails.FindAsync(cartDetailId);
+            var updateCartDecaill = await _context.cartDetails.FindAsync(cartDetail.Id);
             if (updateCartDecaill == null)
             {
-                throw new KeyNotFoundException($"Image with Id {cartDetailId} not found.");
+                throw new KeyNotFoundException($"Image with Id {cartDetail.Id} not found.");
             }
             // Kiểm tra ProductDetailId có tồn tại hay không
-            bool productDetailExists = await _context.productDetails.AnyAsync(p => p.Id == productId);
+            bool productDetailExists = await _context.productDetails.AnyAsync(p => p.Id == cartDetail.ProductDetailId);
             if (!productDetailExists)
             {
-                throw new KeyNotFoundException($"ProductDetail with Id {productId} does not exist.");
+                throw new KeyNotFoundException($"ProductDetail with Id {cartDetail.ProductDetailId} does not exist.");
             }
             // Cập nhật nếu hợp lệ
-            updateCartDecaill.ProductDetailId = productId;
-            _context.cartDetails.Update(updateCartDecaill);
-            await _context.SaveChangesAsync();
+            updateCartDecaill.ProductDetailId = cartDetail.ProductDetailId;
+            await UpdateAsync(updateCartDecaill);
+            await SaveChangesAsync();
+            return updateCartDecaill;
         }
     }
 }

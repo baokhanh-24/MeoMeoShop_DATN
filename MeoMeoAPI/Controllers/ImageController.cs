@@ -1,4 +1,5 @@
-﻿using MeoMeo.Contract.DTOs;
+﻿using MeoMeo.Application.IServices;
+using MeoMeo.Contract.DTOs;
 using MeoMeo.Domain.Entities;
 using MeoMeo.Domain.IRepositories;
 using MeoMeo.EntityFrameworkCore.Repositories;
@@ -11,32 +12,33 @@ namespace MeoMeo.API.Controllers
     [ApiController]
     public class ImageController : ControllerBase
     {
-        private readonly IImageRepository _imgRepo;
-        public ImageController(IImageRepository imageRepository)
+        private readonly IImageService _imageService;
+
+        public ImageController(IImageService imageService)
         {
-            _imgRepo = imageRepository;
+            _imageService = imageService;
         }
         // GET: api/image
         [HttpGet]
-        public async Task<ActionResult<List<ImageDTO>>> GetAll()
+        public async Task<IActionResult> GetAll()
         {
-            var images = await _imgRepo.GetAllImage();
+            var images = await _imageService.GetAllImagesAsync();
             var result = images.Select(img => new ImageDTO
             {
                 Id = img.Id,
                 ProductDetailId = img.ProductDetailId,
                 Name = img.Name,
                 Type = img.Type,
-                UrlImg = img.URL
+                UrlImg = img.URL,
             }).ToList();
 
             return Ok(result);
         }
         // GET: api/image/{id}
         [HttpGet("{id}")]
-        public async Task<ActionResult<ImageDTO>> GetById(Guid id)
+        public async Task<IActionResult> GetById(Guid id)
         {
-            var img = await _imgRepo.GetImageById(id);
+            var img = await _imageService.GetImageByIdAsync(id);
             if (img == null) return NotFound();
 
             var dto = new ImageDTO
@@ -45,7 +47,7 @@ namespace MeoMeo.API.Controllers
                 ProductDetailId = img.ProductDetailId,
                 Name = img.Name,
                 Type = img.Type,
-                UrlImg = img.URL
+                UrlImg = img.URL,
             };
 
             return Ok(dto);
@@ -56,7 +58,6 @@ namespace MeoMeo.API.Controllers
         {
             var newImage = new Image
             {
-                Id = imageDto.Id ?? Guid.NewGuid(),
                 ProductDetailId = imageDto.ProductDetailId,
                 Name = imageDto.Name,
                 Type = imageDto.Type,
@@ -65,7 +66,7 @@ namespace MeoMeo.API.Controllers
 
             try
             {
-                await _imgRepo.Create(newImage);
+                await _imageService.CreateImageAsync(imageDto);
                 return CreatedAtAction(nameof(GetById), new { id = newImage.Id }, imageDto);
             }
             catch (DuplicateWaitObjectException ex)
@@ -85,28 +86,15 @@ namespace MeoMeo.API.Controllers
             try
             {
                 // Tìm entity hiện tại
-                var entity = await _imgRepo.GetImageById(id);
+                var entity = await _imageService.UpdateImageAsync(dto);
                 if (entity == null)
                 {
                     return NotFound($"Image with ID {id} not found.");
-                }
+                }               
 
-                // Kiểm tra productDetailId hợp lệ
-                //var productExists = await _imgRepo.CheckProductDetailExist(dto.ProductDetailId);
-                //if (!productExists)
-                //{
-                //    return NotFound($"ProductDetail with ID {dto.ProductDetailId} not found.");
-                //}
+                await _imageService.UpdateImageAsync(dto);
 
-                // Gán dữ liệu từ DTO sang Entity
-                
-                entity.Name = dto.Name;
-                entity.Type = dto.Type;
-                entity.URL = dto.UrlImg;
-
-                await _imgRepo.Update(dto.Id.Value, dto.ProductDetailId);
-
-                return Ok("Update successful.");
+                return Ok("Sửa ảnh thành công.");
             }
             catch (Exception ex)
             {
@@ -117,8 +105,19 @@ namespace MeoMeo.API.Controllers
             [HttpDelete("{id}")]
         public async Task<IActionResult> Delete(Guid id)
         {
-            await _imgRepo.Delete(id);
-            return Ok("Image updated successfully.");
+            try
+            {
+                var result = await _imageService.DeleteImageAsync(id);
+                return Ok(new { message = "Xóa ảnh thành công", result });
+            }
+            catch (ArgumentException ex)
+            {
+                return NotFound(new { message = ex.Message });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { message = "Đã xảy ra lỗi khi xóa ảnh", detail = ex.Message });
+            }           
         }
     }
 }

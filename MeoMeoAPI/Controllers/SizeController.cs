@@ -1,4 +1,6 @@
-﻿using MeoMeo.Contract.DTOs;
+﻿using MeoMeo.Application.IServices;
+using MeoMeo.Application.Services;
+using MeoMeo.Contract.DTOs;
 using MeoMeo.Domain.Entities;
 using MeoMeo.Domain.IRepositories;
 using Microsoft.AspNetCore.Http;
@@ -10,16 +12,16 @@ namespace MeoMeo.API.Controllers
     [ApiController]
     public class SizeController : ControllerBase
     {
-        private readonly ISizeRepository _sizeRepo;
-        public SizeController(ISizeRepository sizeRepository)
+        private readonly ISizeService _sizeService;
+        public SizeController(ISizeService sizeService)
         {
-            _sizeRepo = sizeRepository;
+            _sizeService = sizeService;
         }
         //
         [HttpGet]
-        public async Task<ActionResult<List<SizeDTO>>> GetAll()
+        public async Task<IActionResult> GetAll()
         {
-            var size = await _sizeRepo.GetAllSize();
+            var size = await _sizeService.GetAllSizeAsync();
             var result = size.Select(img => new SizeDTO
             {
                 Id = img.Id,
@@ -32,9 +34,9 @@ namespace MeoMeo.API.Controllers
         }
         //
         [HttpGet("{id}")]
-        public async Task<ActionResult<SizeDTO>> GetById(Guid id)
+        public async Task<IActionResult> GetById(Guid id)
         {
-            var img = await _sizeRepo.GetSizeById(id);
+            var img = await _sizeService.GetSizeByIdAsync(id);
             if (img == null) return NotFound();
 
             var dto = new SizeDTO
@@ -60,7 +62,7 @@ namespace MeoMeo.API.Controllers
             };
             try
             {
-                await _sizeRepo.Create(newSize);
+                await _sizeService.CreateSizeAsync(sizeDTO);
                 return CreatedAtAction(nameof(GetById), new { id = newSize.Id }, sizeDTO);
             }
             catch (DuplicateWaitObjectException ex)
@@ -80,28 +82,15 @@ namespace MeoMeo.API.Controllers
             try
             {
                 // Tìm entity hiện tại
-                var entity = await _sizeRepo.GetSizeById(id);
+                var entity = await _sizeService.UpdateSizeAsync(dto);
                 if (entity == null)
                 {
-                    return NotFound($"Size with ID {id} not found.");
+                    return NotFound($"Image with ID {id} not found.");
                 }
 
-                // Kiểm tra productDetailId hợp lệ
-                //var productExists = await _imgRepo.CheckProductDetailExist(dto.ProductDetailId);
-                //if (!productExists)
-                //{
-                //    return NotFound($"ProductDetail with ID {dto.ProductDetailId} not found.");
-                //}
+                await _sizeService.UpdateSizeAsync(dto);
 
-                // Gán dữ liệu từ DTO sang Entity
-
-                entity.Value = dto.Value;
-                entity.Code = dto.Code;
-                entity.Status = dto.Status;
-
-                await _sizeRepo.Update(dto.Id.Value);
-
-                return Ok("Update Thành công.");
+                return Ok("Sửa ảnh thành công.");
             }
             catch (Exception ex)
             {
@@ -112,8 +101,19 @@ namespace MeoMeo.API.Controllers
         [HttpDelete("{id}")]
         public async Task<IActionResult> Delete(Guid id)
         {
-            await _sizeRepo.Delete(id);
-            return Ok("Xóa Size thành công.");
+            try
+            {
+                var result = await _sizeService.DeleteSizeAsync(id);
+                return Ok(new { message = "Xóa ảnh thành công", result });
+            }
+            catch (ArgumentException ex)
+            {
+                return NotFound(new { message = ex.Message });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { message = "Đã xảy ra lỗi khi xóa ảnh", detail = ex.Message });
+            }
         }
     }
 }

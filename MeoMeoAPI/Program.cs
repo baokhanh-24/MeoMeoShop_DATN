@@ -23,12 +23,19 @@ builder.Services.AddDbContext<MeoMeoDbContext>(options =>
 builder.Services.AddScoped<IProductRepository, ProductRepository>();
 builder.Services.AddScoped<IProductServices, ProductService>();
 builder.Services.AddScoped<ICartRepository, CartRepository>();
+builder.Services.AddScoped<ICartService, CartService>();
 builder.Services.AddScoped<ICartDetaillRepository, CartDetaillRepository>();
+builder.Services.AddScoped<ICartDetaillService, CartDetaillService>();
 builder.Services.AddScoped<IImageRepository, ImageRepository>();
+builder.Services.AddScoped<IImageService, ImageService>();
 builder.Services.AddScoped<IColourRepository,  ColourRepository>();
+builder.Services.AddScoped<IColourService, ColourService>();
 builder.Services.AddScoped<IProductDetaillColourRepository, ProductDetaillColourRepository>();
+builder.Services.AddScoped<IProductDetaillColourService, ProductDetaillColourService>();
 builder.Services.AddScoped<IProductDetaillSizeRepository, ProductDetaillSizeRepository>();
+builder.Services.AddScoped<IProductDetaillSizeService, ProductDetaillSizeService>();
 builder.Services.AddScoped<ISizeRepository, SizeRepository>();
+builder.Services.AddScoped<ISizeService, SizeService>();
 builder.Services.AddAutoMapper(typeof(MeoMeoAutoMapperProfile));
 builder.Services.AddControllers().AddJsonOptions(options =>
 {
