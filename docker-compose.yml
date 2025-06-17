@@ -2,7 +2,7 @@ services:
   memeoshop-portal:
     container_name: memeoshop-portal
     platform: linux/amd64
-    image: leanthuyen/meomeoshop_datn-memeoshop-portal:amd64-latest
+    image: leanthuyen/meomeoshop_datn-memeoshop-portal
     # build:
     #       context: .
     #       dockerfile: MeoMeo.PORTAL/Dockerfile
