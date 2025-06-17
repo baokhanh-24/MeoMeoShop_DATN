@@ -1,0 +1,15 @@
+::deep .ant-anchor-ink {
+    display: none !important;
+}
+::deep .ant-anchor-ink::before {
+    display: none !important;
+}
+::deep .navbar-expand-lg .offcanvas {
+    flex-grow: 0 !important;
+}
+.w-24 {
+    width: 24px;
+}
+.h-24 {
+    height: 24px;
+}
