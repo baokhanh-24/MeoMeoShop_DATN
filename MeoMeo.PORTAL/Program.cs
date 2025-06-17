@@ -8,7 +8,10 @@ builder.Services.AddRazorComponents()
 builder.Services.AddAntDesign();
 
 builder.Services.AddInteractiveStringLocalizer();
-
+builder.WebHost.ConfigureKestrel(options =>
+{
+    options.ListenAnyIP(80); 
+});
 var app = builder.Build();
 
 if (!app.Environment.IsDevelopment())
