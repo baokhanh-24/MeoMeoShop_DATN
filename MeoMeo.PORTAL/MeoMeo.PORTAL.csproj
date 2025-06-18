@@ -1,0 +1,32 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+
+    <PropertyGroup>
+        <TargetFramework>net8.0</TargetFramework>
+        <Nullable>enable</Nullable>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <DockerDefaultTargetOS>Linux</DockerDefaultTargetOS>
+    </PropertyGroup>
+
+    <ItemGroup>
+      <PackageReference Include="AntDesign" Version="1.4.1" />
+      <PackageReference Include="AntDesign.Extensions.Localization" Version="1.4.1.1" />
+      <PackageReference Include="Blazored.Video" Version="1.0.1" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <_ContentIncludedByDefault Remove="wwwroot\css\admin.css" />
+      <_ContentIncludedByDefault Remove="wwwroot\css\ajax-loader.gif" />
+      <_ContentIncludedByDefault Remove="wwwroot\css\auth.css" />
+      <_ContentIncludedByDefault Remove="wwwroot\css\bootstrap.min.css" />
+      <_ContentIncludedByDefault Remove="wwwroot\css\site.css" />
+      <_ContentIncludedByDefault Remove="wwwroot\css\style.css" />
+      <_ContentIncludedByDefault Remove="wwwroot\css\vendor.css" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <Content Include="..\.dockerignore">
+        <Link>.dockerignore</Link>
+      </Content>
+    </ItemGroup>
+
+</Project>
