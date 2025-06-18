@@ -21,6 +21,14 @@ builder.Services.AddDbContext<MeoMeoDbContext>(options =>
 
 builder.Services.AddScoped<IProductRepository, ProductRepository>();
 builder.Services.AddScoped<IProductServices, ProductService>();
+builder.Services.AddScoped<IOrderRepository, OrderRepository>();
+builder.Services.AddScoped<IOrderService, OrderService>();
+builder.Services.AddScoped<IOrderDetailRepository, OrderDetailRepository>();
+builder.Services.AddScoped<IOrderDetailService, OrderDetailService>();
+builder.Services.AddScoped<IDeliveryAddressRepository, DeliveryAddressRepository>();
+builder.Services.AddScoped<IDeliveryAddressService, DeliveryAddressService>();
+builder.Services.AddScoped<IProvinceRepository, ProvinceRepository>();
+builder.Services.AddScoped<IProvinceService, ProvinceService>();
 
 builder.Services.AddScoped<IIventoryBtachReposiory, InventoryBatchRepository>();
 builder.Services.AddScoped<IInventoryBatchServices, InventoryBatchService>();
