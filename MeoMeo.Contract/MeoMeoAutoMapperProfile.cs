@@ -10,6 +10,7 @@ namespace MeoMeo.Contract
         {
             CreateMap<CreateOrUpdateProductDTO, Product>();
 
+
             CreateMap<CreateOrUpdatePromotionDTO, Promotion>();
             CreateMap<CreateOrUpdatePromotionDetailDTO, PromotionDetail>();
             CreateMap<CreateOrUpdateVoucherDTO, Voucher>();
@@ -20,10 +21,12 @@ namespace MeoMeo.Contract
             CreateMap<CreateOrUpdateBankDTO, Bank>();
             CreateMap<CreateOrUpdateCustomersBankDTO, CustomersBank>();
 
+
             CreateMap<CreateOrUpdateOrderDTO, Order>();
             CreateMap<CreateOrUpdateOrderDetailDTO, OrderDetail>();
             CreateMap<CreateOrUpdateDeliveryAddressDTO, DeliveryAddress>();
             CreateMap<CreateOrUpdateProvinceDTO, Province>();
+
 
         }
 
