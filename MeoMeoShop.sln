@@ -13,6 +13,10 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MeoMeo.EntityFrameworkCore"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MeoMeo.Contract", "MeoMeo.Contract\MeoMeo.Contract.csproj", "{D15D13BB-00C0-43DB-8CCA-92EEF48DC0CF}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MeoMeo.CMS", "MeoMeo.CMS\MeoMeo.CMS.csproj", "{D834075A-E757-4206-A9DD-F577046B2A02}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MeoMeo.PORTAL", "MeoMeo.PORTAL\MeoMeo.PORTAL.csproj", "{5A384FF3-0002-4B4A-AD79-7B302097B2BD}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -39,6 +43,14 @@ Global
 		{D15D13BB-00C0-43DB-8CCA-92EEF48DC0CF}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{D15D13BB-00C0-43DB-8CCA-92EEF48DC0CF}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{D15D13BB-00C0-43DB-8CCA-92EEF48DC0CF}.Release|Any CPU.Build.0 = Release|Any CPU
+		{D834075A-E757-4206-A9DD-F577046B2A02}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{D834075A-E757-4206-A9DD-F577046B2A02}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{D834075A-E757-4206-A9DD-F577046B2A02}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{D834075A-E757-4206-A9DD-F577046B2A02}.Release|Any CPU.Build.0 = Release|Any CPU
+		{5A384FF3-0002-4B4A-AD79-7B302097B2BD}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{5A384FF3-0002-4B4A-AD79-7B302097B2BD}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{5A384FF3-0002-4B4A-AD79-7B302097B2BD}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{5A384FF3-0002-4B4A-AD79-7B302097B2BD}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

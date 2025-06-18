@@ -1,0 +1,18 @@
+services:
+  memeoshop-portal:
+    container_name: memeoshop-portal
+    platform: linux/amd64
+    image: leanthuyen/meomeoshop_datn-memeoshop-portal
+#    build:
+#           context: .
+#           dockerfile: MeoMeo.PORTAL/Dockerfile
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Production
+    ports:
+      - "8000:8080"
+    networks:
+      - tana-network
+
+networks:
+  tana-network:
+    driver: bridge
