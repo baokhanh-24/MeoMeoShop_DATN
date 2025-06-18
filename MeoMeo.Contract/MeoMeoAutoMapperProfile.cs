@@ -16,6 +16,15 @@ namespace MeoMeo.Contract
             CreateMap<ProductDetaillColourDTO, ProductDetailColour>();
             CreateMap<SizeDTO,  Size>();
             CreateMap<ProductDetaillSizeDTO, ProductDetailSize>();
+            CreateMap<CreateOrUpdatePromotionDTO, Promotion>();
+            CreateMap<CreateOrUpdatePromotionDetailDTO, PromotionDetail>();
+            CreateMap<CreateOrUpdateVoucherDTO, Voucher>();
+            CreateMap<CreateOrUpdateUserDTO, User>();
+            CreateMap<CreateOrUpdateEmployeeDTO, Employee>();
+            CreateMap<CreateOrUpdateCustomerDTO, Customers>();
+            CreateMap<CreateOrUpdateResetPasswordHistoryDTO, ResetPasswordHistory>();
+            CreateMap<CreateOrUpdateBankDTO, Bank>();
+            CreateMap<CreateOrUpdateCustomersBankDTO, CustomersBank>();
             CreateMap<CreateOrUpdateOrderDTO, Order>();
             CreateMap<CreateOrUpdateOrderDetailDTO, OrderDetail>();
             CreateMap<CreateOrUpdateDeliveryAddressDTO, DeliveryAddress>();
