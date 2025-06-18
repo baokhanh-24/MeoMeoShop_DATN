@@ -1,5 +1,6 @@
 ﻿using MeoMeo.Domain.Entities;
 using MeoMeo.Domain.IRepositories;
+using MeoMeo.EntityFrameworkCore.Commons;
 using MeoMeo.EntityFrameworkCore.Configurations.Contexts;
 using Microsoft.EntityFrameworkCore;
 using System;
@@ -10,20 +11,19 @@ using System.Threading.Tasks;
 
 namespace MeoMeo.EntityFrameworkCore.Repositories
 {
-    public class InventoryTranSactionRepository : IInventoryTranSactionRepository
+    public class InventoryTranSactionRepository : BaseRepository<InventoryTransaction>, IInventoryTranSactionRepository
     {
-        private readonly MeoMeoDbContext _context;
-        public InventoryTranSactionRepository(MeoMeoDbContext context)
+        public InventoryTranSactionRepository(MeoMeoDbContext context) : base(context)
         {
-            _context = context;
         }
+
         public async Task<InventoryTransaction> CreateAsync(InventoryTransaction inventoryTransaction)
         {
             try
             {
-                _context.inventoryTransactions.Add(inventoryTransaction);
-                await _context.SaveChangesAsync();
+                await AddAsync(inventoryTransaction);
                 return inventoryTransaction;
+
             }
             catch (Exception ex)
             {
@@ -33,59 +33,40 @@ namespace MeoMeo.EntityFrameworkCore.Repositories
 
         public async Task<bool> DeleteAsync(Guid id)
         {
-            try
+            var phat = await GetByIdAsync(id);
+            if (phat == null)
             {
-                var batch = await _context.inventoryTransactions.FindAsync(id);
-                if (batch != null)
-                {
-                    _context.inventoryTransactions.Remove(batch);
-                    await _context.SaveChangesAsync();
-
-                }
-                return true;
+                return false;
             }
-            catch (Exception ex)
-            {
-                throw new Exception("An error occurred while deleting the inventory transaction.", ex);
-            }
+            await base.DeleteAsync(id);
+            return true;
         }
 
-        public async Task<List<InventoryTransaction>> GetAllAsync()
+        public async Task<IEnumerable<InventoryTransaction>> GetAllTransactionAsync()
         {
-            return await _context.inventoryTransactions.ToListAsync();
+            return await GetAllAsync();
         }
 
-        public async Task<InventoryTransaction> GetByIdAsync(Guid id)
+        public async Task<InventoryTransaction> GetTransactionByIdAsync(Guid id)
         {
-            return await _context.inventoryTransactions.FindAsync(id);
+            var phat = await GetByIdAsync(id);
+            return phat;
         }
 
         public async Task<InventoryTransaction> UpdateAsync(Guid id, InventoryTransaction inventoryTransaction)
         {
-            try
+            var phat = await GetByIdAsync(id);
+            if (phat == null)
             {
-                var batch = await _context.inventoryTransactions.FindAsync(id);
-                if (batch == null)
-                {
-                    throw new Exception("Inventory transaction not found.");
-                }
-                else
-                {
-                    batch.InventoryBatchId = inventoryTransaction.InventoryBatchId;
-                    batch.Quantity = inventoryTransaction.Quantity;
-                    batch.CreationTime = inventoryTransaction.CreationTime;
-                    batch.CreateBy = inventoryTransaction.CreateBy;
-                    batch.Type = inventoryTransaction.Type;
-                    batch.Note = inventoryTransaction.Note;
-                    _context.inventoryTransactions.Update(batch);
-                    await _context.SaveChangesAsync();
-                    return batch;
-                }
+                throw new Exception("Inventory transaction not found.");
             }
-            catch (Exception ex)
-            {
-                throw new Exception("An error occurred while updating the inventory transaction.", ex);
-            }
+            phat.InventoryBatchId = inventoryTransaction.InventoryBatchId;
+            phat.Quantity = inventoryTransaction.Quantity;
+            phat.CreationTime = inventoryTransaction.CreationTime;
+            phat.CreateBy = inventoryTransaction.CreateBy;
+            phat.Type = inventoryTransaction.Type;
+            phat.Note = inventoryTransaction.Note;
+            return await UpdateAsync(phat);
         }
     }
 }

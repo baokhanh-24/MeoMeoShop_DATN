@@ -1,7 +1,9 @@
 ﻿using MeoMeo.Application.IServices;
 using MeoMeo.Contract.DTOs;
 using MeoMeo.Domain.Entities;
+using MeoMeo.Domain.IRepositories;
 using MeoMeo.EntityFrameworkCore.Configurations.Contexts;
+using MeoMeo.EntityFrameworkCore.Repositories;
 using Microsoft.EntityFrameworkCore;
 using System;
 using System.Collections.Generic;
@@ -13,14 +15,15 @@ namespace MeoMeo.Application.Services
 {
     public class InventoryBatchService : IInventoryBatchServices
     {
-        private readonly MeoMeoDbContext _meoDbContext;
-        public InventoryBatchService(MeoMeoDbContext meoDbContext)
+        private readonly IIventoryBtachReposiory _inventoryBatchRepository;
+        public InventoryBatchService(IIventoryBtachReposiory iventoryBtachReposiory)
         {
-            _meoDbContext = meoDbContext;
+            _inventoryBatchRepository = iventoryBtachReposiory;
         }
-        public async Task<InventoryBatchDTO> CreateAsync(InventoryBatchDTO dto)
+
+        public Task<InventoryBatch> CreateAsync(InventoryBatchDTO dto)
         {
-            var newInventoryBatch = new InventoryBatch
+            var phat = new InventoryBatch
             {
                 Id = Guid.NewGuid(),
                 ProductDetailId = dto.ProductDetailId,
@@ -30,92 +33,44 @@ namespace MeoMeo.Application.Services
                 Note = dto.Note,
                 Status = dto.Status
             };
-
-            _meoDbContext.Add(newInventoryBatch);
-            await _meoDbContext.SaveChangesAsync();
-
-            return new InventoryBatchDTO
-            {
-                Id = newInventoryBatch.Id, 
-                ProductDetailId = dto.ProductDetailId,
-                OriginalPrice = dto.OriginalPrice,
-                Code = dto.Code,
-                Quantity = dto.Quantity,
-                Note = dto.Note,
-                Status = dto.Status
-            };
+            return _inventoryBatchRepository.CreateAsync(phat);
         }
 
         public async Task<bool> DeleteAsync(Guid id)
         {
-            var batch = await _meoDbContext.inventoryBatches.FindAsync(id);
-            if(batch == null)
+            var phat = await _inventoryBatchRepository.GetByIdAsync(id);
+            if (phat == null)
             {
                 return false;
             }
-            _meoDbContext.inventoryBatches.Remove(batch);
-            await _meoDbContext.SaveChangesAsync();
+            await _inventoryBatchRepository.DeleteAsync(id);
             return true;
         }
 
-        public async Task<List<InventoryBatchDTO>> GetAllAsync()
+        public async Task<IEnumerable<InventoryBatch>> GetAllAsync()
         {
-            return await _meoDbContext.inventoryBatches.Select(x => new InventoryBatchDTO
-            {
-                Id = x.Id,
-                ProductDetailId = x.ProductDetailId,
-                OriginalPrice = x.OriginalPrice,
-                Code = x.Code,
-                Quantity = x.Quantity,
-                Note = x.Note,
-                Status = x.Status
-            }).ToListAsync();
+            return await _inventoryBatchRepository.GetAllAsync();
         }
 
-        public async Task<InventoryBatchDTO> GetByIdAsync(Guid id)
+        public async Task<InventoryBatch> GetByIdAsync(Guid id)
         {
-            var x = await _meoDbContext.inventoryBatches.FindAsync(id);
-            if(x == null)
-            {
-                return null;
-            }
-            return new InventoryBatchDTO
-            {
-                Id = x.Id,
-                ProductDetailId = x.ProductDetailId,
-                OriginalPrice = x.OriginalPrice,
-                Code = x.Code,
-                Quantity = x.Quantity,
-                Note = x.Note,
-                Status = x.Status
-            };
+            return await _inventoryBatchRepository.GetByIdAsync(id);
         }
 
-        public async Task<InventoryBatchDTO> UpdateAsync(Guid id, InventoryBatchDTO dto)
+        public async Task<InventoryBatch> UpdateAsync(Guid id, InventoryBatchDTO dto)
         {
-            var batch = await _meoDbContext.inventoryBatches.FindAsync(id);
-            if (batch == null) 
+            var phat = await _inventoryBatchRepository.GetByIdAsync(id);
+            if (phat == null)
             {
-                throw new Exception("Not found");
+                throw new Exception("Inventory batch not found.");
             }
-            batch.ProductDetailId = dto.ProductDetailId;
-            batch.OriginalPrice = dto.OriginalPrice;
-            batch.Code = dto.Code;
-            batch.Quantity = dto.Quantity;
-            batch.Note = dto.Note;
-            batch.Status = dto.Status;
-            await _meoDbContext.SaveChangesAsync();
-
-            return new InventoryBatchDTO
-            {
-                Id = batch.Id,
-                ProductDetailId = batch.ProductDetailId,
-                OriginalPrice = batch.OriginalPrice,
-                Code = batch.Code,
-                Quantity = batch.Quantity,
-                Note = batch.Note,
-                Status = batch.Status
-            };
+            phat.ProductDetailId = dto.ProductDetailId;
+            phat.OriginalPrice = dto.OriginalPrice;
+            phat.Code = dto.Code;
+            phat.Quantity = dto.Quantity;
+            phat.Note = dto.Note;
+            phat.Status = dto.Status;
+            return await _inventoryBatchRepository.UpdateAsync(id, phat);
         }
     }
 }

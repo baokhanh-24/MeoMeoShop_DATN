@@ -48,10 +48,10 @@ namespace MeoMeo.API.Controllers
 
         // PUT: api/Seasons/5
         // To protect from overposting attacks, see https://go.microsoft.com/fwlink/?linkid=2123754
-        [HttpPut("{id}")]
-        public async Task<IActionResult> PutSeason(Guid id, [FromBody] SeasonDTO dto)
+        [HttpPut]
+        public async Task<IActionResult> PutSeason([FromBody] SeasonDTO dto)
         {
-            await _seasonServices.UpdateSeasonAsync(id, dto);
+            await _seasonServices.UpdateSeasonAsync(dto);
             return Ok();
         }
 

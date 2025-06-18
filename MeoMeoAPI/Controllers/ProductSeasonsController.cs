@@ -29,7 +29,7 @@ namespace MeoMeo.API.Controllers
         [HttpGet]
         public async Task<ActionResult<IEnumerable<ProductSeason>>> GetproductSeasons()
         {
-            var phat = await _productSeasonRepository.GetAllAsync();
+            var phat = await _productSeasonRepository.GetAllProductSeasonAsync();
             return Ok(phat);
         }
 
@@ -37,7 +37,7 @@ namespace MeoMeo.API.Controllers
         [HttpGet("product/{ProductId}/season/{SeasonId}")]
         public async Task<ActionResult<ProductSeason>> GetProductSeason(Guid ProductId, Guid SeasonId)
         {
-            var entity = await _productSeasonRepository.GetByIdAsync(ProductId, SeasonId);
+            var entity = await _productSeasonRepository.GetProductSeasonByIdAsync(ProductId, SeasonId);
             if (entity == null)
             {
                 return NotFound();
@@ -45,28 +45,16 @@ namespace MeoMeo.API.Controllers
             return Ok(entity);
         }
 
-        // PUT: api/ProductSeasons/5
-        // To protect from overposting attacks, see https://go.microsoft.com/fwlink/?linkid=2123754
-        [HttpPut("product/{ProductId}/season/{SeasonId}")]
-        public async Task<IActionResult> PutProductSeason(Guid ProductId, Guid SeasonId, [FromBody] ProductSeasonDTO productSeason)
-        {
-            var result = await _productSeasonRepository.UpdateAsync(ProductId, SeasonId, productSeason);
-            if(result == null)
-            {
-                return NotFound();
-            }
-            return Ok(result);
-        }
 
         // POST: api/ProductSeasons
         // To protect from overposting attacks, see https://go.microsoft.com/fwlink/?linkid=2123754
-        [HttpPost]
+        [HttpPost()]
         public async Task<ActionResult<ProductSeason>> PostProductSeason( [FromBody] ProductSeasonDTO productSeason)
         {
             try
             {
-                var phat = await _productSeasonRepository.CreateAsync(productSeason);
-                return CreatedAtAction("GetProductSeason", new { id = phat.ProductId }, phat);
+                var phat = await _productSeasonRepository.CreateProductSeasonAsync(productSeason);
+                return Ok(phat);
             }
             catch (Exception ex)
             {
@@ -78,7 +66,7 @@ namespace MeoMeo.API.Controllers
         [HttpDelete("product/{ProductId}/season/{SeasonId}")]
         public async Task<IActionResult> DeleteProductSeason(Guid ProductId, Guid SeasonId)
         {
-            var phat = await _productSeasonRepository.DeleteAsync(ProductId, SeasonId);
+            var phat = await _productSeasonRepository.DeleteProductSeasonAsync(ProductId, SeasonId);
             if (!phat)
             {
                 return NotFound();

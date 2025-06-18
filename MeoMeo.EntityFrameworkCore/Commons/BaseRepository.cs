@@ -9,7 +9,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace MeoMeo.EntityFrameworkCore.Commons
 {
-
+    
     public class BaseRepository<TEntity> : IBaseRepository<TEntity> where TEntity : class
     {
         protected readonly MeoMeoDbContext _context;

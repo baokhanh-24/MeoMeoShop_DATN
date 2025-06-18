@@ -1,4 +1,5 @@
-﻿using MeoMeo.Domain.Entities;
+﻿using MeoMeo.Domain.Commons;
+using MeoMeo.Domain.Entities;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -7,12 +8,13 @@ using System.Threading.Tasks;
 
 namespace MeoMeo.Domain.IRepositories
 {
-    public interface IProductSeasonRepository
+    public interface IProductSeasonRepository : IBaseRepository<ProductSeason>
     {
-        Task<List<ProductSeason>> GetAllAsync();
-        Task<ProductSeason> GetByIdAsync(Guid id);
-        Task<ProductSeason> CreateAsync(ProductSeason entity);
-        Task<ProductSeason> UpdateAsync(Guid id, ProductSeason entity);
-        Task<bool> DeleteAsync(Guid id);
+        Task<IEnumerable<ProductSeason>> GeProductSeasontAllAsync();
+        Task<ProductSeason> GetProductSeasonByIdAsync(Guid ProductId, Guid SeasonId);
+        Task<ProductSeason> CreateProductSeasonAsync(ProductSeason productSeason);
+        Task<ProductSeason> UpdateProductSeasonAsync(ProductSeason productSeason);
+        Task<bool> DeleteProductSeasonAsync(Guid ProductId, Guid SeasonId);
+        void RemoveProductSeason(ProductSeason productSeason);
     }
 }

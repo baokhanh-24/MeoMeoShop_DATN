@@ -1,5 +1,7 @@
-﻿using MeoMeo.Domain.Entities;
+﻿using MeoMeo.Domain.Commons;
+using MeoMeo.Domain.Entities;
 using MeoMeo.Domain.IRepositories;
+using MeoMeo.EntityFrameworkCore.Commons;
 using MeoMeo.EntityFrameworkCore.Configurations.Contexts;
 using Microsoft.EntityFrameworkCore;
 using System;
@@ -10,22 +12,20 @@ using System.Threading.Tasks;
 
 namespace MeoMeo.EntityFrameworkCore.Repositories
 {
-    public class BrandRepository : IBrandRepository
+    public class BrandRepository : BaseRepository<Brand>, IBrandRepository
     {
-        private readonly MeoMeoDbContext _context;
-        public BrandRepository(MeoMeoDbContext context)
+        public BrandRepository(MeoMeoDbContext context) : base(context)
         {
-            _context = context;
         }
+
         public async Task<Brand> CreateBrandAsync(Brand brand)
         {
             try
             {
-                _context.brands.Add(brand);
-                await _context.SaveChangesAsync();
+                await AddAsync(brand);
                 return brand;
             }
-            catch (Exception ex)
+            catch (DbUpdateException ex)
             {
                 throw new Exception("An error occurred while creating the brand.", ex);
             }
@@ -33,57 +33,41 @@ namespace MeoMeo.EntityFrameworkCore.Repositories
 
         public async Task<bool> DeleteBrandAsync(Guid id)
         {
-            try
+            var phat = await GetByIdAsync(id);
+            if (phat == null)
             {
-                var phat = await _context.brands.FindAsync(id);
-                if (phat != null)
-                {
-                    _context.brands.Remove(phat);
-                    await _context.SaveChangesAsync();
-                }
-                
-                return true;
+                return false; 
             }
-            catch (Exception ex)
-            {
-                throw new Exception("An error occurred while deleting the brand.", ex);
-            }
+            await base.DeleteAsync(id);
+            return true;
 
         }
 
-        public async Task<List<Brand>> GetAllBrandsAsync()
+        public async Task<IEnumerable<Brand>> GetAllBrandsAsync()
         {
-            return await _context.brands.ToListAsync();
+            return await GetAllAsync();
         }
 
         public async Task<Brand> GetBrandByIdAsync(Guid id)
         {
-            return await _context.brands.FindAsync(id);
+            var phat = await GetByIdAsync(id);
+            return phat;
         }
 
         public async Task<Brand> UpdateBrandAsync(Guid id, Brand brand)
         {
-            try
+            var phat = await GetByIdAsync(id);
+            if (phat == null)
             {
-                var existingBrand = await _context.brands.FindAsync(id);
-                if (existingBrand == null)
-                {
-                    throw new Exception("Brand not found.");
-                }
-                existingBrand.Name = brand.Name;
-                existingBrand.Code = brand.Code;
-                existingBrand.EstablishYear = brand.EstablishYear;
-                existingBrand.Country = brand.Country;
-                existingBrand.Description = brand.Description;
-                existingBrand.Logo = brand.Logo;
-                _context.brands.Update(existingBrand);
-                await _context.SaveChangesAsync();
-                return existingBrand;
+                throw new KeyNotFoundException($"Brand with ID {id} not found.");
             }
-            catch (Exception ex)
-            {
-                throw new Exception("An error occurred while updating the brand.", ex);
-            }
+            phat.Name = brand.Name;
+            phat.Code = brand.Code;
+            phat.EstablishYear = brand.EstablishYear;
+            phat.Country = brand.Country;
+            phat.Description = brand.Description;
+            phat.Logo = brand.Logo;
+            return await UpdateAsync(phat);
         }
     }
 }

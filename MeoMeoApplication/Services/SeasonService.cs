@@ -1,5 +1,7 @@
 ﻿using MeoMeo.Application.IServices;
 using MeoMeo.Contract.DTOs;
+using MeoMeo.Domain.Entities;
+using MeoMeo.Domain.IRepositories;
 using MeoMeo.EntityFrameworkCore.Configurations.Contexts;
 using Microsoft.EntityFrameworkCore;
 using System;
@@ -12,83 +14,57 @@ namespace MeoMeo.Application.Services
 {
     public class SeasonService : ISeasonServices
     {
-        private readonly MeoMeoDbContext _context;
-        public SeasonService(MeoMeoDbContext context)
+        private readonly ISeasonRepository _seasonRepository;
+        public SeasonService(ISeasonRepository seasonRepository)
         {
-            _context = context;
+            _seasonRepository = seasonRepository;
         }
-        public async Task<SeasonDTO> CreateSeasonAsync(SeasonDTO dto)
+        public async Task<Season> CreateSeasonAsync(SeasonDTO dto)
         {
-            var newSeason = new Domain.Entities.Season
+            var season = new Season
             {
                 Id = Guid.NewGuid(),
                 Name = dto.Name,
-                Description = dto.Description
+                Description = dto.Description,
+                Status = dto.Status
             };
-            _context.seasons.Add(newSeason);
-            await _context.SaveChangesAsync();
-            return new SeasonDTO
-            {
-                Id = newSeason.Id,
-                Name = newSeason.Name,
-                Description = newSeason.Description
-            };
+            await _seasonRepository.CreateAsync(season);
+            return season;
         }
 
         public async Task<bool> DeleteSeasonAsync(Guid id)
         {
-            var season = await _context.seasons.FindAsync(id);
-            if (season == null)
+            var phat = await _seasonRepository.GetSeasonByID(id);
+            if (phat == null)
             {
                 return false;
             }
-            _context.seasons.Remove(season);
-            await _context.SaveChangesAsync();
+            await _seasonRepository.DeleteAsync(id);
             return true;
         }
 
-        public async Task<List<SeasonDTO>> GetAllSeasonsAsync()
+        public async Task<IEnumerable<Season>> GetAllSeasonsAsync()
         {
-            return await _context.seasons.Select(s => new SeasonDTO
-                {
-                    Id = s.Id,
-                    Name = s.Name,
-                    Description = s.Description
-                }).ToListAsync();
+            return await _seasonRepository.GetSeasonsAsync();
         }
 
-        public async Task<SeasonDTO> GetSeasonByIdAsync(Guid id)
+        public async Task<Season> GetSeasonByIdAsync(Guid id)
         {
-            var x = await _context.seasons.FindAsync(id);
-            if (x == null)
+            return await _seasonRepository.GetSeasonByID(id);
+        }
+
+        public async Task<Season> UpdateSeasonAsync(SeasonDTO dto)
+        {
+            var phat = await _seasonRepository.GetSeasonByID(dto.Id);
+            if (phat == null)
             {
                 return null;
             }
-            return new SeasonDTO
-            {
-                Id = x.Id,
-                Name = x.Name,
-                Description = x.Description
-            };
-        }
-
-        public async Task<SeasonDTO> UpdateSeasonAsync(Guid id, SeasonDTO dto)
-        {
-            var x = await _context.seasons.FindAsync(id);
-            if (x == null)
-            {
-                throw new Exception("Not found");
-            }
-            x.Name = dto.Name;
-            x.Description = dto.Description;
-            _context.seasons.Update(x);
-            await _context.SaveChangesAsync();
-            return new SeasonDTO
-            {
-                Id = x.Id,
-                Name = x.Name,
-                Description = x.Description
-            };
+            phat.Name = dto.Name;
+            phat.Description = dto.Description;
+            phat.Status = dto.Status;
+            await _seasonRepository.UpdateAsync(phat);
+            return phat;
         }
     }
 }

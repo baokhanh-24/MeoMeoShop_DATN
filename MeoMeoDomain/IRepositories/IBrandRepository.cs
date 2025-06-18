@@ -1,4 +1,5 @@
-﻿using MeoMeo.Domain.Entities;
+﻿using MeoMeo.Domain.Commons;
+using MeoMeo.Domain.Entities;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -7,9 +8,9 @@ using System.Threading.Tasks;
 
 namespace MeoMeo.Domain.IRepositories
 {
-    public interface IBrandRepository
+    public interface IBrandRepository : IBaseRepository<Brand>
     {
-        Task<List<Brand>> GetAllBrandsAsync();
+        Task<IEnumerable<Brand>> GetAllBrandsAsync();
         Task<Brand> GetBrandByIdAsync(Guid id);
         Task<Brand> CreateBrandAsync(Brand brand);
         Task<Brand> UpdateBrandAsync(Guid id, Brand brand);

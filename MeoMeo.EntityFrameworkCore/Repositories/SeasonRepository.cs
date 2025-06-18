@@ -1,5 +1,6 @@
 ﻿using MeoMeo.Domain.Entities;
 using MeoMeo.Domain.IRepositories;
+using MeoMeo.EntityFrameworkCore.Commons;
 using MeoMeo.EntityFrameworkCore.Configurations.Contexts;
 using Microsoft.EntityFrameworkCore;
 using System;
@@ -10,74 +11,60 @@ using System.Threading.Tasks;
 
 namespace MeoMeo.EntityFrameworkCore.Repositories
 {
-    public class SeasonRepository : ISeasonRepository
+    public class SeasonRepository : BaseRepository<Season>, ISeasonRepository
     {
-        private readonly MeoMeoDbContext _context;
-        public SeasonRepository(MeoMeoDbContext context)
+        public SeasonRepository(MeoMeoDbContext context) : base(context)
         {
-            _context = context;
         }
-        public async Task<Season> CreateSeasonAsync(Season season)
+
+        public async Task<Season> CreateAsync(Season season)
         {
             try
             {
-                _context.seasons.Add(season);
-                await _context.SaveChangesAsync();
+                await AddAsync(season);
                 return season;
             }
             catch (Exception ex)
             {
+                // Log the exception (not implemented here)
                 throw new Exception("An error occurred while creating the season.", ex);
             }
         }
 
-        public async Task<bool> DeleteSeasonAsync(Guid id)
+        public async Task<bool> DeleteAsync(Guid id)
         {
-            try
+            var phat = await GetByIdAsync(id);
+            if (phat == null)
             {
-                var x = await _context.seasons.FindAsync(id);
-                if (x != null)
-                {
-                    _context.seasons.Remove(x);
-                    await _context.SaveChangesAsync();
-                }
-                return true;
+                return false;
             }
-            catch (Exception ex)
-            {
-                throw new Exception("An error occurred while deleting the season.", ex);
-            }
+            await base.DeleteAsync(id);
+            return true;
         }
 
-        public async Task<List<Season>> GetAllSeasonsAsync()
+        public async Task<Season> GetSeasonByID(Guid id)
         {
-            return await _context.seasons.ToListAsync();
+            var season = await GetByIdAsync(id);
+            return season;
         }
 
-        public async Task<Season> GetSeasonByIdAsync(Guid id)
+        public async Task<IEnumerable<Season>> GetSeasonsAsync()
         {
-            return await _context.seasons.FindAsync(id);
+            return await GetAllAsync(); 
         }
 
-        public async Task<Season> UpdateSeasonAsync(Guid id, Season season)
+        public async Task<Season> UpdateSeason(Season season)
         {
-            try
+            var phat = await GetByIdAsync(season.Id);
+            if (phat == null)
             {
-                var x = await _context.seasons.FindAsync(id);
-                if (x == null)
-                {
-                    throw new Exception("Season not found.");
-                }
-                x.Name = season.Name;
-                x.Description = season.Description;
-                _context.seasons.Update(x);
-                await _context.SaveChangesAsync();
-                return x;
+                throw new Exception("Season not found.");
             }
-            catch (Exception ex)
-            {
-                throw new Exception("An error occurred while updating the season.", ex);
-            }
+            phat.Name = season.Name;
+            phat.Description = season.Description;
+            phat.Status = season.Status;
+            await UpdateAsync(phat);
+            return phat;
         }
     }
 }

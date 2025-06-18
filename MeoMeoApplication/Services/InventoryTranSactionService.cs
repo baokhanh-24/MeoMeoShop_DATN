@@ -1,6 +1,7 @@
 ﻿using MeoMeo.Application.IServices;
 using MeoMeo.Contract.DTOs;
 using MeoMeo.Domain.Entities;
+using MeoMeo.Domain.IRepositories;
 using MeoMeo.EntityFrameworkCore.Configurations.Contexts;
 using Microsoft.EntityFrameworkCore;
 using System;
@@ -13,106 +14,69 @@ namespace MeoMeo.Application.Services
 {
     public class InventoryTranSactionService : IIventoryTranSactionServices
     {
-        private readonly MeoMeoDbContext _meoDbContext;
-        public InventoryTranSactionService(MeoMeoDbContext meoMeoDbContext)
+        private readonly IInventoryTranSactionRepository _iventoryTranSactionRepository;
+        public InventoryTranSactionService(IInventoryTranSactionRepository inventoryTranSactionRepository)
         {
-            _meoDbContext = meoMeoDbContext;
+            _iventoryTranSactionRepository = inventoryTranSactionRepository;
         }
-        public async Task<InventoryTranSactionDTO> CreateAsync(InventoryTranSactionDTO dto)
+        public Task<InventoryTransaction> CreateAsync(InventoryTranSactionDTO dto)
         {
-            var newtrac = new InventoryTransaction
+            try
             {
-                Id = Guid.NewGuid(),
-                InventoryBatchId = dto.InventoryBatchId,
-                Quantity = dto.Quantity,
-                CreationTime = DateTime.UtcNow,
-                CreateBy = dto.CreateBy,
-                Type = dto.Type,
-                Note = dto.Note
-            };
-            _meoDbContext.Add(newtrac);
-            await _meoDbContext.SaveChangesAsync();
-            return new InventoryTranSactionDTO
+                var inventoryTransaction = new InventoryTransaction
+                {
+                    Id = dto.Id,
+                    InventoryBatchId = dto.InventoryBatchId,
+                    Quantity = dto.Quantity,
+                    CreationTime = dto.CreationTime,
+                    CreateBy = dto.CreateBy,
+                    Type = dto.Type,
+                    Note = dto.Note
+                };
+                return _iventoryTranSactionRepository.CreateAsync(inventoryTransaction);
+            }
+            catch (Exception ex)
             {
-                Id = newtrac.Id,
-                InventoryBatchId = dto.InventoryBatchId,
-                Quantity = dto.Quantity,
-                CreationTime = newtrac.CreationTime,
-                CreateBy = dto.CreateBy,
-                Type = dto.Type,
-                Note = dto.Note
-            };
+                throw new Exception("An error occurred while creating the inventory transaction.", ex);
+            }
         }
 
         public async Task<bool> DeleteAsync(Guid id)
         {
-            var transaction = await _meoDbContext.inventoryTransactions.FindAsync(id);
-            if (transaction == null)
+            var phat = await _iventoryTranSactionRepository.GetByIdAsync(id);
+            if (phat == null)
             {
                 return false;
             }
-            _meoDbContext.inventoryTransactions.Remove(transaction);
-            await _meoDbContext.SaveChangesAsync();
+            await _iventoryTranSactionRepository.DeleteAsync(id);
             return true;
         }
 
-        public async Task<List<InventoryTranSactionDTO>> GetAllAsync()
+        public async Task<IEnumerable<InventoryTransaction>> GetAllAsync()
         {
-            return await _meoDbContext.inventoryTransactions.Select(tr => new InventoryTranSactionDTO
-            {
-                Id = tr.Id,
-                InventoryBatchId = tr.InventoryBatchId,
-                Quantity = tr.Quantity,
-                CreationTime = tr.CreationTime,
-                CreateBy = tr.CreateBy,
-                Type = tr.Type,
-                Note = tr.Note
-            }).ToListAsync();
+            return await _iventoryTranSactionRepository.GetAllAsync();
         }
 
-        public async Task<InventoryTranSactionDTO> GetByIdAsync(Guid id)
+        public async Task<InventoryTransaction> GetByIdAsync(Guid id)
         {
-            var x = await _meoDbContext.inventoryTransactions.FindAsync(id);
-            if (x == null)
-            {
-                return null;
-            }
-            return new InventoryTranSactionDTO
-            {
-                Id = x.Id,
-                InventoryBatchId = x.InventoryBatchId,
-                Quantity = x.Quantity,
-                CreationTime = x.CreationTime,
-                CreateBy = x.CreateBy,
-                Type = x.Type,
-                Note = x.Note
-            };
+            var phat = await _iventoryTranSactionRepository.GetByIdAsync(id);
+            return phat;
         }
 
-        public async Task<InventoryTranSactionDTO> UpdateAsync(Guid id, InventoryTranSactionDTO dto)
+        public async Task<InventoryTransaction> UpdateAsync(Guid id, InventoryTranSactionDTO dto)
         {
-            var x = await _meoDbContext.inventoryTransactions.FindAsync(id);
-            if (x == null)
+            var phat = await _iventoryTranSactionRepository.GetByIdAsync(id);
+            if (phat == null)
             {
-                throw new Exception("Not found");
+                throw new Exception("Inventory transaction not found.");
             }
-            x.InventoryBatchId = dto.InventoryBatchId;
-            x.Quantity = dto.Quantity;
-            x.CreationTime = dto.CreationTime;
-            x.CreateBy = dto.CreateBy;
-            x.Type = dto.Type;
-            x.Note = dto.Note;
-            await _meoDbContext.SaveChangesAsync();
-            return new InventoryTranSactionDTO
-            {
-                Id = x.Id,
-                InventoryBatchId = x.InventoryBatchId,
-                Quantity = x.Quantity,
-                CreationTime = x.CreationTime,
-                CreateBy = x.CreateBy,
-                Type = x.Type,
-                Note = x.Note
-            };
+            phat.InventoryBatchId = dto.InventoryBatchId;
+            phat.Quantity = dto.Quantity;
+            phat.CreationTime = dto.CreationTime;
+            phat.CreateBy = dto.CreateBy;
+            phat.Type = dto.Type;
+            phat.Note = dto.Note;
+            return await _iventoryTranSactionRepository.UpdateAsync(id, phat);
         }
     }
 }

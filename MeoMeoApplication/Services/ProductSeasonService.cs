@@ -1,6 +1,7 @@
 ﻿using MeoMeo.Application.IServices;
 using MeoMeo.Contract.DTOs;
 using MeoMeo.Domain.Entities;
+using MeoMeo.Domain.IRepositories;
 using MeoMeo.EntityFrameworkCore.Configurations.Contexts;
 using Microsoft.EntityFrameworkCore;
 using System;
@@ -13,102 +14,98 @@ namespace MeoMeo.Application.Services
 {
     public class ProductSeasonService : IProductSeasonServices
     {
-        private readonly MeoMeoDbContext _context;
-        public ProductSeasonService(MeoMeoDbContext context)
+        private readonly IProductSeasonRepository _productSeasonRepository;
+        public ProductSeasonService(IProductSeasonRepository productSeasonRepository)
         {
-            _context = context;
+            _productSeasonRepository = productSeasonRepository;
         }
-        public async Task<ProductSeasonDTO> CreateAsync(ProductSeasonDTO dto)
-        {
-            // Kiểm tra xem đã tồn tại chưa
-            bool exists = await _context.productSeasons
-                .AnyAsync(ps => ps.SeasonId == dto.SeasonId && ps.ProductId == dto.ProductId);
 
-            if (exists)
+        public async Task<ProductSeason> CreateProductSeasonAsync(ProductSeasonDTO dto)
+        {
+            var productSeason = new ProductSeason
             {
-                // Nếu đã tồn tại thì có thể trả về lỗi hoặc thông báo
-                throw new Exception("Bản ghi ProductSeason đã tồn tại.");
+                ProductId = dto.ProductId,
+                SeasonId = dto.SeasonId,
+            };
+
+            await _productSeasonRepository.CreateProductSeasonAsync(productSeason);
+
+            try
+            {
+                await _productSeasonRepository.SaveChangesAsync();
+            }
+            catch (DbUpdateException ex)
+            {
+                // Lấy lỗi chi tiết từ inner exception
+                throw new Exception($"Lỗi khi lưu dữ liệu: {ex.InnerException?.Message ?? ex.Message}");
             }
 
-            var newProductSeason = new ProductSeason
-            {
-                SeasonId = dto.SeasonId,
-                ProductId = dto.ProductId
-            };
-
-            _context.productSeasons.Add(newProductSeason);
-            await _context.SaveChangesAsync();
-
-            return new ProductSeasonDTO
-            {
-                SeasonId = newProductSeason.SeasonId,
-                ProductId = newProductSeason.ProductId
-            };
+            return productSeason;
         }
 
-
-        public async Task<bool> DeleteAsync(Guid ProductId, Guid Seasonid)
+        public async Task<bool> DeleteProductSeasonAsync(Guid ProductId, Guid SeasonId)
         {
-            var entity = await _context.productSeasons
-            .FirstOrDefaultAsync(x => x.ProductId == ProductId && x.SeasonId == Seasonid);
-
-            if (entity == null) return false;
-
-            _context.productSeasons.Remove(entity);
-            await _context.SaveChangesAsync();
+            var phat = await _productSeasonRepository.GetProductSeasonByIdAsync(ProductId, SeasonId);
+            if (phat == null)
+            {
+                return false;
+            }
+            _productSeasonRepository.RemoveProductSeason(phat);
+            await _productSeasonRepository.SaveChangesAsync();
             return true;
         }
 
-        public async Task<List<ProductSeasonDTO>> GetAllAsync()
+        public async Task<IEnumerable<ProductSeasonDTO>> GetAllProductSeasonAsync()
         {
-            return await _context.productSeasons.Select(x => new ProductSeasonDTO
-            {
-                SeasonId = x.SeasonId,
-                ProductId = x.ProductId
-            }).ToListAsync();
+            return await _productSeasonRepository.GeProductSeasontAllAsync()
+                .ContinueWith(task => task.Result.Select(ps => new ProductSeasonDTO
+                {
+                    ProductId = ps.ProductId,
+                    SeasonId = ps.SeasonId,
+                }));
         }
 
-        public async Task<ProductSeasonDTO> GetByIdAsync(Guid ProductId, Guid SeasonId)
+        public async Task<ProductSeason> GetProductSeasonByIdAsync(Guid ProductId, Guid SeasonId)
         {
-            var entity = await _context.productSeasons
-        .Include(x => x.Product)
-        .Include(x => x.Season)
-        .FirstOrDefaultAsync(x => x.ProductId == ProductId && x.SeasonId == SeasonId);
-
-            if (entity == null) return null;
-
-            return new ProductSeasonDTO
-            {
-                ProductId = entity.ProductId,
-                SeasonId = entity.SeasonId
-            };
+            return await _productSeasonRepository.GetProductSeasonByIdAsync(ProductId, SeasonId);
         }
 
-        public async Task<ProductSeasonDTO> UpdateAsync(Guid Productid, Guid SeasonId, ProductSeasonDTO dto)
+        public async Task<ProductSeason> UpdateProductSeasonAsync(Guid ProductId, Guid Seasonid, ProductSeasonDTO dto)
         {
-            var existing = await _context.productSeasons
-        .FirstOrDefaultAsync(x => x.ProductId == Productid && x.SeasonId == SeasonId);
+            if (dto == null)
+                throw new ArgumentNullException(nameof(dto));
 
-            if (existing == null) return null;
+            var old = await _productSeasonRepository.GetProductSeasonByIdAsync(ProductId, Seasonid);
+            if (old == null)
+                throw new Exception("Không tìm thấy bản ghi cần cập nhật");
 
-            // Vì ProductId + SeasonId là composite key nên không nên update chúng trực tiếp
-            // Cách an toàn là: xóa bản ghi cũ và thêm bản ghi mới
-            _context.productSeasons.Remove(existing);
+            // Nếu không đổi khóa, thì không cần xóa –> return luôn
+            if (ProductId == dto.ProductId && Seasonid == dto.SeasonId)
+            {
+                return old;
+            }
 
-            var newEntry = new ProductSeason
+            // Xóa bản ghi cũ
+            await _productSeasonRepository.DeleteProductSeasonAsync(ProductId, Seasonid);
+
+            // Kiểm tra tránh insert trùng
+            var existed = await _productSeasonRepository.GetProductSeasonByIdAsync(dto.ProductId, dto.SeasonId);
+            if (existed != null)
+            {
+                throw new Exception("Bản ghi với khóa mới đã tồn tại.");
+            }
+
+            // Tạo bản ghi mới
+            var newProductSeason = new ProductSeason
             {
                 ProductId = dto.ProductId,
-                SeasonId = dto.SeasonId
+                SeasonId = dto.SeasonId,
             };
 
-            _context.productSeasons.Add(newEntry);
-            await _context.SaveChangesAsync();
+            await _productSeasonRepository.CreateProductSeasonAsync(newProductSeason);
+            await _productSeasonRepository.SaveChangesAsync();
 
-            return new ProductSeasonDTO
-            {
-                ProductId = newEntry.ProductId,
-                SeasonId = newEntry.SeasonId
-            };
+            return newProductSeason;
         }
     }
 }

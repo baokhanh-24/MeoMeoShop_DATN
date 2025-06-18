@@ -1,4 +1,5 @@
 ﻿using MeoMeo.Contract.DTOs;
+using MeoMeo.Domain.Entities;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -9,10 +10,10 @@ namespace MeoMeo.Application.IServices
 {
     public interface IInventoryBatchServices
     {
-        Task<List<InventoryBatchDTO>> GetAllAsync();
-        Task<InventoryBatchDTO> GetByIdAsync(Guid id);
-        Task<InventoryBatchDTO> CreateAsync(InventoryBatchDTO dto);
-        Task<InventoryBatchDTO> UpdateAsync(Guid id, InventoryBatchDTO dto);
+        Task<IEnumerable<InventoryBatch>> GetAllAsync();
+        Task<InventoryBatch> GetByIdAsync(Guid id);
+        Task<InventoryBatch> CreateAsync(InventoryBatchDTO dto);
+        Task<InventoryBatch> UpdateAsync(Guid id, InventoryBatchDTO dto);
         Task<bool> DeleteAsync(Guid id);
     }
 }

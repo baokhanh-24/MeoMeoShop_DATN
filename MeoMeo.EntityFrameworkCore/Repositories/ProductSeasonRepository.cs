@@ -1,5 +1,6 @@
 ﻿using MeoMeo.Domain.Entities;
 using MeoMeo.Domain.IRepositories;
+using MeoMeo.EntityFrameworkCore.Commons;
 using MeoMeo.EntityFrameworkCore.Configurations.Contexts;
 using Microsoft.EntityFrameworkCore;
 using System;
@@ -10,77 +11,62 @@ using System.Threading.Tasks;
 
 namespace MeoMeo.EntityFrameworkCore.Repositories
 {
-    public class ProductSeasonRepository : IProductSeasonRepository
+    public class ProductSeasonRepository : BaseRepository<ProductSeason>, IProductSeasonRepository
     {
-        private readonly MeoMeoDbContext _context;
-        public ProductSeasonRepository(MeoMeoDbContext context)
+        
+        public ProductSeasonRepository(MeoMeoDbContext context) : base(context)
         {
-            _context = context;
-        }
-        public Task<ProductSeason> CreateAsync(ProductSeason entity)
-        {
-            try
-            {
-                _context.productSeasons.Add(entity);
-                _context.SaveChanges();
-                return Task.FromResult(entity);
-            }
-            catch (Exception ex)
-            {
-                throw new Exception("An error occurred while creating the product season.", ex);
-            }
         }
 
-        public async Task<bool> DeleteAsync(Guid id)
+
+        public Task<ProductSeason> CreateProductSeasonAsync(ProductSeason productSeason)
         {
-            try
+            var newProductSeason = new ProductSeason
             {
-                var season = await _context.productSeasons.FindAsync(id);
-                if (season != null)
-                {
-                    _context.productSeasons.Remove(season);
-                    await _context.SaveChangesAsync();
-                }
+                ProductId = productSeason.ProductId,
+                SeasonId = productSeason.SeasonId,
+            };
+            return AddAsync(newProductSeason);
+        }
+
+        public async Task<bool> DeleteProductSeasonAsync(Guid ProductId, Guid SeasonId)
+        {
+            var phat = await _dbSet.FirstOrDefaultAsync(ps => ps.ProductId == ProductId && ps.SeasonId == SeasonId);
+            if (phat != null)
+            {
+                _dbSet.Remove(phat);
+                await _context.SaveChangesAsync();
                 return true;
             }
-            catch (Exception ex)
-            {
-                throw new Exception("An error occurred while deleting the product season.", ex);
-            }
+            return false;
         }
 
-        public async Task<List<ProductSeason>> GetAllAsync()
+        public async Task<IEnumerable<ProductSeason>> GeProductSeasontAllAsync()
         {
-            return await _context.productSeasons.ToListAsync();
+            var phat = await GetAllAsync();
+            return phat;
         }
 
-        public async Task<ProductSeason> GetByIdAsync(Guid id)
+        public async Task<ProductSeason> GetProductSeasonByIdAsync(Guid ProductId, Guid SeasonId)
         {
-            return await _context.productSeasons.FindAsync(id);
+            return await _dbSet.FirstOrDefaultAsync(ps => ps.ProductId == ProductId && ps.SeasonId == SeasonId);
         }
 
-        public async Task<ProductSeason> UpdateAsync(Guid id, ProductSeason entity)
+        public void RemoveProductSeason(ProductSeason productSeason)
         {
-            try
+            _dbSet.Remove(productSeason);
+        }
+
+        public async Task<ProductSeason> UpdateProductSeasonAsync(ProductSeason productSeason)
+        {
+            var phat = await _dbSet.FirstOrDefaultAsync(ps => ps.ProductId == productSeason.ProductId && ps.SeasonId == productSeason.SeasonId);
+            if (phat == null)
             {
-                var existingSeason = await _context.productSeasons.FindAsync(id);
-                if (existingSeason == null)
-                {
-                    throw new Exception("Product season not found.");
-                }
-                else
-                {
-                    existingSeason.ProductId = entity.ProductId;
-                    existingSeason.SeasonId = entity.SeasonId;
-                    _context.productSeasons.Update(existingSeason);
-                    _context.SaveChanges();
-                    return existingSeason;
-                }
+                return null;
             }
-            catch (Exception ex)
-            {
-                throw new Exception("An error occurred while updating the product season.", ex);
-            }
+            phat.ProductId = productSeason.ProductId;
+            phat.SeasonId = productSeason.SeasonId;
+            return await UpdateAsync(phat);
         }
     }
 }

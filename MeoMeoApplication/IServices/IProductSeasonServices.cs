@@ -1,4 +1,5 @@
 ﻿using MeoMeo.Contract.DTOs;
+using MeoMeo.Domain.Entities;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -9,10 +10,10 @@ namespace MeoMeo.Application.IServices
 {
     public interface IProductSeasonServices
     {
-        Task<List<ProductSeasonDTO>> GetAllAsync();
-        Task<ProductSeasonDTO> GetByIdAsync(Guid ProductId, Guid SeasonId);
-        Task<ProductSeasonDTO> CreateAsync(ProductSeasonDTO dto);
-        Task<ProductSeasonDTO> UpdateAsync(Guid ProductId, Guid Seasonid, ProductSeasonDTO dto);
-        Task<bool> DeleteAsync(Guid ProductId, Guid SeasonId);
+        Task<IEnumerable<ProductSeasonDTO>> GetAllProductSeasonAsync();
+        Task<ProductSeason> GetProductSeasonByIdAsync(Guid ProductId, Guid SeasonId);
+        Task<ProductSeason> CreateProductSeasonAsync(ProductSeasonDTO dto);
+        Task<ProductSeason> UpdateProductSeasonAsync(Guid ProductId, Guid Seasonid, ProductSeasonDTO dto);
+        Task<bool> DeleteProductSeasonAsync(Guid ProductId, Guid SeasonId);
     }
 }

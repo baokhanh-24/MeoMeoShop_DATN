@@ -1,4 +1,5 @@
-﻿using MeoMeo.Domain.Entities;
+﻿using MeoMeo.Domain.Commons;
+using MeoMeo.Domain.Entities;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -7,12 +8,12 @@ using System.Threading.Tasks;
 
 namespace MeoMeo.Domain.IRepositories
 {
-    public interface ISeasonRepository
+    public interface ISeasonRepository : IBaseRepository<Season>
     {
-        Task<List<Season>> GetAllSeasonsAsync();
-        Task<Season> GetSeasonByIdAsync(Guid id);
-        Task<Season> CreateSeasonAsync(Season season);
-        Task<Season> UpdateSeasonAsync(Guid id, Season season);
-        Task<bool> DeleteSeasonAsync(Guid id);
+        Task<IEnumerable<Season>> GetSeasonsAsync();
+        public Task<Season> GetSeasonByID(Guid id); 
+        public Task<Season> CreateAsync(Season season);
+        public Task<Season> UpdateSeason(Season season);
+        public Task<bool> DeleteAsync(Guid id);
     }
 }

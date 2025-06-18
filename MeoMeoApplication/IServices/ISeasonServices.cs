@@ -1,4 +1,5 @@
 ﻿using MeoMeo.Contract.DTOs;
+using MeoMeo.Domain.Entities;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -7,12 +8,12 @@ using System.Threading.Tasks;
 
 namespace MeoMeo.Application.IServices
 {
-    public interface ISeasonServices
+    public interface ISeasonServices 
     {
-        Task<List<SeasonDTO>> GetAllSeasonsAsync();
-        Task<SeasonDTO> GetSeasonByIdAsync(Guid id);
-        Task<SeasonDTO> CreateSeasonAsync(SeasonDTO dto);
-        Task<SeasonDTO> UpdateSeasonAsync(Guid id, SeasonDTO dto);
+        Task<IEnumerable<Season>> GetAllSeasonsAsync();
+        Task<Season> GetSeasonByIdAsync(Guid id);
+        Task<Season> CreateSeasonAsync(SeasonDTO dto);
+        Task<Season> UpdateSeasonAsync(SeasonDTO dto); 
         Task<bool> DeleteSeasonAsync(Guid id);
     }
 }

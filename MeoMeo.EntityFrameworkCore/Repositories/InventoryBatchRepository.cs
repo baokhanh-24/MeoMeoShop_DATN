@@ -1,5 +1,6 @@
 ﻿using MeoMeo.Domain.Entities;
 using MeoMeo.Domain.IRepositories;
+using MeoMeo.EntityFrameworkCore.Commons;
 using MeoMeo.EntityFrameworkCore.Configurations.Contexts;
 using Microsoft.EntityFrameworkCore;
 using System;
@@ -10,19 +11,17 @@ using System.Threading.Tasks;
 
 namespace MeoMeo.EntityFrameworkCore.Repositories
 {
-    public class InventoryBatchRepository : IIventoryBtachReposiory
+    public class InventoryBatchRepository : BaseRepository<InventoryBatch>, IIventoryBtachReposiory
     {
-        private readonly MeoMeoDbContext _context;
-        public InventoryBatchRepository(MeoMeoDbContext iventoryBtachReposiory)
+        public InventoryBatchRepository(MeoMeoDbContext context) : base(context)
         {
-            _context = iventoryBtachReposiory;
         }
+
         public async Task<InventoryBatch> CreateAsync(InventoryBatch inventoryBatch)
         {
             try
             {
-                _context.inventoryBatches.Add(inventoryBatch);
-                await _context.SaveChangesAsync();
+                await AddAsync(inventoryBatch);
                 return inventoryBatch;
             }
             catch (Exception ex)
@@ -33,58 +32,42 @@ namespace MeoMeo.EntityFrameworkCore.Repositories
 
         public async Task<bool> DeleteAsync(Guid id)
         {
-            try
+            var phat = await GetByIdAsync(id);
+            if (phat == null)
             {
-                var batch = await _context.inventoryBatches.FindAsync(id);
-                if(batch != null)
-                {
-                    _context.inventoryBatches.Remove(batch);
-                    await _context.SaveChangesAsync();
-                }
-                return true;
+                return false;
             }
-            catch (Exception ex)
-            {
-                throw new Exception("An error occurred while deleting the inventory batch.", ex);
-            }
+            await base.DeleteAsync(id);
+            return true;
         }
 
-        public async Task<List<InventoryBatch>> GetAllAsync()
-        {
-            return await _context.inventoryBatches.ToListAsync();
-        }
 
-        public async Task<InventoryBatch> GetByIdAsync(Guid id)
+        public async Task<InventoryBatch> GetBatchByIdAsync(Guid id)
         {
-            return await _context.inventoryBatches.FindAsync(id);
+            var batch = await GetByIdAsync(id);
+            return batch;
         }
 
         public async Task<InventoryBatch> UpdateAsync(Guid id, InventoryBatch inventoryBatch)
         {
-            try
+            var phat = await GetByIdAsync(id);
+            if (phat == null)
             {
-                var batch = await _context.inventoryBatches.FindAsync(id);
-                if(batch == null)
-                {
-                    throw new Exception("Inventory batch not found.");
-                }
-                else
-                {
-                    batch.ProductDetailId = inventoryBatch.ProductDetailId;
-                    batch.OriginalPrice = inventoryBatch.OriginalPrice;
-                    batch.Code = inventoryBatch.Code;
-                    batch.Quantity = inventoryBatch.Quantity;
-                    batch.Note = inventoryBatch.Note;
-                    batch.Status = inventoryBatch.Status;
-                    _context.inventoryBatches.Update(batch);
-                    await _context.SaveChangesAsync();
-                    return batch;
-                }
+                throw new Exception("Inventory batch not found.");
             }
-            catch (Exception ex)
-            {
-                throw new Exception();
-            }
+            phat.ProductDetailId = inventoryBatch.ProductDetailId;
+            phat.OriginalPrice = inventoryBatch.OriginalPrice;
+            phat.Code = inventoryBatch.Code;
+            phat.Quantity = inventoryBatch.Quantity;
+            phat.Note = inventoryBatch.Note;
+            phat.Status = inventoryBatch.Status;
+            await UpdateAsync(phat);
+            return phat;
+        }
+
+        async Task<IEnumerable<InventoryBatch>> IIventoryBtachReposiory.GetAllBatchAsync()
+        {
+            return await GetAllAsync();
         }
     }
 }
