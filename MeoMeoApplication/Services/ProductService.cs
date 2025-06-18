@@ -24,14 +24,48 @@ namespace MeoMeo.Application.Services
 
         public async Task<Product> CreateProductAsync(CreateOrUpdateProductDTO product)
         {
-            var mappedProduct = _mapper.Map<Product>(product);
-            mappedProduct.Id = Guid.NewGuid();
-            return await _repository.AddAsync(mappedProduct);
+            var mapper = _mapper.Map<Product>(product);
+            mapper.Id = Guid.NewGuid();
+            var result = await _repository.AddProductAsync(mapper);
+            return result;
         }
 
-        public Task<Product> GetProductAsync(Guid id)
+        public async Task DeleteAsync(Guid id)
         {
-            return _repository.GetProductAsync(id);
+            var product = await _repository.GetProductByIdAsync(id);
+                
+            if (product == null)
+            {
+                throw new Exception("Sản phẩm không tồn tại.");
+            }
+            await _repository.DeleteProductAsync(id);
+        }
+
+        public async Task<IEnumerable<Product>> GetAllAsync()
+        {
+            return await _repository.GetAllProductAsync();
+        }
+
+        public async Task<Product> GetProductByIdAsync(Guid id)
+        {
+            return await _repository.GetProductByIdAsync(id);
+        }
+
+        public async Task UpdateAsync(Product model)
+        {
+            var product = await _repository.GetProductByIdAsync(model.Id); 
+            if (product == null)
+                throw new Exception("Sản phẩm không tồn tại.");
+            _mapper.Map(model, product);
+
+
+            product.Name = model.Name;
+            product.Thumbnail = model.Thumbnail;
+            product.Brand = model.Brand;
+            product.BrandId = model.BrandId;
+
+            await _repository.UpdateProductAsync(product);
         }
     }
 }
+

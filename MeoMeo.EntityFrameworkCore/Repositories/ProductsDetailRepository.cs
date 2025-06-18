@@ -6,20 +6,23 @@ using MeoMeo.EntityFrameworkCore.Configurations.Contexts;
 using Microsoft.EntityFrameworkCore;
 using System;
 using System.Collections.Generic;
+using System.Data;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
 namespace MeoMeo.EntityFrameworkCore.Repositories
 {
-    public class ProductRepository : BaseRepository<Product>, IProductRepository
+    public class ProductsDetailRepository : BaseRepository<ProductDetail>, IProductsDetailRepository
     {
-        public ProductRepository(MeoMeoDbContext context) : base(context)
+
+
+        public ProductsDetailRepository(MeoMeoDbContext context) : base(context)
         {
-          
+
         }
 
-        public async Task<Product> AddProductAsync(Product entity)
+        public async Task<ProductDetail> AddProductAsync(ProductDetail entity)
         {
             var product = await AddAsync(entity);
             return product;
@@ -29,23 +32,23 @@ namespace MeoMeo.EntityFrameworkCore.Repositories
         {
             await DeleteAsync(id);
             return true;
-
         }
 
-        public async Task<IEnumerable<Product>> GetAllProductAsync()
+        public async Task<IEnumerable<ProductDetail>> GetAllProductAsync()
         {
             return await GetAllAsync();
         }
 
-        public async Task<Product?> GetProductByIdAsync(Guid id)
+        public async Task<ProductDetail> GetByProductIdAsync(Guid id)
         {
             return await GetByIdAsync(id);
         }
 
-        public async Task<Product> UpdateProductAsync(Product entity)
+        public async Task<ProductDetail> UpdateProductAsync(ProductDetail entity)
         {
             var product = await UpdateAsync(entity);
             return product;
         }
     }
 }
+       

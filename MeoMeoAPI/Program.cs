@@ -19,9 +19,10 @@ builder.Services.AddSwaggerGen();
 builder.Services.AddDbContext<MeoMeoDbContext>(options =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection"), b => b.MigrationsAssembly("MeoMeo.API")));
 
-
 builder.Services.AddScoped<IProductRepository, ProductRepository>();
 builder.Services.AddScoped<IProductServices, ProductService>();
+builder.Services.AddScoped<IProductsDetailRepository, ProductsDetailRepository>();
+builder.Services.AddScoped<IProductDetailServices, ProductDetailService>();
 builder.Services.AddScoped<ICartRepository, CartRepository>();
 builder.Services.AddScoped<ICartService, CartService>();
 builder.Services.AddScoped<ICartDetaillRepository, CartDetaillRepository>();
@@ -44,51 +45,35 @@ builder.Services.AddScoped<IDeliveryAddressRepository, DeliveryAddressRepository
 builder.Services.AddScoped<IDeliveryAddressService, DeliveryAddressService>();
 builder.Services.AddScoped<IProvinceRepository, ProvinceRepository>();
 builder.Services.AddScoped<IProvinceService, ProvinceService>();
-
 builder.Services.AddScoped<IIventoryBtachReposiory, InventoryBatchRepository>();
 builder.Services.AddScoped<IInventoryBatchServices, InventoryBatchService>();
-
 builder.Services.AddScoped<IInventoryTranSactionRepository, InventoryTranSactionRepository>();
 builder.Services.AddScoped<IIventoryTranSactionServices, InventoryTranSactionService>();
-
 builder.Services.AddScoped<IProductSeasonRepository, ProductSeasonRepository>();
 builder.Services.AddScoped<IProductSeasonServices, ProductSeasonService>();
-
 builder.Services.AddScoped<ISeasonRepository, SeasonRepository>();
 builder.Services.AddScoped<ISeasonServices, SeasonService>();
-
 builder.Services.AddScoped<IBrandRepository, BrandRepository>();
 builder.Services.AddScoped<IBrandServices, BrandService>();
-
-
 builder.Services.AddAutoMapper(typeof(MeoMeoAutoMapperProfile));
 builder.Services.AddScoped<IPromotionRepository, PromotionRepository>();
 builder.Services.AddScoped<IPromotionServices, PromotionServices>();
-
 builder.Services.AddScoped<IPromotionDetailRepository, PromotionDetailRepository>();
 builder.Services.AddScoped<IPromotionDetailServices, PromotionDetailServices>();
-
 builder.Services.AddScoped<IVoucherRepository, VoucherRepository>();
 builder.Services.AddScoped<IVoucherServices, VoucherServices>();
-
 builder.Services.AddScoped<IUserRepository, UserRepository>();
 builder.Services.AddScoped<IUserServices, UserServices>();
-
 builder.Services.AddScoped<IEmployeeRepository, EmployeeRepository>();
 builder.Services.AddScoped<IEmployeeServices, EmployeeServices>();
-
 builder.Services.AddScoped<ICustomerRepository, CustomerRepository>();
 builder.Services.AddScoped<ICustomerServices, CustomerServices>();
-
 builder.Services.AddScoped<IResetPasswordHistoryRepository, ResetPasswordHistoryRepository>();
 builder.Services.AddScoped<IResetPasswordHistoryServices, ResetPasswordHistoryServices>();
-
 builder.Services.AddScoped<IBankRepository, BankRepository>();
 builder.Services.AddScoped<IBankServices, BankServices>();
-
 builder.Services.AddScoped<ICustomersBankRepository, CustomersBankRepository>();
 builder.Services.AddScoped<ICustomersBankServices, CustomersBankServices>();
-
 builder.Services.AddAutoMapper(typeof(MeoMeoAutoMapperProfile));
 builder.Services.AddControllers().AddJsonOptions(options =>
 {
