@@ -1,11 +1,6 @@
 ﻿using AutoMapper;
 using MeoMeo.Contract.DTOs;
 using MeoMeo.Domain.Entities;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace MeoMeo.Contract
 {
@@ -21,7 +16,11 @@ namespace MeoMeo.Contract
             CreateMap<ProductDetaillColourDTO, ProductDetailColour>();
             CreateMap<SizeDTO,  Size>();
             CreateMap<ProductDetaillSizeDTO, ProductDetailSize>();
+            CreateMap<CreateOrUpdateOrderDTO, Order>();
+            CreateMap<CreateOrUpdateOrderDetailDTO, OrderDetail>();
+            CreateMap<CreateOrUpdateDeliveryAddressDTO, DeliveryAddress>();
+            CreateMap<CreateOrUpdateProvinceDTO, Province>();
         }
-        
+
     }
 }

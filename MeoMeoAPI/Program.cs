@@ -36,6 +36,15 @@ builder.Services.AddScoped<IProductDetaillSizeRepository, ProductDetaillSizeRepo
 builder.Services.AddScoped<IProductDetaillSizeService, ProductDetaillSizeService>();
 builder.Services.AddScoped<ISizeRepository, SizeRepository>();
 builder.Services.AddScoped<ISizeService, SizeService>();
+builder.Services.AddScoped<IOrderRepository, OrderRepository>();
+builder.Services.AddScoped<IOrderService, OrderService>();
+builder.Services.AddScoped<IOrderDetailRepository, OrderDetailRepository>();
+builder.Services.AddScoped<IOrderDetailService, OrderDetailService>();
+builder.Services.AddScoped<IDeliveryAddressRepository, DeliveryAddressRepository>();
+builder.Services.AddScoped<IDeliveryAddressService, DeliveryAddressService>();
+builder.Services.AddScoped<IProvinceRepository, ProvinceRepository>();
+builder.Services.AddScoped<IProvinceService, ProvinceService>();
+
 builder.Services.AddAutoMapper(typeof(MeoMeoAutoMapperProfile));
 builder.Services.AddControllers().AddJsonOptions(options =>
 {

@@ -1,0 +1,308 @@
+﻿@page "/"
+@using System.ComponentModel.DataAnnotations
+@inject MessageService MessageService
+@inject NavigationManager NavigationManager
+
+<video autoplay muted loop playsinline >
+                <source src="videos/background.mp4" type="video/mp4">
+            </video>
+
+<GridRow Class="position-relative overflow-hidden bg-light-blue" Gutter="16">
+
+    <Carousel Autoplay="@TimeSpan.FromSeconds(3)" >
+        <CarouselSlick>
+            <div class="container">
+                <GridRow Class="align-items-center">
+                    <GridCol Span="12">
+                    <div>
+                        <Title Level="1" Class="display-2 text-uppercase text-dark pb-5">Your Products Are
+                            Great.</Title>
+                        <Button Type="@ButtonType.Dashed" Class="btn-medium btn-dark text-uppercase btn-rounded"
+                                OnClick="@(() => NavigateToShop())">
+                            Mua Sản Phẩm
+                        </Button>
+                    </div>
+                    </GridCol>
+                    <GridCol Md="11">
+                    <div class="image-holder">
+                        <img src="images/giaynike.png" alt="banner"/>
+                    </div>
+                    </GridCol>
+                </GridRow>
+            </div>
+        </CarouselSlick>
+        <CarouselSlick>
+            <div class="container">
+                <GridRow Class="flex-wrap align-items-center" Gutter="16">
+                    <GridCol Md="12">
+                    <div class="banner-content">
+                        <Title Level="1" Class="display-2 text-uppercase text-dark pb-5">Technology Hack You Won't
+                            Get</Title>
+                        <Button Type="@ButtonType.Dashed" Class="btn-medium btn-dark text-uppercase btn-rounded"
+                                OnClick="@(() => NavigateToShop())">
+                            Mua Sản Phẩm
+                        </Button>
+                    </div>
+                    </GridCol>
+                    <GridCol Md="11">
+                    <div class="image-holder">
+                        <img src="images/giaynike.png" alt="banner"/>
+                    </div>
+                    </GridCol>
+                </GridRow>
+            </div>
+        </CarouselSlick>
+    </Carousel>
+</GridRow>
+
+<GridRow Gutter="16">
+    <GridCol Span="22" Offset="1">
+<GridRow Class="padding-large" Gutter="16">
+    <GridCol Span="6" Class="pb-3">
+    <div class="icon-box d-flex">
+        <div class="icon-box-icon pe-3 pb-3">
+            <Icon Type="shopping-cart" Class="cart-outline"/>
+        </div>
+        <div class="icon-box-content">
+            <Title Level="3" Class="card-title text-uppercase text-dark">Giao hàng miễn phí</Title>
+            <Paragraph>Chúng tôi luôn sẵn sàng phục vụ bạn với dịch vụ tốt nhất.</Paragraph>
+        </div>
+    </div>
+    </GridCol>
+    <GridCol Span="6" Class="pb-3">
+    <div class="icon-box d-flex">
+        <div class="icon-box-icon pe-3 pb-3">
+            <Icon Type="quality" Class="quality"/>
+        </div>
+        <div class="icon-box-content">
+            <Title Level="3" Class="card-title text-uppercase text-dark">Đảm bảo chất lượng</Title>
+            <Paragraph>Sản phẩm của chúng tôi luôn đảm bảo chất lượng hàng đầu.</Paragraph>
+        </div>
+    </div>
+    </GridCol>
+    <GridCol Span="6" Class="pb-3">
+    <div class="icon-box d-flex">
+        <div class="icon-box-icon pe-3 pb-3">
+            <Icon Type="tag" Class="price-tag"/>
+        </div>
+        <div class="icon-box-content">
+            <Title Level="3" Class="card-title text-uppercase text-dark">Ưu đãi mỗi ngày</Title>
+            <Paragraph>Nhận ưu đãi hấp dẫn mỗi ngày cho mọi sản phẩm.</Paragraph>
+        </div>
+    </div>
+    </GridCol>
+    <GridCol Span="6" Class="pb-3">
+    <div class="icon-box d-flex">
+        <div class="icon-box-icon pe-3 pb-3">
+            <Icon Type="safety" Class="shield-plus"/>
+        </div>
+        <div class="icon-box-content">
+            <Title Level="3" Class="card-title text-uppercase text-dark">Thanh toán an toàn 100%</Title>
+            <Paragraph>Bảo mật tuyệt đối trong mọi giao dịch thanh toán.</Paragraph>
+        </div>
+    </div>
+    </GridCol>
+</GridRow>
+
+<GridRow Class="product-store position-relative padding-large no-padding-top swiper product-swiper"Id="product" Gutter="16">
+    <GridCol Span="24">
+        <div class="display-header d-flex justify-content-between pb-3"></div>
+        <Title Level="2" Class="display-7 text-dark text-uppercase">Nike Air Force 1</Title>
+        <div class="btn-right">
+            <span class="btn-medium btn-normal text-uppercase cursor"
+                    OnClick="@(() => NavigateToShop())">
+                Đi tới shop
+            </span>
+        </div>
+    </GridCol>
+    <div class="swiper-wrapper">
+        @foreach (var product in Products)
+        {
+            <GridCol Span="6" Class="mb-3">
+                    <Card Bordered="false" class="swiper-slide" Hoverable="true">
+                        <div class="product-card position-relative">
+                            <div class="image-holder">
+                                <Image Src="@(@product.ImageUrl)">
+                                    <Placeholder>
+                                        <Image Preview="false" Src="@(@product.ImageUrl)"/>
+                                    </Placeholder>
+                                </Image>
+                            </div>
+                            <div class="cart-concern position-absolute">
+                                <div class="cart-button d-flex">
+                                </div>
+                                <div class="cart-button d-flex">
+                                    <CardAction Class="btn btn-medium btn-black">Thêm vào giỏ hàng<Icon Type="shopping-cart" Class="cart-outline" OnClick="@(() => AddToCart(product))"/></CardAction>
+                                </div>
+                            </div>
+                            <div class="card-detail d-flex justify-content-between align-items-baseline pt-3">
+                                <h3 class="card-title text-uppercase">
+                                    <a href="#">@product.Name</a>
+                                    
+                                </h3>
+                                @* <Rate AllowHalf="true" DefaultValue="GetRandomRating()" /> *@
+                                <span class="item-price text-primary">$@(product.Price)</span>
+                            </div>
+                        </div>
+                    </Card>
+              
+            </GridCol>
+            }
+    </div>
+    <div class="swiper-pagination position-absolute text-center"></div>
+</GridRow>
+    </GridCol>
+</GridRow>
+<GridRow Class="bg-light-blue overflow-hidden mt-5 padding-xlarge"
+     style="background-image: url('images/single-image1.png');background-position: right; background-repeat: no-repeat;">
+    <GridCol Md="12" Sm="24">
+    <div class="text-content offset-4 padding-medium">
+        <Title Level="3">Giảm 10%</Title>
+        <Title Level="2" Class="display-2 pb-5 text-uppercase text-dark">New year sale</Title>
+        <Button Type="@ButtonType.Dashed" Class="btn-medium btn-dark text-uppercase btn-rounded"
+                OnClick="@(() => NavigateToShop())">
+            Mua ngay
+        </Button>
+    </div>
+    </GridCol>
+    <GridCol Md="12" Sm="24">
+    </GridCol>
+</GridRow>
+
+<GridRow Class="position-relative">
+    <GridCol Span="24">
+    <div class="review-content position-relative">
+        <Carousel Autoplay="@TimeSpan.FromSeconds(3)" Class="testimonial-swiper">
+            <div class="quotation text-center">
+                <Icon Type="quote" Class="quote"/>
+            </div>
+            @foreach (var testimonial in Testimonials)
+            {
+                <CarouselSlick>
+                    <div class="text-center d-flex justify-content-center">
+                        <div class="review-item GridCol-md-10">
+                            <blockquote>@testimonial.Comment</blockquote>
+                            <div class="rating">
+                                <Rate Disabled DefaultValue="@testimonial.Rating" />
+                            </div>
+                            <div class="author-detail">
+                                <div class="name text-dark text-uppercase pt-2">@testimonial.AuthorName</div>
+                            </div>
+                        </div>
+                    </div>
+                </CarouselSlick>
+            }
+        </Carousel>
+    </div>
+    </GridCol>
+</GridRow>
+
+<!-- Subscribe Section -->
+<GridRow Class="container-grid padding-large position-relative overflow-hidden">
+    <GridCol Span="24">
+    <div class="subscribe-content bg-dark d-flex flex-wrap justify-content-center align-items-center padding-medium">
+        <GridCol Md="12" Sm="24">
+        <div class="display-header pe-3">
+            <Title Level="2" Class="display-7 text-uppercase text-light">Đăng ký ngay</Title>
+            <Paragraph Class="text-light">
+                Nhận thông tin mới nhất, cập nhật và ưu đãi trực tiếp vào hộp thư của bạn.
+            </Paragraph>
+        </div>
+        </GridCol>
+        <GridCol Md="11" Sm="24">
+        <Form Model="@subscriptionModel" OnFinish="HandleSubscribe" Class="subscription-form validate">
+               <GridRow Gutter="16">
+<GridCol Span="16">
+<Search Class="btn-rounded"  Size="InputSize.Default" EnterButton="@("Đăng ký")"@bind-Value="@subscriptionModel.Email" Placeholder="Địa chỉ email của bạn" />
+</GridCol>
+
+               </GridRow>
+        </Form>
+        </GridCol>
+    </div>
+    </GridCol>
+</GridRow>
+@code {
+    private List<Product> Products { get; set; } = new();
+    private List<Testimonial> Testimonials { get; set; } = new();
+    private SubscriptionModel subscriptionModel = new();
+    private decimal GetRandomRating()
+    {
+    var random = new Random();
+    return Convert.ToDecimal(Math.Round(random.NextDouble() * 10) / 2);
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        // Initialize products
+        Products = new List<Product>
+        {
+            new Product { Id = 1, Name = "Nike Air 107", Price = 1980, ImageUrl = "images/nikeair107.png" },
+            new Product { Id = 2, Name = "Nike Air EVO", Price = 1500, ImageUrl = "images/nikeairevo.png" },
+            new Product { Id = 3, Name = "Nike Air LV8", Price = 1900, ImageUrl = "images/nikeairlv8.png" },
+            new Product { Id = 4, Name = "Nike Air Shadow", Price = 2200, ImageUrl = "images/nikeairshadow.png" }, 
+            new Product { Id = 5, Name = "Nike Air 107", Price = 1980, ImageUrl = "images/nikeair107.png" },
+            new Product { Id = 6, Name = "Nike Air EVO", Price = 1500, ImageUrl = "images/nikeairevo.png" },
+            new Product { Id = 7, Name = "Nike Air LV8", Price = 1900, ImageUrl = "images/nikeairlv8.png" },
+            new Product { Id = 8, Name = "Nike Air Shadow", Price = 2200, ImageUrl = "images/nikeairshadow.png" }, 
+            new Product { Id = 9, Name = "Nike Air 107", Price = 1980, ImageUrl = "images/nikeair107.png" },
+            new Product { Id = 10, Name = "Nike Air EVO", Price = 1500, ImageUrl = "images/nikeairevo.png" },
+            new Product { Id = 11, Name = "Nike Air LV8", Price = 1900, ImageUrl = "images/nikeairlv8.png" },
+            new Product { Id = 12, Name = "Nike Air Shadow", Price = 2200, ImageUrl = "images/nikeairshadow.png" },    
+            new Product { Id = 13, Name = "Nike Air 107", Price = 1980, ImageUrl = "images/nikeair107.png" },
+            new Product { Id = 14, Name = "Nike Air EVO", Price = 1500, ImageUrl = "images/nikeairevo.png" },
+            new Product { Id = 15, Name = "Nike Air LV8", Price = 1900, ImageUrl = "images/nikeairlv8.png" },
+            new Product { Id = 16, Name = "Nike Air Shadow", Price = 2200, ImageUrl = "images/nikeairshadow.png" },
+        };
+
+        // Initialize testimonials
+        Testimonials = new List<Testimonial>
+        {
+            new Testimonial
+            {
+                AuthorName = "Emma Chamberlin",
+                Comment = "The product is amazing, I am really satisfied with the quality and service. I will continue to shop here and recommend it to my friends.",
+                Rating = 4
+            }
+        };
+    }
+
+    private async Task AddToCart(Product product)
+    {
+        MessageService.Success($"Đã thêm {product.Name} vào giỏ hàng");
+    }
+
+    private async Task HandleSubscribe()
+    {
+        MessageService.Success("Đăng ký thành công!");
+        subscriptionModel.Email = string.Empty;
+    }
+
+    private void NavigateToShop()
+    {
+        NavigationManager.NavigateTo("/Shop");
+    }
+
+    public class Product
+    {
+        public int Id { get; set; }
+        public string Name { get; set; }
+        public decimal Price { get; set; }
+        public string ImageUrl { get; set; }
+    }
+
+    public class Testimonial
+    {
+        public string AuthorName { get; set; }
+        public string Comment { get; set; }
+        public int Rating { get; set; }
+    }
+
+    public class SubscriptionModel
+    {
+        [Required(ErrorMessage = "Email is required")]
+        [EmailAddress(ErrorMessage = "Invalid email format")]
+        public string Email { get; set; }
+    }
+    
+}
