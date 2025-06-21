@@ -21,96 +21,36 @@ namespace MeoMeo.API.Controllers
         [HttpGet]
         public async Task<IActionResult> GetAll()
         {
-            var images = await _productDetaillColourService.GetAllProductDetaillColourAsync();
-            var result = images.Select(img => new ProductDetaillColourDTO
-            {
-                ColourId = img.ColourId,
-                ProductDetaillId = img.ProductDetailId,
-            }).ToList();
-
+            var result = await _productDetaillColourService.GetAllProductDetaillColourAsync();
             return Ok(result);
         }
         //
         [HttpGet("{id}")]
         public async Task<IActionResult> GetById(Guid id)
         {
-            var img = await _productDetaillColourService.GetProductDetaillColourByIdAsync(id);
-            if (img == null) return NotFound();
-
-            var dto = new ProductDetaillColourDTO
-            {
-                
-                ColourId=img.ColourId,
-                ProductDetaillId=img.ProductDetailId,
-                
-            };
-
-            return Ok(dto);
+            var result = await _productDetaillColourService.GetProductDetaillColourByIdAsync(id);
+            return Ok(result);
         }
         //
         [HttpPost]
         public async Task<IActionResult> Create([FromBody] ProductDetaillColourDTO productDetaillColourDTO)
         {
-            var newImage = new ProductDetailColour
-            {
-                ColourId = productDetaillColourDTO.ColourId,
-                ProductDetailId = productDetaillColourDTO.ProductDetaillId,
-            };
-
-            try
-            {
-                await _productDetaillColourService.CreateProductDetaillColourAsync(productDetaillColourDTO);
-                return CreatedAtAction(nameof(GetById), new { id = newImage.ColourId }, productDetaillColourDTO);
-            }
-            catch (DuplicateWaitObjectException ex)
-            {
-                return Conflict(new { message = ex.Message });
-            }
+            var result = await _productDetaillColourService.CreateProductDetaillColourAsync(productDetaillColourDTO);
+            return Ok(result);
         }
         //
         [HttpPut("{id}")]
         public async Task<IActionResult> Update(Guid id, [FromBody] ProductDetaillColourDTO dto)
         {
-            if (id != dto.ColourId)
-            {
-                return BadRequest("ID mismatch");
-            }
-
-            try
-            {
-                // Tìm entity hiện tại
-                var entity = await _productDetaillColourService.UpdateProductDetaillColourAsync(dto);
-                if (entity == null)
-                {
-                    return NotFound($"Image with ID {id} not found.");
-                }
-
-                await _productDetaillColourService.UpdateProductDetaillColourAsync(dto);
-
-                return Ok("Sửa ảnh thành công.");
-            }
-            catch (Exception ex)
-            {
-                return StatusCode(500, ex.Message);
-            }
+            var result = await _productDetaillColourService.UpdateProductDetaillColourAsync(dto);
+            return Ok(result);
         }
         //
         [HttpDelete("{id}")]
         public async Task<IActionResult> Delete(Guid id)
         {
-            try
-            {
-                var result = await _productDetaillColourService.DeleteProduuctDetaillColourAsync(id);
-                return Ok(new { message = "Xóa ảnh thành công", result });
-            }
-            catch (ArgumentException ex)
-            {
-                return NotFound(new { message = ex.Message });
-            }
-            catch (Exception ex)
-            {
-                return StatusCode(500, new { message = "Đã xảy ra lỗi khi xóa ảnh", detail = ex.Message });
-            }
+            var result = await _productDetaillColourService.DeleteProduuctDetaillColourAsync(id);
+            return Ok(result);
         }
     }
 }
