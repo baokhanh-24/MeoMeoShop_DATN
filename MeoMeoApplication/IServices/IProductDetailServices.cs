@@ -14,8 +14,8 @@ namespace MeoMeo.Application.IServices
         public Task<IEnumerable<ProductDetail>> GetProductDetailAllAsync();
         public Task<ProductDetail> GetProductDetailByIdAsync(Guid id);
         public Task<ProductDetail> AddProductDetailAsync(CreateOrUpdateProductDetailDTO dto);
-        public Task<ProductDetail> UpdateProductDetailAsync(CreateOrUpdateProductDetailDTO entity);
-        public Task<ProductDetail> DeleteProductDetailAsync(Guid id);
+        public Task<ProductDetailResponseDTO> UpdateProductDetailAsync(CreateOrUpdateProductDetailDTO entity);
+        public Task<ProductDetailResponseDTO> DeleteProductDetailAsync(Guid id);
        
     }
 }

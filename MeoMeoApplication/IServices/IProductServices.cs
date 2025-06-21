@@ -13,7 +13,7 @@ namespace MeoMeo.Application.IServices
        public Task<Product> GetProductByIdAsync(Guid id);
        public Task<IEnumerable<Product>> GetAllAsync();
         public Task<Product> CreateProductAsync(CreateOrUpdateProductDTO product);
-        public Task UpdateAsync(Product model);
-        public Task DeleteAsync(Guid id);
+        public Task<ProductReponseDTO> UpdateAsync(CreateOrUpdateProductDTO model);
+        public Task<ProductReponseDTO> DeleteAsync(Guid id);
     }
 }
