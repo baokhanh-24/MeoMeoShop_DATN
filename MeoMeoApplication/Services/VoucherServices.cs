@@ -1,5 +1,6 @@
 ﻿using AutoMapper;
 using MeoMeo.Application.IServices;
+using MeoMeo.Contract.Commons;
 using MeoMeo.Contract.DTOs;
 using MeoMeo.Domain.Commons.Enums;
 using MeoMeo.Domain.Entities;
@@ -49,20 +50,35 @@ namespace MeoMeo.Application.Services
             return await _repository.GetAllVoucherAsync();
         }
 
-        public async Task<Voucher> GetVoucherByIdAsync(Guid id)
+        public async Task<CreateOrUpdateVoucherResponseDTO> GetVoucherByIdAsync(Guid id)
         {
-            return await _repository.GetVoucherByIdAsync(id);
+            CreateOrUpdateVoucherResponseDTO responseDTO = new CreateOrUpdateVoucherResponseDTO();
+
+            var check = await _repository.GetVoucherByIdAsync(id);
+            if(check == null)
+            {
+                responseDTO.ResponseStatus = BaseStatus.Error;
+                responseDTO.Message = "Không tìm thấy voucher";
+                return responseDTO;
+            }
+
+            responseDTO = _mapper.Map<CreateOrUpdateVoucherResponseDTO>(check);
+            responseDTO.ResponseStatus = BaseStatus.Success;
+            responseDTO.Message = "";
+            return responseDTO;
         }
 
-        public async Task<Voucher> UpdateVoucherAsync(CreateOrUpdateVoucherDTO voucher)
+        public async Task<CreateOrUpdateVoucherResponseDTO> UpdateVoucherAsync(CreateOrUpdateVoucherDTO voucher)
         {
-            Voucher voucherCheck = new Voucher();
+            var itemVoucher = await _repository.GetVoucherByIdAsync(Guid.Parse(voucher.Id.ToString()));
+            if(itemVoucher == null)
+            {
+                return new CreateOrUpdateVoucherResponseDTO { ResponseStatus = BaseStatus.Error, Message = "Không tìm thấy voucher" };
+            }
+            _mapper.Map(voucher, itemVoucher);
 
-            voucherCheck = _mapper.Map<Voucher>(voucher);
-
-            var result = await _repository.UpdateVoucherAsync(voucherCheck);
-
-            return result;
+            await _repository.UpdateVoucherAsync(itemVoucher);
+            return new CreateOrUpdateVoucherResponseDTO { ResponseStatus = BaseStatus.Success, Message = "Cập nhật thành công" };
         }
     }
 }

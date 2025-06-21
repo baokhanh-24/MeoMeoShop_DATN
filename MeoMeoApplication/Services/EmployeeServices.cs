@@ -1,5 +1,6 @@
 ﻿using AutoMapper;
 using MeoMeo.Application.IServices;
+using MeoMeo.Contract.Commons;
 using MeoMeo.Contract.DTOs;
 using MeoMeo.Domain.Entities;
 using MeoMeo.Domain.IRepositories;
@@ -47,20 +48,35 @@ namespace MeoMeo.Application.Services
             return await _repository.GetAllEmployeeAsync();
         }
 
-        public async Task<Employee> GetEmployeeByIdAsync(Guid id)
+        public async Task<CreateOrUpdateEmployeeResponseDTO> GetEmployeeByIdAsync(Guid id)
         {
-            return await _repository.GetEmployeeByIdAsync(id);
+            CreateOrUpdateEmployeeResponseDTO responseDTO = new CreateOrUpdateEmployeeResponseDTO();
+
+            var check = await _repository.GetEmployeeByIdAsync(id);
+            if (check == null)
+            {
+                responseDTO.ResponseStatus = BaseStatus.Error;
+                responseDTO.Message = "Không tìm thấy employee";
+                return responseDTO;
+            }
+
+            responseDTO = _mapper.Map<CreateOrUpdateEmployeeResponseDTO>(check);
+            responseDTO.ResponseStatus = BaseStatus.Success;
+            responseDTO.Message = "";
+            return responseDTO;
         }
 
-        public async Task<Employee> UpdateEmployeeAsync(CreateOrUpdateEmployeeDTO employee)
+        public async Task<CreateOrUpdateEmployeeResponseDTO> UpdateEmployeeAsync(CreateOrUpdateEmployeeDTO employee)
         {
-            Employee employeeCheck = new Employee();
+            var itemEmployee = await _repository.GetEmployeeByIdAsync(Guid.Parse(employee.Id.ToString()));
+            if (itemEmployee == null)
+            {
+                return new CreateOrUpdateEmployeeResponseDTO { ResponseStatus = BaseStatus.Error, Message = "Không tìm thấy employee" };
+            }
+            _mapper.Map(employee, itemEmployee);
 
-            employeeCheck = _mapper.Map<Employee>(employee);
-
-            var result = await _repository.UpdateEmployeeAsync(employeeCheck);
-
-            return result;
+            await _repository.UpdateEmployeeAsync(itemEmployee);
+            return new CreateOrUpdateEmployeeResponseDTO { ResponseStatus = BaseStatus.Success, Message = "Cập nhật thành công" };
         }
     }
 }
