@@ -32,14 +32,15 @@ namespace MeoMeo.Application.Services
                 PromotionDetailId = cartDetailDTO.PonmotionId,
                 Discount = cartDetailDTO.Discount,
                 Price = cartDetailDTO.Price,
-                Quantity = cartDetailDTO.Quantity
+                Quantity = cartDetailDTO.Quantity,
+                Status = cartDetailDTO.Status,
             };
 
             await _cartDetaillRepository.Create(entity);
 
             return new CartDetailResponseDTO
             {
-                Status = BaseStatus.Success,
+                ResponseStatus = BaseStatus.Success,
                 Message = "Thêm chi tiết giỏ hàng thành công"
             };
         }
@@ -49,11 +50,11 @@ namespace MeoMeo.Application.Services
             var entity = await _cartDetaillRepository.GetCartDetailById(id);
             if (entity == null)
             {
-                return new CartDetailResponseDTO { Status = BaseStatus.Error, Message = "Không tìm thấy Id" };
+                return new CartDetailResponseDTO { ResponseStatus = BaseStatus.Error, Message = "Không tìm thấy Id" };
             }
 
             await _cartDetaillRepository.Delete(id);
-            return new CartDetailResponseDTO { Status = BaseStatus.Success, Message = "Xóa thành công" };
+            return new CartDetailResponseDTO { ResponseStatus = BaseStatus.Success, Message = "Xóa thành công" };
         }
 
         public async Task<IEnumerable<CartDetail>> GetAllCartDetaillAsync()
@@ -62,10 +63,30 @@ namespace MeoMeo.Application.Services
             return cartDetail;
         }
 
-        public async Task<CartDetail> GetCartDetaillByIdAsync(Guid id)
+        public async Task<CartDetailResponseDTO> GetCartDetaillByIdAsync(Guid id)
         {
             var cartDetaill = await _cartDetaillRepository.GetCartDetailById(id);
-            return cartDetaill;
+            if(cartDetaill == null)
+            {
+                return new CartDetailResponseDTO
+                {
+                    ResponseStatus = BaseStatus.Error,
+                    Message = $"Không tìm thấy giỏ hàng chi tiết với ID: {id}"
+                };
+            }
+            return new CartDetailResponseDTO 
+            { 
+                Id = cartDetaill.Id,
+                CartId = cartDetaill.CartId,
+                ProductId = cartDetaill.ProductDetailId,
+                PonmotionId = cartDetaill.PromotionDetailId,
+                Discount = cartDetaill.Discount,
+                Price = cartDetaill.Price,
+                Quantity = cartDetaill.Quantity,
+                Status = cartDetaill.Status,
+                ResponseStatus = BaseStatus.Success,
+                Message = $""
+            };
         }
 
         public async Task<CartDetailResponseDTO> UpdataCartDetaillAsync(CartDetailDTO cartDetailDTO)
@@ -73,12 +94,12 @@ namespace MeoMeo.Application.Services
             var entity = await _cartDetaillRepository.GetCartDetailById(cartDetailDTO.Id.Value);
             if (entity == null)
             {
-                return new CartDetailResponseDTO { Status = BaseStatus.Error, Message = "Không tìm thấy Id trên để cập nhật" };
+                return new CartDetailResponseDTO { ResponseStatus = BaseStatus.Error, Message = "Không tìm thấy Id trên để cập nhật" };
             }
             _mapper.Map(cartDetailDTO, entity);
             await _cartDetaillRepository.Update(entity);
 
-            return new CartDetailResponseDTO { Status = BaseStatus.Success, Message = "Cập nhật thành công" };
+            return new CartDetailResponseDTO { ResponseStatus = BaseStatus.Success, Message = "Cập nhật thành công" };
         }
     }
 }

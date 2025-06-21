@@ -32,7 +32,7 @@ namespace MeoMeo.Application.Services
             var updated = await _productDetaillSizeRepository.Create(productDetailSize);
             return new ProductDetaillSizeResponseDTO
             {
-                Status = BaseStatus.Success,
+                ResponseStatus = BaseStatus.Success,
                 Message = "Thêm thành công"
             };
         }
@@ -49,10 +49,24 @@ namespace MeoMeo.Application.Services
             return productDetailSizes;
         }
 
-        public async Task<ProductDetailSize> GetProductDetaillSizeByIdAsync(Guid id)
+        public async Task<ProductDetaillSizeResponseDTO> GetProductDetaillSizeByIdAsync(Guid id)
         {
             var productDetailSize = await _productDetaillSizeRepository.GetProductDetaillSizeById(id);
-            return productDetailSize;
+            if(productDetailSize == null)
+            {
+                return new ProductDetaillSizeResponseDTO 
+                {
+                    ResponseStatus = BaseStatus.Error,
+                    Message = $"Không tìm thấy ID: {id}"
+                };
+            }
+            return new ProductDetaillSizeResponseDTO 
+            {
+                SizeId = productDetailSize.SizeId,
+                ProductDetaillId = productDetailSize.ProductDetailId,
+                ResponseStatus = BaseStatus.Success,
+                Message = $""
+            };
         }
 
         public async Task<ProductDetaillSizeResponseDTO> UpdateProductDetaillSizeAsync(ProductDetaillSizeDTO productDetaillSizeDTO)
@@ -60,12 +74,12 @@ namespace MeoMeo.Application.Services
             var productDetailSize = await _productDetaillSizeRepository.GetProductDetaillSizeById(productDetaillSizeDTO.SizeId);
             if (productDetailSize == null)
             {
-                return new ProductDetaillSizeResponseDTO { Status = BaseStatus.Error, Message = "Không tìm thấy Id trên để cập nhật" };
+                return new ProductDetaillSizeResponseDTO { ResponseStatus = BaseStatus.Error, Message = "Không tìm thấy Id trên để cập nhật" };
             }
             _mapper.Map(productDetaillSizeDTO, productDetailSize);
 
             await _productDetaillSizeRepository.Update(productDetailSize);
-            return new ProductDetaillSizeResponseDTO { Status = BaseStatus.Success, Message = "Cập nhật thành công" };
+            return new ProductDetaillSizeResponseDTO { ResponseStatus = BaseStatus.Success, Message = "Cập nhật thành công" };
         }
     }
 }

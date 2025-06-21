@@ -14,6 +14,6 @@ namespace MeoMeo.Contract.DTOs
         public decimal TongTien { get; set; }
         public DateTime NgayTao { get; set; }
         public Guid createBy { get; set; }
-        public DateTime lastModificationTime { get; set; }
+        public DateTime? lastModificationTime { get; set; }
     }
 }

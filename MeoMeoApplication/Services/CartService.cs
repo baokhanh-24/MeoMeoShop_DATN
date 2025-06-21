@@ -24,14 +24,32 @@ namespace MeoMeo.Application.Services
         }
         public async Task<IEnumerable<Cart>> GetAllCartsAsync()
         {
-            var cartDetail = await _cartRepository.GetAllCart();
-            return cartDetail;
+            var cart = await _cartRepository.GetAllCart();
+            return cart;
         }
 
-        public async Task<Cart> GetCartByIdAsync(Guid id)
+        public async Task<CartResponseDTO> GetCartByIdAsync(Guid id)
         {
-            var cartDetaill = await _cartRepository.GetCartById(id);
-            return cartDetaill;
+            var cart = await _cartRepository.GetCartById(id);
+            if(cart == null)
+            {
+                return new CartResponseDTO
+                {
+                    ResponseStatus = BaseStatus.Error,
+                    Message = $"Không tìm thấy giỏ hàng với ID: {id}"
+                };
+            }
+            return new CartResponseDTO 
+            { 
+                Id = cart.Id,
+                CustomersId = cart.CustomerId,
+                createBy = cart.CreatedBy,
+                NgayTao = cart.CreationTime,
+                lastModificationTime = cart.LastModificationTime,
+                TongTien = cart.TotalPrice,
+                ResponseStatus = BaseStatus.Success,
+                Message = $""
+            };
         }
 
         public async Task<CartResponseDTO> CreateCartAsync(CartDTO cartDto)
@@ -49,7 +67,7 @@ namespace MeoMeo.Application.Services
            await _cartRepository.Create(cart);
             return new CartResponseDTO
             {
-                Status = BaseStatus.Success,
+                ResponseStatus = BaseStatus.Success,
                 Message = "Thêm giỏ hàng thành công"
             };
         }
@@ -59,11 +77,11 @@ namespace MeoMeo.Application.Services
             var cart = await _cartRepository.GetCartById(cartDto.Id);
             if (cart == null)
             {
-                return new CartResponseDTO { Status = BaseStatus.Error, Message = "Không tìm thấy Id trên để cập nhật" };
+                return new CartResponseDTO { ResponseStatus = BaseStatus.Error, Message = "Không tìm thấy Id trên để cập nhật" };
             }
             _mapper.Map(cartDto, cart);
             await _cartRepository.Update(cart);
-            return new CartResponseDTO { Status = BaseStatus.Success, Message = "Cập nhật thành công" };
+            return new CartResponseDTO { ResponseStatus = BaseStatus.Success, Message = "Cập nhật thành công" };
         }
 
         public async Task SaveChangesAsync()

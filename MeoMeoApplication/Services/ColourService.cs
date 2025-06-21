@@ -29,11 +29,12 @@ namespace MeoMeo.Application.Services
                 Id = Guid.NewGuid(), 
                 Name = colourDTO.Name,
                 Code = colourDTO.Code,
+                Status = colourDTO.Status,
             };
             await _colourRepository.Create(colour);
             return new ColourResponseDTO
             {
-                Status = BaseStatus.Success,
+                ResponseStatus = BaseStatus.Success,
                 Message = "Thêm thành công"
             };
         }
@@ -43,11 +44,11 @@ namespace MeoMeo.Application.Services
             var image = await _colourRepository.GetColourById(id);
             if (image == null)
             {
-                return new ColourResponseDTO { Status = BaseStatus.Error, Message = "Không tìm thấy Id" };
+                return new ColourResponseDTO { ResponseStatus = BaseStatus.Error, Message = "Không tìm thấy Id" };
             }    
 
             await _colourRepository.Delete(id);
-            return new ColourResponseDTO { Status = BaseStatus.Success, Message = "Xóa thành công" };
+            return new ColourResponseDTO { ResponseStatus = BaseStatus.Success, Message = "Xóa thành công" };
         }
 
         public async Task<IEnumerable<Colour>> GetAllColoursAsync()
@@ -56,10 +57,26 @@ namespace MeoMeo.Application.Services
             return colour;
         }
 
-        public async Task<Colour> GetColourByIdAsync(Guid id)
+        public async Task<ColourResponseDTO> GetColourByIdAsync(Guid id)
         {
             var colour = await _colourRepository.GetColourById(id);
-            return colour;
+            if(colour == null)
+            {
+                return new ColourResponseDTO
+                {
+                    ResponseStatus = BaseStatus.Error,
+                    Message = $"Không tìm thấy Colour với ID: {id}"
+                };
+            }
+            return new ColourResponseDTO 
+            {
+                Id = colour.Id,
+                Name = colour.Name,
+                Code = colour.Code,
+                Status = colour.Status,
+                ResponseStatus = BaseStatus.Success,
+                Message = $""
+            };
         }
 
         public async Task<ColourResponseDTO> UpdateColourAsync(ColourDTO colourDTO)
@@ -67,12 +84,12 @@ namespace MeoMeo.Application.Services
             var colour = await _colourRepository.GetColourById(colourDTO.Id.Value);
             if (colour == null)
             {
-                return new ColourResponseDTO { Status = BaseStatus.Error, Message = "Không tìm thấy Id trên để cập nhật" };
+                return new ColourResponseDTO { ResponseStatus = BaseStatus.Error, Message = "Không tìm thấy Id trên để cập nhật" };
             }
             _mapper.Map(colourDTO, colour);
 
             await _colourRepository.Update(colour);
-            return new ColourResponseDTO { Status = BaseStatus.Success, Message = "Cập nhật thành công" };
+            return new ColourResponseDTO { ResponseStatus = BaseStatus.Success, Message = "Cập nhật thành công" };
         }
     }
 }

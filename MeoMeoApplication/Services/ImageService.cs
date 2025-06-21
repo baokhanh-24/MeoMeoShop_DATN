@@ -28,10 +28,28 @@ namespace MeoMeo.Application.Services
             return images;
         }
 
-        public async Task<Image> GetImageByIdAsync(Guid id)
+        public async Task<ImageResponseDTO> GetImageByIdAsync(Guid id)
         {
             var image = await _imageRepository.GetImageById(id);
-            return image;
+            if(image == null)
+            {
+                return new ImageResponseDTO 
+                {
+                    ResponseStatus = BaseStatus.Error,
+                    Message = $"Không tìm thấy Image với ID: {id}"
+                };
+            }
+            return new ImageResponseDTO 
+            {
+                Id = image.Id,
+                ProductDetailId = image.ProductDetailId,
+                Name = image.Name,
+                Url = image.URL,
+                Type = image.Type,
+                Status = image.Status,
+                ResponseStatus = BaseStatus.Success,
+                Message = $""
+            };
         }
 
         public async Task<ImageResponseDTO> CreateImageAsync(ImageDTO imageDto)
@@ -41,13 +59,14 @@ namespace MeoMeo.Application.Services
                 Id = Guid.NewGuid(), 
                 URL = imageDto.Url,
                 Name = imageDto.Name,
-                ProductDetailId = imageDto.ProductDetailId
+                ProductDetailId = imageDto.ProductDetailId,
+                Status = imageDto.Status,
             };
             //var image = _mapper.Map<Image>(imageDto);
             var updated =  await _imageRepository.CreateImage(image);
             return new ImageResponseDTO
             {
-                Status = BaseStatus.Success,
+                ResponseStatus = BaseStatus.Success,
                 Message = "Thêm thành công"
             };
         }
@@ -57,12 +76,12 @@ namespace MeoMeo.Application.Services
             var image = await _imageRepository.GetImageById(imageDto.Id.Value);
             if (image == null)
             {
-                return new ImageResponseDTO { Status = BaseStatus.Error, Message = "Không tìm thấy Id trên để cập nhật" };
+                return new ImageResponseDTO { ResponseStatus = BaseStatus.Error, Message = "Không tìm thấy Id trên để cập nhật" };
             }
 
             _mapper.Map(imageDto, image);
             await _imageRepository.UpdateImage(image);
-            return new ImageResponseDTO { Status = BaseStatus.Success, Message = "Cập nhật thành công" };
+            return new ImageResponseDTO { ResponseStatus = BaseStatus.Success, Message = "Cập nhật thành công" };
         }
 
         public async Task<ImageResponseDTO> DeleteImageAsync(Guid id)
@@ -70,10 +89,10 @@ namespace MeoMeo.Application.Services
             var image = await _imageRepository.GetByIdAsync(id);
             if (image == null)
             {
-                return new ImageResponseDTO { Status = BaseStatus.Error, Message = "Không tìm thấy Id" };
+                return new ImageResponseDTO { ResponseStatus = BaseStatus.Error, Message = "Không tìm thấy Id" };
             }
             await _imageRepository.DeleteImage(id);
-            return new ImageResponseDTO { Status = BaseStatus.Success, Message = "Xóa thành công" };
+            return new ImageResponseDTO { ResponseStatus = BaseStatus.Success, Message = "Xóa thành công" };
         }
     }
 }

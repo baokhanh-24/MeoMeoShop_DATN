@@ -28,13 +28,14 @@ namespace MeoMeo.Application.Services
             {
                 Id = Guid.NewGuid(), // hoặc để Db tự tạo
                 Value = sizeDTO.Value,
-                Code = sizeDTO.Code
+                Code = sizeDTO.Code,
+                Status = sizeDTO.Status,
                
             };
             var updated = await _sizeRepository.Create(size);
             return new SizeResponseDTO
             {
-                Status = BaseStatus.Success,
+                ResponseStatus = BaseStatus.Success,
                 Message = "Thêm thành công"
             };
         }
@@ -44,11 +45,11 @@ namespace MeoMeo.Application.Services
             var size = await _sizeRepository.GetSizeById(id);
             if (size == null)
             {
-                return new SizeResponseDTO { Status = BaseStatus.Error, Message = "Không tìm thấy Id" };
+                return new SizeResponseDTO { ResponseStatus = BaseStatus.Error, Message = "Không tìm thấy Id" };
             }
 
             await _sizeRepository.Delete(id);
-            return new SizeResponseDTO { Status = BaseStatus.Success, Message = "Xóa thành công" };
+            return new SizeResponseDTO { ResponseStatus = BaseStatus.Success, Message = "Xóa thành công" };
         }
 
         public async Task<IEnumerable<Size>> GetAllSizeAsync()
@@ -57,10 +58,26 @@ namespace MeoMeo.Application.Services
             return size;
         }
 
-        public async Task<Size> GetSizeByIdAsync(Guid id)
+        public async Task<SizeResponseDTO> GetSizeByIdAsync(Guid id)
         {
             var size = await _sizeRepository.GetSizeById(id);
-            return size;
+            if(size == null)
+            {
+                return new SizeResponseDTO
+                {
+                    ResponseStatus = BaseStatus.Error,
+                    Message = $"Không tìm thấy Size với ID: {id}"
+                };
+            }
+            return new SizeResponseDTO 
+            { 
+                Id = size.Id,
+                Value = size.Value,
+                Code = size.Code,
+                Status = size.Status,
+                ResponseStatus = BaseStatus.Success,
+                Message = $""
+            };
         }
 
         public async Task<SizeResponseDTO> UpdateSizeAsync(SizeDTO sizeDTO)
@@ -68,12 +85,12 @@ namespace MeoMeo.Application.Services
             var size = await _sizeRepository.GetSizeById(sizeDTO.Id.Value);
             if (size == null)
             {
-                return new SizeResponseDTO { Status = BaseStatus.Error, Message = "Không tìm thấy Id trên để cập nhật" };
+                return new SizeResponseDTO { ResponseStatus = BaseStatus.Error, Message = "Không tìm thấy Id trên để cập nhật" };
             }
             _mapper.Map(sizeDTO, size);
 
             await _sizeRepository.Update(size);
-            return new SizeResponseDTO { Status = BaseStatus.Success, Message = "Cập nhật thành công" };
+            return new SizeResponseDTO { ResponseStatus = BaseStatus.Success, Message = "Cập nhật thành công" };
         }
     }
 }

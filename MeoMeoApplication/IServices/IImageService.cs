@@ -11,7 +11,7 @@ namespace MeoMeo.Application.IServices
     public interface IImageService
     {
         Task<IEnumerable<Image>> GetAllImagesAsync();
-        Task<Image> GetImageByIdAsync(Guid id);
+        Task<ImageResponseDTO> GetImageByIdAsync(Guid id);
         Task<ImageResponseDTO> CreateImageAsync(ImageDTO imageDto);
         Task<ImageResponseDTO> UpdateImageAsync(ImageDTO imageDto);
         Task<ImageResponseDTO> DeleteImageAsync(Guid id);

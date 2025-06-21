@@ -33,7 +33,7 @@ namespace MeoMeo.Application.Services
             await _productDetaillColourRepository.Create(productDetailColour);
             return new ProductDetaillColourResponseDTO
             {
-                Status = BaseStatus.Success,
+                ResponseStatus = BaseStatus.Success,
                 Message = "Thêm thành công"
             };
         }
@@ -45,28 +45,42 @@ namespace MeoMeo.Application.Services
 
         public async Task<IEnumerable<ProductDetailColour>> GetAllProductDetaillColourAsync()
         {
-            var images = await _productDetaillColourRepository.GetAllProductDetaillColour();
-            return images;
+            var productDetailColours = await _productDetaillColourRepository.GetAllProductDetaillColour();
+            return productDetailColours;
         }
 
-        public async Task<ProductDetailColour> GetProductDetaillColourByIdAsync(Guid id)
+        public async Task<ProductDetaillColourResponseDTO> GetProductDetaillColourByIdAsync(Guid id)
         {
-            var image = await _productDetaillColourRepository.GetProductDetaillColourById(id);
-            return image;
+            var productDetailColour = await _productDetaillColourRepository.GetProductDetaillColourById(id);
+            if(productDetailColour == null)
+            {
+                return new ProductDetaillColourResponseDTO 
+                {
+                    ResponseStatus = BaseStatus.Error,
+                    Message = $"Không tìm thấy ID: {id}"
+                };
+            }
+            return new ProductDetaillColourResponseDTO 
+            {
+                ColourId = productDetailColour.ColourId,
+                ProductDetaillId = productDetailColour.ProductDetailId,
+                ResponseStatus = BaseStatus.Success,
+                Message = $""
+            };
         }
 
         public async Task<ProductDetaillColourResponseDTO> UpdateProductDetaillColourAsync(ProductDetaillColourDTO productDetaillColourDTO)
         {
-            var image = await _productDetaillColourRepository.GetProductDetaillColourById(productDetaillColourDTO.ColourId);
-            if (image == null)
+            var productDetailColour = await _productDetaillColourRepository.GetProductDetaillColourById(productDetaillColourDTO.ColourId);
+            if (productDetailColour == null)
             {
-                return new ProductDetaillColourResponseDTO { Status = BaseStatus.Error, Message = "Không tìm thấy Id trên để cập nhật" };
+                return new ProductDetaillColourResponseDTO { ResponseStatus = BaseStatus.Error, Message = "Không tìm thấy Id trên để cập nhật" };
             }
 
-            _mapper.Map(productDetaillColourDTO, image);
+            _mapper.Map(productDetaillColourDTO, productDetailColour);
 
-            await _productDetaillColourRepository.Update(image);
-            return new ProductDetaillColourResponseDTO { Status = BaseStatus.Success, Message = "Cập nhật thành công" };
+            await _productDetaillColourRepository.Update(productDetailColour);
+            return new ProductDetaillColourResponseDTO { ResponseStatus = BaseStatus.Success, Message = "Cập nhật thành công" };
         }
     }
 }
