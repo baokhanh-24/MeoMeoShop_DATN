@@ -1,5 +1,6 @@
 ﻿using AutoMapper;
 using MeoMeo.Application.IServices;
+using MeoMeo.Contract.Commons;
 using MeoMeo.Contract.DTOs;
 using MeoMeo.Domain.Entities;
 using MeoMeo.Domain.IRepositories;
@@ -21,16 +22,19 @@ namespace MeoMeo.Application.Services
             _mapper = mapper;
         }
 
-        public async Task<ProductDetailSize> CreateProductDetaillSizeAsync(ProductDetaillSizeDTO productDetaillSizeDTO)
+        public async Task<ProductDetaillSizeResponseDTO> CreateProductDetaillSizeAsync(ProductDetaillSizeDTO productDetaillSizeDTO)
         {
-            var image = new ProductDetailSize
+            var productDetailSize = new ProductDetailSize
             {
                 SizeId = productDetaillSizeDTO.SizeId,
                 ProductDetailId = productDetaillSizeDTO.ProductDetaillId
-                // gán thêm các trường khác nếu có
             };
-            var updated = await _productDetaillSizeRepository.Create(image);
-            return updated;
+            var updated = await _productDetaillSizeRepository.Create(productDetailSize);
+            return new ProductDetaillSizeResponseDTO
+            {
+                ResponseStatus = BaseStatus.Success,
+                Message = "Thêm thành công"
+            };
         }
 
         public async Task<bool> DeleteProductDetaillSizeAsync(Guid id)
@@ -41,27 +45,41 @@ namespace MeoMeo.Application.Services
 
         public async Task<IEnumerable<ProductDetailSize>> GetAllProductDetaillSizeAsync()
         {
-            var images = await _productDetaillSizeRepository.GetAllProductDetaillSize();
-            return images;
+            var productDetailSizes = await _productDetaillSizeRepository.GetAllProductDetaillSize();
+            return productDetailSizes;
         }
 
-        public async Task<ProductDetailSize> GetProductDetaillSizeByIdAsync(Guid id)
+        public async Task<ProductDetaillSizeResponseDTO> GetProductDetaillSizeByIdAsync(Guid id)
         {
-            var image = await _productDetaillSizeRepository.GetProductDetaillSizeById(id);
-            return image;
+            var productDetailSize = await _productDetaillSizeRepository.GetProductDetaillSizeById(id);
+            if(productDetailSize == null)
+            {
+                return new ProductDetaillSizeResponseDTO 
+                {
+                    ResponseStatus = BaseStatus.Error,
+                    Message = $"Không tìm thấy ID: {id}"
+                };
+            }
+            return new ProductDetaillSizeResponseDTO 
+            {
+                SizeId = productDetailSize.SizeId,
+                ProductDetaillId = productDetailSize.ProductDetailId,
+                ResponseStatus = BaseStatus.Success,
+                Message = $""
+            };
         }
 
-        public async Task<ProductDetailSize> UpdateProductDetaillSizeAsync(ProductDetaillSizeDTO productDetaillSizeDTO)
+        public async Task<ProductDetaillSizeResponseDTO> UpdateProductDetaillSizeAsync(ProductDetaillSizeDTO productDetaillSizeDTO)
         {
-            var image = await _productDetaillSizeRepository.GetProductDetaillSizeById(productDetaillSizeDTO.SizeId);
-            if (image == null)
-                throw new Exception("Image not found");
+            var productDetailSize = await _productDetaillSizeRepository.GetProductDetaillSizeById(productDetaillSizeDTO.SizeId);
+            if (productDetailSize == null)
+            {
+                return new ProductDetaillSizeResponseDTO { ResponseStatus = BaseStatus.Error, Message = "Không tìm thấy Id trên để cập nhật" };
+            }
+            _mapper.Map(productDetaillSizeDTO, productDetailSize);
 
-            // Ánh xạ các giá trị từ DTO vào entity đang tồn tại
-            _mapper.Map(productDetaillSizeDTO, image);
-
-            await _productDetaillSizeRepository.Update(image);
-            return image;
+            await _productDetaillSizeRepository.Update(productDetailSize);
+            return new ProductDetaillSizeResponseDTO { ResponseStatus = BaseStatus.Success, Message = "Cập nhật thành công" };
         }
     }
 }

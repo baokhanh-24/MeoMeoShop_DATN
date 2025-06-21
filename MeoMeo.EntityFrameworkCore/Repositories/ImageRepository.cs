@@ -20,36 +20,21 @@ namespace MeoMeo.EntityFrameworkCore.Repositories
 
         public async Task<Image> CreateImage(Image img)
         {
-            bool exists = await _context.images.AnyAsync(c => c.Id == img.Id);
-            if (exists)
-            {
-                throw new DuplicateWaitObjectException("This cartDetails is existed!");
-            }
-            await AddAsync(img);
-            await SaveChangesAsync();
-            return img;
+            var itemCreate = await AddAsync(img);
+            return itemCreate;
         }
 
         public async Task<bool> DeleteImage(Guid id)
         {
             
             await DeleteAsync(id);
-            await SaveChangesAsync();
             return true;
         }
 
         public async Task<IEnumerable<Image>> GetAllImage()
         {
-            var Img = await _context.images.Include(p => p.ProductDetail).Select(p => new Image
-            {
-                Id = p.Id,
-                ProductDetailId = p.ProductDetailId,
-                Name = p.Name,
-                Type = p.Type,
-                URL = p.URL,
-
-            }).ToListAsync();
-            return Img;
+            var itemGetAll = await GetAllAsync();
+            return itemGetAll.ToList();
         }
 
         public async Task<Image> GetImageById(Guid id)
@@ -59,22 +44,8 @@ namespace MeoMeo.EntityFrameworkCore.Repositories
 
         public async Task<Image> UpdateImage(Image img)
         {
-            var updateImg = await _context.images.FindAsync(img.Id);
-            if (updateImg == null)
-            {
-                throw new KeyNotFoundException($"Image with Id {img.Id} not found.");
-            }
-            // Kiểm tra ProductDetailId có tồn tại hay không
-            bool productDetailExists = await _context.productDetails.AnyAsync(p => p.Id == img.ProductDetailId);
-            if (!productDetailExists)
-            {
-                throw new KeyNotFoundException($"ProductDetail with Id {img.ProductDetailId} does not exist.");
-            }
-            // Cập nhật nếu hợp lệ
-            updateImg.ProductDetailId = img.ProductDetailId;
-            await UpdateAsync(updateImg);
-            await SaveChangesAsync();
-            return updateImg;
+            var itemUpdate = await UpdateAsync(img);
+            return itemUpdate;
         }
     }
 }
