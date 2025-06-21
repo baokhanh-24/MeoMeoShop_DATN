@@ -10,6 +10,8 @@ namespace MeoMeo.Contract
         {
             CreateMap<CreateOrUpdateProductDTO, Product>();
             CreateMap<CreateOrUpdateProductDetailDTO, ProductDetail>();
+            CreateMap<Product,ProductReponseDTO>();
+            CreateMap<ProductDetail, ProductDetailResponseDTO>();
             CreateMap<CartDTO, Cart>();
             CreateMap<CartDetailDTO, CartDetail>();
             CreateMap<ImageDTO, Image>();
