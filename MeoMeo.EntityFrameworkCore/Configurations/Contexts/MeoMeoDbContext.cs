@@ -28,7 +28,7 @@ namespace MeoMeo.EntityFrameworkCore.Configurations.Contexts
         public DbSet<OrderDetail> orderDetails { get; set; }
         public DbSet<Product> products { get; set; }
         public DbSet<ProductDetail> productDetails { get; set; }
-        public object ProductDetails { get; internal set; }
+        
         public DbSet<ProductDetailColour> productDetailColours { get; set; }
         public DbSet<ProductDetailMaterial> productDetailMaterials { get; set; }
         public DbSet<ProductDetailSize> productDetailSizes { get; set; }
