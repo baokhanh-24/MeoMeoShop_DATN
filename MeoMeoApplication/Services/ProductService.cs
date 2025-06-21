@@ -1,5 +1,6 @@
 ﻿using AutoMapper;
 using MeoMeo.Application.IServices;
+using MeoMeo.Contract.Commons;
 using MeoMeo.Contract.DTOs;
 using MeoMeo.Domain.Entities;
 using MeoMeo.Domain.IRepositories;
@@ -30,16 +31,29 @@ namespace MeoMeo.Application.Services
             return result;
         }
 
-        public async Task DeleteAsync(Guid id)
+        public async Task<ProductReponseDTO> DeleteAsync(Guid id)
         {
-            var product = await _repository.GetProductByIdAsync(id);
-                
-            if (product == null)
-            {
-                throw new Exception("Sản phẩm không tồn tại.");
+                var response = new ProductReponseDTO();
+
+                var product = await _repository.GetProductByIdAsync(id);
+                if (product == null)
+                {
+                    response.Message = "Không tìm thấy sản phẩm để xóa.";
+                    response.ResponseStatus = BaseStatus.Error;
+                    return response;
+                }
+
+                await _repository.DeleteProductAsync(id);
+
+                // Nếu muốn trả về thông tin sản phẩm đã xóa
+                response = _mapper.Map<ProductReponseDTO>(product);
+                response.Message = "Xóa sản phẩm thành công.";
+                response.ResponseStatus = BaseStatus.Success;
+
+                return response;
             }
-            await _repository.DeleteProductAsync(id);
-        }
+
+        
 
         public async Task<IEnumerable<Product>> GetAllAsync()
         {
@@ -51,20 +65,25 @@ namespace MeoMeo.Application.Services
             return await _repository.GetProductByIdAsync(id);
         }
 
-        public async Task UpdateAsync(Product model)
+        public async Task<ProductReponseDTO> UpdateAsync(CreateOrUpdateProductDTO model)
         {
-            var product = await _repository.GetProductByIdAsync(model.Id); 
+            ProductReponseDTO response = new ProductReponseDTO();
+            Product updateProduct = new Product();
+
+            var product = await _repository.GetProductByIdAsync(Guid.Parse(model.Id.ToString()));
             if (product == null)
-                throw new Exception("Sản phẩm không tồn tại.");
-            _mapper.Map(model, product);
+            {
+                response.Message = "Khong tim thay san pham";
+                response.ResponseStatus = BaseStatus.Error;
+                return response;
+            }
 
-
-            product.Name = model.Name;
-            product.Thumbnail = model.Thumbnail;
-            product.Brand = model.Brand;
-            product.BrandId = model.BrandId;
-
-            await _repository.UpdateProductAsync(product);
+            updateProduct = _mapper.Map<Product>(product);
+            var result = await _repository.UpdateAsync(updateProduct);
+            response = _mapper.Map<ProductReponseDTO>(result);
+            response.Message = "";
+            response.ResponseStatus = BaseStatus.Success;
+            return response;
         }
     }
 }
