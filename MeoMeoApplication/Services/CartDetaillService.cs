@@ -1,5 +1,6 @@
 ﻿using AutoMapper;
 using MeoMeo.Application.IServices;
+using MeoMeo.Contract.Commons;
 using MeoMeo.Contract.DTOs;
 using MeoMeo.Domain.Entities;
 using MeoMeo.Domain.IRepositories;
@@ -21,32 +22,38 @@ namespace MeoMeo.Application.Services
             _mapper = mapper;
         }
 
-        public async Task<CartDetail> CreateCartDetaillAsync(CartDetailDTO cartDetailDTO)
+        public async Task<CartDetailResponseDTO> CreateCartDetaillAsync(CartDetailDTO cartDetailDTO)
         {
-            var cartDetail = new CartDetail
+            var entity = new CartDetail
             {
-                Id = Guid.NewGuid(), // hoặc để Db tự tạo
+                Id = Guid.NewGuid(),
+                CartId = cartDetailDTO.CartId,
                 ProductDetailId = cartDetailDTO.ProductId,
                 PromotionDetailId = cartDetailDTO.PonmotionId,
                 Discount = cartDetailDTO.Discount,
                 Price = cartDetailDTO.Price,
-                Quantity = cartDetailDTO.Quantity,
-
-                // gán thêm các trường khác nếu có
+                Quantity = cartDetailDTO.Quantity
             };
-            //var image = _mapper.Map<Image>(imageDto);
-            var updated = await _cartDetaillRepository.Create(cartDetail);
-            return updated;
+
+            await _cartDetaillRepository.Create(entity);
+
+            return new CartDetailResponseDTO
+            {
+                Status = BaseStatus.Success,
+                Message = "Thêm chi tiết giỏ hàng thành công"
+            };
         }
 
-        public async Task<bool> DeleteCartDetaillAsync(Guid id)
+        public async Task<CartDetailResponseDTO> DeleteCartDetaillAsync(Guid id)
         {
-            var cartDetail = await _cartDetaillRepository.GetCartDetailById(id);
-            if (cartDetail == null)
-                throw new ArgumentException("Không tìm thấy ảnh với ID đã cung cấp");
+            var entity = await _cartDetaillRepository.GetCartDetailById(id);
+            if (entity == null)
+            {
+                return new CartDetailResponseDTO { Status = BaseStatus.Error, Message = "Không tìm thấy Id" };
+            }
 
             await _cartDetaillRepository.Delete(id);
-            return true;
+            return new CartDetailResponseDTO { Status = BaseStatus.Success, Message = "Xóa thành công" };
         }
 
         public async Task<IEnumerable<CartDetail>> GetAllCartDetaillAsync()
@@ -61,17 +68,17 @@ namespace MeoMeo.Application.Services
             return cartDetaill;
         }
 
-        public async Task<CartDetail> UpdataCartDetaillAsync(CartDetailDTO cartDetailDTO)
+        public async Task<CartDetailResponseDTO> UpdataCartDetaillAsync(CartDetailDTO cartDetailDTO)
         {
-            var cartDetail = await _cartDetaillRepository.GetCartDetailById(cartDetailDTO.Id.Value);
-            if (cartDetail == null)
-                throw new Exception("Image not found");
+            var entity = await _cartDetaillRepository.GetCartDetailById(cartDetailDTO.Id.Value);
+            if (entity == null)
+            {
+                return new CartDetailResponseDTO { Status = BaseStatus.Error, Message = "Không tìm thấy Id trên để cập nhật" };
+            }
+            _mapper.Map(cartDetailDTO, entity);
+            await _cartDetaillRepository.Update(entity);
 
-            // Ánh xạ các giá trị từ DTO vào entity đang tồn tại
-            _mapper.Map(cartDetailDTO, cartDetail);
-
-            await _cartDetaillRepository.Update(cartDetail);
-            return cartDetail;
+            return new CartDetailResponseDTO { Status = BaseStatus.Success, Message = "Cập nhật thành công" };
         }
     }
 }

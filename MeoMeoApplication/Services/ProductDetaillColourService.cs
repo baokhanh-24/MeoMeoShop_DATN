@@ -1,5 +1,6 @@
 ﻿using AutoMapper;
 using MeoMeo.Application.IServices;
+using MeoMeo.Contract.Commons;
 using MeoMeo.Contract.DTOs;
 using MeoMeo.Domain.Entities;
 using MeoMeo.Domain.IRepositories;
@@ -21,20 +22,23 @@ namespace MeoMeo.Application.Services
             _mapper = mapper;
         }
 
-        public async Task<ProductDetailColour> CreateProductDetaillColourAsync(ProductDetaillColourDTO productDetaillColourDTO)
+        public async Task<ProductDetaillColourResponseDTO> CreateProductDetaillColourAsync(ProductDetaillColourDTO productDetaillColourDTO)
         {
-            var image = new ProductDetailColour
+            var productDetailColour = new ProductDetailColour
             {
                 ProductDetailId =  productDetaillColourDTO.ProductDetaillId,
                 ColourId = productDetaillColourDTO.ColourId,
                 
-                // gán thêm các trường khác nếu có
             };
-            var updated = await _productDetaillColourRepository.Create(image);
-            return updated;
+            await _productDetaillColourRepository.Create(productDetailColour);
+            return new ProductDetaillColourResponseDTO
+            {
+                Status = BaseStatus.Success,
+                Message = "Thêm thành công"
+            };
         }
 
-        public Task<bool> DeleteProduuctDetaillColourAsync(Guid id)
+        public Task<ProductDetaillColourResponseDTO> DeleteProduuctDetaillColourAsync(Guid id)
         {
             throw new NotImplementedException();
         }
@@ -51,17 +55,18 @@ namespace MeoMeo.Application.Services
             return image;
         }
 
-        public async Task<ProductDetailColour> UpdateProductDetaillColourAsync(ProductDetaillColourDTO productDetaillColourDTO)
+        public async Task<ProductDetaillColourResponseDTO> UpdateProductDetaillColourAsync(ProductDetaillColourDTO productDetaillColourDTO)
         {
             var image = await _productDetaillColourRepository.GetProductDetaillColourById(productDetaillColourDTO.ColourId);
             if (image == null)
-                throw new Exception("Image not found");
+            {
+                return new ProductDetaillColourResponseDTO { Status = BaseStatus.Error, Message = "Không tìm thấy Id trên để cập nhật" };
+            }
 
-            // Ánh xạ các giá trị từ DTO vào entity đang tồn tại
             _mapper.Map(productDetaillColourDTO, image);
 
             await _productDetaillColourRepository.Update(image);
-            return image;
+            return new ProductDetaillColourResponseDTO { Status = BaseStatus.Success, Message = "Cập nhật thành công" };
         }
     }
 }

@@ -12,8 +12,8 @@ namespace MeoMeo.Application.IServices
     {
         Task<IEnumerable<ProductDetailColour>> GetAllProductDetaillColourAsync();
         Task<ProductDetailColour> GetProductDetaillColourByIdAsync(Guid id);
-        Task<ProductDetailColour> CreateProductDetaillColourAsync(ProductDetaillColourDTO productDetaillColourDTO);
-        Task<ProductDetailColour> UpdateProductDetaillColourAsync(ProductDetaillColourDTO productDetaillColourDTO);
-        Task<bool> DeleteProduuctDetaillColourAsync(Guid id);
+        Task<ProductDetaillColourResponseDTO> CreateProductDetaillColourAsync(ProductDetaillColourDTO productDetaillColourDTO);
+        Task<ProductDetaillColourResponseDTO> UpdateProductDetaillColourAsync(ProductDetaillColourDTO productDetaillColourDTO);
+        Task<ProductDetaillColourResponseDTO> DeleteProduuctDetaillColourAsync(Guid id);
     }
 }

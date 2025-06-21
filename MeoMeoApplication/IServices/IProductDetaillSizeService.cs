@@ -12,8 +12,8 @@ namespace MeoMeo.Application.IServices
     {
         Task<IEnumerable<ProductDetailSize>> GetAllProductDetaillSizeAsync();
         Task<ProductDetailSize> GetProductDetaillSizeByIdAsync(Guid id);
-        Task<ProductDetailSize> CreateProductDetaillSizeAsync(ProductDetaillSizeDTO productDetaillSizeDTO);
-        Task<ProductDetailSize> UpdateProductDetaillSizeAsync(ProductDetaillSizeDTO productDetaillSizeDTO);
+        Task<ProductDetaillSizeResponseDTO> CreateProductDetaillSizeAsync(ProductDetaillSizeDTO productDetaillSizeDTO);
+        Task<ProductDetaillSizeResponseDTO> UpdateProductDetaillSizeAsync(ProductDetaillSizeDTO productDetaillSizeDTO);
         Task<bool> DeleteProductDetaillSizeAsync(Guid id);
     }
 }
