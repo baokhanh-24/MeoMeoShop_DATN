@@ -15,7 +15,7 @@ namespace MeoMeo.Contract
             CreateMap<ImageDTO, Image>();
             CreateMap<ColourDTO, Colour>();
             CreateMap<ProductDetaillColourDTO, ProductDetailColour>();
-            CreateMap<SizeDTO,  Size>();
+            CreateMap<SizeDTO, Size>();
             CreateMap<ProductDetaillSizeDTO, ProductDetailSize>();
             CreateMap<CreateOrUpdatePromotionDTO, Promotion>();
             CreateMap<CreateOrUpdatePromotionDetailDTO, PromotionDetail>();
@@ -31,12 +31,14 @@ namespace MeoMeo.Contract
             CreateMap<ImageDTO, Image>();
             CreateMap<ColourDTO, Colour>();
             CreateMap<ProductDetaillColourDTO, ProductDetailColour>();
-            CreateMap<SizeDTO,  Size>();
+            CreateMap<SizeDTO, Size>();
             CreateMap<ProductDetaillSizeDTO, ProductDetailSize>();
             CreateMap<CreateOrUpdateOrderDTO, Order>();
             CreateMap<CreateOrUpdateOrderDetailDTO, OrderDetail>();
             CreateMap<CreateOrUpdateDeliveryAddressDTO, DeliveryAddress>();
             CreateMap<CreateOrUpdateProvinceDTO, Province>();
+            CreateMap<CreateOrUpdateDistrictDTO, District>();
+            CreateMap<Order, CreateOrUpdateOrderResponse>();
         }
 
     }

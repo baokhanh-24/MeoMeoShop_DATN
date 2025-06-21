@@ -23,6 +23,12 @@ namespace MeoMeo.EntityFrameworkCore.Repositories
             return true;
         }
 
+        public async Task<IEnumerable<Order>> GetAllOrderAsync()
+        {
+            var order = await GetAllAsync();
+            return order;
+        }
+
         public async Task<Order> GetOrderByIdAsync(Guid id)
         {
             var order = await GetByIdAsync(id);
@@ -31,14 +37,8 @@ namespace MeoMeo.EntityFrameworkCore.Repositories
 
         public async Task<Order> UpdateOrderAsync(Order order)
         {
-            var UpdatedOrder = await UpdateAsync(order);
-            return UpdatedOrder;
-        }
-
-        async Task<IEnumerable<Order>> IOrderRepository.GetAllAsync()
-        {
-            var order = await GetAllAsync();
-            return order;
+            var updatedOrder = await UpdateAsync(order);
+            return updatedOrder;
         }
     }
 }

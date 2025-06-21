@@ -22,7 +22,7 @@ namespace MeoMeo.API.Controllers
             return Ok(result);
         }
 
-        [HttpGet("find-province-by-id{id}")]
+        [HttpGet("find-province-by-id/{id}")]
         public async Task<IActionResult> GetProvinceById(Guid id)
         {
             var result = await _provinceService.GetProvinceByIdAsync(id);
