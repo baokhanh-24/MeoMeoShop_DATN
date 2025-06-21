@@ -49,3 +49,37 @@ h1:focus {
 .darker-border-checkbox.form-check-input {
     border-color: #929292;
 }
+.message-success .ant-message-notice-content {
+    border-left: 4px solid #52c41a;
+    background-color: #f6ffed;
+    padding: 8px;
+}
+
+.message-error .ant-message-notice-content {
+    border-left: 4px solid #ff4d4f;
+    border-radius: 8px;
+    background-color: #fff1f0;
+    padding: 8px;
+}
+
+.message-info .ant-message-notice-content {
+    border-left: 4px solid #3650ab;
+    border-radius: 8px;
+    background-color: #e6f7ff;
+    padding: 8px;
+}
+
+.message-warning .ant-message-notice-content {
+    border-left: 4px solid #faad14;
+    border-radius: 8px;
+    background-color: #fffbe6;
+    padding: 8px;
+}
+
+.ant-message {
+    left: 80% !important;
+    transform: translateX(-5%) !important;
+    bottom: 50px !important;
+    width: auto;
+    text-align: right;
+}
