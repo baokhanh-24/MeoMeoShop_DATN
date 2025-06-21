@@ -11,9 +11,9 @@ namespace MeoMeo.Application.IServices
     public interface IPromotionServices
     {
         Task<List<Promotion>> GetAllPromotionAsync();
-        Task<Promotion> GetPromotionByIdAsync(Guid id);
+        Task<CreateOrUpdatePromotionResponseDTO> GetPromotionByIdAsync(Guid id);
         Task<Promotion> CreatePromotionAsync(CreateOrUpdatePromotionDTO promotion);
-        Task<Promotion> UpdatePromotionAsync(CreateOrUpdatePromotionDTO promotion);
+        Task<CreateOrUpdatePromotionResponseDTO> UpdatePromotionAsync(CreateOrUpdatePromotionDTO promotion);
         Task<bool> DeletePromotionAsync(Guid id);
     }
 }

@@ -1,5 +1,6 @@
 ﻿using AutoMapper;
 using MeoMeo.Application.IServices;
+using MeoMeo.Contract.Commons;
 using MeoMeo.Contract.DTOs;
 using MeoMeo.Domain.Entities;
 using MeoMeo.Domain.IRepositories;
@@ -47,20 +48,35 @@ namespace MeoMeo.Application.Services
             return await _repository.GetAllPromotionDetailAsync();
         }
 
-        public async Task<PromotionDetail> GetPromotionDetailByIdAsync(Guid id)
+        public async Task<CreateOrUpdatePromotionDetailResponseDTO> GetPromotionDetailByIdAsync(Guid id)
         {
-            return await _repository.GetPromotionDetailByIdAsync(id);
+            CreateOrUpdatePromotionDetailResponseDTO responseDTO = new CreateOrUpdatePromotionDetailResponseDTO();
+
+            var check = await _repository.GetPromotionDetailByIdAsync(id);
+            if (check == null)
+            {
+                responseDTO.ResponseStatus = BaseStatus.Error;
+                responseDTO.Message = "Không tìm thấy promotion detail";
+                return responseDTO;
+            }
+
+            responseDTO = _mapper.Map<CreateOrUpdatePromotionDetailResponseDTO>(check);
+            responseDTO.ResponseStatus = BaseStatus.Success;
+            responseDTO.Message = "";
+            return responseDTO;
         }
 
-        public async Task<PromotionDetail> UpdatePromotionDetailAsync(CreateOrUpdatePromotionDetailDTO promotionDetail)
+        public async Task<CreateOrUpdatePromotionDetailResponseDTO> UpdatePromotionDetailAsync(CreateOrUpdatePromotionDetailDTO promotionDetail)
         {
-            PromotionDetail promotionDetailCheck = new PromotionDetail();
+            var itemPromotionDetail = await _repository.GetPromotionDetailByIdAsync(Guid.Parse(promotionDetail.Id.ToString()));
+            if (itemPromotionDetail == null)
+            {
+                return new CreateOrUpdatePromotionDetailResponseDTO { ResponseStatus = BaseStatus.Error, Message = "Không tìm thấy promotion" };
+            }
+            _mapper.Map(promotionDetail, itemPromotionDetail);
 
-            promotionDetailCheck = _mapper.Map<PromotionDetail>(promotionDetail);
-
-            var result = await _repository.UpdatePromotionDetailAsync(promotionDetailCheck);
-
-            return result;
+            await _repository.UpdatePromotionDetailAsync(itemPromotionDetail);
+            return new CreateOrUpdatePromotionDetailResponseDTO { ResponseStatus = BaseStatus.Success, Message = "Cập nhật thành công" };
         }
     }
 }

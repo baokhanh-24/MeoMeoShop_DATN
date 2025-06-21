@@ -1,5 +1,6 @@
 ﻿using AutoMapper;
 using MeoMeo.Application.IServices;
+using MeoMeo.Contract.Commons;
 using MeoMeo.Contract.DTOs;
 using MeoMeo.Domain.Commons.Enums;
 using MeoMeo.Domain.Entities;
@@ -48,20 +49,35 @@ namespace MeoMeo.Application.Services
             return await _repository.GetAllUserAsync();
         }
 
-        public async Task<User> GetUserByIdAsync(Guid id)
+        public async Task<CreateOrUpdateUserResponseDTO> GetUserByIdAsync(Guid id)
         {
-            return await _repository.GetUserByIdAsync(id);
+            CreateOrUpdateUserResponseDTO responseDTO = new CreateOrUpdateUserResponseDTO();
+
+            var check = await _repository.GetUserByIdAsync(id);
+            if (check == null)
+            {
+                responseDTO.ResponseStatus = BaseStatus.Error;
+                responseDTO.Message = "Không tìm thấy User";
+                return responseDTO;
+            }
+
+            responseDTO = _mapper.Map<CreateOrUpdateUserResponseDTO>(check);
+            responseDTO.ResponseStatus = BaseStatus.Success;
+            responseDTO.Message = "";
+            return responseDTO;
         }
 
-        public async Task<User> UpdateUserAsync(CreateOrUpdateUserDTO user)
+        public async Task<CreateOrUpdateUserResponseDTO> UpdateUserAsync(CreateOrUpdateUserDTO user)
         {
-            User userCheck = new User();
+            var itemUser = await _repository.GetUserByIdAsync(Guid.Parse(user.Id.ToString()));
+            if (itemUser == null)
+            {
+                return new CreateOrUpdateUserResponseDTO { ResponseStatus = BaseStatus.Error, Message = "Không tìm thấy user" };
+            }
+            _mapper.Map(user, itemUser);
 
-            userCheck = _mapper.Map<User>(user);
-
-            var result = await _repository.UpdateUserAsync(userCheck);
-
-            return result;
+            await _repository.UpdateUserAsync(itemUser);
+            return new CreateOrUpdateUserResponseDTO { ResponseStatus = BaseStatus.Success, Message = "Cập nhật thành công" };
         }
     }
 }

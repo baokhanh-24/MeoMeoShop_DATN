@@ -2,7 +2,7 @@
 {
     public abstract class BaseResponse
     {
-        public BaseStatus Status { get; set; }
+        public BaseStatus ResponseStatus { get; set; }
         public string Message { get; set; }
     }
     public enum BaseStatus

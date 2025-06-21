@@ -1,5 +1,6 @@
 ﻿using AutoMapper;
 using MeoMeo.Application.IServices;
+using MeoMeo.Contract.Commons;
 using MeoMeo.Contract.DTOs;
 using MeoMeo.Domain.Entities;
 using MeoMeo.Domain.IRepositories;
@@ -47,20 +48,35 @@ namespace MeoMeo.Application.Services
             return await _repository.GetAllBankAsync();
         }
 
-        public async Task<Bank> GetBankByIdAsync(Guid id)
+        public async Task<CreateOrUpdateBankResponseDTO> GetBankByIdAsync(Guid id)
         {
-            return await _repository.GetBankByIdAsync(id);
+            CreateOrUpdateBankResponseDTO responseDTO = new CreateOrUpdateBankResponseDTO();
+
+            var check = await _repository.GetBankByIdAsync(id);
+            if (check == null)
+            {
+                responseDTO.ResponseStatus = BaseStatus.Error;
+                responseDTO.Message = "Không tìm thấy bank";
+                return responseDTO;
+            }
+
+            responseDTO = _mapper.Map<CreateOrUpdateBankResponseDTO>(check);
+            responseDTO.ResponseStatus = BaseStatus.Success;
+            responseDTO.Message = "";
+            return responseDTO;
         }
 
-        public async Task<Bank> UpdateBankAsync(CreateOrUpdateBankDTO bank)
+        public async Task<CreateOrUpdateBankResponseDTO> UpdateBankAsync(CreateOrUpdateBankDTO bank)
         {
-            Bank bankCheck = new Bank();
+            var itemBank = await _repository.GetBankByIdAsync(Guid.Parse(bank.Id.ToString()));
+            if (itemBank == null)
+            {
+                return new CreateOrUpdateBankResponseDTO { ResponseStatus = BaseStatus.Error, Message = "Không tìm thấy bank" };
+            }
+            _mapper.Map(bank, itemBank);
 
-            bankCheck = _mapper.Map<Bank>(bank);
-
-            var result = await _repository.UpdateBankAsync(bankCheck);
-
-            return result;
+            await _repository.UpdateBankAsync(itemBank);
+            return new CreateOrUpdateBankResponseDTO { ResponseStatus = BaseStatus.Success, Message = "Cập nhật thành công" };
         }
     }
 }
