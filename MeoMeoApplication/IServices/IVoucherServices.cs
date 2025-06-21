@@ -11,9 +11,9 @@ namespace MeoMeo.Application.IServices
     public interface IVoucherServices
     {
         Task<List<Voucher>> GetAllVoucherAsync();
-        Task<Voucher> GetVoucherByIdAsync(Guid id);
+        Task<CreateOrUpdateVoucherResponseDTO> GetVoucherByIdAsync(Guid id);
         Task<Voucher> CreateVoucherAsync(CreateOrUpdateVoucherDTO voucher);
-        Task<Voucher> UpdateVoucherAsync(CreateOrUpdateVoucherDTO voucher);
+        Task<CreateOrUpdateVoucherResponseDTO> UpdateVoucherAsync(CreateOrUpdateVoucherDTO voucher);
         Task<bool> DeleteVoucherAsync(Guid id);
     }
 }

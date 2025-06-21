@@ -1,5 +1,6 @@
 ﻿using AutoMapper;
 using MeoMeo.Application.IServices;
+using MeoMeo.Contract.Commons;
 using MeoMeo.Contract.DTOs;
 using MeoMeo.Domain.Entities;
 using MeoMeo.Domain.IRepositories;
@@ -47,20 +48,35 @@ namespace MeoMeo.Application.Services
             return await _repository.GetAllCustomersAsync();
         }
 
-        public async Task<Customers> GetCustomersByIdAsync(Guid id)
+        public async Task<CreateOrUpdateCustomerResponseDTO> GetCustomersByIdAsync(Guid id)
         {
-            return await _repository.GetCustomersByIdAsync(id);
+            CreateOrUpdateCustomerResponseDTO responseDTO = new CreateOrUpdateCustomerResponseDTO();
+
+            var check = await _repository.GetCustomersByIdAsync(id);
+            if (check == null)
+            {
+                responseDTO.ResponseStatus = BaseStatus.Error;
+                responseDTO.Message = "Không tìm thấy customer";
+                return responseDTO;
+            }
+
+            responseDTO = _mapper.Map<CreateOrUpdateCustomerResponseDTO>(check);
+            responseDTO.ResponseStatus = BaseStatus.Success;
+            responseDTO.Message = "";
+            return responseDTO;
         }
 
-        public async Task<Customers> UpdateCustomersAsync(CreateOrUpdateCustomerDTO customer)
+        public async Task<CreateOrUpdateCustomerResponseDTO> UpdateCustomersAsync(CreateOrUpdateCustomerDTO customer)
         {
-            Customers customerCheck = new Customers();
+            var itemCustomers = await _repository.GetCustomersByIdAsync(Guid.Parse(customer.Id.ToString()));
+            if (itemCustomers == null)
+            {
+                return new CreateOrUpdateCustomerResponseDTO { ResponseStatus = BaseStatus.Error, Message = "Không tìm thấy customer" };
+            }
+            _mapper.Map(customer, itemCustomers);
 
-            customerCheck = _mapper.Map<Customers>(customer);
-
-            var result = await _repository.UpdateCustomersAsync(customerCheck);
-
-            return result;
+            await _repository.UpdateCustomersAsync(itemCustomers);
+            return new CreateOrUpdateCustomerResponseDTO { ResponseStatus = BaseStatus.Success, Message = "Cập nhật thành công" };
         }
     }
 }
