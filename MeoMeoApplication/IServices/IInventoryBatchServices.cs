@@ -11,9 +11,9 @@ namespace MeoMeo.Application.IServices
     public interface IInventoryBatchServices
     {
         Task<IEnumerable<InventoryBatch>> GetAllAsync();
-        Task<InventoryBatch> GetByIdAsync(Guid id);
-        Task<InventoryBatch> CreateAsync(InventoryBatchDTO dto);
-        Task<InventoryBatch> UpdateAsync(Guid id, InventoryBatchDTO dto);
+        Task<CreateOrUpdateInvetoryBatchResponse> GetByIdAsync(Guid id);
+        Task<CreateOrUpdateInvetoryBatchResponse> CreateAsync(InventoryBatchDTO dto);
+        Task<CreateOrUpdateInvetoryBatchResponse> UpdateAsync(Guid id, InventoryBatchDTO dto);
         Task<bool> DeleteAsync(Guid id);
     }
 }

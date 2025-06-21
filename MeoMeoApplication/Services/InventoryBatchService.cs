@@ -1,4 +1,5 @@
 ﻿using MeoMeo.Application.IServices;
+using MeoMeo.Contract.Commons;
 using MeoMeo.Contract.DTOs;
 using MeoMeo.Domain.Entities;
 using MeoMeo.Domain.IRepositories;
@@ -20,22 +21,6 @@ namespace MeoMeo.Application.Services
         {
             _inventoryBatchRepository = iventoryBtachReposiory;
         }
-
-        public Task<InventoryBatch> CreateAsync(InventoryBatchDTO dto)
-        {
-            var phat = new InventoryBatch
-            {
-                Id = Guid.NewGuid(),
-                ProductDetailId = dto.ProductDetailId,
-                OriginalPrice = dto.OriginalPrice,
-                Code = dto.Code,
-                Quantity = dto.Quantity,
-                Note = dto.Note,
-                Status = dto.Status
-            };
-            return _inventoryBatchRepository.CreateAsync(phat);
-        }
-
         public async Task<bool> DeleteAsync(Guid id)
         {
             var phat = await _inventoryBatchRepository.GetByIdAsync(id);
@@ -52,25 +37,73 @@ namespace MeoMeo.Application.Services
             return await _inventoryBatchRepository.GetAllAsync();
         }
 
-        public async Task<InventoryBatch> GetByIdAsync(Guid id)
+
+        async Task<CreateOrUpdateInvetoryBatchResponse> IInventoryBatchServices.CreateAsync(InventoryBatchDTO dto)
         {
-            return await _inventoryBatchRepository.GetByIdAsync(id);
+            CreateOrUpdateInvetoryBatchResponse response = new CreateOrUpdateInvetoryBatchResponse();
+            var inventoryBatch = new InventoryBatch
+            {
+                Id = Guid.NewGuid(),
+                ProductDetailId = dto.ProductDetailId,
+                OriginalPrice = dto.OriginalPrice,
+                Code = dto.Code,
+                Quantity = dto.Quantity,
+                Note = dto.Note,
+                Status = dto.Status
+            };
+            await _inventoryBatchRepository.CreateAsync(inventoryBatch);
+            response.Id = inventoryBatch.Id;
+            response.ProductDetailId = inventoryBatch.ProductDetailId;
+            response.OriginalPrice = inventoryBatch.OriginalPrice;
+            response.Code = inventoryBatch.Code;
+            response.Quantity = inventoryBatch.Quantity;
+            response.Note = inventoryBatch.Note;
+            response.Status = inventoryBatch.Status;
+            response.Message = "Tạo lô nhập thành công.";
+            response.ResponseStatus = BaseStatus.Success;
+            return response;
         }
 
-        public async Task<InventoryBatch> UpdateAsync(Guid id, InventoryBatchDTO dto)
+        async Task<CreateOrUpdateInvetoryBatchResponse> IInventoryBatchServices.GetByIdAsync(Guid id)
         {
-            var phat = await _inventoryBatchRepository.GetByIdAsync(id);
-            if (phat == null)
+            CreateOrUpdateInvetoryBatchResponse response = new CreateOrUpdateInvetoryBatchResponse();
+            var getBatch = await _inventoryBatchRepository.GetByIdAsync(id);
+            if (getBatch == null)
             {
-                throw new Exception("Inventory batch not found.");
+                response.Message = "Không tìm thấy lô nhập này.";
+                response.ResponseStatus = BaseStatus.Error;
+                return response;
             }
-            phat.ProductDetailId = dto.ProductDetailId;
-            phat.OriginalPrice = dto.OriginalPrice;
-            phat.Code = dto.Code;
-            phat.Quantity = dto.Quantity;
-            phat.Note = dto.Note;
-            phat.Status = dto.Status;
-            return await _inventoryBatchRepository.UpdateAsync(id, phat);
+            response.Id = getBatch.Id;
+            response.ProductDetailId = getBatch.ProductDetailId;
+            response.OriginalPrice = getBatch.OriginalPrice;
+            response.Code = getBatch.Code;
+            response.Quantity = getBatch.Quantity;
+            response.Note = getBatch.Note;
+            response.Status = getBatch.Status;
+            response.Message = "Lấy thông tin lô nhập thành công.";
+            response.ResponseStatus = BaseStatus.Success;
+            return response;
+        }
+
+        async Task<CreateOrUpdateInvetoryBatchResponse> IInventoryBatchServices.UpdateAsync(Guid id, InventoryBatchDTO dto)
+        {
+            CreateOrUpdateInvetoryBatchResponse response = new CreateOrUpdateInvetoryBatchResponse();
+            var getBatch = await _inventoryBatchRepository.GetByIdAsync(id);
+            if(getBatch == null)
+            {
+                response.Message = "Không tìm thấy lô nhập này.";
+                response.ResponseStatus = BaseStatus.Error;
+                return response;
+            }
+            getBatch.ProductDetailId = dto.ProductDetailId;
+            getBatch.OriginalPrice = dto.OriginalPrice;
+            getBatch.Code = dto.Code;
+            getBatch.Quantity = dto.Quantity;
+            getBatch.Note = dto.Note;
+            getBatch.Status = dto.Status;
+            await _inventoryBatchRepository.UpdateAsync(id, getBatch);
+            return response;
         }
     }
 }

@@ -11,9 +11,9 @@ namespace MeoMeo.Application.IServices
     public interface IIventoryTranSactionServices
     {
         Task<IEnumerable<InventoryTransaction>> GetAllAsync();
-        Task<InventoryTransaction> GetByIdAsync(Guid id);
-        Task<InventoryTransaction> CreateAsync(InventoryTranSactionDTO dto);
-        Task<InventoryTransaction> UpdateAsync(Guid id, InventoryTranSactionDTO dto);
+        Task<CreateOrUpdateInventoryTranSactionResponse> GetByIdAsync(Guid id);
+        Task<CreateOrUpdateInventoryTranSactionResponse> CreateAsync(InventoryTranSactionDTO dto);
+        Task<CreateOrUpdateInventoryTranSactionResponse> UpdateAsync(Guid id, InventoryTranSactionDTO dto);
         Task<bool> DeleteAsync(Guid id);
     }
 }

@@ -11,9 +11,9 @@ namespace MeoMeo.Application.IServices
     public interface IBrandServices
     {
         Task<IEnumerable<Brand>> GetAllBrandsAsync();
-        Task<Brand> GetBrandByIdAsync(Guid id);
-        Task<Brand> CreateBrandAsync(BrandDTO brandDto);
-        Task<Brand> UpdateBrandAsync(Guid id, BrandDTO brandDto);
+        Task<CreateOrUpdateBrandResponse> GetBrandByIdAsync(Guid id);
+        Task<CreateOrUpdateBrandResponse> CreateBrandAsync(BrandDTO brandDto);
+        Task<CreateOrUpdateBrandResponse> UpdateBrandAsync(Guid id, BrandDTO brandDto);
         Task<bool> DeleteBrandAsync(Guid id);
     }
 }
