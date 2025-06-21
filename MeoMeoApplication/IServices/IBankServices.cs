@@ -11,9 +11,9 @@ namespace MeoMeo.Application.IServices
     public interface IBankServices
     {
         Task<List<Bank>> GetAllBankAsync();
-        Task<Bank> GetBankByIdAsync(Guid id);
+        Task<CreateOrUpdateBankResponseDTO> GetBankByIdAsync(Guid id);
         Task<Bank> CreateBankAsync(CreateOrUpdateBankDTO bank);
-        Task<Bank> UpdateBankAsync(CreateOrUpdateBankDTO bank);
+        Task<CreateOrUpdateBankResponseDTO> UpdateBankAsync(CreateOrUpdateBankDTO bank);
         Task<bool> DeleteBankAsync(Guid id);
     }
 }

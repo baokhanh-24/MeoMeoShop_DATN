@@ -1,5 +1,6 @@
 ﻿using AutoMapper;
 using MeoMeo.Application.IServices;
+using MeoMeo.Contract.Commons;
 using MeoMeo.Contract.DTOs;
 using MeoMeo.Domain.Entities;
 using MeoMeo.Domain.IRepositories;
@@ -49,20 +50,35 @@ namespace MeoMeo.Application.Services
             return await _repository.GetAllPromotionAsync();
         }
 
-        public async Task<Promotion> GetPromotionByIdAsync(Guid id)
+        public async Task<CreateOrUpdatePromotionResponseDTO> GetPromotionByIdAsync(Guid id)
         {
-            return await _repository.GetPromotionByIdAsync(id);
+            CreateOrUpdatePromotionResponseDTO responseDTO = new CreateOrUpdatePromotionResponseDTO();
+
+            var check = await _repository.GetPromotionByIdAsync(id);
+            if (check == null)
+            {
+                responseDTO.ResponseStatus = BaseStatus.Error;
+                responseDTO.Message = "Không tìm thấy promotion";
+                return responseDTO;
+            }
+
+            responseDTO = _mapper.Map<CreateOrUpdatePromotionResponseDTO>(check);
+            responseDTO.ResponseStatus = BaseStatus.Success;
+            responseDTO.Message = "";
+            return responseDTO;
         }
 
-        public async Task<Promotion> UpdatePromotionAsync(CreateOrUpdatePromotionDTO promotion)
+        public async Task<CreateOrUpdatePromotionResponseDTO> UpdatePromotionAsync(CreateOrUpdatePromotionDTO promotion)
         {
-            Promotion promotionCheck = new Promotion();
+            var itemPromotion = await _repository.GetPromotionByIdAsync(Guid.Parse(promotion.Id.ToString()));
+            if (itemPromotion == null)
+            {
+                return new CreateOrUpdatePromotionResponseDTO { ResponseStatus = BaseStatus.Error, Message = "Không tìm thấy promotion" };
+            }
+            _mapper.Map(promotion, itemPromotion);
 
-            promotionCheck = _mapper.Map<Promotion>(promotion);
-
-            var result = await _repository.UpdatePromotionAsync(promotionCheck);
-
-            return result;
+            await _repository.UpdatePromotionAsync(itemPromotion);
+            return new CreateOrUpdatePromotionResponseDTO { ResponseStatus = BaseStatus.Success, Message = "Cập nhật thành công" };
         }
     }
 }
