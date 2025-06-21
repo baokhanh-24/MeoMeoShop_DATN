@@ -47,12 +47,20 @@ namespace MeoMeo.Application.Services
             return _orderRepository.GetAllAsync();
         }
 
-        public async Task<Order> GetOrderByIdAsync(Guid id)
+        public async Task<CreateOrUpdateOrderResponse> GetOrderByIdAsync(Guid id)
         {
-
+            CreateOrUpdateOrderResponse response = new CreateOrUpdateOrderResponse();
             var result = await _orderRepository.GetOrderByIdAsync(id);
-
-            return result;
+            if (result == null)
+            {
+                response.Message = "Không tìm thấy đơn hàng này";
+                response.ResponseStatus = BaseStatus.Error;
+                return response;
+            }
+            response = _mapper.Map<CreateOrUpdateOrderResponse>(result);
+            response.Message = "";
+            response.ResponseStatus = BaseStatus.Success;
+            return response;
         }
 
         public async Task<CreateOrUpdateOrderResponse> UpdateOrderAsync(CreateOrUpdateOrderDTO order)
@@ -68,8 +76,7 @@ namespace MeoMeo.Application.Services
                 return response;
                 //throw new Exception("Không tìm thấy Order");
             }
-            itemOrder = _mapper.Map<Order>(order);
-
+            itemOrder = _mapper.Map(order, check);
             var result = await _orderRepository.UpdateOrderAsync(itemOrder);
 
             response = _mapper.Map<CreateOrUpdateOrderResponse>(result);
