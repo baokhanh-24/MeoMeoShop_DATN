@@ -29,7 +29,7 @@ builder.Services.AddScoped<ICartDetaillRepository, CartDetaillRepository>();
 builder.Services.AddScoped<ICartDetaillService, CartDetaillService>();
 builder.Services.AddScoped<IImageRepository, ImageRepository>();
 builder.Services.AddScoped<IImageService, ImageService>();
-builder.Services.AddScoped<IColourRepository,  ColourRepository>();
+builder.Services.AddScoped<IColourRepository, ColourRepository>();
 builder.Services.AddScoped<IColourService, ColourService>();
 builder.Services.AddScoped<IProductDetaillColourRepository, ProductDetaillColourRepository>();
 builder.Services.AddScoped<IProductDetaillColourService, ProductDetaillColourService>();
@@ -74,6 +74,9 @@ builder.Services.AddScoped<IBankRepository, BankRepository>();
 builder.Services.AddScoped<IBankServices, BankServices>();
 builder.Services.AddScoped<ICustomersBankRepository, CustomersBankRepository>();
 builder.Services.AddScoped<ICustomersBankServices, CustomersBankServices>();
+builder.Services.AddScoped<IDistrictRepository, DistrictRepository>();
+builder.Services.AddScoped<IDistrictService, DistrictService>();
+
 builder.Services.AddAutoMapper(typeof(MeoMeoAutoMapperProfile));
 builder.Services.AddControllers().AddJsonOptions(options =>
 {
