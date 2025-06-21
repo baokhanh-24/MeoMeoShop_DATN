@@ -32,34 +32,21 @@ namespace MeoMeo.API.Controllers
         public async Task<IActionResult> CreateProduct([FromBody] CreateOrUpdateProductDTO productDto)
         {
             var result = await _productServices.CreateProductAsync(productDto);
-            return CreatedAtAction(nameof(GetProductById), new { id = result.Id }, result);
+            return Ok(result);
         }
         [HttpPut("{id}")]
         public async Task<IActionResult> UpdateProduct(Guid id, [FromBody] CreateOrUpdateProductDTO productDto)
         {
-            var existingProduct = await _productServices.GetProductByIdAsync(id);
-            if (existingProduct == null)
-                return NotFound("Không tìm thấy sản phẩm để cập nhật.");
-
-            
-            existingProduct.Name = productDto.Name;
-            existingProduct.Thumbnail = productDto.Thumbnail;
-            existingProduct.BrandId = productDto.BrandId;
-           
-
-            await _productServices.UpdateAsync(existingProduct);
-            return NoContent();
+            var result = await _productServices.UpdateAsync(productDto);
+            return Ok(result);
         }
 
         [HttpDelete("{id}")]
         public async Task<IActionResult> DeleteProduct(Guid id)
         {
-            var product = await _productServices.GetProductByIdAsync(id);
-            if (product == null)
-                return NotFound("Không tìm thấy sản phẩm để xóa.");
-
-            await _productServices.DeleteAsync(id);
-            return NoContent();
+            var result = await _productServices.GetProductByIdAsync(id);
+           
+            return Ok(result);
         }
     }
 
