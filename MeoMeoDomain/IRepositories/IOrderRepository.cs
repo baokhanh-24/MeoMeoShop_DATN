@@ -6,7 +6,7 @@ namespace MeoMeo.Domain.IRepositories
 {
     public interface IOrderRepository : IBaseRepository<Order>
     {
-        Task<IEnumerable<Order>> GetAllAsync();
+        Task<IEnumerable<Order>> GetAllOrderAsync();
         public Task<Order> GetOrderByIdAsync(Guid id);
         public Task<Order> CreateOrderAsync(Order order);
         public Task<Order> UpdateOrderAsync(Order order);
