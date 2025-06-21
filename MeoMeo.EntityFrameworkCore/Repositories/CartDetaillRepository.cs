@@ -18,39 +18,21 @@ namespace MeoMeo.EntityFrameworkCore.Repositories
             
         }
         public async Task<CartDetail> Create(CartDetail cartDetails)
-        {
-            bool exists = await _context.cartDetails.AnyAsync(c => c.Id == cartDetails.Id);
-            if (exists)
-            {
-                throw new DuplicateWaitObjectException("This cartDetails is existed!");
-            }
-            await AddAsync(cartDetails);
-            await SaveChangesAsync();
-            return cartDetails;
+        {           
+            var itemCreate =  await AddAsync(cartDetails);
+            return itemCreate;
         }
 
         public async Task<bool> Delete(Guid id)
         {
-            
             await DeleteAsync(id);
-            await SaveChangesAsync();
             return true;
         }
 
         public async Task<IEnumerable<CartDetail>> GetAllCartDetail()
         {
-            var cartDetail = await _context.cartDetails.Include(p => p.ProductDetails.Product).Include(p => p.Cart).Select(p=> new CartDetail
-            {
-                Id = p.Id,
-                CartId = p.CartId,
-                ProductDetailId = p.ProductDetailId,
-                PromotionDetailId = p.PromotionDetailId,
-                Discount = p.Discount,
-                Quantity = p.Quantity,
-                Price = p.Price,
-                Status = p.Status,
-            }).ToListAsync();
-            return cartDetail;
+            var itemGetAll = await GetAllAsync();
+            return itemGetAll.ToList();
         }
 
         public async Task<CartDetail> GetCartDetailById(Guid id)
@@ -60,22 +42,8 @@ namespace MeoMeo.EntityFrameworkCore.Repositories
 
         public async Task<CartDetail> Update(CartDetail cartDetail)
         {
-            var updateCartDecaill = await _context.cartDetails.FindAsync(cartDetail.Id);
-            if (updateCartDecaill == null)
-            {
-                throw new KeyNotFoundException($"Image with Id {cartDetail.Id} not found.");
-            }
-            // Kiểm tra ProductDetailId có tồn tại hay không
-            bool productDetailExists = await _context.productDetails.AnyAsync(p => p.Id == cartDetail.ProductDetailId);
-            if (!productDetailExists)
-            {
-                throw new KeyNotFoundException($"ProductDetail with Id {cartDetail.ProductDetailId} does not exist.");
-            }
-            // Cập nhật nếu hợp lệ
-            updateCartDecaill.ProductDetailId = cartDetail.ProductDetailId;
-            await UpdateAsync(updateCartDecaill);
-            await SaveChangesAsync();
-            return updateCartDecaill;
+            var itemUpdate = await UpdateAsync(cartDetail);
+            return itemUpdate;
         }
     }
 }

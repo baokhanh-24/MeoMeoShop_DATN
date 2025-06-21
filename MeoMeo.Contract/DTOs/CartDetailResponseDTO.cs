@@ -1,4 +1,5 @@
-﻿using System;
+﻿using MeoMeo.Contract.Commons;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -6,7 +7,7 @@ using System.Threading.Tasks;
 
 namespace MeoMeo.Contract.DTOs
 {
-    public class CartDetailDTO
+    public class CartDetailResponseDTO : BaseResponse
     {
         public Guid? Id { get; set; }
         public Guid CartId { get; set; }
@@ -16,6 +17,5 @@ namespace MeoMeo.Contract.DTOs
         public float Price { get; set; }
         public int Quantity { get; set; }
         public int Status { get; set; }
-
     }
 }

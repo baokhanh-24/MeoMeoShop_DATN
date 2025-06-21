@@ -11,9 +11,9 @@ namespace MeoMeo.Application.IServices
     public interface ISizeService
     {
         Task<IEnumerable<Size>> GetAllSizeAsync();
-        Task<Size> GetSizeByIdAsync(Guid id);
-        Task<Size> CreateSizeAsync(SizeDTO sizeDTO);
-        Task<Size> UpdateSizeAsync(SizeDTO sizeDTO);
-        Task<bool> DeleteSizeAsync(Guid id);
+        Task<SizeResponseDTO> GetSizeByIdAsync(Guid id);
+        Task<SizeResponseDTO> CreateSizeAsync(SizeDTO sizeDTO);
+        Task<SizeResponseDTO> UpdateSizeAsync(SizeDTO sizeDTO);
+        Task<SizeResponseDTO> DeleteSizeAsync(Guid id);
     }
 }

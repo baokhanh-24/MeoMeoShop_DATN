@@ -19,32 +19,20 @@ namespace MeoMeo.EntityFrameworkCore.Repositories
         }
         public async Task<ProductDetailSize> Create(ProductDetailSize productDetailSize)
         {
-            bool exists = await _context.productDetailSizes.AnyAsync(c => c.SizeId == productDetailSize.SizeId);
-            if (exists)
-            {
-                throw new DuplicateWaitObjectException("This ProductDetaillColor is existed!");
-            }
-            await AddAsync(productDetailSize);
-            await SaveChangesAsync();
-            return productDetailSize;
+            var itemCreate = await AddAsync(productDetailSize);
+            return itemCreate;
         }
 
         public async Task<bool> Delete(Guid id)
         {       
             await DeleteAsync(id);
-            await SaveChangesAsync();
             return true;
         }
 
         public async Task<IEnumerable<ProductDetailSize>> GetAllProductDetaillSize()
         {
-            var Pds = await _context.productDetailSizes.Include(p => p.ProductDetail).Select(p => new ProductDetailSize
-            {
-                SizeId = p.SizeId,
-                ProductDetailId = p.ProductDetailId,
-
-            }).ToListAsync();
-            return Pds;
+            var itemGetAll = await GetAllAsync();
+            return itemGetAll.ToList();
         }
 
         public async Task<ProductDetailSize> GetProductDetaillSizeById(Guid id)
@@ -54,22 +42,8 @@ namespace MeoMeo.EntityFrameworkCore.Repositories
 
         public async Task<ProductDetailSize> Update(ProductDetailSize productDetailSize)
         {
-            var update = await _context.productDetailSizes.FindAsync(productDetailSize.ProductDetailId);
-            if (update == null)
-            {
-                throw new KeyNotFoundException($"ProductDetaillSize with Id {productDetailSize.ProductDetailId} not found.");
-            }
-            // Kiểm tra ProductDetailId có tồn tại hay không
-            bool productDetailExists = await _context.productDetails.AnyAsync(p => p.Id == productDetailSize.ProductDetailId);
-            if (!productDetailExists)
-            {
-                throw new KeyNotFoundException($"ProductDetail with Id {productDetailSize.ProductDetailId} does not exist.");
-            }
-            // Cập nhật nếu hợp lệ
-            update.ProductDetailId = productDetailSize.ProductDetailId;
-            await UpdateAsync(update);
-            await SaveChangesAsync();
-            return update;
+            var itemUpdate = await UpdateAsync(productDetailSize);
+            return itemUpdate;
         }
     }
 }

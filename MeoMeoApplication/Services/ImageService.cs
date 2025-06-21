@@ -1,5 +1,6 @@
 ﻿using AutoMapper;
 using MeoMeo.Application.IServices;
+using MeoMeo.Contract.Commons;
 using MeoMeo.Contract.DTOs;
 using MeoMeo.Domain.Entities;
 using MeoMeo.Domain.IRepositories;
@@ -27,54 +28,71 @@ namespace MeoMeo.Application.Services
             return images;
         }
 
-        public async Task<Image> GetImageByIdAsync(Guid id)
+        public async Task<ImageResponseDTO> GetImageByIdAsync(Guid id)
         {
             var image = await _imageRepository.GetImageById(id);
-            return image;
+            if(image == null)
+            {
+                return new ImageResponseDTO 
+                {
+                    ResponseStatus = BaseStatus.Error,
+                    Message = $"Không tìm thấy Image với ID: {id}"
+                };
+            }
+            return new ImageResponseDTO 
+            {
+                Id = image.Id,
+                ProductDetailId = image.ProductDetailId,
+                Name = image.Name,
+                Url = image.URL,
+                Type = image.Type,
+                Status = image.Status,
+                ResponseStatus = BaseStatus.Success,
+                Message = $""
+            };
         }
 
-        public async Task<Image> CreateImageAsync(ImageDTO imageDto)
+        public async Task<ImageResponseDTO> CreateImageAsync(ImageDTO imageDto)
         {
             var image = new Image
             {
-                Id = Guid.NewGuid(), // hoặc để Db tự tạo
-                URL = imageDto.UrlImg,
+                Id = Guid.NewGuid(), 
+                URL = imageDto.Url,
                 Name = imageDto.Name,
-                ProductDetailId = imageDto.ProductDetailId
-                // gán thêm các trường khác nếu có
+                ProductDetailId = imageDto.ProductDetailId,
+                Status = imageDto.Status,
             };
             //var image = _mapper.Map<Image>(imageDto);
             var updated =  await _imageRepository.CreateImage(image);
-            return updated;
+            return new ImageResponseDTO
+            {
+                ResponseStatus = BaseStatus.Success,
+                Message = "Thêm thành công"
+            };
         }
 
-        public async Task<Image> UpdateImageAsync(ImageDTO imageDto)
+        public async Task<ImageResponseDTO> UpdateImageAsync(ImageDTO imageDto)
         {
-            var image = await _imageRepository.GetByIdAsync(imageDto.Id.Value);
+            var image = await _imageRepository.GetImageById(imageDto.Id.Value);
             if (image == null)
-                throw new Exception("Image not found");
+            {
+                return new ImageResponseDTO { ResponseStatus = BaseStatus.Error, Message = "Không tìm thấy Id trên để cập nhật" };
+            }
 
-            // Ánh xạ các giá trị từ DTO vào entity đang tồn tại
             _mapper.Map(imageDto, image);
-
-            await _imageRepository.UpdateAsync(image);
-            return image;
-            ////Image img = new Image();
-            ////var image = _mapper.Map<Image>(imageDto);
-            //var updated = await _imageRepository.UpdateImage(image);
-            //return updated;
+            await _imageRepository.UpdateImage(image);
+            return new ImageResponseDTO { ResponseStatus = BaseStatus.Success, Message = "Cập nhật thành công" };
         }
 
-        public async Task<bool> DeleteImageAsync(Guid id)
+        public async Task<ImageResponseDTO> DeleteImageAsync(Guid id)
         {
             var image = await _imageRepository.GetByIdAsync(id);
             if (image == null)
-                throw new ArgumentException("Không tìm thấy ảnh với ID đã cung cấp");
-
+            {
+                return new ImageResponseDTO { ResponseStatus = BaseStatus.Error, Message = "Không tìm thấy Id" };
+            }
             await _imageRepository.DeleteImage(id);
-            return true;
-            //await _imageRepository.DeleteImage(id);
-            //return true;
+            return new ImageResponseDTO { ResponseStatus = BaseStatus.Success, Message = "Xóa thành công" };
         }
     }
 }

@@ -1,5 +1,6 @@
 ﻿using AutoMapper;
 using MeoMeo.Application.IServices;
+using MeoMeo.Contract.Commons;
 using MeoMeo.Contract.DTOs;
 using MeoMeo.Domain.Entities;
 using MeoMeo.Domain.IRepositories;
@@ -21,53 +22,74 @@ namespace MeoMeo.Application.Services
             _mapper = mapper;
         }
 
-        public async Task<Colour> CreateColourAsync(ColourDTO colourDTO)
+        public async Task<ColourResponseDTO> CreateColourAsync(ColourDTO colourDTO)
         {
-            var image = new Colour
+            var colour = new Colour
             {
-                Id = Guid.NewGuid(), // hoặc để Db tự tạo
+                Id = Guid.NewGuid(), 
                 Name = colourDTO.Name,
                 Code = colourDTO.Code,
                 Status = colourDTO.Status,
-                // gán thêm các trường khác nếu có
             };
-            var updated = await _colourRepository.Create(image);
-            return updated;
+            await _colourRepository.Create(colour);
+            return new ColourResponseDTO
+            {
+                ResponseStatus = BaseStatus.Success,
+                Message = "Thêm thành công"
+            };
         }
 
-        public async Task<bool> DeleteColourAsync(Guid id)
+        public async Task<ColourResponseDTO> DeleteColourAsync(Guid id)
         {
             var image = await _colourRepository.GetColourById(id);
             if (image == null)
-                throw new ArgumentException("Không tìm thấy ảnh với ID đã cung cấp");
+            {
+                return new ColourResponseDTO { ResponseStatus = BaseStatus.Error, Message = "Không tìm thấy Id" };
+            }    
 
             await _colourRepository.Delete(id);
-            return true;
+            return new ColourResponseDTO { ResponseStatus = BaseStatus.Success, Message = "Xóa thành công" };
         }
 
         public async Task<IEnumerable<Colour>> GetAllColoursAsync()
         {
-            var images = await _colourRepository.GetAllColour();
-            return images;
+            var colour = await _colourRepository.GetAllColour();
+            return colour;
         }
 
-        public async Task<Colour> GetColourByIdAsync(Guid id)
+        public async Task<ColourResponseDTO> GetColourByIdAsync(Guid id)
         {
-            var image = await _colourRepository.GetColourById(id);
-            return image;
+            var colour = await _colourRepository.GetColourById(id);
+            if(colour == null)
+            {
+                return new ColourResponseDTO
+                {
+                    ResponseStatus = BaseStatus.Error,
+                    Message = $"Không tìm thấy Colour với ID: {id}"
+                };
+            }
+            return new ColourResponseDTO 
+            {
+                Id = colour.Id,
+                Name = colour.Name,
+                Code = colour.Code,
+                Status = colour.Status,
+                ResponseStatus = BaseStatus.Success,
+                Message = $""
+            };
         }
 
-        public async Task<Colour> UpdateColourAsync(ColourDTO colourDTO)
+        public async Task<ColourResponseDTO> UpdateColourAsync(ColourDTO colourDTO)
         {
-            var image = await _colourRepository.GetColourById(colourDTO.Id.Value);
-            if (image == null)
-                throw new Exception("Image not found");
+            var colour = await _colourRepository.GetColourById(colourDTO.Id.Value);
+            if (colour == null)
+            {
+                return new ColourResponseDTO { ResponseStatus = BaseStatus.Error, Message = "Không tìm thấy Id trên để cập nhật" };
+            }
+            _mapper.Map(colourDTO, colour);
 
-            // Ánh xạ các giá trị từ DTO vào entity đang tồn tại
-            _mapper.Map(colourDTO, image);
-
-            await _colourRepository.Update(image);
-            return image;
+            await _colourRepository.Update(colour);
+            return new ColourResponseDTO { ResponseStatus = BaseStatus.Success, Message = "Cập nhật thành công" };
         }
     }
 }
