@@ -81,9 +81,13 @@ namespace MeoMeo.Application.Services
             await _repository.DeleteCustomersAsync(customerToDelete.Id);
             return true;
         }
-
+        public async Task<List<Customers>> GetAllCustomersAsync()
+        {
+            return await _repository.GetAllCustomersAsync();
+        }
         public async Task<PagingExtensions.PagedResult<CustomerDTO>> GetAllCustomersAsync(GetListCustomerRequestDTO request)
         {
+            // where dùng để tìm kiếm theo nhu cầu
             try
             { 
                 var query = _repository.Query();

@@ -20,7 +20,14 @@ namespace MeoMeo.API.Controllers
         [HttpGet("get-all-bank-async")]
         public async Task<IActionResult> GetAllBankAsync()
         {
-            var result = await _bankServices.GetAllBankAsync();
+            var result = await _bankServices.GetListAllBankAsync();
+            return Ok(result);
+        }
+
+        [HttpGet("get-paging-bank-async")]
+        public async Task<IActionResult> GetAllBankAsync([FromQuery] GetListBankRequestDTO request)
+        {
+            var result = await _bankServices.GetAllBankAsync(request);
             return Ok(result);
         }
 

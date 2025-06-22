@@ -2,8 +2,10 @@
 using MeoMeo.Application.IServices;
 using MeoMeo.Contract.Commons;
 using MeoMeo.Contract.DTOs;
+using MeoMeo.Domain.Commons;
 using MeoMeo.Domain.Entities;
 using MeoMeo.Domain.IRepositories;
+using Microsoft.EntityFrameworkCore;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -43,9 +45,39 @@ namespace MeoMeo.Application.Services
             return true;
         }
 
-        public async Task<List<Bank>> GetAllBankAsync()
+        public async Task<List<Bank>> GetListAllBankAsync()
         {
             return await _repository.GetAllBankAsync();
+        }
+        public async Task<PagingExtensions.PagedResult<BankDTO>> GetAllBankAsync(GetListBankRequestDTO request)
+        {
+            try
+            {
+                var query = _repository.Query();
+
+                if (!string.IsNullOrEmpty(request.NameFilter))
+                {
+                    query = query.Where(c => EF.Functions.Like(c.Name, $"%{request.NameFilter}%"));
+                }
+
+                
+                query = query.OrderBy(c => c.Name);
+                var filteredBanks = await _repository.GetPagedAsync(query, request.PageIndex, request.PageSize);
+                var dtoItems = _mapper.Map<List<BankDTO>>(filteredBanks.Items);
+
+                return new PagingExtensions.PagedResult<BankDTO>
+                {
+                    TotalRecords = filteredBanks.TotalRecords,
+                    PageIndex = filteredBanks.PageIndex,
+                    PageSize = filteredBanks.PageSize,
+                    Items = dtoItems
+                };
+            }
+            catch (Exception e)
+            {
+                Console.WriteLine(e);
+                throw;
+            }
         }
 
         public async Task<CreateOrUpdateBankResponseDTO> GetBankByIdAsync(Guid id)
