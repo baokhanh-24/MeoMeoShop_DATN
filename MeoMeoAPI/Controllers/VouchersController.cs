@@ -8,11 +8,11 @@ namespace MeoMeo.API.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
-    public class VoucherController : ControllerBase
+    public class VouchersController : ControllerBase
     {
         private readonly IVoucherServices _voucherServices;
 
-        public VoucherController(IVoucherServices voucherServices)
+        public VouchersController(IVoucherServices voucherServices)
         {
             _voucherServices = voucherServices;
         }

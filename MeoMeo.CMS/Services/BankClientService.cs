@@ -21,7 +21,7 @@ namespace MeoMeo.CMS.Services
             try
             {
                 var queryString = BuildQuery.ToQueryString(request);
-                var url = $"/api/Bank/get-paging-bank-async?{queryString}";
+                var url = $"/api/Banks/get-paging-bank-async?{queryString}";
                 var response = await _httpClient.GetAsync<PagingExtensions.PagedResult<BankDTO>>(url);
                 return response ?? new PagingExtensions.PagedResult<BankDTO>();
             }
