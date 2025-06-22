@@ -1,33 +1,72 @@
-﻿using AutoMapper;
+﻿using System.Linq.Expressions;
+using AutoMapper;
 using MeoMeo.Application.IServices;
 using MeoMeo.Contract.Commons;
 using MeoMeo.Contract.DTOs;
 using MeoMeo.Domain.Entities;
 using MeoMeo.Domain.IRepositories;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+
+using MeoMeo.Contract.Commons;
+using MeoMeo.Domain.Commons;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Identity.Client;
 
 namespace MeoMeo.Application.Services
 {
     public class CustomerServices : ICustomerServices
     {
         private readonly ICustomerRepository _repository;
+        private readonly IUserRepository _userRepository;
+        private readonly IUnitOfWork _unitOfWork;
         private readonly IMapper _mapper;
 
-        public CustomerServices(ICustomerRepository repository, IMapper mapper)
+        public CustomerServices(ICustomerRepository repository, IMapper mapper, IUserRepository userRepository, IUnitOfWork unitOfWork)
         {
             _repository = repository;
             _mapper = mapper;
+            _userRepository = userRepository;
+            _unitOfWork = unitOfWork;
         }
 
-        public async Task<Customers> CreateCustomersAsync(CreateOrUpdateCustomerDTO customer)
+        public async Task<CreateOrUpdateCustomerResponse> CreateCustomersAsync(CreateOrUpdateCustomerDTO customer)
         {
-            var mappedcustomer = _mapper.Map<Customers>(customer);
-            mappedcustomer.Id = Guid.NewGuid();
-            return await _repository.CreateCustomersAsync(mappedcustomer);
+            try
+            {
+                await _unitOfWork.BeginTransactionAsync();
+                //sau tạo mới customer thì tạo mới tài khoản luôn sẽ nhận từ UI password với email để tạo
+                var userId = Guid.NewGuid();
+                var userToAdd = new User()
+                {
+                    Id = userId,
+                    PasswordHash = "Ab@12345",
+                    Avatar = "//////",
+                    LastLogin = DateTime.Now,
+                    CreationTime = DateTime.Now,
+                    Email = "aaaa@gmail,com",
+                    UserName = "aaaa@gmail,com",
+                    Status = 1
+                };
+                await _userRepository.AddAsync(userToAdd);
+                var mappedCustomer = _mapper.Map<Customers>(customer);
+                mappedCustomer.Id = Guid.NewGuid();
+                mappedCustomer.UserId = userId;
+                var response= await _repository.CreateCustomersAsync(mappedCustomer);
+                await _unitOfWork.SaveChangesAsync();
+                await _unitOfWork.CommitAsync();
+                return _mapper.Map<CreateOrUpdateCustomerResponse>(response);
+            }
+            catch (Exception ex)
+            {
+                await _unitOfWork.RollbackAsync();
+                Console.WriteLine($"Transaction failed: {ex.Message}");
+                return new CreateOrUpdateCustomerResponse()
+                {
+                    Message = ex.Message,
+                    ResponseStatus = BaseStatus.Error
+                };
+               
+            }
+            
         }
 
         public async Task<bool> DeleteCustomersAsync(Guid id)
@@ -43,40 +82,90 @@ namespace MeoMeo.Application.Services
             return true;
         }
 
-        public async Task<List<Customers>> GetAllCustomersAsync()
+        public async Task<PagingExtensions.PagedResult<CustomerDTO>> GetAllCustomersAsync(GetListCustomerRequestDTO request)
         {
-            return await _repository.GetAllCustomersAsync();
-        }
+            try
+            { 
+                var query = _repository.Query();
 
-        public async Task<CreateOrUpdateCustomerResponseDTO> GetCustomersByIdAsync(Guid id)
-        {
-            CreateOrUpdateCustomerResponseDTO responseDTO = new CreateOrUpdateCustomerResponseDTO();
-
-            var check = await _repository.GetCustomersByIdAsync(id);
-            if (check == null)
+            if (!string.IsNullOrEmpty(request.FullNameFilter))
             {
-                responseDTO.ResponseStatus = BaseStatus.Error;
-                responseDTO.Message = "Không tìm thấy customer";
-                return responseDTO;
+                query = query.Where(c => EF.Functions.Like(c.Name, $"%{request.FullNameFilter}%"));
             }
 
-            responseDTO = _mapper.Map<CreateOrUpdateCustomerResponseDTO>(check);
-            responseDTO.ResponseStatus = BaseStatus.Success;
-            responseDTO.Message = "";
-            return responseDTO;
+            if (!string.IsNullOrEmpty(request.CodeFilter))
+            {
+                query = query.Where(c => EF.Functions.Like(c.Code, $"%{request.CodeFilter}%"));
+            }
+
+            if (!string.IsNullOrEmpty(request.TaxCodeFilter))
+            {
+                query = query.Where(c => EF.Functions.Like(c.TaxCode, $"%{request.TaxCodeFilter}%"));
+            }
+
+            if (!string.IsNullOrEmpty(request.AddressFilter))
+            {
+                query = query.Where(c => EF.Functions.Like(c.Address, $"%{request.AddressFilter}%"));
+            }
+
+            if (!string.IsNullOrEmpty(request.PhoneNumberFilter))
+            {
+                query = query.Where(c => EF.Functions.Like(c.PhoneNumber, $"%{request.PhoneNumberFilter}%"));
+            }
+
+            if (request.StatusFilter != null)
+            {
+                query = query.Where(c => c.Status == request.StatusFilter);
+            }
+
+            if (request.DateOfBirthFilter != null)
+            {
+                query = query.Where(c => c.DateOfBirth.HasValue && DateOnly.FromDateTime(c.DateOfBirth.Value) == request.DateOfBirthFilter.Value);
+            }
+            query = query.OrderByDescending(c=>c.CreationTime);
+            var filteredCustomers = await _repository.GetPagedAsync(query,request.PageIndex,request.PageSize);
+            var dtoItems = _mapper.Map<List<CustomerDTO>>(filteredCustomers.Items);
+
+            return new PagingExtensions.PagedResult<CustomerDTO>
+            {
+                TotalRecords = filteredCustomers.TotalRecords,
+                PageIndex = filteredCustomers.PageIndex,
+                PageSize = filteredCustomers.PageSize,
+                Items = dtoItems
+            };
+            }
+            catch (Exception e)
+            {
+                Console.WriteLine(e);
+                throw;
+            }
+
         }
 
-        public async Task<CreateOrUpdateCustomerResponseDTO> UpdateCustomersAsync(CreateOrUpdateCustomerDTO customer)
+        public async Task<CustomerDTO> GetCustomersByIdAsync(Guid id)
         {
-            var itemCustomers = await _repository.GetCustomersByIdAsync(Guid.Parse(customer.Id.ToString()));
-            if (itemCustomers == null)
-            {
-                return new CreateOrUpdateCustomerResponseDTO { ResponseStatus = BaseStatus.Error, Message = "Không tìm thấy customer" };
-            }
-            _mapper.Map(customer, itemCustomers);
+          var customer = await _repository.GetCustomersByIdAsync(id);
+          return _mapper.Map<CustomerDTO>(customer);
+        }
 
-            await _repository.UpdateCustomersAsync(itemCustomers);
-            return new CreateOrUpdateCustomerResponseDTO { ResponseStatus = BaseStatus.Success, Message = "Cập nhật thành công" };
+        public async Task<CreateOrUpdateCustomerResponse> UpdateCustomersAsync(CreateOrUpdateCustomerDTO customer)
+        {
+
+            var isExistedPhoneNumber= await _repository.AnyAsync(c=>c.Id!=customer.Id && c.PhoneNumber==customer.PhoneNumber);
+            if (isExistedPhoneNumber)
+            {
+                return new CreateOrUpdateCustomerResponse()
+                {
+                    Message = $"Số điện thoại đã tồn tại",
+                    ResponseStatus = BaseStatus.Error
+                };
+            }
+            var customerToUpdate = await _repository.GetCustomersByIdAsync(customer.Id);
+            _mapper.Map(customer,customerToUpdate);
+
+            var result = await _repository.UpdateCustomersAsync(customerToUpdate);
+            return _mapper.Map<CreateOrUpdateCustomerResponse>(result);
+          
         }
     }
 }
