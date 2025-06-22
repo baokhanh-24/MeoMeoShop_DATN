@@ -11,13 +11,19 @@
     <link rel="stylesheet" href="MeoMeo.CMS.styles.css"/>
     <link rel="icon" type="image/png" href="favicon.png"/>
     <link href="_content/AntDesign/css/ant-design-blazor.css" rel="stylesheet">
-    <script src="_content/AntDesign/js/ant-design-blazor.js"></script>
-    <HeadOutlet/>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css" rel="stylesheet">
+
+    
+    <HeadOutlet @rendermode="new InteractiveServerRenderMode(prerender: true)"/>
 </head>
 
 <body>
 <Routes @rendermode="RenderMode.InteractiveServer" />    
 <script src="_framework/blazor.web.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/js/all.min.js"></script>
+<script src="_content/AntDesign/js/ant-design-blazor.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/jquery@3.6.0/dist/jquery.min.js"></script>
+
 </body>
 
 </html>

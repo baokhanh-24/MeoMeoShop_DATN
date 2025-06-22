@@ -1,3 +1,4 @@
+using System.Globalization;
 using MeoMeo.Application.IServices;
 using MeoMeo.Application.Services;
 using MeoMeo.Contract;
@@ -6,6 +7,8 @@ using MeoMeo.EntityFrameworkCore.Configurations.Contexts;
 using MeoMeo.EntityFrameworkCore.Repositories;
 using Microsoft.EntityFrameworkCore;
 using System.Text.Json.Serialization;
+using MeoMeo.Domain.Commons;
+using MeoMeo.EntityFrameworkCore.Commons;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -15,7 +18,9 @@ builder.Services.AddControllers();
 // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
-
+var culture = new CultureInfo("vi-VN");
+CultureInfo.DefaultThreadCurrentCulture = culture;
+CultureInfo.DefaultThreadCurrentUICulture = culture;
 builder.Services.AddDbContext<MeoMeoDbContext>(options =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection"), b => b.MigrationsAssembly("MeoMeo.API")));
 
@@ -76,13 +81,10 @@ builder.Services.AddScoped<ICustomersBankRepository, CustomersBankRepository>();
 builder.Services.AddScoped<ICustomersBankServices, CustomersBankServices>();
 builder.Services.AddScoped<IDistrictRepository, DistrictRepository>();
 builder.Services.AddScoped<IDistrictService, DistrictService>();
+builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();
+
 
 builder.Services.AddAutoMapper(typeof(MeoMeoAutoMapperProfile));
-builder.Services.AddControllers().AddJsonOptions(options =>
-{
-    options.JsonSerializerOptions.ReferenceHandler = ReferenceHandler.Preserve;
-    options.JsonSerializerOptions.WriteIndented = true;
-});
 
 var app = builder.Build();
 

@@ -1,0 +1,26 @@
+@using MeoMeo.Utilities
+@inject LoadingService LoadingService
+
+<Spin Tip="Đang tải dữ liệu..." Spinning="@LoadingService.IsLoading">
+    @ChildContent
+</Spin>
+
+@code {
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+
+    private Func<Task>? _onChangeHandler;
+
+    protected override void OnInitialized()
+    {
+        _onChangeHandler = async () => await InvokeAsync(StateHasChanged);
+        LoadingService.OnChange += _onChangeHandler;
+    }
+
+    public void Dispose()
+    {
+        if (_onChangeHandler != null)
+        {
+            LoadingService.OnChange -= _onChangeHandler;
+        }
+    }
+}

@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Linq.Expressions;
 using System.Text;
 using System.Threading.Tasks;
 using MeoMeo.Domain.Commons;
@@ -58,6 +59,39 @@ namespace MeoMeo.EntityFrameworkCore.Commons
         public async Task SaveChangesAsync()
         {
             await _context.SaveChangesAsync();
+        }
+
+        public async Task<bool> AnyAsync(Expression<Func<TEntity, bool>> predicate)
+        {
+            return await _dbSet.AnyAsync(predicate);
+        }
+        public IQueryable<TEntity> Query()
+        {
+            return _dbSet.AsQueryable();
+        }
+
+        public async Task<PagingExtensions.PagedResult<TEntity>> GetPagedAsync(
+            IQueryable<TEntity> query,
+            int pageIndex,
+            int pageSize)
+        {
+            if (pageIndex < 1) pageIndex = 1;
+            if (pageSize < 1) pageSize = 10;
+
+            var totalRecords = await query.CountAsync();
+
+            var items = await query
+                .Skip((pageIndex - 1) * pageSize)
+                .Take(pageSize)
+                .ToListAsync();
+
+            return new PagingExtensions.PagedResult<TEntity>
+            {
+                TotalRecords = totalRecords,
+                PageIndex = pageIndex,
+                PageSize = pageSize,
+                Items = items
+            };
         }
     }
 
