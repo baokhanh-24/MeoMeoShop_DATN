@@ -1,0 +1,228 @@
+﻿@page "/manage-bank"
+@using System.ComponentModel.DataAnnotations
+@using System.Reflection
+@using MeoMeo.Contract.DTOs
+@using MeoMeo.CMS.IServices
+@using MeoMeo.Contract.Commons
+@using MeoMeo.Domain.Commons.Enums
+@inject MeoMeo.Utilities.MessageModalService MessageModalService
+@rendermode InteractiveServer
+
+<div class="d-flex justify-content-between">
+    <Breadcrumb>
+        <BreadcrumbItem Href="/">Trang chủ</BreadcrumbItem>
+        <BreadcrumbItem Href="/manage-bank">Quản lý ngân hàng</BreadcrumbItem>
+    </Breadcrumb>
+    <Button OnClick="addNewBank" Type="ButtonType.Primary" Class="mb-2">
+        <i class="fas fa-plus"></i> Thêm mới
+    </Button>
+</div>
+
+<div class="d-flex justify-content-end gap-3 mb-2">
+
+    <div style="width: 200px">
+        <Input AllowClear="true" OnClear="OnFilterChanged" @bind-Value="filter.NameFilter" Placeholder="Nhập theo tên" />
+    </div>
+
+    <Tooltip Title="Tìm kiếm">
+        <Button @onclick="() => OnFilterChanged()" Type="ButtonType.Primary" Shape="ButtonShape.Circle" Icon="@IconType.Outline.Search" />
+    </Tooltip>
+</div>
+<Table DataSource="listOfData" TItem="BankDTO" RowClassName="@(_ => "editable-row")" Bordered TableLayout="fixed">
+    <ChildContent Context="data">
+        <Column TData="string" Title="Họ và tên">
+            @if (editCache.ContainsKey(data.Id) && !editCache[data.Id].edit)
+            {
+                @data.Name
+            }
+            else if (editCache.ContainsKey(data.Id))
+            {
+                <Input MaxLength="100" @bind-Value="editCache[data.Id].data.Name" />
+            }
+        </Column>
+
+        <Column TData="string" Title="Logo">
+            @if (editCache.ContainsKey(data.Id) && !editCache[data.Id].edit)
+            {
+                @data.Logo
+            }
+            else if (editCache.ContainsKey(data.Id))
+            {
+                <Input MaxLength="10" @bind-Value="editCache[data.Id].data.Logo" />
+            }
+        </Column>
+
+
+        <ActionColumn Title="Thao tác" Class="text-end gap-2">
+            @if (editCache.ContainsKey(data.Id) && !editCache[data.Id].edit)
+            {
+                <Tooltip Title="Sửa">
+                    <Button Size="ButtonSize.Small" @onclick="() => startEdit(data.Id)" Shape="ButtonShape.Circle">
+                        <i class="fas fa-pen"></i>
+                    </Button>
+                </Tooltip>
+                <Tooltip Title="Xóa">
+                    <Button Size="ButtonSize.Small" @onclick="() => deleteBank(data.Id)" Danger Shape="ButtonShape.Circle">
+                        <i class="fas fa-minus"></i>
+                    </Button>
+                </Tooltip>
+            }
+            else if (editCache.ContainsKey(data.Id))
+            {
+                <Tooltip Title="Lưu">
+                    <Button Size="ButtonSize.Small" @onclick="() => saveEdit(data.Id)" Shape="ButtonShape.Circle">
+                        <i class="fas fa-check"></i>
+                    </Button>
+                </Tooltip>
+                <Popconfirm Title=@($"Bạn có chắc muốn hủy {(data.Id ==Guid.Empty ?"thêm mới":"chỉnh sửa")} khách hàng {data.Name}?")
+                            OnConfirm="() => cancelEdit(data.Id)"
+                            OkText="Đồng ý"
+                            CancelText="Hủy">
+
+                    <Button Size="ButtonSize.Small" Shape="ButtonShape.Circle">
+                        <i class="fa-solid fa-xmark"></i>
+                    </Button>
+                </Popconfirm>
+            }
+
+        </ActionColumn>
+    </ChildContent>
+</Table>
+
+@code {
+    [Inject] private IBankClientService BankClientService { get; set; } = default!;
+
+    IDictionary<Guid, (bool edit, BankDTO data)> editCache = new Dictionary<Guid, (bool, BankDTO)>();
+    List<BankDTO> listOfData = new();
+
+    GetListBankRequestDTO filter = new GetListBankRequestDTO()
+        {
+            NameFilter = "",
+            PageIndex = 1,
+            PageSize = 10
+        };
+
+
+    protected override async Task OnInitializedAsync()
+    {
+
+        await LoadDataAsync();
+    }
+
+    private async Task LoadDataAsync()
+    {
+
+        var response = await BankClientService.GetAllBankAsync(filter);
+        listOfData = response.Items;
+        editCache = listOfData.ToDictionary(
+            item => item.Id,
+            item => (false, CloneBank(item))
+        );
+        await InvokeAsync(StateHasChanged);
+    }
+
+    async void OnFilterChanged()
+    {
+        await LoadDataAsync();
+    }
+
+    async Task addNewBank()
+    {
+        var newBank = new BankDTO
+            {
+                Id = Guid.Empty,
+                Name = "",
+                Logo = "",
+            };
+
+        listOfData.Insert(0, newBank);
+        editCache[newBank.Id] = (true, CloneBank(newBank));
+        await InvokeAsync(StateHasChanged);
+    }
+
+    async Task startEdit(Guid id)
+    {
+        // var data = editCache[id];
+        // editCache[id] = (true, data.data);
+        await InvokeAsync(StateHasChanged);
+    }
+
+    async Task cancelEdit(Guid id)
+    {
+        // var isNew = listOfData.FirstOrDefault(x => x.Id == id)?.UserId == Guid.Empty;
+        // if (isNew)
+        // {
+        //     listOfData.RemoveAll(x => x.Id == id);
+        //     editCache.Remove(id);
+        // }
+        // else
+        // {
+        //     var original = listOfData.First(x => x.Id == id);
+        //     editCache[id] = (false, CloneCustomer(original));
+        // }
+        await InvokeAsync(StateHasChanged);
+    }
+
+    async Task saveEdit(Guid id)
+    {
+        // var dto = editCache[id].data;
+        // var createOrUpdateDto = new CreateOrUpdateCustomerDTO
+        //     {
+        //         Id = dto.Id,
+        //         Name = dto.Name,
+        //         Code = dto.Code,
+        //         PhoneNumber = dto.PhoneNumber,
+        //         DateOfBirth = dto.DateOfBirth,
+        //         TaxCode = dto.TaxCode,
+        //         Address = dto.Address,
+        //         Status = dto.Status,
+        //         UserId = dto.UserId
+        //     };
+
+        // BaseResponse result;
+
+        // if (dto.UserId == Guid.Empty)
+        // {
+        //     result = await CustomerClientService.CreateCustomersAsync(createOrUpdateDto);
+        // }
+        // else
+        // {
+        //     result = await CustomerClientService.UpdateCustomersAsync(createOrUpdateDto);
+        // }
+
+        // if (result.ResponseStatus == BaseStatus.Success)
+        // {
+        //     await MessageModalService.Success("Lưu khách hàng thành công!");
+        //     await LoadDataAsync();
+        // }
+        // else
+        // {
+        //     await MessageModalService.Error("Lưu khách hàng thất bại");
+        // }
+    }
+
+    async Task deleteBank(Guid id)
+    {
+        // var success = await BankClientService.DeleteCustomersAsync(id);
+        // if (success)
+        // {
+        //     listOfData.RemoveAll(x => x.Id == id);
+        //     editCache.Remove(id);
+        //     await MessageModalService.Success("Xóa khách hàng thành công!");
+        // }
+        // else
+        // {
+        //     await MessageModalService.Error("Xóa khách hàng thất bại");
+        // }
+    }
+
+    BankDTO CloneBank(BankDTO dto)
+    {
+        return new BankDTO
+            {
+                Id = dto.Id,
+                Name = dto.Name,
+                Logo = dto.Logo,
+            };
+    }
+}

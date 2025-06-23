@@ -8,11 +8,11 @@ namespace MeoMeo.API.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
-    public class PromotionController : ControllerBase
+    public class PromotionsController : ControllerBase
     {
         private readonly IPromotionServices _promotionServices;
 
-        public PromotionController(IPromotionServices promotionServices)
+        public PromotionsController(IPromotionServices promotionServices)
         {
             _promotionServices = promotionServices;
         }

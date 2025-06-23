@@ -22,7 +22,7 @@ namespace MeoMeo.CMS.Services
             try
             {
                 var queryString = BuildQuery.ToQueryString(request);
-                var url = $"/api/Customer/get-all-customer-async?{queryString}";
+                var url = $"/api/Customers/get-all-customer-async?{queryString}";
                 var response = await _httpClient.GetAsync<PagingExtensions.PagedResult<CustomerDTO>>(url);
                 return response ?? new PagingExtensions.PagedResult<CustomerDTO>();
             }
@@ -37,7 +37,7 @@ namespace MeoMeo.CMS.Services
         {
             try
             {
-                var url = $"/api/Customer/find-customer-by-id-async/{id}";
+                var url = $"/api/Customers/find-customer-by-id-async/{id}";
                 var response = await _httpClient.GetAsync<CustomerDTO>(url);
                 return response ?? new CustomerDTO();
             }
@@ -52,7 +52,7 @@ namespace MeoMeo.CMS.Services
         {
             try
             {
-                var url = "/api/Customer/create-customer-async";
+                var url = "/api/Customers/create-customer-async";
                 var result = await _httpClient.PostAsync<CreateOrUpdateCustomerDTO, CreateOrUpdateCustomerResponse>(url, createOrUpdateCustomerDto);
                 return result ?? new CreateOrUpdateCustomerResponse
                 {
@@ -71,7 +71,7 @@ namespace MeoMeo.CMS.Services
         {
             try
             {
-                var url = $"/api/Customer/update-customer-async/{createOrUpdateCustomerDto.Id}";
+                var url = $"/api/Customers/update-customer-async/{createOrUpdateCustomerDto.Id}";
                 var result = await _httpClient.PutAsync<CreateOrUpdateCustomerDTO, CreateOrUpdateCustomerResponse>(url, createOrUpdateCustomerDto);
                 return result ?? new CreateOrUpdateCustomerResponse
                 {
@@ -90,7 +90,7 @@ namespace MeoMeo.CMS.Services
         {
             try
             {
-                var url = $"/api/Customer/delete-customer-async/{id}";
+                var url = $"/api/Customers/delete-customer-async/{id}";
                 var success = await _httpClient.DeleteAsync(url);
                 if (!success)
                 {
