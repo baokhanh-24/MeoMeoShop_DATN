@@ -8,11 +8,11 @@ namespace MeoMeo.API.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
-    public class BankController : ControllerBase
+    public class BanksController : ControllerBase
     {
         private readonly IBankServices _bankServices;
 
-        public BankController(IBankServices bankServices)
+        public BanksController(IBankServices bankServices)
         {
             _bankServices = bankServices;
         }
@@ -20,7 +20,14 @@ namespace MeoMeo.API.Controllers
         [HttpGet("get-all-bank-async")]
         public async Task<IActionResult> GetAllBankAsync()
         {
-            var result = await _bankServices.GetAllBankAsync();
+            var result = await _bankServices.GetListAllBankAsync();
+            return Ok(result);
+        }
+
+        [HttpGet("get-paging-bank-async")]
+        public async Task<IActionResult> GetAllBankAsync([FromQuery] GetListBankRequestDTO request)
+        {
+            var result = await _bankServices.GetAllBankAsync(request);
             return Ok(result);
         }
 

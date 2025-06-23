@@ -8,11 +8,11 @@ namespace MeoMeo.API.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
-    public class ResetPasswordHistoryController : ControllerBase
+    public class ResetPasswordHistorysController : ControllerBase
     {
         private readonly IResetPasswordHistoryServices _resetPasswordHistoryServices;
 
-        public ResetPasswordHistoryController(IResetPasswordHistoryServices resetPasswordHistoryServices)
+        public ResetPasswordHistorysController(IResetPasswordHistoryServices resetPasswordHistoryServices)
         {
             _resetPasswordHistoryServices = resetPasswordHistoryServices;
         }

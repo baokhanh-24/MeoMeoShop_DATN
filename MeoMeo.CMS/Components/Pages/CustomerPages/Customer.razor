@@ -146,11 +146,18 @@
                         <i class="fas fa-pen"></i>
                     </Button>
                 </Tooltip>               
-                <Tooltip Title="Xóa">
-                    <Button Size="ButtonSize.Small" @onclick="() => deleteCustomer(data.Id)" Danger Shape="ButtonShape.Circle">
-                        <i class="fas fa-minus"></i>
-                    </Button>
-                </Tooltip>
+                
+                <Popconfirm Title=@($"Bạn có chắc muốn xóa khách hàng {data.Name}?")
+                            OnConfirm="() => deleteCustomer(data.Id)"
+                            OkText="Đồng ý"
+                            CancelText="Hủy">
+
+                    <Tooltip Title="Xóa">
+                        <Button Size="ButtonSize.Small" Danger Shape="ButtonShape.Circle">
+                            <i class="fas fa-minus"></i>
+                        </Button>
+                    </Tooltip>
+                </Popconfirm>
             }
             else if (editCache.ContainsKey(data.Id))
             {
@@ -309,7 +316,7 @@
         }
         else
         {
-            await MessageModalService.Error("Lưu khách hàng thất bại");
+            await MessageModalService.Error(result.Message);
         }
     }
 
