@@ -5,15 +5,16 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using MeoMeo.Domain.Commons;
 
 namespace MeoMeo.Application.IServices
 {
     public interface ICustomerServices
     {
-        Task<List<Customers>> GetAllCustomersAsync();
-        Task<Customers> GetCustomersByIdAsync(Guid id);
-        Task<Customers> CreateCustomersAsync(CreateOrUpdateCustomerDTO customer);
-        Task<Customers> UpdateCustomersAsync(CreateOrUpdateCustomerDTO customer);
+        Task<PagingExtensions.PagedResult<CustomerDTO>> GetAllCustomersAsync(GetListCustomerRequestDTO request);
+        Task<CustomerDTO> GetCustomersByIdAsync(Guid id);
+        Task<CreateOrUpdateCustomerResponse> CreateCustomersAsync(CreateOrUpdateCustomerDTO customer);
+        Task<CreateOrUpdateCustomerResponse> UpdateCustomersAsync(CreateOrUpdateCustomerDTO customer);
         Task<bool> DeleteCustomersAsync(Guid id);
     }
 }

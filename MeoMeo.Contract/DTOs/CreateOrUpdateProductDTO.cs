@@ -7,7 +7,7 @@ using System.Threading.Tasks;
 
 namespace MeoMeo.Contract.DTOs
 {
-    public class CreateOrUpdateProductDTO
+    public class CreateOrUpdateProductDTO  
     {
         public Guid Id { get; set; }
         public string Name { get; set; }
@@ -17,6 +17,6 @@ namespace MeoMeo.Contract.DTOs
         public DateTime? LastModificationTime { get; set; }
         public Guid CreatedBy { get; set; }
         public Guid? UpdatedBy { get; set; }
-
+       
     }
 }

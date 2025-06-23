@@ -19,33 +19,20 @@ namespace MeoMeo.EntityFrameworkCore.Repositories
         }
         public async Task<Colour> Create(Colour colour)
         {
-            bool exists = await _context.colours.AnyAsync(c => c.Id == colour.Id);
-            if (exists)
-            {
-                throw new DuplicateWaitObjectException("This cartDetails is existed!");
-            }
-            await AddAsync(colour);
-            await SaveChangesAsync();
-            return colour;
+            var itemCreate = await AddAsync(colour);
+            return itemCreate;
         }
 
         public async Task<bool> Delete(Guid id)
         {
             await DeleteAsync(id);
-            await SaveChangesAsync();
             return true;
         }
 
         public async Task<IEnumerable<Colour>> GetAllColour()
         {
-            var colour = await _context.colours.Select(p => new Colour
-            {
-                Id = p.Id,
-                Name = p.Name,
-                Code = p.Code,
-                Status = p.Status,
-            }).ToListAsync();
-            return colour;
+            var itemGetAll = await GetAllAsync();
+            return itemGetAll.ToList();
         }
 
         public async Task<Colour> GetColourById(Guid id)
@@ -55,14 +42,8 @@ namespace MeoMeo.EntityFrameworkCore.Repositories
 
         public async Task<Colour> Update(Colour colour)
         {
-            var updateImg = await _context.colours.FindAsync(colour.Id);
-            if (updateImg == null)
-            {
-                throw new KeyNotFoundException($"Image with Id {colour.Id} not found.");
-            }
-            await UpdateAsync(updateImg);
-            await SaveChangesAsync();
-            return updateImg;
+            var itemUpdate = await UpdateAsync(colour);
+            return itemUpdate;
         }
     }
 }

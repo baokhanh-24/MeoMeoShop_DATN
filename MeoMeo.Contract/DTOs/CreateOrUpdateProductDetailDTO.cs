@@ -7,7 +7,7 @@ using System.Threading.Tasks;
 
 namespace MeoMeo.Contract.DTOs
 {
-    public class CreateOrUpdateProductDetailDTO
+    public class CreateOrUpdateProductDetailDTO 
     {
         public Guid Id { get; set; }
         public Guid ProductId { get; set; }

@@ -11,9 +11,9 @@ namespace MeoMeo.Application.IServices
     public interface IEmployeeServices
     {
         Task<List<Employee>> GetAllEmployeeAsync();
-        Task<Employee> GetEmployeeByIdAsync(Guid id);
+        Task<CreateOrUpdateEmployeeResponseDTO> GetEmployeeByIdAsync(Guid id);
         Task<Employee> CreateEmployeeAsync(CreateOrUpdateEmployeeDTO employee);
-        Task<Employee> UpdateEmployeeAsync(CreateOrUpdateEmployeeDTO employee);
+        Task<CreateOrUpdateEmployeeResponseDTO> UpdateEmployeeAsync(CreateOrUpdateEmployeeDTO employee);
         Task<bool> DeleteEmployeeAsync(Guid id);
     }
 }

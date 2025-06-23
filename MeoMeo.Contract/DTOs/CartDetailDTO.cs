@@ -15,6 +15,7 @@ namespace MeoMeo.Contract.DTOs
         public float Discount { get; set; }
         public float Price { get; set; }
         public int Quantity { get; set; }
+        public int Status { get; set; }
 
     }
 }

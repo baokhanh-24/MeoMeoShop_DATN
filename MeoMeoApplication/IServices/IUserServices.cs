@@ -11,9 +11,9 @@ namespace MeoMeo.Application.IServices
     public interface IUserServices
     {
         Task<List<User>> GetAllUserAsync();
-        Task<User> GetUserByIdAsync(Guid id);
+        Task<CreateOrUpdateUserResponseDTO> GetUserByIdAsync(Guid id);
         Task<User> CreateUserAsync(CreateOrUpdateUserDTO user);
-        Task<User> UpdateUserAsync(CreateOrUpdateUserDTO user);
+        Task<CreateOrUpdateUserResponseDTO> UpdateUserAsync(CreateOrUpdateUserDTO user);
         Task<bool> DeleteUserAsync(Guid id);
     }
 }

@@ -1,24 +1,38 @@
+using System.Globalization;
 using MeoMeo.CMS.Components;
+using MeoMeo.CMS.IServices;
+using MeoMeo.CMS.Services;
+using MeoMeo.Utilities;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Add services to the container.
+var apiBaseUrl = builder.Configuration["ApiSettings:BaseUrl"];
+
 builder.Services.AddRazorComponents()
     .AddInteractiveServerComponents();
 builder.Services.AddAntDesign();
+builder.Services.AddScoped<MessageModalService>();
+builder.Services.AddSingleton<LoadingService>();
+builder.Services.AddHttpClient<IApiCaller, ApiCaller>();
+CultureInfo culture = new CultureInfo("vi-VN");
+CultureInfo.DefaultThreadCurrentCulture = culture;
+CultureInfo.DefaultThreadCurrentUICulture = culture;
+builder.Services.AddScoped<ICustomerClientService, CustomerClientService>();
+
+builder.Services.AddHttpClient<IApiCaller, ApiCaller>(client =>
+{
+    client.BaseAddress = new Uri(apiBaseUrl!);
+});
 
 var app = builder.Build();
 
-// Configure the HTTP request pipeline.
 if (!app.Environment.IsDevelopment())
 {
     app.UseExceptionHandler("/Error", createScopeForErrors: true);
-    // The default HSTS value is 30 days. You may want to change this for production scenarios, see https://aka.ms/aspnetcore-hsts.
     app.UseHsts();
 }
 
 app.UseHttpsRedirection();
-
 app.UseStaticFiles();
 app.UseAntiforgery();
 

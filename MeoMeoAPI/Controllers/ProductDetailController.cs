@@ -20,16 +20,16 @@ namespace MeoMeo.API.Controllers
         [HttpGet()]
         public async Task<IActionResult> GetAll()
         {
-            var productDetails = await _productdetailservices.GetProductDetailAllAsync();
-            return Ok(productDetails);
+            var result = await _productdetailservices.GetProductDetailAllAsync();
+            return Ok(result);
         }
 
         [HttpGet("find-productdetail-by-id/{id}")]
         public async Task<IActionResult> GetById(Guid id)
         {
-            var productDetail = await _productdetailservices.GetProductDetailByIdAsync(id);
+            var result = await _productdetailservices.GetProductDetailByIdAsync(id);
 
-            return Ok(productDetail);
+            return Ok(result);
         }
 
         [HttpPost]
@@ -45,23 +45,17 @@ namespace MeoMeo.API.Controllers
         {
            
 
-            var existing = await _productdetailservices.GetProductDetailByIdAsync(id);
-            if (existing == null)
-                return NotFound("ProductDetail not found.");
-
-            await _productdetailservices.UpdateProductDetailAsync(productDetail);
-            return NoContent();
+            var result = await _productdetailservices.UpdateProductDetailAsync(productDetail);
+           
+            return Ok(result);
         }
 
         [HttpDelete("{id}")]
         public async Task<IActionResult> Delete(Guid id)
         {
-            var existing = await _productdetailservices.GetProductDetailByIdAsync(id);
-            if (existing == null)
-                return NotFound("ProductDetail not found.");
-
-            await _productdetailservices.DeleteProductDetailAsync(id);
-            return NoContent();
+            var result = await _productdetailservices.DeleteProductDetailAsync(id);
+            
+            return Ok(result);
         }
     }
 }

@@ -1,5 +1,6 @@
 ﻿using AutoMapper;
 using MeoMeo.Application.IServices;
+using MeoMeo.Contract.Commons;
 using MeoMeo.Contract.DTOs;
 using MeoMeo.Domain.Entities;
 using MeoMeo.Domain.IRepositories;
@@ -29,15 +30,25 @@ namespace MeoMeo.Application.Services
             return await _repository.AddProductAsync(entity);
         }
 
-        public async Task<ProductDetail> DeleteProductDetailAsync(Guid id)
+        public async Task<ProductDetailResponseDTO> DeleteProductDetailAsync(Guid id)
         {
+            var response = new ProductDetailResponseDTO();
+
             var existing = await _repository.GetByProductIdAsync(id);
             if (existing == null)
-                throw new Exception("Sản phẩm không tồn tại.");
+            {
+                response.Message = "Không tìm thấy chi tiết sản phẩm để xóa.";
+                response.ResponseStatus = BaseStatus.Error;
+                return response;
+            }
 
             await _repository.DeleteAsync(id);
 
-            return existing; 
+            response = _mapper.Map<ProductDetailResponseDTO>(existing);
+            response.Message = "Xóa chi tiết sản phẩm thành công.";
+            response.ResponseStatus = BaseStatus.Success;
+
+            return response;
         }
 
         public async Task<IEnumerable<ProductDetail>> GetProductDetailAllAsync()
@@ -50,18 +61,27 @@ namespace MeoMeo.Application.Services
           return await _repository.GetByProductIdAsync(id);
         }
 
-        public async Task<ProductDetail> UpdateProductDetailAsync(CreateOrUpdateProductDetailDTO entity)
+        public async Task<ProductDetailResponseDTO> UpdateProductDetailAsync(CreateOrUpdateProductDetailDTO entity)
         {
+            var response = new ProductDetailResponseDTO();
+
             var existing = await _repository.GetByProductIdAsync(entity.Id);
             if (existing == null)
-                throw new Exception("Sản phẩm không tồn tại.");
+            {
+                response.Message = "Không tìm thấy sản phẩm để cập nhật.";
+                response.ResponseStatus = BaseStatus.Error;
+                return response;
+            }
 
-           
             _mapper.Map(entity, existing);
 
-            await _repository.UpdateProductAsync(existing);
+            var updated = await _repository.UpdateProductAsync(existing);
 
-            return existing;
+            response = _mapper.Map<ProductDetailResponseDTO>(updated);
+            response.Message = "Cập nhật sản phẩm chi tiết thành công.";
+            response.ResponseStatus = BaseStatus.Success;
+
+            return response;
         }
     }
 }
