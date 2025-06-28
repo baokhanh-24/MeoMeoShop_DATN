@@ -52,6 +52,8 @@ namespace MeoMeo.Contract
 
             CreateMap<Customers,CreateOrUpdateCustomerResponse>();
             CreateMap<Customers,CustomerDTO>();
+
+            CreateMap<Bank,BankDTO>();  
             
         
         }

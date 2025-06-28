@@ -1,4 +1,4 @@
-using System.Globalization;
+﻿using System.Globalization;
 using MeoMeo.CMS.Components;
 using MeoMeo.CMS.IServices;
 using MeoMeo.CMS.Services;
@@ -17,7 +17,9 @@ builder.Services.AddHttpClient<IApiCaller, ApiCaller>();
 CultureInfo culture = new CultureInfo("vi-VN");
 CultureInfo.DefaultThreadCurrentCulture = culture;
 CultureInfo.DefaultThreadCurrentUICulture = culture;
+// đăng kí 
 builder.Services.AddScoped<ICustomerClientService, CustomerClientService>();
+builder.Services.AddScoped<IBankClientService, BankClientService>();
 
 builder.Services.AddHttpClient<IApiCaller, ApiCaller>(client =>
 {
