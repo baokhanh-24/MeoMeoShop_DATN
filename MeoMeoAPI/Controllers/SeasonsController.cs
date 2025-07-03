@@ -10,6 +10,7 @@ using MeoMeo.EntityFrameworkCore.Configurations.Contexts;
 using MeoMeo.Domain.IRepositories;
 using MeoMeo.Contract.DTOs;
 using MeoMeo.Application.IServices;
+using MeoMeo.Contract.Commons;
 
 namespace MeoMeo.API.Controllers
 {
@@ -51,8 +52,8 @@ namespace MeoMeo.API.Controllers
         [HttpPut]
         public async Task<IActionResult> PutSeason([FromBody] SeasonDTO dto)
         {
-            await _seasonServices.UpdateSeasonAsync(dto);
-            return Ok();
+            var result = await _seasonServices.UpdateSeasonAsync(dto);
+            return Ok(result);
         }
 
         // POST: api/Seasons
@@ -68,8 +69,8 @@ namespace MeoMeo.API.Controllers
         [HttpDelete("{id}")]
         public async Task<IActionResult> DeleteSeason(Guid id)
         {
-            await _seasonServices.DeleteSeasonAsync(id);
-            return Ok();
+            var deleteSeason = await _seasonServices.DeleteSeasonAsync(id);
+            return Ok(deleteSeason);
         }
     }
 }

@@ -35,12 +35,12 @@ namespace MeoMeo.API.Controllers
         [HttpGet("{id}")]
         public async Task<ActionResult<Brand>> GetBrand(Guid id)
         {
-            var phat = await _brandServices.GetBrandByIdAsync(id);
-            if (phat == null)
+            var getId = await _brandServices.GetBrandByIdAsync(id);
+            if (getId == null)
             {
                 return NotFound();
             }
-            return Ok(phat);
+            return Ok(getId);
         }
 
         // PUT: api/Brands/5
@@ -48,8 +48,8 @@ namespace MeoMeo.API.Controllers
         [HttpPut("{id}")]
         public async Task<IActionResult> PutBrand(Guid id,[FromBody] BrandDTO brand)
         {
-            await _brandServices.UpdateBrandAsync(id, brand);
-            return Ok();
+            var getBrand = await _brandServices.UpdateBrandAsync(id, brand);
+            return Ok(getBrand);
         }
 
         // POST: api/Brands
@@ -57,16 +57,16 @@ namespace MeoMeo.API.Controllers
         [HttpPost]
         public async Task<ActionResult<Brand>> PostBrand([FromBody] BrandDTO brand)
         {
-            var phat = await _brandServices.CreateBrandAsync(brand);
-            return CreatedAtAction("GetBrand", new { id = phat.Id }, phat);
+            var createbrand = await _brandServices.CreateBrandAsync(brand);
+            return CreatedAtAction("GetBrand", new { id = createbrand.Id }, createbrand);
         }
 
         // DELETE: api/Brands/5
         [HttpDelete("{id}")]
         public async Task<IActionResult> DeleteBrand(Guid id)
         {
-            await _brandServices.DeleteBrandAsync(id);
-            return Ok();
+            var deleteBrand = await _brandServices.DeleteBrandAsync(id);
+            return Ok(deleteBrand);
         }
     }
 }

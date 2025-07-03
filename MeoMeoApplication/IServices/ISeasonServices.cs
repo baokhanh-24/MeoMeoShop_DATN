@@ -11,9 +11,9 @@ namespace MeoMeo.Application.IServices
     public interface ISeasonServices 
     {
         Task<IEnumerable<Season>> GetAllSeasonsAsync();
-        Task<Season> GetSeasonByIdAsync(Guid id);
-        Task<Season> CreateSeasonAsync(SeasonDTO dto);
-        Task<Season> UpdateSeasonAsync(SeasonDTO dto); 
+        Task<CreateOrUpdateSeasonResponse> GetSeasonByIdAsync(Guid id);
+        Task<CreateOrUpdateSeasonResponse> CreateSeasonAsync(SeasonDTO dto);
+        Task<CreateOrUpdateSeasonResponse> UpdateSeasonAsync(SeasonDTO dto); 
         Task<bool> DeleteSeasonAsync(Guid id);
     }
 }

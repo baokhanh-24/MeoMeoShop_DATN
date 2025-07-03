@@ -50,8 +50,8 @@ namespace MeoMeo.API.Controllers
         [HttpPut("update-inventoryBatch-async/{id}")]
         public async Task<IActionResult> UpdateInventoryBatch(Guid id, [FromBody] InventoryBatchDTO dto)
         {
-            await _inventoryBatchServices.UpdateAsync(id, dto);
-            return Ok();
+            var updateBatch = await _inventoryBatchServices.UpdateAsync(id, dto);
+            return Ok(updateBatch);
         }
 
         // POST: api/InventoryBatches
@@ -69,6 +69,8 @@ namespace MeoMeo.API.Controllers
         {
              var result =  await _inventoryBatchServices.DeleteAsync(id);
             return result;
+            var deleteBatch = await _inventoryBatchServices.DeleteAsync(id);
+            return Ok(deleteBatch);
         }
     }
 }
