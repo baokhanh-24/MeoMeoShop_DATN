@@ -1,7 +1,7 @@
 ﻿using AutoMapper;
 using MeoMeo.Application.IServices;
 using MeoMeo.Contract.Commons;
-using MeoMeo.Contract.DTOs;
+using MeoMeo.Contract.DTOs.Product;
 using MeoMeo.Domain.Entities;
 using MeoMeo.Domain.IRepositories;
 using System;

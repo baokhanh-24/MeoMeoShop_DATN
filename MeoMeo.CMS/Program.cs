@@ -1,8 +1,8 @@
-﻿using System.Globalization;
-using MeoMeo.CMS.Components;
+﻿using MeoMeo.CMS.Components;
 using MeoMeo.CMS.IServices;
 using MeoMeo.CMS.Services;
 using MeoMeo.Utilities;
+using System.Globalization;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -19,6 +19,7 @@ CultureInfo.DefaultThreadCurrentCulture = culture;
 CultureInfo.DefaultThreadCurrentUICulture = culture;
 // đăng kí 
 builder.Services.AddScoped<ICustomerClientService, CustomerClientService>();
+builder.Services.AddScoped<IProductDetailClientService, ProductDetailClientService>();
 builder.Services.AddScoped<IBankClientService, BankClientService>();
 builder.Services.AddScoped<ISizeClientService, SizeClientService>();
 builder.Services.AddScoped<IMaterialClientService, MaterialClientService>();
