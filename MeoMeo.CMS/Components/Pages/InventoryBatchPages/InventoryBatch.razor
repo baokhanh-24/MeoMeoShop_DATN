@@ -1,0 +1,352 @@
+﻿@page "/manage-inventoryBatch"
+@using System
+@using System.ComponentModel.DataAnnotations
+@using System.Reflection
+@using MeoMeo.Contract.DTOs
+@using MeoMeo.Contract.Commons
+@using MeoMeo.Domain.Commons.Enums
+@using MeoMeo.CMS.IServices
+@using MeoMeo.Utilities
+@inject MessageModalService MessageModalService
+@inject IApiCaller Http
+@rendermode InteractiveServer
+
+<div class="d-flex justify-content-between">
+    <Breadcrumb>
+        <BreadcrumbItem Href="/">Trang chủ</BreadcrumbItem>
+        <BreadcrumbItem Href="/manage-inventoryBatch">Quản lý lô nhập</BreadcrumbItem>
+    </Breadcrumb>
+   @*  <Button OnClick="AddNewInventoryBatch" Type="ButtonType.Primary" Class="mb-2">
+        <i class="fas fa-plus"></i> Thêm mới
+    </Button> *@
+    <div class="">
+        <a href="/InventoryBatchCreate" class="btn btn-primary">Thêm mới</a>
+    </div>
+</div>
+<p></p>
+<div class="d-flex justify-content-end gap-3 mb-2">
+    <Input AllowClear="true" @bind-Value="filter.CodeFilter" Placeholder="Nhập mã" OnClear="OnFilterChanged" />
+    <Input AllowClear="true" @bind-Value="filter.NoteFilter" Placeholder="Nhập mô tả" OnClear="OnFilterChanged" />
+    <div style="width: 150px">
+        <Select TItem="(EInventoryBatchStatus Value, string Name)"
+                TItemValue="EInventoryBatchStatus?"
+                AllowClear
+                DataSource="inventoryBatchStatusList"
+                @bind-Value="filter.StatusFilter"
+                Placeholder="Chọn trạng thái"
+                ItemValue="s => (EInventoryBatchStatus?)s.Value"
+                ItemLabel="s => s.Name">
+        </Select>
+    </div>
+    <Tooltip Title="Tìm kiếm">
+        <Button @onclick="() => OnFilterChanged()" Type="ButtonType.Primary" Shape="ButtonShape.Circle" Icon="@IconType.Outline.Search" />
+    </Tooltip>
+</div>
+
+<Table DataSource="listOfData" TItem="InventoryBatchDTO" RowClassName="@(_ => "editable-row")" Bordered TableLayout="fixed">
+    <ChildContent Context="data">
+        <Column TData="int" Title="STT">
+            @{
+                var index = listOfData.IndexOf(data);
+                @((filter.PageIndex - 1) * filter.PageSize + index + 1)
+            }
+        </Column>
+        <Column TData="string" Title="Mã lô">
+                <a class="text-primary" style="cursor:pointer" @onclick="() => ViewInventoryBatchDetail(data.Id)">
+                    @if (editCache.ContainsKey(data.Id) && !editCache[data.Id].edit)
+                {
+                    @data.Code
+                }
+                else if (editCache.ContainsKey(data.Id))
+                {
+                    <Input MaxLength="10" @bind-Value="editCache[data.Id].data.Code" />
+                }
+                </a>
+        </Column>
+        <Column TData="Guid" Title="Sản phẩm">
+        @if (editCache.ContainsKey(data.Id) && !editCache[data.Id].edit)
+        {
+            @(productItems.FirstOrDefault(p => p.Id == data.ProductDetailId).DisplayName)
+        }
+        else if (editCache.ContainsKey(data.Id))
+        {
+            <Select TItem="(Guid Id, string Name)"
+                    TItemValue="Guid"
+                    DataSource="productDetailOptions"
+                    @bind-Value="editCache[data.Id].data.ProductDetailId"
+                    ItemValue="p => p.Id"
+                    ItemLabel="p => p.Name"
+                    Placeholder="Chọn sản phẩm" />
+        }
+    </Column>
+        <Column TData="float" Title="Giá nhập">
+            @if (editCache.ContainsKey(data.Id) && !editCache[data.Id].edit)
+            {
+                @data.OriginalPrice
+            }
+            else if (editCache.ContainsKey(data.Id))
+            {
+                <Input MaxLength="10" @bind-Value="editCache[data.Id].data.OriginalPrice" />
+            }
+        </Column>
+        <Column TData="int" Title="Số lượng">
+            @if (editCache.ContainsKey(data.Id) && !editCache[data.Id].edit)
+            {
+                @data.Quantity
+            }
+            else if (editCache.ContainsKey(data.Id))
+            {
+                <Input MaxLength="10" @bind-Value="editCache[data.Id].data.Quantity" />
+            }
+        </Column>
+        <Column TData="string" Title="Mô tả">
+            @if (editCache.ContainsKey(data.Id) && !editCache[data.Id].edit)
+            {
+                @data.Note
+            }
+            else if (editCache.ContainsKey(data.Id))
+            {
+                <Input MaxLength="1000" @bind-Value="editCache[data.Id].data.Note" />
+            }
+        </Column>
+        <Column TData="EInventoryBatchStatus" Title="Trạng thái">
+            @if (editCache.ContainsKey(data.Id) && !editCache[data.Id].edit)
+            {
+                @inventoryBatchStatusList.FirstOrDefault(p => p.Value == data.Status).Name
+            }
+            else if (editCache.ContainsKey(data.Id))
+            {
+                <Select TItem="(EInventoryBatchStatus Value, string Name)"
+                        TItemValue="EInventoryBatchStatus"
+                        DataSource="inventoryBatchStatusList"
+                        @bind-Value="editCache[data.Id].data.Status"
+                        ItemValue="p => p.Value"
+                        ItemLabel="p => p.Name" />
+            }
+        </Column>
+        <ActionColumn Title="Thao tác" Class="text-end gap-2">
+            @if (editCache.ContainsKey(data.Id) && !editCache[data.Id].edit)
+            {
+                <Tooltip Title="Sửa">
+                    <Button Size="ButtonSize.Small" @onclick="() => StartEdit(data.Id)" Shape="ButtonShape.Circle">
+                        <i class="fas fa-pen"></i>
+                    </Button>
+                </Tooltip>               
+                
+                <Popconfirm Title=@($"Bạn có chắc muốn xóa {data.Code}?")
+                            OnConfirm="() => DeleteInventoryBatch(data.Id)"
+                            OkText="Đồng ý"
+                            CancelText="Hủy">
+
+                    <Tooltip Title="Xóa">
+                        <Button Size="ButtonSize.Small" Danger Shape="ButtonShape.Circle">
+                            <i class="fas fa-minus"></i>
+                        </Button>
+                    </Tooltip>
+                </Popconfirm>
+            }
+            else if (editCache.ContainsKey(data.Id))
+            {
+                <Tooltip Title="Lưu">
+                    <Button Size="ButtonSize.Small" @onclick="() => SaveEdit(data.Id)" Shape="ButtonShape.Circle">
+                        <i class="fas fa-check"></i>
+                    </Button>
+                </Tooltip>
+                <Tooltip Title="Hủy">
+                    <Button Size="ButtonSize.Small" @onclick="() => CancelEdit(data.Id)" Shape="ButtonShape.Circle">
+                        <i class="fa-solid fa-xmark"></i>
+                    </Button>
+                </Tooltip>
+            }
+        </ActionColumn>
+    </ChildContent>
+</Table>
+
+@code {
+    private class ProductItem
+    {
+        public Guid Id { get; set; }
+        public string DisplayName { get; set; }
+    }
+    public class SelectedProductItem
+    {
+        public Guid ProductDetailId { get; set; }
+        public string ProductName { get; set; }
+        public float OriginalPrice { get; set; }
+        public int Quantity { get; set; }
+    }
+    private List<ProductItem> productItems = new();
+    private List<SelectedProductItem> selectedProducts = new();
+    private List<CreateOrUpdateProductDetailDTO> productDetails = new();
+    private string message = "";
+    private bool isSuccess = false;
+    [Inject] private IInventoryBatchClientService InventoryBatchClientService { get; set; } = default!;
+    [Inject] private NavigationManager Navigation { get; set; } = default!;
+    private List<(Guid Id, string Name)> productDetailOptions = new();
+    List<InventoryBatchDTO> listOfData = new();
+    Dictionary<Guid, (bool edit, InventoryBatchDTO data)> editCache = new Dictionary<Guid, (bool, InventoryBatchDTO)>();
+    List<(EInventoryBatchStatus Value, string Name)> inventoryBatchStatusList = new();
+
+    GetListInventoryBatchRequestDTO filter = new GetListInventoryBatchRequestDTO()
+    {
+        CodeFilter = "",
+        NoteFilter = "",
+        StatusFilter = null,
+        PageIndex = 1,
+        PageSize = 10
+    };
+
+    protected override async Task OnInitializedAsync()
+    {
+        inventoryBatchStatusList = Enum.GetValues(typeof(EInventoryBatchStatus))
+            .Cast<EInventoryBatchStatus>()
+            .Select(x => (x, x.GetType().GetMember(x.ToString())?.First()?.GetCustomAttribute<DisplayAttribute>()?.Name ?? x.ToString()))
+            .ToList();
+
+        await LoadDataAsync();
+    }
+
+    async Task LoadDataAsync()
+    {
+        var response = await InventoryBatchClientService.GetAllInventoryBatchAsync(filter);
+        listOfData = response.Items;
+        editCache = listOfData.ToDictionary(x => x.Id, x => (false, Clone(x)));
+        //
+        try
+        {
+            // Gọi song song
+            var detailTask = Http.GetAsync<List<CreateOrUpdateProductDetailDTO>>("/api/ProductDetail");
+            var productTask = Http.GetAsync<List<CreateOrUpdateProductDTO>>("/api/Products");
+
+            await Task.WhenAll(detailTask, productTask);
+
+            var productDetailsResult = await detailTask;
+            var productsResult = await productTask;
+
+            if (productDetailsResult != null && productsResult != null)
+            {
+                productDetails = productDetailsResult;
+
+                // Gộp dữ liệu ProductDetail + Product
+                productItems = (from detail in productDetails
+                                join product in productsResult on detail.ProductId equals product.Id
+                                select new ProductItem
+                                {
+                                    Id = detail.Id,
+                                    DisplayName = $"{product.Name}"
+                                }).ToList();
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine("Lỗi khi lấy dữ liệu sản phẩm: " + ex.Message);
+        }
+        await InvokeAsync(StateHasChanged);
+    }
+
+    async Task OnFilterChanged()
+    {
+        await LoadDataAsync();
+    }
+    //xem chi tiết
+    void ViewInventoryBatchDetail(Guid id)
+    {
+        Navigation.NavigateTo($"/inventory-batch-detail/{id}");
+    }
+    //thêm mới
+    async Task AddNewInventoryBatch()
+    {
+        var newItem = new InventoryBatchDTO
+        {
+            Id = Guid.NewGuid(),
+            Code = "",
+            OriginalPrice = 0,
+            Quantity = 0,
+            Note = "",
+            Status = EInventoryBatchStatus.Draft,
+            ProductDetailId = Guid.Empty
+        };
+
+        listOfData.Insert(0, newItem);
+        editCache[newItem.Id] = (true, Clone(newItem));
+        await InvokeAsync(StateHasChanged);
+    }
+
+    async Task StartEdit(Guid id)
+    {
+        var item = editCache[id];
+        editCache[id] = (true, item.data);
+        await InvokeAsync(StateHasChanged);
+    }
+
+    async Task CancelEdit(Guid id)
+    {
+        var isNew = listOfData.FirstOrDefault(x => x.Id == id)?.ProductDetailId == Guid.Empty;
+        if (isNew)
+        {
+            listOfData.RemoveAll(x => x.Id == id);
+            editCache.Remove(id);
+        }
+        else
+        {
+            var original = listOfData.First(x => x.Id == id);
+            editCache[id] = (false, Clone(original));
+        }
+        await InvokeAsync(StateHasChanged);
+    }
+
+    async Task SaveEdit(Guid id)
+    {
+        var dto = editCache[id].data;
+
+        BaseResponse result;
+        if (dto.ProductDetailId == Guid.Empty)
+        {
+            result = await InventoryBatchClientService.CreateInventoryBatchAsync(new List<InventoryBatchDTO> { dto });
+        }
+        else
+        {
+            result = await InventoryBatchClientService.UpdateInventoryBatchAsync(dto);
+        }
+
+        if (result.ResponseStatus == BaseStatus.Success)
+        {
+            await MessageModalService.Success("Lưu thành công!");
+            await LoadDataAsync();
+        }
+        else
+        {
+            await MessageModalService.Error(result.Message);
+        }
+    }
+
+    async Task DeleteInventoryBatch(Guid id)
+    {
+        var success = await InventoryBatchClientService.DeleteInventoryBatchAsync(id);
+        if (success)
+        {
+            listOfData.RemoveAll(x => x.Id == id);
+            editCache.Remove(id);
+            await MessageModalService.Success("Xoá thành công!");
+        }
+        else
+        {
+            await MessageModalService.Error("Xoá thất bại!");
+        }
+    }
+
+    InventoryBatchDTO Clone(InventoryBatchDTO dto)
+    {
+        return new InventoryBatchDTO
+            {
+                Id = dto.Id,
+                Code = dto.Code,
+                Quantity = dto.Quantity,
+                Note = dto.Note,
+                Status = dto.Status,
+                OriginalPrice = dto.OriginalPrice,
+                ProductDetailId = dto.ProductDetailId
+            };
+    }
+
+}
