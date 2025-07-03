@@ -1,15 +1,7 @@
-﻿using MeoMeo.Contract.Commons;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-
-namespace MeoMeo.Contract.DTOs
+﻿namespace MeoMeo.Contract.DTOs.Product
 {
-    public class ProductReponseDTO : BaseResponse 
+    public class CreateOrUpdateProductDTO
     {
-
         public Guid Id { get; set; }
         public string Name { get; set; }
         public Guid BrandId { get; set; }
@@ -18,5 +10,6 @@ namespace MeoMeo.Contract.DTOs
         public DateTime? LastModificationTime { get; set; }
         public Guid CreatedBy { get; set; }
         public Guid? UpdatedBy { get; set; }
+
     }
 }
