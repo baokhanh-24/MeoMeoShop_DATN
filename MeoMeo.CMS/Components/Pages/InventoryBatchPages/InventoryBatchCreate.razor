@@ -1,0 +1,232 @@
+﻿@page "/InventoryBatchCreate"
+@using MeoMeo.CMS.IServices
+@using MeoMeo.CMS.Services
+@using MeoMeo.Contract.DTOs
+@using MeoMeo.Domain.Commons.Enums
+@using MeoMeo.Utilities
+@inject NavigationManager Navigation
+@inject IInventoryBatchClientService InventoryBatchClientService
+@inject IApiCaller Http
+
+<div class="d-flex justify-content-between">
+    <Breadcrumb>
+        <BreadcrumbItem Href="/">Trang chủ</BreadcrumbItem>
+        <BreadcrumbItem Href="/manage-inventoryBatch">Quản lý lô nhập</BreadcrumbItem>
+        <BreadcrumbItem Href="/InventoryBatchCreate">Thêm mới</BreadcrumbItem>
+    </Breadcrumb>
+</div>
+
+<h3>Thêm mới lô nhập</h3>
+
+@if (!string.IsNullOrWhiteSpace(message))
+{
+    <div class="alert @(isSuccess ? "alert-success" : "alert-danger")">
+        @message
+    </div>
+}
+
+<EditForm Model="kho" OnValidSubmit="HandleValidSubmit">
+    <DataAnnotationsValidator />
+    <ValidationSummary />
+
+    <div class="form-group">
+        <label for="Code" class="form-label">Mã lô nhập</label>
+        <p></p>
+        <InputText class="form-control" @bind-Value="kho.Code" />
+    </div>
+    <p></p>
+     <div class="form-group">
+        <label for="Note" class="form-label">Mô tả</label>
+        <p></p>
+        <InputText class="form-control" @bind-Value="kho.Note" />
+    </div>
+    <p></p>
+    <button type="button" class="btn btn-success" @onclick="() => isProductDialogVisible = true">+ Thêm sản phẩm</button>
+    <p></p>
+    
+    @if (selectedProducts.Count > 0)
+    {
+        <table class="table">
+            <thead>
+                <tr>
+                    <th>Tên sản phẩm</th>
+                    <th>Giá nhập</th>
+                    <th>Số lượng</th>
+                    <th>Thao tác</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var sp in selectedProducts)
+                {
+                    <tr>
+                        <td>@sp.ProductName</td>
+                        <td>
+                            <AntDesign.InputNumber TValue="float" class="form-control" @bind-Value="sp.OriginalPrice" />
+                        </td>
+                        <td>
+                            <AntDesign.InputNumber TValue="int" class="form-control" @bind-Value="sp.Quantity" />
+                        </td>
+                        <td>
+                            <button type="button" class="btn btn-danger btn-sm" @onclick="() => RemoveProduct(sp.ProductDetailId)">Xóa</button>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    }
+    <p></p>
+    @if (isProductDialogVisible)
+    {
+        <div class="modal show d-block" tabindex="-1">
+            <div class="modal-dialog modal-lg">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title">Chọn sản phẩm</h5>
+                        <button type="button" class="btn-close" @onclick="() => isProductDialogVisible = false"></button>
+                    </div>
+                    <div class="modal-body">
+                        @foreach (var item in productItems)
+                        {
+                            <div>
+                                <input type="checkbox" value="@item.Id" @onchange="e => OnProductCheckedChanged(e, item)" /> @item.DisplayName
+                            </div>
+                        }
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-primary" @onclick="() => isProductDialogVisible = false">Xác nhận</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    }
+    <p></p>
+    <button type="submit" class="btn btn-primary">Thêm</button>
+    <button type="button" class="btn btn-secondary ms-2" @onclick="GoBack">Quay lại</button>
+</EditForm>
+
+@code {
+    private class ProductItem
+    {
+        public Guid Id { get; set; }
+        public string DisplayName { get; set; }
+    }
+    public class SelectedProductItem
+    {
+        public Guid ProductDetailId { get; set; }
+        public string ProductName { get; set; }
+        public float OriginalPrice { get; set; }
+        public int Quantity { get; set; }
+    }
+    private List<SelectedProductItem> selectedProducts = new();
+    private bool isProductDialogVisible = false;
+    private List<ProductItem> productItems = new();
+    private InventoryBatchDTO kho = new()
+    {
+        Id = Guid.NewGuid(),
+        Code = "",
+        Note = "",
+        Quantity = 0,
+        OriginalPrice = 0,
+        Status = EInventoryBatchStatus.Draft,
+        ProductDetailId = Guid.Empty
+    };
+
+    private List<CreateOrUpdateProductDetailDTO> productDetails = new();
+    private string message = "";
+    private bool isSuccess = false;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            // Gọi song song
+            var detailTask = Http.GetAsync<List<CreateOrUpdateProductDetailDTO>>("/api/ProductDetail");
+            var productTask = Http.GetAsync<List<CreateOrUpdateProductDTO>>("/api/Products");
+
+            await Task.WhenAll(detailTask, productTask);
+
+            var productDetailsResult = await detailTask;
+            var productsResult = await productTask;
+
+            if (productDetailsResult != null && productsResult != null)
+            {
+                productDetails = productDetailsResult;
+
+                // Gộp dữ liệu ProductDetail + Product
+                productItems = (from detail in productDetails
+                                join product in productsResult on detail.ProductId equals product.Id
+                                select new ProductItem
+                                {
+                                    Id = detail.Id,
+                                    DisplayName = $"{product.Name}"
+                                }).ToList();
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine("Lỗi khi lấy dữ liệu sản phẩm: " + ex.Message);
+        }
+    }
+
+    private async Task HandleValidSubmit()
+    {
+        var batchList = selectedProducts.Select(p => new InventoryBatchDTO
+        {
+            Id = Guid.NewGuid(),
+            Code = kho.Code,
+            Note = kho.Note,
+            Status = EInventoryBatchStatus.Draft,
+            ProductDetailId = p.ProductDetailId,
+            OriginalPrice = p.OriginalPrice,
+            Quantity = p.Quantity
+        }).ToList();
+
+        var result = await InventoryBatchClientService.CreateInventoryBatchAsync(batchList);
+
+        if (result.ResponseStatus == MeoMeo.Contract.Commons.BaseStatus.Success)
+        {
+            isSuccess = true;
+            message = "Thêm lô nhập thành công!";
+            Navigation.NavigateTo("/manage-inventoryBatch");
+        }
+        else
+        {
+            isSuccess = false;
+            message = $"Thêm thất bại: {result.Message}";
+        }
+    }
+
+    private void GoBack()
+    {
+        Navigation.NavigateTo("/manage-inventoryBatch");
+    }
+
+    //
+    private void OnProductCheckedChanged(ChangeEventArgs e, ProductItem item)
+    {
+        bool isChecked = (bool)e.Value;
+        if (isChecked)
+        {
+            if (!selectedProducts.Any(x => x.ProductDetailId == item.Id))
+            {
+                selectedProducts.Add(new SelectedProductItem
+                {
+                    ProductDetailId = item.Id,
+                    ProductName = item.DisplayName,
+                    Quantity = 1,
+                    OriginalPrice = 0
+                });
+            }
+        }
+        else
+        {
+            selectedProducts.RemoveAll(x => x.ProductDetailId == item.Id);
+        }
+    }
+
+    private void RemoveProduct(Guid id)
+    {
+        selectedProducts.RemoveAll(x => x.ProductDetailId == id);
+    }
+
+}

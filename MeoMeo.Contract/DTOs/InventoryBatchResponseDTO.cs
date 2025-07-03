@@ -1,4 +1,5 @@
-﻿using MeoMeo.Domain.Commons.Enums;
+﻿using MeoMeo.Contract.Commons;
+using MeoMeo.Domain.Commons.Enums;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -7,7 +8,7 @@ using System.Threading.Tasks;
 
 namespace MeoMeo.Contract.DTOs
 {
-    public class InventoryBatchDTO
+    public class InventoryBatchResponseDTO : BaseResponse
     {
         public Guid Id { get; set; }
         public Guid ProductDetailId { get; set; }

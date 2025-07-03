@@ -10,10 +10,10 @@ namespace MeoMeo.Domain.IRepositories
 {
     public interface IIventoryBtachReposiory : IBaseRepository<InventoryBatch>
     {
-        Task<IEnumerable<InventoryBatch>> GetAllBatchAsync();
+        Task<List<InventoryBatch>> GetAllBatchAsync();
         Task<InventoryBatch> GetBatchByIdAsync(Guid id);
         Task<InventoryBatch> CreateAsync(InventoryBatch inventoryBatch);
         Task<InventoryBatch> UpdateAsync(Guid id, InventoryBatch inventoryBatch);
-        Task<bool> DeleteAsync(Guid id);
+        Task<bool> DeleteInventoryBatchAsync(Guid id);
     }
 }

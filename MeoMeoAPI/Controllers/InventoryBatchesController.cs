@@ -1,14 +1,16 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
+﻿using MeoMeo.Application.IServices;
+using MeoMeo.Contract.DTOs;
+using MeoMeo.Domain.Commons;
+using MeoMeo.Domain.Entities;
+using MeoMeo.EntityFrameworkCore.Configurations.Contexts;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
-using MeoMeo.Domain.Entities;
-using MeoMeo.EntityFrameworkCore.Configurations.Contexts;
-using MeoMeo.Application.IServices;
-using MeoMeo.Contract.DTOs;
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Threading.Tasks;
+using static MeoMeo.Domain.Commons.PagingExtensions;
 
 namespace MeoMeo.API.Controllers
 {
@@ -24,16 +26,16 @@ namespace MeoMeo.API.Controllers
         }
 
         // GET: api/InventoryBatches
-        [HttpGet]
-        public async Task<ActionResult<IEnumerable<InventoryBatch>>> GetAllInventoryBatch()
+        [HttpGet("get-all-inventoryBatch-async")]
+        public async Task<PagingExtensions.PagedResult<InventoryBatchDTO>> GetAllInventoryBatch([FromQuery] GetListInventoryBatchRequestDTO request)
         {
-            var result = await _inventoryBatchServices.GetAllAsync();
-            return Ok(result);
+            var result =  await _inventoryBatchServices.GetAllAsync(request);
+            return result;
         }
 
         // GET: api/InventoryBatches/5
-        [HttpGet("{id}")]
-        public async Task<ActionResult<InventoryBatch>> GetByIdInventoryBatch(Guid id)
+        [HttpGet("find-inventoryBatch-by-id-async/{id}")]
+        public async Task<ActionResult<InventoryBatchDTO>> GetByIdInventoryBatch(Guid id)
         {
             var result = await _inventoryBatchServices.GetByIdAsync(id);
             if(result == null)
@@ -45,7 +47,7 @@ namespace MeoMeo.API.Controllers
 
         // PUT: api/InventoryBatches/5
         // To protect from overposting attacks, see https://go.microsoft.com/fwlink/?linkid=2123754
-        [HttpPut("{id}")]
+        [HttpPut("update-inventoryBatch-async/{id}")]
         public async Task<IActionResult> UpdateInventoryBatch(Guid id, [FromBody] InventoryBatchDTO dto)
         {
             var updateBatch = await _inventoryBatchServices.UpdateAsync(id, dto);
@@ -54,19 +56,21 @@ namespace MeoMeo.API.Controllers
 
         // POST: api/InventoryBatches
         // To protect from overposting attacks, see https://go.microsoft.com/fwlink/?linkid=2123754
-        [HttpPost]
-        public async Task<ActionResult<InventoryBatch>> CreateInventoryBatch([FromBody] InventoryBatchDTO dto )
+        [HttpPost("create-inventoryBatch-async")]
+        public async Task<InventoryBatchResponseDTO> CreateInventoryBatch([FromBody] List<InventoryBatchDTO> dto )
         {
-            var id = await _inventoryBatchServices.CreateAsync(dto);
-            return CreatedAtAction(nameof(GetByIdInventoryBatch), new { id }, null);
+            var result = await _inventoryBatchServices.CreateAsync(dto);
+            return result;
         }
 
         // DELETE: api/InventoryBatches/5
-        [HttpDelete("{id}")]
-        public async Task<IActionResult> DeleteInventoryBatch(Guid id)
+        [HttpDelete("delete-inventoryBatch-async/{id}")]
+        public async Task<bool> DeleteInventoryBatch(Guid id)
         {
             var deleteBatch = await _inventoryBatchServices.DeleteAsync(id);
             return Ok(deleteBatch);
+             var result =  await _inventoryBatchServices.DeleteAsync(id);
+            return result;
         }
     }
 }

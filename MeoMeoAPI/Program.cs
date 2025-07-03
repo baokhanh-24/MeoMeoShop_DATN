@@ -54,6 +54,7 @@ builder.Services.AddScoped<IIventoryBtachReposiory, InventoryBatchRepository>();
 builder.Services.AddScoped<IInventoryBatchServices, InventoryBatchService>();
 builder.Services.AddScoped<IInventoryTranSactionRepository, InventoryTranSactionRepository>();
 builder.Services.AddScoped<IIventoryTranSactionServices, InventoryTranSactionService>();
+builder.Services.AddAutoMapper(typeof(MeoMeoAutoMapperProfile));
 builder.Services.AddScoped<IProductSeasonRepository, ProductSeasonRepository>();
 builder.Services.AddScoped<IProductSeasonServices, ProductSeasonService>();
 builder.Services.AddScoped<ISeasonRepository, SeasonRepository>();

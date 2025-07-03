@@ -19,25 +19,13 @@ namespace MeoMeo.EntityFrameworkCore.Repositories
 
         public async Task<InventoryBatch> CreateAsync(InventoryBatch inventoryBatch)
         {
-            try
-            {
-                await AddAsync(inventoryBatch);
-                return inventoryBatch;
-            }
-            catch (Exception ex)
-            {
-                throw new Exception("An error occurred while creating the inventory batch.", ex);
-            }
+            var addInventoryBatch = await AddAsync(inventoryBatch);
+            return addInventoryBatch;
         }
 
-        public async Task<bool> DeleteAsync(Guid id)
+        public async Task<bool> DeleteInventoryBatchAsync(Guid id)
         {
-            var phat = await GetByIdAsync(id);
-            if (phat == null)
-            {
-                return false;
-            }
-            await base.DeleteAsync(id);
+            await DeleteAsync(id);
             return true;
         }
 
@@ -50,24 +38,14 @@ namespace MeoMeo.EntityFrameworkCore.Repositories
 
         public async Task<InventoryBatch> UpdateAsync(Guid id, InventoryBatch inventoryBatch)
         {
-            var phat = await GetByIdAsync(id);
-            if (phat == null)
-            {
-                throw new Exception("Inventory batch not found.");
-            }
-            phat.ProductDetailId = inventoryBatch.ProductDetailId;
-            phat.OriginalPrice = inventoryBatch.OriginalPrice;
-            phat.Code = inventoryBatch.Code;
-            phat.Quantity = inventoryBatch.Quantity;
-            phat.Note = inventoryBatch.Note;
-            phat.Status = inventoryBatch.Status;
-            await UpdateAsync(phat);
-            return phat;
+            var Update = await UpdateAsync(id, inventoryBatch);
+            return Update;
         }
 
-        async Task<IEnumerable<InventoryBatch>> IIventoryBtachReposiory.GetAllBatchAsync()
+        public async Task<List<InventoryBatch>> GetAllBatchAsync()
         {
-            return await GetAllAsync();
+            var getAll = await GetAllAsync();
+            return getAll.ToList();
         }
     }
 }
