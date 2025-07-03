@@ -1,9 +1,12 @@
 ﻿using AutoMapper;
+using Azure.Core;
 using MeoMeo.Application.IServices;
 using MeoMeo.Contract.Commons;
 using MeoMeo.Contract.DTOs;
+using MeoMeo.Domain.Commons;
 using MeoMeo.Domain.Entities;
 using MeoMeo.Domain.IRepositories;
+using Microsoft.EntityFrameworkCore;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -52,11 +55,44 @@ namespace MeoMeo.Application.Services
             return new SizeResponseDTO { ResponseStatus = BaseStatus.Success, Message = "Xóa thành công" };
         }
 
-        public async Task<IEnumerable<Size>> GetAllSizeAsync()
+        public async Task<PagingExtensions.PagedResult<SizeDTO>> GetAllSizeAsync(GetListSizeRequestDTO dto)
         {
-            var size = await _sizeRepository.GetAllSize();
-            return size;
+            try
+            {
+                var query = _sizeRepository.Query();
+                if (!string.IsNullOrEmpty(dto.ValueFilter))
+                {
+                    query = query.Where(c => EF.Functions.Like(c.Value, $"%{dto.ValueFilter}%"));
+                }
+                if (!string.IsNullOrEmpty(dto.CodeFilter))
+                {
+                    query = query.Where(c => EF.Functions.Like(c.Code, $"%{dto.CodeFilter}%"));
+                }
+                if (dto.StatusFilter != null)
+                {
+                    query = query.Where(c => c.Status == (int)dto.StatusFilter);
+                }
+
+                query = query.OrderByDescending(c => c.Value);
+                var filteredSize = await _sizeRepository.GetPagedAsync(query, dto.PageIndex, dto.PageSize);
+                var dtoItems = _mapper.Map<List<SizeDTO>>(filteredSize.Items);
+
+                return new PagingExtensions.PagedResult<SizeDTO>
+                {
+                    TotalRecords = filteredSize.TotalRecords,
+                    PageIndex = filteredSize.PageIndex,
+                    PageSize = filteredSize.PageSize,
+                    Items = dtoItems
+                };
+
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error in GetAllSizeAsync: {ex.Message}");
+                throw;
+            }
         }
+
 
         public async Task<SizeResponseDTO> GetSizeByIdAsync(Guid id)
         {
@@ -82,7 +118,7 @@ namespace MeoMeo.Application.Services
 
         public async Task<SizeResponseDTO> UpdateSizeAsync(SizeDTO sizeDTO)
         {
-            var size = await _sizeRepository.GetSizeById(sizeDTO.Id.Value);
+            var size = await _sizeRepository.GetSizeById(sizeDTO.Id);
             if (size == null)
             {
                 return new SizeResponseDTO { ResponseStatus = BaseStatus.Error, Message = "Không tìm thấy Id trên để cập nhật" };

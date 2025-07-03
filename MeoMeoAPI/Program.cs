@@ -82,6 +82,8 @@ builder.Services.AddScoped<ICustomersBankServices, CustomersBankServices>();
 builder.Services.AddScoped<IDistrictRepository, DistrictRepository>();
 builder.Services.AddScoped<IDistrictService, DistrictService>();
 builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();
+builder.Services.AddScoped<IMaterialRepository, MaterialRepository>();
+builder.Services.AddScoped<IMaterialServices, MaterialServices>();
 
 
 builder.Services.AddAutoMapper(typeof(MeoMeoAutoMapperProfile));
@@ -94,7 +96,7 @@ if (app.Environment.IsDevelopment())
     app.UseSwagger();
     app.UseSwaggerUI();
 }
-
+app.UseRouting();
 app.UseHttpsRedirection();
 
 app.UseAuthorization();

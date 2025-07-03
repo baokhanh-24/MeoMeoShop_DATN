@@ -46,5 +46,11 @@ namespace MeoMeo.EntityFrameworkCore.Repositories
             var itemUpdate = await UpdateAsync(size);
             return itemUpdate;
         }
+
+        async Task<List<Size>> ISizeRepository.GetAllSize()
+        {
+            var itemGetAll = await GetAllAsync();
+            return itemGetAll.ToList();
+        }
     }
 }

@@ -1,10 +1,12 @@
 ﻿using MeoMeo.Application.IServices;
 using MeoMeo.Application.Services;
 using MeoMeo.Contract.DTOs;
+using MeoMeo.Domain.Commons;
 using MeoMeo.Domain.Entities;
 using MeoMeo.Domain.IRepositories;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using static MeoMeo.Domain.Commons.PagingExtensions;
 
 namespace MeoMeo.API.Controllers
 {
@@ -19,11 +21,12 @@ namespace MeoMeo.API.Controllers
         }
         //
         [HttpGet]
-        public async Task<IActionResult> GetAll()
+        public async Task<ActionResult<PagedResult<SizeDTO>>> GetAllSizes([FromQuery] GetListSizeRequestDTO request)
         {
-            var result = await _sizeService.GetAllSizeAsync();
+            var result = await _sizeService.GetAllSizeAsync(request);
             return Ok(result);
         }
+
         //
         [HttpGet("{id}")]
         public async Task<IActionResult> GetById(Guid id)
@@ -42,6 +45,7 @@ namespace MeoMeo.API.Controllers
         [HttpPut("{id}")]
         public async Task<IActionResult> Update(Guid id, [FromBody] SizeDTO dto)
         {
+            dto.Id = id;
             var result = await _sizeService.UpdateSizeAsync(dto);
             return Ok(result);
         }

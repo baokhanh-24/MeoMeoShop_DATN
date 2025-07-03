@@ -1,0 +1,281 @@
+﻿@page "/manage-sizes"
+@using System.ComponentModel.DataAnnotations
+@using System.Reflection
+@using MeoMeo.CMS.Services
+@using MeoMeo.Contract.DTOs
+@using MeoMeo.CMS.IServices
+@using MeoMeo.Contract.Commons
+@using MeoMeo.Domain.Commons.Enums
+@inject MeoMeo.Utilities.MessageModalService MessageModalService
+@rendermode InteractiveServer
+
+
+<div class="d-flex justify-content-between">
+    <Breadcrumb>
+        <BreadcrumbItem Href="/">Trang chủ</BreadcrumbItem>
+        <BreadcrumbItem Href="/manage-customer">Quản lý kích thước</BreadcrumbItem>
+    </Breadcrumb>
+    <Button OnClick="AddNewSize" Type="ButtonType.Primary" Class="mb-2">
+        <i class="fas fa-plus"></i> Thêm mới
+    </Button>
+</div>
+
+<div class="d-flex justify-content-end gap-3 mb-2">
+
+    <div style="width: 150px">
+        <Input AllowClear="true" OnClear="OnFilterChanged" @bind-Value="filter.ValueFilter" Placeholder="Nhập kích thước" />
+    </div>
+
+    <div style="width: 150px">
+        <Input AllowClear="true" OnClear="OnFilterChanged" @bind-Value="filter.CodeFilter" Placeholder="Nhập mã kích thước" />
+    </div>
+
+    <div style="width: 150px">
+        <Select TItem="(ESizeStatus Value, string Name)"
+        TItemValue="ESizeStatus?"
+        AllowClear
+        DataSource="sizeStatusList"
+        @bind-Value="filter.StatusFilter"
+        Placeholder="Chọn trạng thái"
+        ItemValue="c => (ESizeStatus?)c.Value"
+        ItemLabel="c => c.Name">
+        </Select>
+    </div>
+
+    <Tooltip Title="Tìm kiếm">
+        <Button @onclick="() => OnFilterChanged()" Type="ButtonType.Primary" Shape="ButtonShape.Circle" Icon="@IconType.Outline.Search" />
+    </Tooltip>
+</div>
+
+<Table DataSource="listOfData" TItem="SizeDTO" RowClassName="@(_ => "editable-row")" Bordered TableLayout="fixed">
+    <ChildContent Context="data">
+        <Column TData="string" Title="Value">
+            @if (editCache.ContainsKey(data.Id) && !editCache[data.Id].edit)
+            {
+                @data.Value
+            }
+            else if(editCache.ContainsKey(data.Id))
+            {
+                <Input MaxLength="100" @bind-Value="editCache[data.Id].data.Value"></Input>
+            }
+        </Column>
+
+        <Column TData="string" Title="Mã kích thước">
+            @if (editCache.ContainsKey(data.Id) && !editCache[data.Id].edit)
+            {
+                @data.Code
+            }
+            else if (editCache.ContainsKey(data.Id))
+            {
+                <Input MaxLength="100" @bind-Value="editCache[data.Id].data.Code"></Input>
+            }
+        </Column>
+
+        <Column TData="ESizeStatus" Title="Trạng thái">
+            @if (editCache.ContainsKey(data.Id) && !editCache[data.Id].edit)
+            {
+                @sizeStatusList.FirstOrDefault(x => x.Value == (ESizeStatus)data.Status).Name
+            }
+            else if (editCache.ContainsKey(data.Id))
+            {
+                <Select TItem="(ESizeStatus Value, string Name)"
+                TItemValue="ESizeStatus"
+                DataSource="sizeStatusList" 
+                @bind-Value="editCache[data.Id].data.StatusEnum"
+                ItemValue="c => c.Value"
+                ItemLabel="p => p.Name">
+
+                </Select>
+
+            }
+        </Column>
+
+        <ActionColumn Title="Thao tác" Class="text-end gap-2">
+            @if(editCache.ContainsKey(data.Id) && !editCache[data.Id].edit)
+            {
+                <Tooltip Title="Sửa">
+                    <Button Size="ButtonSize.Small" @onclick="() => StartEdit(data.Id)" Shape="ButtonShape.Circle">
+                        <i class="fas fa-pen">
+                        </i>
+                    </Button>
+                </Tooltip>
+
+                <Popconfirm Title=@($"Bạn có chắc muốn xóa kích thước '{data.Value}'?")
+                OnConfirm="() => deleteSize(data.Id)"
+                OkText="Đồng ý"
+                CancelText="Hủy">
+
+                    <Tooltip Title="Xóa">
+                        <Button Size="ButtonSize.Small" Danger Shape="ButtonShape.Circle">
+                            <i class="fas fa-minus"></i>
+                        </Button>
+                    </Tooltip>
+                </Popconfirm>
+            }
+            else if(editCache.ContainsKey(data.Id))
+            {
+                <Tooltip Title="Lưu">
+                    <Button Size="ButtonSize.Small" @onclick="() => SaveEdit(data.Id)" Shape="ButtonShape.Circle">
+                        <i class="fas fa-check"></i>
+                    </Button>
+                </Tooltip>
+
+                <Popconfirm Title=@($"Bạn có chắc chắn muốn hủy {(data.Id == Guid.Empty ? "Thêm mới" : "Chỉnh sửa")} Kích thước")
+                OnConfirm="() => CancalEdit(data.Id)"
+                OkText="Đồng ý"
+                CancelText="Hủy">
+
+                <Button Size="ButtonSize.Small" Shape="ButtonShape.Circle">
+                    <i class="fa-solid fa-xmark"></i>
+                </Button>
+
+                </Popconfirm>
+            }
+        </ActionColumn>
+    </ChildContent>
+</Table>
+
+
+@code {
+    [Inject] private ISizeClientService SizeClientService { get; set; } = default!; 
+
+    IDictionary<Guid, (bool edit, SizeDTO data)> editCache = new Dictionary<Guid, (bool, SizeDTO)>();
+    List<SizeDTO> listOfData = new();
+    List<(ESizeStatus Value, string Name)> sizeStatusList = new();
+
+
+    GetListSizeRequestDTO filter = new GetListSizeRequestDTO
+    {
+            ValueFilter = "",
+            CodeFilter = "",
+            StatusFilter = null,
+            PageIndex = 1,
+            PageSize = 10,
+    };
+
+    protected override async Task OnInitializedAsync()
+    {
+        sizeStatusList = Enum.GetValues(typeof(ESizeStatus))
+            .Cast<ESizeStatus>()
+            .Select(x => (x, x.GetType()
+            .GetMember(x.ToString())
+            .First()
+            .GetCustomAttribute<DisplayAttribute>()?.Name ?? x.ToString()))
+            .ToList();
+        await LoadData();
+    }
+
+    private async Task LoadData()
+    {
+        var response = await SizeClientService.GetAllSizeAsync(filter);
+        listOfData = response.Items;
+        editCache = listOfData.ToDictionary(item => item.Id,
+                                            item => (false, CloneSize(item)));
+        await InvokeAsync(StateHasChanged);
+    }
+    private async Task OnFilterChanged()
+    {
+        await LoadData();
+    }
+
+    async Task AddNewSize()
+    {
+        var newSize = new SizeDTO
+            {
+                Id = Guid.Empty,
+                Code = "",
+                Value = "",
+                Status = (int)ESizeStatus.Active
+            };
+
+        listOfData.Insert(0, newSize);
+        editCache[newSize.Id] = (true, CloneSize(newSize));
+        await InvokeAsync(StateHasChanged);
+    }
+
+    async Task StartEdit(Guid Id)
+    {
+        var data = editCache[Id];
+        editCache[Id] = (true, data.data);  
+        await InvokeAsync(StateHasChanged);
+    }
+
+    async Task CancalEdit(Guid Id )
+    {
+        var Item = listOfData.FirstOrDefault(x => x.Id == Id);
+        var isNew = Item == null || Item.Id == Guid.Empty;
+
+        if (isNew)
+        {
+            listOfData.RemoveAll(x => x.Id == Id);
+            editCache.Remove(Id);
+        }
+        else
+        {
+            var Original = listOfData.FirstOrDefault(x => x.Id == Id);
+            editCache[Id] = (false, CloneSize(Original));
+        }
+        await InvokeAsync(StateHasChanged);
+    }
+
+    async Task SaveEdit(Guid id)
+    {
+        var dto = editCache[id].data;
+        var CreateOrUpdateDTO = new SizeDTO
+        {
+                Id = dto.Id,
+                Code = dto.Code,
+                Value = dto.Value,
+                Status = dto.Status
+        };
+
+        BaseResponse response;
+        if (dto.Id == Guid.Empty)
+        {
+            response = await SizeClientService.CreateSizeAsync(CreateOrUpdateDTO);
+        }
+        else
+        {
+            response = await SizeClientService.UpdateSizeAsync(CreateOrUpdateDTO);
+        }
+
+        if(response.ResponseStatus == BaseStatus.Success)
+        {
+            await MessageModalService.Success("Lưu kích thước thành công!");
+            await LoadData();
+        }
+        else
+        {
+            await MessageModalService.Error("Lưu kích thước thất bại!");
+        }
+    }
+
+    async Task deleteSize(Guid id)
+    {
+        var sucsess = await SizeClientService.DeleteSizeAsync(id);
+        if(sucsess)
+        {
+            listOfData.RemoveAll(x => x.Id == id);
+            editCache.Remove(id);
+            await MessageModalService.Success("Xóa kích thước thành công!");
+        }
+        else
+        {
+            await MessageModalService.Error("Xóa kích thước thất bại!");
+        }
+    }
+
+
+
+    SizeDTO CloneSize(SizeDTO size)
+    {
+        return new SizeDTO
+        {
+                Id = size.Id,
+                Code = size.Code,
+                Value = size.Value,
+                Status = size.Status
+        };
+        
+    }
+}

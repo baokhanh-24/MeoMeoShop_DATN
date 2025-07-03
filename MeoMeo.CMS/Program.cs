@@ -20,6 +20,8 @@ CultureInfo.DefaultThreadCurrentUICulture = culture;
 // đăng kí 
 builder.Services.AddScoped<ICustomerClientService, CustomerClientService>();
 builder.Services.AddScoped<IBankClientService, BankClientService>();
+builder.Services.AddScoped<ISizeClientService, SizeClientService>();
+builder.Services.AddScoped<IMaterialClientService, MaterialClientService>();
 
 builder.Services.AddHttpClient<IApiCaller, ApiCaller>(client =>
 {

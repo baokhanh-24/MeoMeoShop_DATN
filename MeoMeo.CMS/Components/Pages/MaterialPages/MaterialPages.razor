@@ -1,0 +1,397 @@
+﻿@page "/manage-materials"
+@using System.ComponentModel.DataAnnotations
+@using System.Reflection
+@using MeoMeo.CMS.Services
+@using MeoMeo.Contract.DTOs
+@using MeoMeo.CMS.IServices
+@using MeoMeo.Contract.Commons
+@using MeoMeo.Domain.Commons.Enums
+@inject MeoMeo.Utilities.MessageModalService MessageModalService
+@rendermode InteractiveServer
+
+
+
+<div class="d-flex justify-content-between">
+    <Breadcrumb>
+        <BreadcrumbItem Href="/">Trang chủ</BreadcrumbItem>
+        <BreadcrumbItem Href="/manage-customer">Quản lý kích thước</BreadcrumbItem>
+    </Breadcrumb>
+    <Button OnClick="AddnewMaterial" Type="ButtonType.Primary" Class="mb-2">
+        <i class="fas fa-plus"></i> Thêm mới
+    </Button>
+</div>
+
+<div class="d-flex justify-content-end gap-3 mb-2">
+
+    <div style="width: 150px">
+        <Input AllowClear="true" OnClear="OnFilterChanged" @bind-Value="filter.NameFilter" Placeholder="Nhập theo tên" />
+    </div>
+
+    <div style="width: 150px">
+        <Select TItem="(EMaterialDurability Value, string Name)"
+                TItemValue="EMaterialDurability?"
+                AllowClear
+                DataSource="materialDurabilitylist"
+                @bind-Value="filter.DurabilityFilter"
+                Placeholder="Chọn độ bền"
+                ItemValue="c => (EMaterialDurability?)c.Value"
+                ItemLabel="c => c.Name">
+        </Select>
+    </div>
+
+    <div style="width: 150px">
+        <Select TItem="(bool Value, string Name)"
+                TItemValue="bool?"
+                AllowClear
+                DataSource="waterProofOptions"
+                @bind-Value="filter.WaterProofFilter"
+                Placeholder="Chống nước"
+                ItemValue="c => c.Value"
+                ItemLabel="c => c.Name">
+        </Select>
+    </div>
+
+
+    <div style="width: 150px">
+        <Select TItem="(EMaterialWeight Value, string Name)"
+                TItemValue="EMaterialWeight?"
+                AllowClear
+                DataSource="materialWeightlist"
+                @bind-Value="filter.WeightFilter"
+                Placeholder="Chọn trọng lượng"
+                ItemValue="c => (EMaterialWeight?)c.Value"
+                ItemLabel="c => c.Name">
+        </Select>
+    </div>
+
+    <div style="width: 150px">
+        <Input AllowClear="true" OnClear="OnFilterChanged" @bind-Value="filter.DescriptionFilter" Placeholder="Nhập chi tiết" />
+    </div>
+
+    <div style="width: 150px">
+        <Select TItem="(EMaterialStatus Value, string Name)"
+                TItemValue="EMaterialStatus?"
+                AllowClear
+                DataSource="materialStatuslist"
+                @bind-Value="filter.StatusFilter"
+                Placeholder="Chọn trạng thái"
+                ItemValue="c => (EMaterialStatus?)c.Value"
+                ItemLabel="c => c.Name">
+        </Select>
+    </div>
+    <Tooltip Title="Tìm kiếm">
+        <Button @onclick="() => OnFilterChanged()" Type="ButtonType.Primary" Shape="ButtonShape.Circle" Icon="@IconType.Outline.Search" />
+    </Tooltip>
+
+</div>
+
+<Table DataSource="listOfData" TItem="CreateOrUpdateMaterialDTO" RowClassName="@(_ => "editable-row")" Bordered TableLayout="fixed">
+    <ChildContent Context="data">
+        <Column TData="string" Title="Tên chất liệu">
+            @if (editCache.ContainsKey(data.Id) && !editCache[data.Id].edit)
+            {
+                @data.Name
+            }
+            else if (editCache.ContainsKey(data.Id))
+            {
+                <Input MaxLength="100" @bind-Value="editCache[data.Id].data.Name"></Input>
+            }
+        </Column>
+
+        <Column TData="EMaterialDurability" Title="Độ bền">
+            @if (editCache.ContainsKey(data.Id) && !editCache[data.Id].edit)
+            {
+                var item = materialDurabilitylist.FirstOrDefault(x => x.Value == data.Durability);
+                @item.Name
+            }
+            else if (editCache.ContainsKey(data.Id))
+            {
+                <Select TItem="(EMaterialDurability Value, string Name)"
+                        TItemValue="EMaterialDurability"
+                        DataSource="materialDurabilitylist"
+                        @bind-Value="editCache[data.Id].data.Durability"
+                        ItemValue="c => c.Value"
+                        ItemLabel="c => c.Name">
+                </Select>
+            }
+        </Column>
+
+        <Column TData="bool" Title="Chống nước">
+            @if (editCache.ContainsKey(data.Id) && !editCache[data.Id].edit)
+            {
+                @(data.WaterProof ? "Chống nước" : "Không Chống nước")
+            }
+                else if (editCache.ContainsKey(data.Id))
+            {
+                <Select TItem="(bool Value, string Name)"
+                        TItemValue="bool"
+                        DataSource="waterProofOptions"
+                        @bind-Value="editCache[data.Id].data.WaterProof"
+                        ItemValue="c => c.Value"
+                        ItemLabel="c => c.Name">
+                </Select>
+
+            }
+        </Column>
+
+        <Column TData="EMaterialWeight" Title="Khối lượng">
+            @if (editCache.ContainsKey(data.Id) && !editCache[data.Id].edit)
+            {
+                @materialWeightlist.FirstOrDefault(x => x.Value == data.Weight).Name
+            }
+                else if (editCache.ContainsKey(data.Id))
+            {
+                <Select TItem="(EMaterialWeight Value, string Name)"
+                        TItemValue="EMaterialWeight"
+                        DataSource="materialWeightlist"
+                        @bind-Value="editCache[data.Id].data.Weight"
+                        ItemValue="c => c.Value"
+                        ItemLabel="c => c.Name">
+                </Select>
+            }
+        </Column>
+
+        <Column TData="string" Title="Mô tả">
+            @if (editCache.ContainsKey(data.Id) && !editCache[data.Id].edit)
+            {
+                @data.Description
+            }
+                else if (editCache.ContainsKey(data.Id))
+            {
+                <Input MaxLength="500" @bind-Value="editCache[data.Id].data.Description" />
+            }
+        </Column>
+
+        <Column TData="EMaterialStatus" Title="Trạng thái">
+            @if (editCache.ContainsKey(data.Id) && !editCache[data.Id].edit)
+            {
+                @materialStatuslist.FirstOrDefault(x => x.Value == data.StatusEnum).Name
+            }
+               else if (editCache.ContainsKey(data.Id))
+            {
+                <Select TItem="(EMaterialStatus Value, string Name)"
+                        TItemValue="EMaterialStatus"
+                        DataSource="materialStatuslist"
+                        @bind-Value="editCache[data.Id].data.StatusEnum"
+                        ItemValue="c => c.Value"
+                        ItemLabel="c => c.Name">
+                </Select>
+            }
+        </Column>
+
+        <ActionColumn Title="Thao tác" Class="text-end gap-2">
+            @if (editCache.ContainsKey(data.Id) && !editCache[data.Id].edit)
+            {
+                <Tooltip Title="Sửa">
+                    <Button Size="ButtonSize.Small" @onclick="() => StartEdit(data.Id)" Shape="ButtonShape.Circle">
+                        <i class="fas fa-pen"></i>
+                    </Button>
+                </Tooltip>
+
+                <Popconfirm Title=@($"Bạn có chắc muốn xóa vật liệu {data.Name}?")
+                            OnConfirm="() => deleteMaterial(data.Id)"
+                            OkText="Đồng ý"
+                            CancelText="Hủy">
+                    <Tooltip Title="Xóa">
+                        <Button Size="ButtonSize.Small" Danger Shape="ButtonShape.Circle">
+                            <i class="fas fa-minus"></i>
+                        </Button>
+                    </Tooltip>
+                </Popconfirm>
+            }
+            else
+            {
+                <Tooltip Title="Lưu">
+                    <Button Size="ButtonSize.Small" @onclick="() => saveEdit(data.Id)" Shape="ButtonShape.Circle">
+                        <i class="fas fa-check"></i>
+                    </Button>
+                </Tooltip>
+
+                <Popconfirm Title=@($"Bạn có chắc muốn hủy chỉnh sửa vật liệu {data.Name}?")
+                            OnConfirm="() => cancelEdit(data.Id)"
+                            OkText="Đồng ý"
+                            CancelText="Hủy">
+                    <Button Size="ButtonSize.Small" Shape="ButtonShape.Circle">
+                        <i class="fa-solid fa-xmark"></i>
+                    </Button>
+                </Popconfirm>
+            }
+        </ActionColumn>
+    </ChildContent >
+</Table>
+
+@code {
+
+    [Inject] private IMaterialClientService MaterialClientService { get; set; } = default!;
+    IDictionary<Guid, (bool edit, CreateOrUpdateMaterialDTO data)> editCache = new Dictionary<Guid, (bool, CreateOrUpdateMaterialDTO)>();
+    List<CreateOrUpdateMaterialDTO> listOfData = new();
+    List<(EMaterialDurability Value, string Name)> materialDurabilitylist = new();
+    private List<(bool Value, string Name)> waterProofOptions = new()
+    {
+        (true, "Chống nước"),
+        (false, "Không chống nước")
+    };
+
+    List<(EMaterialWeight Value, string Name)> materialWeightlist = new();
+    List<(EMaterialStatus Value, string Name)> materialStatuslist = new();
+
+    GetListMaterialRequest filter = new GetListMaterialRequest()
+    {
+        NameFilter = "",
+        DurabilityFilter = null,
+        WaterProofFilter = null,
+        WeightFilter = null,
+        DescriptionFilter = "",
+        StatusFilter = null,
+        PageIndex = 1,
+            PageSize = 10
+    };
+
+    protected override async Task OnInitializedAsync()
+    {
+        materialStatuslist = Enum.GetValues(typeof(EMaterialStatus))
+            .Cast<EMaterialStatus>()
+            .Select(x => (x, x.GetType()
+            .GetMember(x.ToString())
+            .First()
+            .GetCustomAttribute<DisplayAttribute>()?.Name ?? x.ToString()))
+            .ToList();
+
+        materialDurabilitylist = Enum.GetValues(typeof(EMaterialDurability))
+            .Cast<EMaterialDurability>()
+            .Select(x => (x, x.GetType()
+            .GetMember(x.ToString())
+            .First()
+            .GetCustomAttribute<DisplayAttribute>()?.Name ?? x.ToString()))
+            .ToList();
+        materialWeightlist = Enum.GetValues(typeof(EMaterialWeight))
+            .Cast<EMaterialWeight>()
+            .Select(x => (x, x.GetType()
+            .GetMember(x.ToString())
+            .First()
+            .GetCustomAttribute<DisplayAttribute>()?.Name ?? x.ToString()))
+            .ToList();
+        await LoadData();
+    }
+
+    private async Task LoadData()
+    {
+        var response = await MaterialClientService.GetAllMaterialsAsync(filter);
+        listOfData = response.Items;
+        editCache = listOfData.ToDictionary(
+            item => item.Id,
+            item => (false, CloneMaterial(item)));
+        await InvokeAsync(StateHasChanged);
+    }
+
+    private async Task OnFilterChanged()
+    {
+        await LoadData();
+    }
+
+    async Task AddnewMaterial()
+    {
+        var newmaterial = new CreateOrUpdateMaterialDTO
+            {
+                Id = Guid.Empty,
+                Name = "",
+                Durability = EMaterialDurability.Low,
+                WaterProof = true,
+                Weight = EMaterialWeight.Light,
+                Description = "",
+                Status = (int)EMaterialStatus.Active
+            };
+        listOfData.Insert(0, newmaterial);
+        editCache[newmaterial.Id] = (true, CloneMaterial(newmaterial));
+        await InvokeAsync(StateHasChanged);
+    }
+
+    async Task StartEdit(Guid Id)
+    {
+        var data = editCache[Id];
+        editCache[Id] = (true, data.data);
+        await InvokeAsync(StateHasChanged);
+    }
+
+    async Task cancelEdit(Guid id)
+    {
+        var isNew = listOfData.FirstOrDefault(x => x.Id == id)?.Id == Guid.Empty;
+        if (isNew)
+        {
+            listOfData.RemoveAll(x => x.Id == id);
+            editCache.Remove(id);
+        }
+        else
+        {
+            var original = listOfData.First(x => x.Id == id);
+            editCache[id] = (false, CloneMaterial(original));
+        }
+        await InvokeAsync(StateHasChanged);
+    }
+
+    async Task saveEdit(Guid Id)
+    {
+        var dto = editCache[Id].data;
+        var createorupdate = new CreateOrUpdateMaterialDTO
+            {
+                Id = dto.Id,
+                Name = dto.Name,
+                Durability = dto.Durability,
+                WaterProof = dto.WaterProof,
+                Weight = dto.Weight,
+                Description = dto.Description,
+                Status = dto.Status
+            };
+        BaseResponse response;
+        if (dto.Id == Guid.Empty)
+        {
+            response = await MaterialClientService.CreateMaterialsAsync(createorupdate);
+        }
+        else
+        {
+            response = await MaterialClientService.UpdateMaterialsAsync(createorupdate);
+        }
+
+        if(response.ResponseStatus == BaseStatus.Success)
+        {
+            await MessageModalService.Success("Lưu khách chất liệu công!");
+            await LoadData();
+        }
+        else
+        {
+            await MessageModalService.Error(response.Message);
+        }
+    }
+
+    async Task deleteMaterial(Guid id)
+    {
+        var success = await MaterialClientService.DeleteMaterialsAsync(id);
+        if (success)
+        {
+            listOfData.RemoveAll(x => x.Id == id);
+            editCache.Remove(id);
+            await MessageModalService.Success("Xóa chất liệu thành công!");
+        }
+        else
+        {
+            await MessageModalService.Error("Xóa chất liệu thất bại");
+        }
+    }
+
+
+
+    CreateOrUpdateMaterialDTO CloneMaterial(CreateOrUpdateMaterialDTO dto)
+    {
+        return new CreateOrUpdateMaterialDTO
+        {
+                Id = dto.Id,
+                Name = dto.Name,
+                Durability = dto.Durability,
+                WaterProof = dto.WaterProof,
+                Weight = dto.Weight,
+                Description = dto.Description,
+                Status = dto.Status
+        };
+    }
+
+}

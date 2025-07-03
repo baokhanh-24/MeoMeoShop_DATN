@@ -1,4 +1,5 @@
 ﻿using MeoMeo.Contract.DTOs;
+using MeoMeo.Domain.Commons;
 using MeoMeo.Domain.Entities;
 using System;
 using System.Collections.Generic;
@@ -10,7 +11,7 @@ namespace MeoMeo.Application.IServices
 {
     public interface ISizeService
     {
-        Task<IEnumerable<Size>> GetAllSizeAsync();
+        Task<PagingExtensions.PagedResult<SizeDTO>> GetAllSizeAsync(GetListSizeRequestDTO request);
         Task<SizeResponseDTO> GetSizeByIdAsync(Guid id);
         Task<SizeResponseDTO> CreateSizeAsync(SizeDTO sizeDTO);
         Task<SizeResponseDTO> UpdateSizeAsync(SizeDTO sizeDTO);
