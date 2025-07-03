@@ -47,22 +47,22 @@ namespace MeoMeo.Contract
             CreateMap<InventoryBatchDTO, InventoryBatch>();
             CreateMap<InventoryBatch, InventoryBatchResponseDTO>();
             CreateMap<InventoryBatchResponseDTO, InventoryBatch>();
+            CreateMap<CreateOrUpdateMaterialDTO, Material>();
             CreateMap<Voucher, CreateOrUpdateVoucherResponseDTO>();
             CreateMap<Promotion, CreateOrUpdatePromotionResponseDTO>();
             CreateMap<PromotionDetail, CreateOrUpdatePromotionDetailResponseDTO>();
             CreateMap<Bank, CreateOrUpdateBankResponseDTO>();
             CreateMap<User, CreateOrUpdateUserResponseDTO>();
             CreateMap<Employee, CreateOrUpdateEmployeeResponseDTO>();
-
             CreateMap<CreateOrUpdateDistrictDTO, District>();
             CreateMap<Order, CreateOrUpdateOrderResponse>();
-
             CreateMap<Customers, CreateOrUpdateCustomerResponse>();
             CreateMap<Customers, CustomerDTO>();
-
             CreateMap<Bank, BankDTO>();
-
-
+            CreateMap<Bank,BankDTO>();
+            CreateMap<Material, CreateOrUpdateMaterialDTO>();
+            CreateMap<Material, CreateOrUpdateMaterialResponse>();
+            CreateMap<Size, SizeDTO>();
         }
 
     }
