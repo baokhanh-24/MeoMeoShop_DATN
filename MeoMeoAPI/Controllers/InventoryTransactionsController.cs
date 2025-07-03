@@ -48,8 +48,8 @@ namespace MeoMeo.API.Controllers
         [HttpPut("{id}")]
         public async Task<IActionResult> PutInventoryTransaction(Guid id, [FromBody] InventoryTranSactionDTO inventoryTransaction)
         {
-            await _inventoryTranSactionServices.UpdateAsync(id, inventoryTransaction);
-            return Ok();
+            var updateTransaction = await _inventoryTranSactionServices.UpdateAsync(id, inventoryTransaction);
+            return Ok(updateTransaction);
         }
 
         // POST: api/InventoryTransactions
@@ -65,8 +65,8 @@ namespace MeoMeo.API.Controllers
         [HttpDelete("{id}")]
         public async Task<IActionResult> DeleteInventoryTransaction(Guid id)
         {
-            await _inventoryTranSactionServices.DeleteAsync(id);
-            return Ok();
+            var deleteTransaction = await _inventoryTranSactionServices.DeleteAsync(id);
+            return Ok(deleteTransaction);
         }
     }
 }
