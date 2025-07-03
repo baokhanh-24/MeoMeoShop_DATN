@@ -1,16 +1,13 @@
-﻿using MeoMeo.Domain.Commons.Enums;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+﻿using MeoMeo.Contract.Commons;
+using MeoMeo.Domain.Commons.Enums;
 
-namespace MeoMeo.Contract.DTOs
+namespace MeoMeo.Contract.DTOs.ProductDetail
 {
-    public class CreateOrUpdateProductDetailDTO 
+    public class CreateOrUpdateProductDetailResponseDTO : BaseResponse
     {
         public Guid Id { get; set; }
-        public Guid ProductId { get; set; }
+        public Guid? ProductId { get; set; }
+        //public string ProductName { get; set; }
         public string Barcode { get; set; }
         public string Sku { get; set; }
         public float Price { get; set; }

@@ -1,5 +1,7 @@
 ﻿using AutoMapper;
 using MeoMeo.Contract.DTOs;
+using MeoMeo.Contract.DTOs.Product;
+using MeoMeo.Contract.DTOs.ProductDetail;
 using MeoMeo.Domain.Entities;
 
 namespace MeoMeo.Contract
@@ -10,8 +12,10 @@ namespace MeoMeo.Contract
         {
             CreateMap<CreateOrUpdateProductDTO, Product>();
             CreateMap<CreateOrUpdateProductDetailDTO, ProductDetail>();
-            CreateMap<Product,ProductReponseDTO>();
-            CreateMap<ProductDetail, ProductDetailResponseDTO>();
+            CreateMap<Product, ProductReponseDTO>();
+            CreateMap<ProductDetail, CreateOrUpdateProductDetailResponseDTO>();
+            CreateMap<ProductDetail, ProductDetailDTO>();
+            CreateMap<CreateOrUpdateProductDetailDTO, ProductDetail>();
             CreateMap<CartDTO, Cart>();
             CreateMap<CartDetailDTO, CartDetail>();
             CreateMap<ImageDTO, Image>();
@@ -53,12 +57,12 @@ namespace MeoMeo.Contract
             CreateMap<CreateOrUpdateDistrictDTO, District>();
             CreateMap<Order, CreateOrUpdateOrderResponse>();
 
-            CreateMap<Customers,CreateOrUpdateCustomerResponse>();
-            CreateMap<Customers,CustomerDTO>();
+            CreateMap<Customers, CreateOrUpdateCustomerResponse>();
+            CreateMap<Customers, CustomerDTO>();
 
-            CreateMap<Bank,BankDTO>();  
-            
-        
+            CreateMap<Bank, BankDTO>();
+
+
         }
 
     }

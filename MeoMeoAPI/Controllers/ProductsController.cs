@@ -1,5 +1,5 @@
 ﻿using MeoMeo.Application.IServices;
-using MeoMeo.Contract.DTOs;
+using MeoMeo.Contract.DTOs.Product;
 using MeoMeo.Domain.Entities;
 using Microsoft.AspNetCore.Mvc;
 

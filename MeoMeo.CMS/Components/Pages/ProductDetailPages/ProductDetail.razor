@@ -1,0 +1,365 @@
+﻿@page "/manage-product-detail"
+@using MeoMeo.Contract.DTOs.ProductDetail
+@using MeoMeo.Contract.DTOs;
+@using System.ComponentModel.DataAnnotations
+@using System.Reflection
+@using MeoMeo.CMS.IServices
+@using MeoMeo.Contract.Commons
+@using MeoMeo.Domain.Commons.Enums
+@inject MeoMeo.Utilities.MessageModalService MessageModalService
+@rendermode InteractiveServer
+
+<div class="d-flex justify-content-between">
+    <Breadcrumb>
+        <BreadcrumbItem Href="/">Trang chủ</BreadcrumbItem>
+        <BreadcrumbItem Href="/manage-product-detail">Quản lý sản phẩm</BreadcrumbItem>
+    </Breadcrumb>
+    <Button OnClick="AddNewProductDetail" Type="ButtonType.Primary" Class="mb-2">
+        <i class="fas fa-plus"></i> Thêm mới
+    </Button>
+</div>
+<div class="d-flex justify-content-end gap-3 mb-2">
+
+    <div style="width: 120px">
+        <Input AllowClear="true" OnClear="OnFilterChanged" @bind-Value="filter.ProductNameFilter" Placeholder="Nhập theo tên" />
+    </div>
+    <div style="width: 120px">
+        <Input AllowClear="true" OnClear="OnFilterChanged" @bind-Value="filter.SKUFilter" Placeholder="Nhập mã sku" />
+    </div>
+    <div style="width: 120px">
+        <Input AllowClear="true" OnClear="OnFilterChanged" @bind-Value="filter.PriceFilter" Placeholder="Nhập giá" />
+    </div>
+    <div style="width: 120px">
+        <Input AllowClear="true" OnClear="OnFilterChanged" @bind-Value="filter.DescriptionFilter" Placeholder="Nhập mô tả" />
+    </div>
+    <div style="width: 120px">
+        <Input AllowClear="true" OnClear="OnFilterChanged" @bind-Value="filter.StockHeightFilter" Placeholder="Nhập chiều cao cổ" />
+    </div>
+    <div style="width: 120px">
+        <Input AllowClear="true" OnClear="OnFilterChanged" @bind-Value="filter.ShoeLengthFilter" Placeholder="Nhập độ dài" />
+    </div>
+    <div style="width: 120px">
+        <Input AllowClear="true" OnClear="OnFilterChanged" @bind-Value="filter.OutOfStockFilter" Placeholder="Nhập số lượng tồn" />
+    </div>
+    <div style="width: 120px">
+        <Select TItem="(EProductDetailGender Value, string Name)"
+                TItemValue="EProductDetailGender?"
+                AllowClear
+                DataSource="productGenderList"
+                @bind-Value="filter.GenderFilter"
+                Placeholder="Chọn trạng thái"
+                ItemValue="c => (EProductDetailGender?)c.Value"
+                ItemLabel="c => c.Name">
+        </Select>
+    </div>
+    <Tooltip Title="Tìm kiếm">
+        <Button @onclick="() => OnFilterChanged()" Type="ButtonType.Primary" Shape="ButtonShape.Circle" Icon="@IconType.Outline.Search" />
+    </Tooltip>
+</div>
+<Table DataSource="listOfData" TItem="ProductDetailDTO" RowClassName="@(_ => "editable-row")" Bordered TableLayout="fixed">
+    <ChildContent Context="data">
+        <Column TData="string" Title="Tên sản phẩm">
+            @if (editCache.ContainsKey(data.Id) && !editCache[data.Id].edit)
+            {
+                @data.ProductName
+            }
+            else if (editCache.ContainsKey(data.Id))
+            {
+                <Input MaxLength="100" @bind-Value="editCache[data.Id].data.ProductName" />
+            }
+        </Column>
+        <Column TData="string" Title="Barcode">
+            @if (editCache.ContainsKey(data.Id) && !editCache[data.Id].edit)
+            {
+                @data.Barcode
+            }
+            else if (editCache.ContainsKey(data.Id))
+            {
+                <Input MaxLength="50" @bind-Value="editCache[data.Id].data.Barcode" />
+            }
+        </Column>
+
+        <Column TData="string" Title="Sku">
+            @if (editCache.ContainsKey(data.Id) && !editCache[data.Id].edit)
+            {
+                @data.Sku
+            }
+            else if (editCache.ContainsKey(data.Id))
+            {
+                <Input MaxLength="20" @bind-Value="editCache[data.Id].data.Sku" />
+            }
+        </Column>
+
+        <Column TData="int" Title="Giá">
+            @if (editCache.ContainsKey(data.Id) && !editCache[data.Id].edit)
+            {
+                @data.Price
+            }
+            else if (editCache.ContainsKey(data.Id))
+            {
+                <Input @bind-Value="editCache[data.Id].data.Price" />
+            }
+        </Column>
+
+        <Column TData="float" Title="Chiều cao">
+            @if (editCache.ContainsKey(data.Id) && !editCache[data.Id].edit)
+            {
+                @data.StockHeight
+            }
+            else if (editCache.ContainsKey(data.Id))
+            {
+                <Input @bind-Value="editCache[data.Id].data.StockHeight" />
+            }
+        </Column>
+
+        <Column TData="float" Title="Chiều dài">
+            @if (editCache.ContainsKey(data.Id) && !editCache[data.Id].edit)
+            {
+                @data.ShoeLength
+            }
+            else if (editCache.ContainsKey(data.Id))
+            {
+                <Input @bind-Value="editCache[data.Id].data.ShoeLength" />
+            }
+        </Column>
+
+        <Column TData="int" Title="Số lượng tồn">
+            @if (editCache.ContainsKey(data.Id) && !editCache[data.Id].edit)
+            {
+                @data.OutOfStock
+            }
+            else if (editCache.ContainsKey(data.Id))
+            {
+                <Input @bind-Value="editCache[data.Id].data.OutOfStock" />
+            }
+        </Column>
+
+        <Column TData="EProductDetailGender" Title="Nam/Nữ">
+            @if (editCache.ContainsKey(data.Id) && !editCache[data.Id].edit)
+            {
+                @productGenderList.FirstOrDefault(x => x.Value == data.Gender).Name
+            }
+            else if (editCache.ContainsKey(data.Id))
+            {
+
+                <Select TItem="(EProductDetailGender Value, string Name)"
+                        TItemValue="EProductDetailGender"
+                        DataSource="productGenderList"
+                        @bind-Value="editCache[data.Id].data.Gender"
+                        ItemValue="c => c.Value"
+                        ItemLabel="c => c.Name">
+                </Select>
+            }
+        </Column>
+        <ActionColumn Title="Thao tác" Class="text-end gap-2">
+            @if (editCache.ContainsKey(data.Id) && !editCache[data.Id].edit)
+            {
+                <Tooltip Title="Sửa">
+                    <Button Size="ButtonSize.Small" @onclick="() => StartEdit(data.Id)" Shape="ButtonShape.Circle">
+                        <i class="fas fa-pen"></i>
+                    </Button>
+                </Tooltip>
+
+                <Popconfirm Title=@($"Bạn có chắc muốn xóa sản phẩm {data.ProductName}?")
+                            OnConfirm="() => DeleteProductDetail(data.Id)"
+                            OkText="Đồng ý"
+                            CancelText="Hủy">
+
+                    <Tooltip Title="Xóa">
+                        <Button Size="ButtonSize.Small" Danger Shape="ButtonShape.Circle">
+                            <i class="fas fa-minus"></i>
+                        </Button>
+                    </Tooltip>
+                </Popconfirm>
+            }
+            else if (editCache.ContainsKey(data.Id))
+            {
+                <Tooltip Title="Lưu">
+                    <Button Size="ButtonSize.Small" @onclick="() => SaveEdit(data.Id)" Shape="ButtonShape.Circle">
+                        <i class="fas fa-check"></i>
+                    </Button>
+                </Tooltip>
+                <Popconfirm Title=@($"Bạn có chắc muốn hủy {(data.ProductId==Guid.Empty ?"thêm mới":"chỉnh sửa")} sản phẩm {data.ProductName}?")
+                            OnConfirm="() => CancelEdit(data.Id)"
+                            OkText="Đồng ý"
+                            CancelText="Hủy">
+
+                    <Button Size="ButtonSize.Small" Shape="ButtonShape.Circle">
+                        <i class="fa-solid fa-xmark"></i>
+                    </Button>
+                </Popconfirm>
+            }
+
+        </ActionColumn>
+
+    </ChildContent>
+</Table>
+@code {
+    [Inject] private IProductDetailClientService ProductDetailClientService { get; set; } = default! ;
+    IDictionary<Guid, (bool edit, ProductDetailDTO data)> editCache = new Dictionary<Guid, (bool, ProductDetailDTO)>();
+    List<ProductDetailDTO> listOfData = new();
+    List<(EProductDetailGender Value, string Name)> productGenderList = new();
+    GetListProductDetailRequestDTO filter = new GetListProductDetailRequestDTO()
+    {
+       ProductNameFilter = "",
+       PriceFilter = null,
+       DescriptionFilter = "",
+       SKUFilter = "",
+       GenderFilter = null,
+       StockHeightFilter = null,
+       ShoeLengthFilter = null,
+       OutOfStockFilter = null,
+       PageIndex = 1,
+       PageSize = 20
+
+    };
+
+    protected override async Task OnInitializedAsync()
+    {
+        productGenderList = Enum.GetValues(typeof(EProductDetailGender))
+              .Cast<EProductDetailGender>()
+              .Select(x => (
+                x,
+                x.GetType().GetMember(x.ToString())
+                    .First()
+                    .GetCustomAttribute<DisplayAttribute>()?.Name ?? x.ToString()
+            ))
+            .ToList();
+        await LoadDataAsync();
+    }
+    private async Task OnGenderChanged(EProductDetailGender? value)
+    {
+        filter.GenderFilter = value;
+        filter.PageIndex = 1;
+        await LoadDataAsync();
+    }
+
+    private async Task LoadDataAsync()
+    {
+        var response = await ProductDetailClientService.GetAllProductDetailAsync(filter);
+        listOfData = response.Items;
+        editCache = listOfData.ToDictionary(
+            item => item.Id,
+            item => (false, CloneProductDetail(item))
+        );
+        await InvokeAsync(StateHasChanged);
+    }
+    async void OnFilterChanged()
+    {
+        await LoadDataAsync();
+    }
+    async Task AddNewProductDetail()
+    {
+        var newProductDetail = new ProductDetailDTO
+        {
+            Id = Guid.NewGuid(),
+            ProductId = Guid.Empty,
+            ProductName = "",
+            Barcode = "",
+            Sku = "",
+            Price = 0,
+            Description = "",
+            Gender = EProductDetailGender.Unisex,
+            StockHeight = 0,
+            ShoeLength = 0,
+            OutOfStock = 0,
+            AllowReturn = true,
+            Status = 0,
+        };
+        listOfData.Insert(0, newProductDetail);
+        editCache[newProductDetail.Id] = (true, CloneProductDetail(newProductDetail));
+        await InvokeAsync(StateHasChanged);
+    }
+    async Task StartEdit(Guid id)
+    {
+        var data = editCache[id];
+        editCache[id] = (true, data.data);
+        await InvokeAsync(StateHasChanged);
+    }
+    async Task CancelEdit(Guid id)
+    {
+        var isNew = listOfData.FirstOrDefault(p => p.Id == id)?.ProductId == Guid.Empty;
+        if (isNew)
+        {
+            listOfData.RemoveAll(p => p.Id == id);
+            editCache.Remove(id);
+        }else
+        {
+            var original = listOfData.First(p => p.Id == id);
+            editCache[id] = (false, CloneProductDetail(original));
+        }
+        await InvokeAsync(StateHasChanged);
+    }
+    async Task SaveEdit(Guid id)
+    {
+        var dto = editCache[id].data;
+        var createOrUpdateDto = new CreateOrUpdateProductDetailDTO
+            {
+                Id = dto.Id,
+                ProductId = dto.ProductId,
+                ProductName = dto.ProductName,
+                Barcode = dto.Barcode,
+                Sku = dto.Sku,
+                Price = dto.Price,
+                Description = dto.Description,
+                Gender = dto.Gender,
+                StockHeight = dto.StockHeight,
+                ShoeLength = dto.ShoeLength,
+                OutOfStock = dto.OutOfStock,
+                AllowReturn = dto.AllowReturn,
+                Status = dto.Status
+            };
+        BaseResponse result;
+        if (dto.ProductId == Guid.Empty)
+        {
+            result = await ProductDetailClientService.CreateProductDetailAsync(createOrUpdateDto); 
+        }else
+        {
+            result = await ProductDetailClientService.UpdateProductDetailAsync(createOrUpdateDto);
+        }
+        if (result.ResponseStatus == BaseStatus.Success)
+        {
+            await MessageModalService.Success("Lưu sản phẩm thành công");
+            await LoadDataAsync();
+        }else
+        {
+            await MessageModalService.Error(result.Message);
+        }
+    }
+
+    async Task DeleteProductDetail(Guid id)
+    {
+        var success = await ProductDetailClientService.DeleteProductDetailAsync(id);
+        if (success)
+        {
+           
+            listOfData.RemoveAll(p => p.Id == id);
+            editCache.Remove(id);
+            await MessageModalService.Success("Xóa sản phẩm thành công!");
+        }
+        else
+        {
+            await MessageModalService.Error("Xóa sản phẩm thất bại");
+        }
+    }
+
+    ProductDetailDTO CloneProductDetail(ProductDetailDTO dto)
+    {
+        return new ProductDetailDTO
+        {
+            Id = dto.Id,
+            ProductId = dto.ProductId,
+            ProductName = dto.ProductName,
+            Barcode = dto.Barcode,
+            Sku = dto.Sku,
+            Price = dto.Price,
+            Description = dto.Description,
+            Gender = dto.Gender,
+            StockHeight = dto.StockHeight,
+            ShoeLength = dto.ShoeLength,
+            OutOfStock = dto.OutOfStock,
+            AllowReturn = dto.AllowReturn,
+            Status = dto.Status,
+        };
+    }
+}
