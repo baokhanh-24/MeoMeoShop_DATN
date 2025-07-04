@@ -2,13 +2,18 @@
 @using System
 @using System.ComponentModel.DataAnnotations
 @using System.Reflection
+@using MeoMeo.CMS.Services
 @using MeoMeo.Contract.DTOs
 @using MeoMeo.Contract.Commons
+@using MeoMeo.Contract.DTOs.Product
+@using MeoMeo.Contract.DTOs.ProductDetail
+@using MeoMeo.Domain.Commons
 @using MeoMeo.Domain.Commons.Enums
 @using MeoMeo.CMS.IServices
 @using MeoMeo.Utilities
 @inject MessageModalService MessageModalService
 @inject IApiCaller Http
+@inject IProductDetailClientService ProductDetailClientService
 @rendermode InteractiveServer
 
 <div class="d-flex justify-content-between">
@@ -66,7 +71,7 @@
         <Column TData="Guid" Title="Sản phẩm">
         @if (editCache.ContainsKey(data.Id) && !editCache[data.Id].edit)
         {
-            @(productItems.FirstOrDefault(p => p.Id == data.ProductDetailId).DisplayName)
+           @(productItems.FirstOrDefault(p => p.Id == data.ProductDetailId)?.DisplayName ?? "Không rõ")
         }
         else if (editCache.ContainsKey(data.Id))
         {
@@ -177,7 +182,8 @@
     }
     private List<ProductItem> productItems = new();
     private List<SelectedProductItem> selectedProducts = new();
-    private List<CreateOrUpdateProductDetailDTO> productDetails = new();
+    List<CreateOrUpdateProductDTO>? productsResult = null;
+    private List<ProductDetailDTO> productDetails = new();
     private string message = "";
     private bool isSuccess = false;
     [Inject] private IInventoryBatchClientService InventoryBatchClientService { get; set; } = default!;
@@ -215,27 +221,22 @@
         try
         {
             // Gọi song song
-            var detailTask = Http.GetAsync<List<CreateOrUpdateProductDetailDTO>>("/api/ProductDetail");
+            var detailRequest = new GetListProductDetailRequestDTO(); // Không truyền gì, lấy tất cả
+            var queryString = BuildQuery.ToQueryString(detailRequest);
+            var detailTask = Http.GetAsync<PagingExtensions.PagedResult<ProductDetailDTO>>($"/api/ProductDetails/get-all-product-detail-async?{queryString}");
             var productTask = Http.GetAsync<List<CreateOrUpdateProductDTO>>("/api/Products");
-
             await Task.WhenAll(detailTask, productTask);
-
-            var productDetailsResult = await detailTask;
+            var productDetailsPagedResult = await detailTask;
             var productsResult = await productTask;
 
-            if (productDetailsResult != null && productsResult != null)
-            {
-                productDetails = productDetailsResult;
-
-                // Gộp dữ liệu ProductDetail + Product
-                productItems = (from detail in productDetails
-                                join product in productsResult on detail.ProductId equals product.Id
-                                select new ProductItem
-                                {
-                                    Id = detail.Id,
-                                    DisplayName = $"{product.Name}"
-                                }).ToList();
-            }
+            var productDetailsResult = productDetailsPagedResult.Items;
+            productItems = (from detail in productDetailsResult
+                join product in productsResult on detail.ProductId equals product.Id
+                select new ProductItem
+                {
+                    Id = detail.Id,
+                    DisplayName = product.Name // hoặc $"{product.Name} - {detail.Size}" nếu có nhiều chi tiết
+                }).ToList();
         }
         catch (Exception ex)
         {

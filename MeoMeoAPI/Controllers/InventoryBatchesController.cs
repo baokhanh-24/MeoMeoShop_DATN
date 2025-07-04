@@ -68,9 +68,7 @@ namespace MeoMeo.API.Controllers
         public async Task<bool> DeleteInventoryBatch(Guid id)
         {
              var result =  await _inventoryBatchServices.DeleteAsync(id);
-            return result;
-            var deleteBatch = await _inventoryBatchServices.DeleteAsync(id);
-            return Ok(deleteBatch);
+            return result;       
         }
     }
 }

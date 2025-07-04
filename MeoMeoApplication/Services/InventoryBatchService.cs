@@ -124,7 +124,6 @@ namespace MeoMeo.Application.Services
             _mapper.Map(dto, inventoryBatch);
             await _inventoryBatchRepository.UpdateAsync(inventoryBatch);
             return new InventoryBatchResponseDTO { ResponseStatus = BaseStatus.Success, Message = "Cập nhật thành công" };
-            return await _inventoryBatchRepository.GetAllAsync();
         }
     }
 }

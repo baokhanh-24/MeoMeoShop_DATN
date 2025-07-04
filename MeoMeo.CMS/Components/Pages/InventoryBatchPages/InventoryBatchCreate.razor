@@ -2,6 +2,9 @@
 @using MeoMeo.CMS.IServices
 @using MeoMeo.CMS.Services
 @using MeoMeo.Contract.DTOs
+@using MeoMeo.Contract.DTOs.Product
+@using MeoMeo.Contract.DTOs.ProductDetail
+@using MeoMeo.Domain.Commons
 @using MeoMeo.Domain.Commons.Enums
 @using MeoMeo.Utilities
 @inject NavigationManager Navigation
@@ -140,27 +143,22 @@
         try
         {
             // Gọi song song
-            var detailTask = Http.GetAsync<List<CreateOrUpdateProductDetailDTO>>("/api/ProductDetail");
+            var detailRequest = new GetListProductDetailRequestDTO(); // Không truyền gì, lấy tất cả
+            var queryString = BuildQuery.ToQueryString(detailRequest);
+            var detailTask = Http.GetAsync<PagingExtensions.PagedResult<ProductDetailDTO>>($"/api/ProductDetails/get-all-product-detail-async?{queryString}");
             var productTask = Http.GetAsync<List<CreateOrUpdateProductDTO>>("/api/Products");
-
             await Task.WhenAll(detailTask, productTask);
-
-            var productDetailsResult = await detailTask;
+            var productDetailsPagedResult = await detailTask;
             var productsResult = await productTask;
 
-            if (productDetailsResult != null && productsResult != null)
-            {
-                productDetails = productDetailsResult;
-
-                // Gộp dữ liệu ProductDetail + Product
-                productItems = (from detail in productDetails
-                                join product in productsResult on detail.ProductId equals product.Id
-                                select new ProductItem
-                                {
-                                    Id = detail.Id,
-                                    DisplayName = $"{product.Name}"
-                                }).ToList();
-            }
+            var productDetailsResult = productDetailsPagedResult.Items;
+            productItems = (from detail in productDetailsResult
+                            join product in productsResult on detail.ProductId equals product.Id
+                            select new ProductItem
+                            {
+                                Id = detail.Id,
+                                DisplayName = product.Name // hoặc $"{product.Name} - {detail.Size}" nếu có nhiều chi tiết
+                            }).ToList();
         }
         catch (Exception ex)
         {
