@@ -1,0 +1,208 @@
+﻿@page "/manage-season"
+@using System.ComponentModel.DataAnnotations
+@using MeoMeo.Contract.DTOs
+@using MeoMeo.CMS.IServices
+@using MeoMeo.Contract.Commons
+@inject MeoMeo.Utilities.MessageModalService MessageModalService
+@rendermode InteractiveServer
+
+<div class="d-flex justify-content-between mb-2">
+    <Button OnClick="AddNewSeason" Type="ButtonType.Primary">
+        <i class="fas fa-plus"></i> Thêm mới
+    </Button>
+    <div style="width: 200px">
+        <Input AllowClear="true" OnClear="OnFilterChanged" @bind-Value="filter.NameFilter" Placeholder="Nhập tên Season" />
+    </div>
+    <Button @onclick="OnFilterChanged" Type="ButtonType.Primary" Shape="ButtonShape.Circle" Icon="@IconType.Outline.Search" />
+</div>
+
+<Table DataSource="listOfData" TItem="SeasonDTO" Bordered TableLayout="fixed">
+    <ChildContent Context="data">
+        <Column TData="string" Title="Tên">
+            @if (editCache.ContainsKey(data.Id) && !editCache[data.Id].edit)
+            {
+                @data.Name
+            }
+            else if (editCache.ContainsKey(data.Id))
+            {
+                <Input MaxLength="100" @bind-Value="editCache[data.Id].data.Name" />
+            }
+        </Column>
+        <Column TData="string" Title="Mô tả">
+            @if (editCache.ContainsKey(data.Id) && !editCache[data.Id].edit)
+            {
+                @data.Description
+            }
+            else if (editCache.ContainsKey(data.Id))
+            {
+                <Input MaxLength="255" @bind-Value="editCache[data.Id].data.Description" />
+            }
+        </Column>
+        <Column TData="int" Title="Trạng thái">
+            @if (editCache.ContainsKey(data.Id) && !editCache[data.Id].edit)
+            {
+                @(data.Status == 1 ? "Kích hoạt" : "Không kích hoạt")
+            }
+            else if (editCache.ContainsKey(data.Id))
+            {
+                <select @bind="editCache[data.Id].data.Status">
+                    <option value="1">Kích hoạt</option>
+                    <option value="0">Không kích hoạt</option>
+                </select>
+            }
+        </Column>
+
+
+        <ActionColumn Title="Thao tác" Class="text-end gap-2">
+            @if (editCache.ContainsKey(data.Id) && !editCache[data.Id].edit)
+            {
+                <Button Size="ButtonSize.Small" @onclick="() => StartEdit(data.Id)" Shape="ButtonShape.Circle">
+                    <i class="fas fa-pen"></i>
+                </Button>
+                <Button Size="ButtonSize.Small" @onclick="() => DeleteSeason(data.Id)" Danger Shape="ButtonShape.Circle">
+                    <i class="fas fa-minus"></i>
+                </Button>
+            }
+            else if (editCache.ContainsKey(data.Id))
+            {
+                <Button Size="ButtonSize.Small" @onclick="() => SaveEdit(data.Id)" Shape="ButtonShape.Circle">
+                    <i class="fas fa-check"></i>
+                </Button>
+                <Button Size="ButtonSize.Small" @onclick="() => CancelEdit(data.Id)" Shape="ButtonShape.Circle">
+                    <i class="fa-solid fa-xmark"></i>
+                </Button>
+            }
+        </ActionColumn>
+    </ChildContent>
+</Table>
+
+@code {
+    [Inject] private ISeasonClientService SeasonClientService { get; set; } = default!;
+
+    IDictionary<Guid, (bool edit, SeasonDTO data)> editCache = new Dictionary<Guid, (bool, SeasonDTO)>();
+    List<SeasonDTO> listOfData = new();
+
+    GetListSeasonRequestDTO filter = new GetListSeasonRequestDTO
+    {
+        NameFilter = string.Empty,
+        StatusFilter = null,
+        PageIndex = 1,
+        PageSize = 10
+    };
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadDataAsync();
+    }
+
+    private async Task LoadDataAsync()
+    {
+        var response = await SeasonClientService.GetAllSeasonsAsync(filter);
+        listOfData = response?.Items ?? new List<SeasonDTO>();
+        editCache = listOfData.ToDictionary(item => item.Id, item => (false, CloneSeason(item)));
+        await InvokeAsync(StateHasChanged);
+    }
+
+    async void OnFilterChanged()
+    {
+        await LoadDataAsync();
+    }
+
+    async Task AddNewSeason()
+    {
+        var newSeason = new SeasonDTO
+        {
+            Id = Guid.Empty,
+            Name = string.Empty,
+            Description = string.Empty,
+            Status = 1
+        };
+
+        listOfData.Insert(0, newSeason);
+        editCache[newSeason.Id] = (true, CloneSeason(newSeason));
+        await InvokeAsync(StateHasChanged);
+    }
+
+    async Task StartEdit(Guid id)
+    {
+        if (editCache.ContainsKey(id))
+        {
+            editCache[id] = (true, editCache[id].data);
+            await InvokeAsync(StateHasChanged);
+        }
+    }
+
+    async Task CancelEdit(Guid id)
+    {
+        if (id == Guid.Empty)
+        {
+            listOfData.RemoveAll(x => x.Id == id);
+            editCache.Remove(id);
+        }
+        else
+        {
+            var original = listOfData.First(x => x.Id == id);
+            editCache[id] = (false, CloneSeason(original));
+        }
+        await InvokeAsync(StateHasChanged);
+    }
+
+    async Task SaveEdit(Guid id)
+    {
+        var dto = editCache[id].data;
+        var request = new CreateOrUpdateSeasonDTO
+        {
+            Id = dto.Id,
+            Name = dto.Name,
+            Description = dto.Description,
+            Status = dto.Status
+        };
+
+        CreateOrUpdateSeasonResponseDTO result;
+        if (dto.Id == Guid.Empty)
+        {
+            result = await SeasonClientService.CreateSeasonAsync(request);
+        }
+        else
+        {
+            result = await SeasonClientService.UpdateSeasonAsync(request);
+        }
+
+        if (result.ResponseStatus == BaseStatus.Success)
+        {
+            await MessageModalService.Success("Lưu Season thành công!");
+            await LoadDataAsync();
+        }
+        else
+        {
+            await MessageModalService.Error(result.Message);
+        }
+    }
+
+    async Task DeleteSeason(Guid id)
+    {
+        bool success = await SeasonClientService.DeleteSeasonAsync(id);
+        if (success)
+        {
+            listOfData.RemoveAll(x => x.Id == id);
+            editCache.Remove(id);
+            await MessageModalService.Success("Xóa Season thành công!");
+        }
+        else
+        {
+            await MessageModalService.Error("Xóa Season thất bại");
+        }
+        await InvokeAsync(StateHasChanged);
+    }
+
+    SeasonDTO CloneSeason(SeasonDTO dto)
+    {
+        return new SeasonDTO
+        {
+            Id = dto.Id,
+            Name = dto.Name,
+            Description = dto.Description,
+            Status = dto.Status
+        };
+    }
+}

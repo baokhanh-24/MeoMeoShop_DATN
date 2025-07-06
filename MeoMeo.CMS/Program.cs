@@ -21,6 +21,9 @@ CultureInfo.DefaultThreadCurrentUICulture = culture;
 builder.Services.AddScoped<ICustomerClientService, CustomerClientService>();
 builder.Services.AddScoped<IBankClientService, BankClientService>();
 
+builder.Services.AddScoped<IBrandClientService, BrandClientService>();
+builder.Services.AddScoped<ISeasonClientService, SeasonClientService>();
+
 builder.Services.AddHttpClient<IApiCaller, ApiCaller>(client =>
 {
     client.BaseAddress = new Uri(apiBaseUrl!);

@@ -20,54 +20,32 @@ namespace MeoMeo.EntityFrameworkCore.Repositories
 
         public async Task<Brand> CreateBrandAsync(Brand brand)
         {
-            try
-            {
-                await AddAsync(brand);
-                return brand;
-            }
-            catch (DbUpdateException ex)
-            {
-                throw new Exception("An error occurred while creating the brand.", ex);
-            }
+           var brandAdd = await AddAsync(brand);
+            return brandAdd;
         }
 
         public async Task<bool> DeleteBrandAsync(Guid id)
         {
-            var phat = await GetByIdAsync(id);
-            if (phat == null)
-            {
-                return false; 
-            }
-            await base.DeleteAsync(id);
+            await DeleteAsync(id);
             return true;
-
         }
 
-        public async Task<IEnumerable<Brand>> GetAllBrandsAsync()
+        public async Task<List<Brand>> GetAllBrandsAsync()
         {
-            return await GetAllAsync();
+           var brandAll = await GetAllAsync();
+            return brandAll.ToList();
         }
 
         public async Task<Brand> GetBrandByIdAsync(Guid id)
         {
-            var phat = await GetByIdAsync(id);
-            return phat;
+            var brandId = await GetByIdAsync(id);
+            return brandId;
         }
 
-        public async Task<Brand> UpdateBrandAsync(Guid id, Brand brand)
+        public async Task<Brand> UpdateBrandAsync(Brand brand)
         {
-            var phat = await GetByIdAsync(id);
-            if (phat == null)
-            {
-                throw new KeyNotFoundException($"Brand with ID {id} not found.");
-            }
-            phat.Name = brand.Name;
-            phat.Code = brand.Code;
-            phat.EstablishYear = brand.EstablishYear;
-            phat.Country = brand.Country;
-            phat.Description = brand.Description;
-            phat.Logo = brand.Logo;
-            return await UpdateAsync(phat);
+            var brandUpdate = await UpdateAsync(brand);
+            return brandUpdate;
         }
     }
 }

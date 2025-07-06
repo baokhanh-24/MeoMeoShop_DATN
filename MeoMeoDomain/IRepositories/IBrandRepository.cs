@@ -10,10 +10,10 @@ namespace MeoMeo.Domain.IRepositories
 {
     public interface IBrandRepository : IBaseRepository<Brand>
     {
-        Task<IEnumerable<Brand>> GetAllBrandsAsync();
+        Task<List<Brand>> GetAllBrandsAsync();
         Task<Brand> GetBrandByIdAsync(Guid id);
         Task<Brand> CreateBrandAsync(Brand brand);
-        Task<Brand> UpdateBrandAsync(Guid id, Brand brand);
+        Task<Brand> UpdateBrandAsync(Brand brand);
         Task<bool> DeleteBrandAsync(Guid id);
     }
 }

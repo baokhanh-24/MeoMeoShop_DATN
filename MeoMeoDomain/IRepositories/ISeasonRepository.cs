@@ -10,10 +10,10 @@ namespace MeoMeo.Domain.IRepositories
 {
     public interface ISeasonRepository : IBaseRepository<Season>
     {
-        Task<IEnumerable<Season>> GetSeasonsAsync();
-        public Task<Season> GetSeasonByID(Guid id); 
-        public Task<Season> CreateAsync(Season season);
-        public Task<Season> UpdateSeason(Season season);
-        public Task<bool> DeleteAsync(Guid id);
+        Task<List<Season>> GetSeasonsAsync();
+        Task<Season> GetSeasonByIDAsync(Guid id); 
+        Task<Season> CreateSeasonAsync(Season season);
+        Task<Season> UpdateSeasonAsync(Season season);
+        Task<bool> DeleteSeasonAsync(Guid id);
     }
 }
