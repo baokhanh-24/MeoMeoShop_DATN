@@ -3,15 +3,8 @@ using MeoMeo.Application.IServices;
 using MeoMeo.Contract.Commons;
 using MeoMeo.Contract.DTOs;
 using MeoMeo.Contract.DTOs.Employees;
-using MeoMeo.Domain.Commons.Enums;
 using MeoMeo.Domain.Entities;
 using MeoMeo.Domain.IRepositories;
-using MeoMeo.EntityFrameworkCore.Repositories;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace MeoMeo.Application.Services
 {
@@ -38,7 +31,7 @@ namespace MeoMeo.Application.Services
                 };
             }
 
-            user.PasswordHash = BCrypt.Net.BCrypt.HashPassword(request.NewPassword);
+            //user.PasswordHash = BCrypt.Net.BCrypt.HashPassword(request.NewPassword);
             await _repository.UpdateUserAsync(user);
 
             return new CreateOrUpdateUserResponseDTO
