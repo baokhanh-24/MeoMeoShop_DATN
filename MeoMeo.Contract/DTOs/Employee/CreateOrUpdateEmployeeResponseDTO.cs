@@ -1,4 +1,5 @@
 ﻿using MeoMeo.Contract.Commons;
+using MeoMeo.Domain.Commons.Enums;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -16,6 +17,6 @@ namespace MeoMeo.Contract.DTOs
         public string PhoneNumber { get; set; }
         public DateTime DateOfBird { get; set; }
         public string Address { get; set; }
-        public int Status { get; set; }
+        public EEmployeesStatus Status { get; set; }
     }
 }

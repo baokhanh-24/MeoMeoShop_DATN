@@ -2,9 +2,11 @@
 using MeoMeo.Application.IServices;
 using MeoMeo.Contract.Commons;
 using MeoMeo.Contract.DTOs;
+using MeoMeo.Contract.DTOs.Employees;
 using MeoMeo.Domain.Commons.Enums;
 using MeoMeo.Domain.Entities;
 using MeoMeo.Domain.IRepositories;
+using MeoMeo.EntityFrameworkCore.Repositories;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -22,6 +24,28 @@ namespace MeoMeo.Application.Services
         {
             _repository = repository;
             _mapper = mapper;
+        }
+
+        public async Task<CreateOrUpdateUserResponseDTO> ChangePasswordAsync(ChangePasswordRequestDTO request)
+        {
+            var user = await _repository.GetUserByIdAsync(request.UserId);
+            if (user == null)
+            {
+                return new CreateOrUpdateUserResponseDTO
+                {
+                    ResponseStatus = BaseStatus.Error,
+                    Message = "Tài khỏan không tồn tại."
+                };
+            }
+
+            user.PasswordHash = BCrypt.Net.BCrypt.HashPassword(request.NewPassword);
+            await _repository.UpdateUserAsync(user);
+
+            return new CreateOrUpdateUserResponseDTO
+            {
+                ResponseStatus = BaseStatus.Success,
+                Message = "Đổi mật khẩu thành công."
+            };
         }
 
         public async Task<User> CreateUserAsync(CreateOrUpdateUserDTO user)
@@ -69,15 +93,23 @@ namespace MeoMeo.Application.Services
 
         public async Task<CreateOrUpdateUserResponseDTO> UpdateUserAsync(CreateOrUpdateUserDTO user)
         {
-            var itemUser = await _repository.GetUserByIdAsync(Guid.Parse(user.Id.ToString()));
-            if (itemUser == null)
+            var existingMaterial = await _repository.GetUserByIdAsync(user.Id);
+            if (existingMaterial == null)
             {
-                return new CreateOrUpdateUserResponseDTO { ResponseStatus = BaseStatus.Error, Message = "Không tìm thấy user" };
+                return new CreateOrUpdateUserResponseDTO
+                {
+                    ResponseStatus = BaseStatus.Error,
+                    Message = "Không tìm thấy user này."
+                };
             }
-            _mapper.Map(user, itemUser);
 
-            await _repository.UpdateUserAsync(itemUser);
-            return new CreateOrUpdateUserResponseDTO { ResponseStatus = BaseStatus.Success, Message = "Cập nhật thành công" };
+            _mapper.Map(user, existingMaterial);
+            await _repository.UpdateUserAsync(existingMaterial);
+
+            var response = _mapper.Map<CreateOrUpdateUserResponseDTO>(existingMaterial);
+            response.Message = "Update tài khoản thành công.";
+            response.ResponseStatus = BaseStatus.Success;
+            return response;
         }
     }
 }

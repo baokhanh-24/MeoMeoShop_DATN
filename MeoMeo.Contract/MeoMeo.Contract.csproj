@@ -22,7 +22,6 @@
     <Folder Include="DTOs\Customer\" />
     <Folder Include="DTOs\DeliveryAddress\" />
     <Folder Include="DTOs\District\" />
-    <Folder Include="DTOs\Employee\" />
     <Folder Include="DTOs\Image\" />
     <Folder Include="DTOs\InventoryBatch\" />
     <Folder Include="DTOs\InventoryTranSaction\" />

@@ -63,6 +63,10 @@ namespace MeoMeo.Contract
             CreateMap<Material, CreateOrUpdateMaterialDTO>();
             CreateMap<Material, CreateOrUpdateMaterialResponse>();
             CreateMap<Size, SizeDTO>();
+            CreateMap<Employee, CreateOrUpdateEmployeeDTO>();
+            CreateMap<CreateOrUpdateEmployeeDTO, Employee>();
+            CreateMap<CreateOrUpdateEmployeeResponseDTO, Employee>();
+            CreateMap<Employee, CreateOrUpdateEmployeeResponseDTO>();
         }
 
     }

@@ -1,4 +1,5 @@
 ﻿using MeoMeo.Contract.DTOs;
+using MeoMeo.Contract.DTOs.Employees;
 using MeoMeo.Domain.Entities;
 using System;
 using System.Collections.Generic;
@@ -15,5 +16,6 @@ namespace MeoMeo.Application.IServices
         Task<User> CreateUserAsync(CreateOrUpdateUserDTO user);
         Task<CreateOrUpdateUserResponseDTO> UpdateUserAsync(CreateOrUpdateUserDTO user);
         Task<bool> DeleteUserAsync(Guid id);
+        Task<CreateOrUpdateUserResponseDTO> ChangePasswordAsync(ChangePasswordRequestDTO request);
     }
 }

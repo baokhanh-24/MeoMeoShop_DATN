@@ -1,0 +1,373 @@
+﻿@page "/employees-pages"
+@using System.ComponentModel.DataAnnotations
+@using System.Reflection
+@using MeoMeo.Contract.DTOs
+@using MeoMeo.CMS.IServices
+@using MeoMeo.Contract.Commons
+@using MeoMeo.Domain.Commons.Enums
+@using MeoMeo.CMS.Components.Pages.EmployeesPages
+@using MeoMeo.Utilities
+@inject MeoMeo.Utilities.MessageModalService MessageModalService
+@rendermode InteractiveServer
+@inject IApiCaller ApiCaller
+
+
+<div class="d-flex justify-content-between">
+    <Breadcrumb>
+        <BreadcrumbItem Href="/">Trang chủ</BreadcrumbItem>
+        <BreadcrumbItem Href="/manage-customer">Quản lý khách hàng</BreadcrumbItem>
+    </Breadcrumb>
+    <Button OnClick="() => showAddModal = true" Type="ButtonType.Primary" Class="mb-2">
+        <i class="fas fa-plus"></i> Thêm mới
+    </Button>
+    <AddEmployeesPages Visible="@showAddModal"
+    VisibleChanged="@(val => showAddModal = val)"
+    OnSave="HandleCreateEmployee"
+    StatusList="@employeesStatusList" />
+
+    <ChangePasswordPages Visible="@showChangePasswordModal"
+    VisibleChanged="@(val => showChangePasswordModal = val)"
+    UserId="@selectedUserId" />
+</div>
+
+<div class="d-flex justify-content-end gap-3 mb-2">
+    <div style="width: 200px">
+        <Input AllowClear="true" OnClear="OnFilterChanged" @bind-Value="filter.NameFilter" Placeholder="Nhập theo tên" />
+    </div>
+    <div style="width: 200px">
+        <Input AllowClear="true" OnClear="OnFilterChanged" @bind-Value="filter.CodeFilter" Placeholder="Nhập theo mã" />
+    </div>
+    <div style="width: 200px">
+        <Input AllowClear="true" OnClear="OnFilterChanged" @bind-Value="filter.PhoneNumberFilter" Placeholder="Nhập theo SĐT" />
+    </div>
+    <div style="width: 200px">
+        <Input AllowClear="true" OnClear="OnFilterChanged" @bind-Value="filter.AddressFilter" Placeholder="Nhập theo địa chỉ" />
+    </div>
+    <div style="width: 150px">
+        <Select TItem="(EEmployeesStatus Value, string Name)"
+        TItemValue="EEmployeesStatus?"
+        AllowClear
+        DataSource="employeesStatusList"
+        @bind-Value="filter.StatusFilter"
+        Placeholder="Chọn trạng thái"
+        ItemValue="c => (EEmployeesStatus?)c.Value"
+        ItemLabel="c => c.Name">
+        </Select>
+    </div>
+    <Tooltip Title="Tìm kiếm">
+        <Button @onclick="() => OnFilterChanged()" Type="ButtonType.Primary" Shape="ButtonShape.Circle" Icon="@IconType.Outline.Search" />
+    </Tooltip>
+</div>
+
+<Table DataSource="listOfData" TItem="CreateOrUpdateEmployeeDTO" RowClassName="@(_ => "editable-row")" Bordered TableLayout="fixed">
+    <ChildContent Context="data">
+        <Column TData="string" Title="Họ và tên nhân viên"> 
+            @if (editCache.ContainsKey(data.Id) && !editCache[data.Id].edit)
+            {
+                @data.Name
+            }
+            else if (editCache.ContainsKey(data.Id))
+            {
+                <Input MaxLength="100" @bind-Value="editCache[data.Id].data.Name" Placeholder="Nhập họ và tên" />
+            }
+        </Column>
+
+        <Column TData="string" Title="Mã nhân viên"> 
+            @if (editCache.ContainsKey(data.Id) && !editCache[data.Id].edit)
+            {
+                <span>@data.Code</span>
+            }
+            else if (editCache.ContainsKey(data.Id))
+            {
+                <Input MaxLength="100" @bind-Value="editCache[data.Id].data.Code" Placeholder="Nhập mã nhân viên" />
+            }
+        </Column>
+
+        <Column TData="string" Title="SĐT nhân viên">
+            @if (editCache.ContainsKey(data.Id) && !editCache[data.Id].edit)
+            {
+                <span>@data.PhoneNumber</span>
+            }
+            else if (editCache.ContainsKey(data.Id))
+            {
+                <Input MaxLength="100" @bind-Value="editCache[data.Id].data.PhoneNumber" Placeholder="Nhập SĐT" />
+            }
+        </Column>
+
+        <Column TData="DateTime" Title="Ngày tháng năm sinh">
+            @if (editCache.ContainsKey(data.Id) && !editCache[data.Id].edit)
+            {
+                <span>@data.DateOfBird</span>
+            }
+            else if (editCache.ContainsKey(data.Id))
+            {
+                <Input MaxLength="100" @bind-Value="editCache[data.Id].data.DateOfBird" Placeholder="Nhập ngày tháng năm sinh" />
+            }
+        </Column>
+
+        <Column TData="string" Title="Địa chỉ">
+            @if (editCache.ContainsKey(data.Id) && !editCache[data.Id].edit)
+            {
+                <span>@data.Address</span>
+            }
+            else if (editCache.ContainsKey(data.Id))
+            {
+                <Input MaxLength="1000" @bind-Value="editCache[data.Id].data.Address" Placeholder="Nhập địa chỉ" />
+            }
+        </Column>
+
+        <Column TData="EEmployeesStatus" Title="Trạng thái">
+            @if (editCache.ContainsKey(data.Id) && !editCache[data.Id].edit)
+            {
+                @employeesStatusList.FirstOrDefault(x => x.Value == data.StatusEnum).Name
+            }
+            else if (editCache.ContainsKey(data.Id))
+            {
+
+                <Select TItem="(EEmployeesStatus Value, string Name)"
+                TItemValue="EEmployeesStatus"
+                DataSource="employeesStatusList"
+                @bind-Value="editCache[data.Id].data.StatusEnum"
+                ItemValue="c => c.Value"
+                ItemLabel="c => c.Name">
+                </Select>
+            }
+        </Column>
+
+        <ActionColumn Title="Thao tác" Class="text-end gap-2">
+            @if (editCache.ContainsKey(data.Id) && !editCache[data.Id].edit)
+            {
+                <Tooltip Title="Sửa">
+                    <Button Size="ButtonSize.Small" @onclick="() => StartEdit(data.Id)" Shape="ButtonShape.Circle">
+                        <i class="fas fa-pen"></i>
+                    </Button>
+                </Tooltip>
+
+                <Popconfirm Title=@($"Bạn có chắc muốn xóa khách hàng {data.Name}?")
+                OnConfirm="() => DeleteEmployee(data.Id)"
+                OkText="Đồng ý"
+                CancelText="Hủy">
+
+                    <Tooltip Title="Xóa">
+                        <Button Size="ButtonSize.Small" Danger Shape="ButtonShape.Circle">
+                            <i class="fas fa-minus"></i>
+                        </Button>
+                    </Tooltip>
+
+                    <Tooltip Title="Đổi mật khẩu">
+                        <Button Size="ButtonSize.Small" Shape="ButtonShape.Circle" OnClick="() => OpenChangePasswordModal(data.UserId)">
+                            <i class="fas fa-key"></i>
+                        </Button>
+                    </Tooltip>
+                </Popconfirm>
+            }
+            else if (editCache.ContainsKey(data.Id))
+            {
+                <Tooltip Title="Lưu">
+                    <Button Size="ButtonSize.Small" @onclick="() => saveEdit(data.Id)" Shape="ButtonShape.Circle">
+                        <i class="fas fa-check"></i>
+                    </Button>
+                </Tooltip>
+                <Popconfirm Title=@($"Bạn có chắc muốn hủy {(data.UserId==Guid.Empty ?"thêm mới":"chỉnh sửa")} khách hàng {data.Name}?")
+                OnConfirm="() => cancelEdit(data.Id)"
+                OkText="Đồng ý"
+                CancelText="Hủy">
+
+                    <Button Size="ButtonSize.Small" Shape="ButtonShape.Circle">
+                        <i class="fa-solid fa-xmark"></i>
+                    </Button>
+                </Popconfirm>
+            }
+        </ActionColumn>
+
+
+    </ChildContent>
+</Table>
+
+@code {
+
+    [Inject] private IEmployeesClientService EmployeeService { get; set; } = default!;
+
+    IDictionary<Guid, (bool edit, CreateOrUpdateEmployeeDTO data)> editCache = new Dictionary<Guid, (bool, CreateOrUpdateEmployeeDTO)>();
+    List<CreateOrUpdateEmployeeDTO> listOfData = new();
+    List<(EEmployeesStatus Value, string Name)> employeesStatusList = new();
+
+    GetlistEmployeesRequestDTO filter = new GetlistEmployeesRequestDTO
+    {
+            NameFilter = "",
+            CodeFilter = "",
+            PhoneNumberFilter = "",
+            DateOfBirthFilter = null,
+            AddressFilter = "",
+            StatusFilter = null,
+            PageSize = 10,
+            PageIndex = 1,
+    };
+
+    protected override async Task OnInitializedAsync()
+    {
+        employeesStatusList = Enum.GetValues(typeof(EEmployeesStatus))
+            .Cast<EEmployeesStatus>()
+            .Select(x => (x, x
+                .GetType()
+                .GetMember(x.ToString())
+                .First()
+                .GetCustomAttribute<DisplayAttribute>()?.Name ?? x.ToString()))
+                .ToList();
+        await LoadData();
+    }
+
+    async void OnFilterChanged()
+    {
+        await LoadData();
+    }
+
+    bool showAddModal = false;
+
+    private bool showChangePasswordModal = false;
+    private Guid selectedUserId;
+
+    private async Task HandleCreateEmployee(CreateOrUpdateEmployeeDTO dto)
+    {
+        dto.Id = Guid.NewGuid();
+        dto.UserId = Guid.Empty;
+        var result = await EmployeeService.CreateEmployeesAsync(dto);
+
+        if (result.ResponseStatus == BaseStatus.Success)
+        {
+            await MessageModalService.Success("Tạo mới nhân viên thành công!");
+            await LoadData();
+        }
+        else
+        {
+            await MessageModalService.Error(result.Message);
+        }
+    }
+
+    private void OpenChangePasswordModal(Guid userId)
+    {
+        selectedUserId = userId;
+        showChangePasswordModal = true;
+    }
+
+
+
+    async Task AddNewEmployees()
+    {
+        var newEmployee = new CreateOrUpdateEmployeeDTO
+            {
+                Id = Guid.NewGuid(),
+                UserId = Guid.Empty,
+                Name = "",
+                Code = "",
+                PhoneNumber = "",
+                DateOfBird = null,
+                Address = "",
+                Status = (int)EEmployeesStatus.Enabled,
+            };
+        listOfData.Insert(0, newEmployee);
+        editCache[newEmployee.Id] = (true, CloneEmpooyees(newEmployee));
+        await InvokeAsync(StateHasChanged);
+    }
+
+    async Task StartEdit(Guid Id)
+    {
+        var data = editCache[Id];
+        editCache[Id] = (true, data.data);
+        await InvokeAsync(StateHasChanged);
+    }
+
+    async Task cancelEdit(Guid id)
+    {
+        var isNew = listOfData.FirstOrDefault(x => x.Id == id)?.UserId == Guid.Empty;
+        if (isNew)
+        {
+            listOfData.RemoveAll(x => x.Id == id);
+            editCache.Remove(id);
+        }
+        else
+        {
+            var original = listOfData.First(x => x.Id == id);
+            editCache[id] = (false, CloneEmpooyees(original));
+        }
+        await InvokeAsync(StateHasChanged);
+    }
+
+
+    async Task saveEdit(Guid id)
+    {
+        var dto = editCache[id].data;
+        var createOrUpdateDto = new CreateOrUpdateEmployeeDTO
+            {
+                Id = dto.Id,
+                Name = dto.Name,
+                Code = dto.Code,
+                PhoneNumber = dto.PhoneNumber,
+                DateOfBird = dto.DateOfBird,
+                Address = dto.Address,
+                Status = dto.Status,
+                UserId = dto.UserId
+            };
+
+        BaseResponse result;
+
+        if (dto.UserId == Guid.Empty)
+        {
+            result = await EmployeeService.CreateEmployeesAsync(createOrUpdateDto);
+        }
+        else
+        {
+            result = await EmployeeService.UpdateEmployeesAsync(createOrUpdateDto);
+        }
+
+        if (result.ResponseStatus == BaseStatus.Success)
+        {
+            await MessageModalService.Success("Lưu khách hàng thành công!");
+            await LoadData();
+        }
+        else
+        {
+            await MessageModalService.Error(result.Message);
+        }
+    }
+
+    async Task DeleteEmployee(Guid id)
+    {
+        var success = await EmployeeService.DeleteEmployeesAsync(id);
+        if(success)
+        {
+            listOfData.RemoveAll(x => x.Id == id);
+            editCache.Remove(id);
+            await MessageModalService.Success("Xóa khách hàng thành công!");
+        }
+        else
+        {
+            await MessageModalService.Error("Xóa khách hàng thất bại!");
+        }
+    }
+
+    private async Task LoadData()
+    {
+        var response = await EmployeeService.GetAllEmployeesAsync(filter);
+        listOfData = response.Items;
+        editCache = listOfData.ToDictionary(
+            item => item.Id, 
+            item => (false, CloneEmpooyees(item)));
+        await InvokeAsync(StateHasChanged);
+    }
+
+    CreateOrUpdateEmployeeDTO CloneEmpooyees(CreateOrUpdateEmployeeDTO item )
+    {
+        return new CreateOrUpdateEmployeeDTO
+        {
+                Id = item.Id,
+                Name = item.Name,
+                Code = item.Code,
+                PhoneNumber = item.PhoneNumber,
+                DateOfBird = item.DateOfBird,
+                Address = item.Address,
+                Status = item.Status,
+                UserId = item.UserId
+        };
+    }
+}
