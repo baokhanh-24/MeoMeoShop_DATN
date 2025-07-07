@@ -15,7 +15,6 @@ namespace MeoMeo.Contract.DTOs
         public string Code { get; set; }
         public int Quantity { get; set; }
         public string Note { get; set; }
-        public EInventoryBatchStatus Status { get; set; } 
+        public EInventoryBatchStatus Status { get; set; }
     }
-    
 }

@@ -1,0 +1,76 @@
+﻿@page "/inventory-batch-detail/{id:guid}"
+@using MeoMeo.CMS.IServices
+@using MeoMeo.Contract.DTOs
+@using MeoMeo.Contract.DTOs.ProductDetail
+@using MeoMeo.Utilities
+@inject IInventoryBatchClientService InventoryBatchClientService
+@inject NavigationManager Navigation
+@inject IApiCaller Http
+
+<h3>Chi tiết lô nhập</h3>
+<p></p>
+@if (batch == null)
+{
+
+    <p>Đang tải...</p>
+}
+else
+{
+    <div class="d-flex justify-content-between">
+        <Breadcrumb>
+            <BreadcrumbItem Href="/">Trang chủ</BreadcrumbItem>
+            <BreadcrumbItem Href="/manage-inventoryBatch">Quản lý lô nhập</BreadcrumbItem>
+            <BreadcrumbItem Href="/inventory-batch-detail/{id:guid}">Chi tết</BreadcrumbItem>
+        </Breadcrumb>
+    </div>
+    @* <Card Title="Thông tin chung">
+        <Descriptions>
+            <DescriptionsItem Title="Mã lô nhập">@batch.Code</DescriptionsItem>
+            <DescriptionsItem Title="Sản phẩm" @bind="batch.ProductDetailId">
+                @foreach(var sp in productDetails)
+                {
+                    <p value="@sp.Id">@sp.Sku</p>
+                }
+            </DescriptionsItem>
+            <DescriptionsItem Title="Giá nhập">@batch.OriginalPrice</DescriptionsItem>
+            <DescriptionsItem Title="Số lượng">@batch.Quantity</DescriptionsItem>
+            <DescriptionsItem Title="Mô tả">@batch.Note</DescriptionsItem>
+            <DescriptionsItem Title="Trạng thái">@batch.Status</DescriptionsItem>
+        </Descriptions>
+    </Card> *@
+    <div>
+        <p><b>Mã lô:</b> @batch.Code</p>
+        <p><b>Sản phẩm:</b> @batch.ProductDetailId</p>
+        <p><b>Số lượng:</b> @batch.Quantity</p>
+        <p><b>Trạng thái:</b> @batch.Status.ToString()</p>
+        <p><b>Ghi chú:</b> @batch.Note</p>
+    </div>
+    <Button Type="ButtonType.Default" OnClick="GoBack">Quay lại</Button>
+}
+
+@code {
+    [Parameter] 
+    public Guid Id { get; set; }
+    private InventoryBatchDTO? batch;
+    private List<CreateOrUpdateProductDetailDTO> productDetails = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        batch = await InventoryBatchClientService.GetInventoryBatchByIdAsync(Id);
+        // try
+        // {
+            
+        //     var result = await Http.GetAsync<List<CreateOrUpdateProductDetailDTO>>("/api/ProductDetail");
+        //     if (result != null)
+        //     {
+        //         productDetails = result;
+        //     }
+        // }
+        // catch (Exception ex)
+        // {
+        //     Console.WriteLine("Lỗi khi lấy danh sách sản phẩm: " + ex.Message);
+        // }
+    }
+
+    void GoBack() => Navigation.NavigateTo("/manage-inventoryBatch");
+}

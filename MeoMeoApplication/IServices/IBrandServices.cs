@@ -11,6 +11,7 @@ namespace MeoMeo.Application.IServices
 {
     public interface IBrandServices
     {
+
         Task<PagingExtensions.PagedResult<BrandDTO>> GetAllBrandsAsync(GetListBrandRequestDTO request);
         Task<BrandDTO> GetBrandByIdAsync(Guid id);
         Task<CreateOrUpdateBrandResponseDTO> CreateBrandAsync(CreateOrUpdateBrandDTO brandDto);

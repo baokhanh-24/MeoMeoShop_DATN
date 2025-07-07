@@ -36,32 +36,44 @@ namespace MeoMeo.API.Controllers
         [HttpGet("find-brand-by-id-async/{id}")]
         public async Task<BrandDTO> GetBrandByIdAsync(Guid id)
         {
+
             var result = await _brandServices.GetBrandByIdAsync(id);
             return result;
+        
         }
-
 
         [HttpPut("update-brand-async/{id}")]
         public async Task<CreateOrUpdateBrandResponseDTO> UpdateBrandAsync(Guid id, [FromBody] CreateOrUpdateBrandDTO brandDto)
         {
+
             var result = await _brandServices.UpdateBrandAsync(brandDto);
             return result;
+
+            
+
         }
 
 
         [HttpPost("create-brand-async")]
         public async Task<CreateOrUpdateBrandResponseDTO> CreateBrandAsync([FromBody] CreateOrUpdateBrandDTO brandDto)
         {
+
             var result = await _brandServices.CreateBrandAsync(brandDto);
             return result;
+
+            
+
         }
 
 
         [HttpDelete("delete-brand-async/{id}")]
         public async Task<bool> DeleteBrandAsync(Guid id)
         {
+
             var result = await _brandServices.DeleteBrandAsync(id);
             return result;
+
+            
         }
     }
 }

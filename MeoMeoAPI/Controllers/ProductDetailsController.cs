@@ -1,30 +1,28 @@
 ﻿using MeoMeo.Application.IServices;
-using MeoMeo.Application.Services;
-using MeoMeo.Contract.DTOs;
-using MeoMeo.Domain.Entities;
-using Microsoft.AspNetCore.Http;
+using MeoMeo.Contract.DTOs.ProductDetail;
+using MeoMeo.Domain.Commons;
 using Microsoft.AspNetCore.Mvc;
 namespace MeoMeo.API.Controllers
 {
     [Route("api/[Controller]")]
     [ApiController]
-    public class ProductDetailController : ControllerBase
-        
+    public class ProductDetailsController : ControllerBase
+
     {
         private readonly IProductDetailServices _productdetailservices;
 
-        public ProductDetailController(IProductDetailServices productdetailservices)
+        public ProductDetailsController(IProductDetailServices productdetailservices)
         {
             _productdetailservices = productdetailservices;
         }
-        [HttpGet()]
-        public async Task<IActionResult> GetAll()
+        [HttpGet("get-all-product-detail-async")]
+        public async Task<PagingExtensions.PagedResult<ProductDetailDTO>> GetAllProductDetailAsync([FromQuery] GetListProductDetailRequestDTO request)
         {
-            var result = await _productdetailservices.GetProductDetailAllAsync();
-            return Ok(result);
+            var result = await _productdetailservices.GetAllProductDetailAsync(request);
+            return result;
         }
 
-        [HttpGet("find-productdetail-by-id/{id}")]
+        [HttpGet("find-product-detail-by-id-async/{id}")]
         public async Task<IActionResult> GetById(Guid id)
         {
             var result = await _productdetailservices.GetProductDetailByIdAsync(id);
@@ -32,33 +30,33 @@ namespace MeoMeo.API.Controllers
             return Ok(result);
         }
 
-        [HttpPost]
-        public async Task<IActionResult> Create([FromBody] CreateOrUpdateProductDetailDTO productDetail)
+        [HttpPost("create-product-detail-async")]
+        public async Task<IActionResult> CreateProductDetailAsync([FromBody] CreateOrUpdateProductDetailDTO productDetail)
         {
-            var result = await _productdetailservices.AddProductDetailAsync(productDetail);
+            var result = await _productdetailservices.CreateProductDetailAsync(productDetail);
             return Ok(result);
         }
 
-       
-        [HttpPut("{id}")]
+
+        [HttpPut("update-product-detail-async/{id}")]
         public async Task<IActionResult> Update(Guid id, [FromBody] CreateOrUpdateProductDetailDTO productDetail)
         {
-           
+
 
             var result = await _productdetailservices.UpdateProductDetailAsync(productDetail);
-           
+
             return Ok(result);
         }
 
-        [HttpDelete("{id}")]
+        [HttpDelete("delete-product-detail-async/{id}")]
         public async Task<IActionResult> Delete(Guid id)
         {
             var result = await _productdetailservices.DeleteProductDetailAsync(id);
-            
+
             return Ok(result);
         }
     }
 }
-   
+
 
 

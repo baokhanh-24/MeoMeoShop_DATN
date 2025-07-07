@@ -11,6 +11,7 @@ using MeoMeo.Domain.IRepositories;
 using MeoMeo.Contract.DTOs;
 using MeoMeo.Application.IServices;
 using MeoMeo.Domain.Commons;
+using MeoMeo.Contract.Commons;
 
 namespace MeoMeo.API.Controllers
 {
@@ -44,6 +45,8 @@ namespace MeoMeo.API.Controllers
         {
             var result = await _seasonServices.CreateSeasonAsync(dto);
             return result;
+
+
         }
 
         [HttpDelete("delete-season-async/{id}")]
@@ -58,6 +61,7 @@ namespace MeoMeo.API.Controllers
         {
             var result = await _seasonServices.UpdateSeasonAsync(dto);
             return result;
+
         }
     }
 }

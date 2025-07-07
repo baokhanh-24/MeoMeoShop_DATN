@@ -1,4 +1,5 @@
 ﻿using MeoMeo.Application.IServices;
+using MeoMeo.Contract.Commons;
 using MeoMeo.Contract.DTOs;
 using MeoMeo.Domain.Entities;
 using MeoMeo.Domain.IRepositories;
@@ -19,28 +20,6 @@ namespace MeoMeo.Application.Services
         {
             _iventoryTranSactionRepository = inventoryTranSactionRepository;
         }
-        public Task<InventoryTransaction> CreateAsync(InventoryTranSactionDTO dto)
-        {
-            try
-            {
-                var inventoryTransaction = new InventoryTransaction
-                {
-                    Id = dto.Id,
-                    InventoryBatchId = dto.InventoryBatchId,
-                    Quantity = dto.Quantity,
-                    CreationTime = dto.CreationTime,
-                    CreateBy = dto.CreateBy,
-                    Type = dto.Type,
-                    Note = dto.Note
-                };
-                return _iventoryTranSactionRepository.CreateAsync(inventoryTransaction);
-            }
-            catch (Exception ex)
-            {
-                throw new Exception("An error occurred while creating the inventory transaction.", ex);
-            }
-        }
-
         public async Task<bool> DeleteAsync(Guid id)
         {
             var phat = await _iventoryTranSactionRepository.GetByIdAsync(id);
@@ -56,27 +35,81 @@ namespace MeoMeo.Application.Services
         {
             return await _iventoryTranSactionRepository.GetAllAsync();
         }
-
-        public async Task<InventoryTransaction> GetByIdAsync(Guid id)
+        async Task<CreateOrUpdateInventoryTranSactionResponse> IIventoryTranSactionServices.CreateAsync(InventoryTranSactionDTO dto)
         {
-            var phat = await _iventoryTranSactionRepository.GetByIdAsync(id);
-            return phat;
+            CreateOrUpdateInventoryTranSactionResponse response = new CreateOrUpdateInventoryTranSactionResponse();
+            var inventoryTransaction = new InventoryTransaction
+            {
+                Id = Guid.NewGuid(),
+                InventoryBatchId = dto.InventoryBatchId,
+                Quantity = dto.Quantity,
+                CreationTime = dto.CreationTime,
+                CreateBy = dto.CreateBy,
+                Type = dto.Type,
+                Note = dto.Note
+            };
+            await _iventoryTranSactionRepository.CreateAsync(inventoryTransaction);
+            response.Id = inventoryTransaction.Id;
+            response.InventoryBatchId = inventoryTransaction.InventoryBatchId;
+            response.Quantity = inventoryTransaction.Quantity;
+            response.CreationTime = inventoryTransaction.CreationTime;
+            response.CreateBy = inventoryTransaction.CreateBy;
+            response.Type = inventoryTransaction.Type;
+            response.Note = inventoryTransaction.Note;
+            response.Message = "Tạo lịch sử lô nhập thành công.";
+            response.ResponseStatus = BaseStatus.Success;
+            return response;
         }
 
-        public async Task<InventoryTransaction> UpdateAsync(Guid id, InventoryTranSactionDTO dto)
+        async Task<CreateOrUpdateInventoryTranSactionResponse> IIventoryTranSactionServices.GetByIdAsync(Guid id)
         {
-            var phat = await _iventoryTranSactionRepository.GetByIdAsync(id);
-            if (phat == null)
+            CreateOrUpdateInventoryTranSactionResponse response = new CreateOrUpdateInventoryTranSactionResponse();
+            var getTransaction = await _iventoryTranSactionRepository.GetByIdAsync(id);
+            if (getTransaction == null)
             {
-                throw new Exception("Inventory transaction not found.");
+                response.Message = "Không tìm thấy lịch sử lô nhập này.";
+                response.ResponseStatus = BaseStatus.Error;
+                return response;
             }
-            phat.InventoryBatchId = dto.InventoryBatchId;
-            phat.Quantity = dto.Quantity;
-            phat.CreationTime = dto.CreationTime;
-            phat.CreateBy = dto.CreateBy;
-            phat.Type = dto.Type;
-            phat.Note = dto.Note;
-            return await _iventoryTranSactionRepository.UpdateAsync(id, phat);
+            response.InventoryBatchId = getTransaction.InventoryBatchId;
+            response.Quantity = getTransaction.Quantity;
+            response.CreationTime = getTransaction.CreationTime;
+            response.CreateBy = getTransaction.CreateBy;
+            response.Type = getTransaction.Type;
+            response.Note = getTransaction.Note;
+            response.Id = getTransaction.Id;
+            response.Message = "Lấy lịch sử lô nhập thành công.";
+            response.ResponseStatus = BaseStatus.Success;
+            return response;
+        }
+
+        async Task<CreateOrUpdateInventoryTranSactionResponse> IIventoryTranSactionServices.UpdateAsync(Guid id, InventoryTranSactionDTO dto)
+        {
+            CreateOrUpdateInventoryTranSactionResponse response = new CreateOrUpdateInventoryTranSactionResponse();
+            var getTransaction = await _iventoryTranSactionRepository.GetByIdAsync(id);
+            if(getTransaction == null)
+            {
+                response.Message = "Không tìm thấy lịch sử lô nhập này.";
+                response.ResponseStatus = BaseStatus.Error;
+                return response;
+            }
+            getTransaction.InventoryBatchId = dto.InventoryBatchId;
+            getTransaction.Quantity = dto.Quantity;
+            getTransaction.CreationTime = dto.CreationTime;
+            getTransaction.CreateBy = dto.CreateBy;
+            getTransaction.Type = dto.Type;
+            getTransaction.Note = dto.Note;
+            await _iventoryTranSactionRepository.UpdateAsync(id, getTransaction);
+            response.Id = getTransaction.Id;
+            response.InventoryBatchId = getTransaction.InventoryBatchId;
+            response.Quantity = getTransaction.Quantity;
+            response.CreationTime = getTransaction.CreationTime;
+            response.CreateBy = getTransaction.CreateBy;
+            response.Type = getTransaction.Type;
+            response.Note = getTransaction.Note;
+            response.Message = "Cập nhật lịch sử lô nhập thành công.";
+            response.ResponseStatus = BaseStatus.Success;
+            return response;
         }
     }
 }

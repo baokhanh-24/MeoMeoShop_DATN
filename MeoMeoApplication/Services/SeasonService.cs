@@ -1,3 +1,4 @@
+
 ﻿using AutoMapper;
 using MeoMeo.Application.IServices;
 using MeoMeo.Contract.Commons;
@@ -27,6 +28,7 @@ namespace MeoMeo.Application.Services
             _mapper = mapper;
             _unitOfWork = unitOfWork;
         }
+
 
         public async Task<PagingExtensions.PagedResult<SeasonDTO>> GetAllSeasonsAsync(GetListSeasonRequestDTO request)
         {
@@ -99,10 +101,9 @@ namespace MeoMeo.Application.Services
 
         public async Task<CreateOrUpdateSeasonResponseDTO> UpdateSeasonAsync(CreateOrUpdateSeasonDTO dto)
         {
-            await _unitOfWork.BeginTransactionAsync();
+          
 
-            try
-            {
+            
                 var exists = await _seasonRepository.AnyAsync(x => x.Name == dto.Name && x.Id != dto.Id);
                 if (exists)
                 {
@@ -115,7 +116,7 @@ namespace MeoMeo.Application.Services
 
                 var seasonUpdate = await _seasonRepository.GetSeasonByIDAsync(dto.Id);
                 if (seasonUpdate == null)
-                {
+                { 
                     return new CreateOrUpdateSeasonResponseDTO
                     {
                         ResponseStatus = BaseStatus.Error,
@@ -126,22 +127,9 @@ namespace MeoMeo.Application.Services
                 _mapper.Map(dto, seasonUpdate);
 
                 var result = await _seasonRepository.UpdateSeasonAsync(seasonUpdate);
-
-                await _unitOfWork.SaveChangesAsync();
-                await _unitOfWork.CommitAsync();
-
                 return _mapper.Map<CreateOrUpdateSeasonResponseDTO>(result);
             }
-            catch (Exception ex)
-            {
-                await _unitOfWork.RollbackAsync();
-                return new CreateOrUpdateSeasonResponseDTO
-                {
-                    ResponseStatus = BaseStatus.Error,
-                    Message = ex.Message
-                };
-            }
-        }
+            
 
         public async Task<bool> DeleteSeasonAsync(Guid id)
         {
@@ -153,5 +141,12 @@ namespace MeoMeo.Application.Services
             await _seasonRepository.DeleteSeasonAsync(seasonDelete.Id);
             return true;
         }
+
+
+        public async Task<IEnumerable<Season>> GetAllSeasonsAsync()
+        {
+            return await _seasonRepository.GetSeasonsAsync();
+        }
+
     }
 }

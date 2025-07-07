@@ -1,4 +1,4 @@
-﻿using MeoMeo.Contract.DTOs;
+﻿using MeoMeo.Contract.DTOs.Product;
 using MeoMeo.Domain.Entities;
 using System;
 using System.Collections.Generic;
