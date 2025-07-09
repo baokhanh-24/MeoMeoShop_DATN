@@ -11,6 +11,10 @@ namespace MeoMeo.EntityFrameworkCore.Configurations
             builder.ToTable("Orders");
             builder.HasKey(x => x.Id);
             builder.Property(x => x.EmployeeName).HasMaxLength(100).HasColumnType("nvarchar(100)");
+            builder.Property(x => x.Code)
+                .HasMaxLength(20);
+            builder.HasIndex(x => x.Code)
+                .IsUnique();
             builder.Property(x => x.CustomerName).HasMaxLength(100).HasColumnType("nvarchar(100)");
             builder.Property(x => x.EmployeePhoneNumber).HasMaxLength(12).HasColumnType("varchar(12)");
             builder.Property(x => x.CustomerPhoneNumber).HasMaxLength(12).HasColumnType("varchar(12)");

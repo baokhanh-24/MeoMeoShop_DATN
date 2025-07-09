@@ -10,6 +10,7 @@ namespace MeoMeo.Domain.Entities
         public Guid? VoucherId { get; set; }
         public Guid? DeliveryAddressId { get; set; }
         public string EmployeeName { get; set; }
+        public string Code { get; set; }
         public string CustomerName { get; set; }
         public string EmployeePhoneNumber { get; set; }
         public string CustomerPhoneNumber { get; set; }

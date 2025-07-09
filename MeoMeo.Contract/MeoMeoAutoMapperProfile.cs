@@ -1,5 +1,7 @@
 ﻿using AutoMapper;
 using MeoMeo.Contract.DTOs;
+using MeoMeo.Contract.DTOs.Order;
+using MeoMeo.Contract.DTOs.OrderDetail;
 using MeoMeo.Contract.DTOs.Product;
 using MeoMeo.Contract.DTOs.ProductDetail;
 using MeoMeo.Domain.Entities;
@@ -39,7 +41,6 @@ namespace MeoMeo.Contract
             CreateMap<ProductDetaillColourDTO, ProductDetailColour>();
             CreateMap<SizeDTO, Size>();
             CreateMap<ProductDetaillSizeDTO, ProductDetailSize>();
-            CreateMap<CreateOrUpdateOrderDTO, Order>();
             CreateMap<CreateOrUpdateOrderDetailDTO, OrderDetail>();
             CreateMap<CreateOrUpdateDeliveryAddressDTO, DeliveryAddress>();
             CreateMap<CreateOrUpdateProvinceDTO, Province>();
@@ -55,7 +56,6 @@ namespace MeoMeo.Contract
             CreateMap<User, CreateOrUpdateUserResponseDTO>();
             CreateMap<Employee, CreateOrUpdateEmployeeResponseDTO>();
             CreateMap<CreateOrUpdateDistrictDTO, District>();
-            CreateMap<Order, CreateOrUpdateOrderResponse>();
             CreateMap<Customers, CreateOrUpdateCustomerResponse>();
             CreateMap<Customers, CustomerDTO>();
             CreateMap<Bank, BankDTO>();
@@ -67,6 +67,8 @@ namespace MeoMeo.Contract
             CreateMap<CreateOrUpdateEmployeeDTO, Employee>();
             CreateMap<CreateOrUpdateEmployeeResponseDTO, Employee>();
             CreateMap<Employee, CreateOrUpdateEmployeeResponseDTO>();
+            CreateMap<Order,OrderDTO>();
+            CreateMap<OrderDetail,OrderDetailDTO>();
         }
 
     }

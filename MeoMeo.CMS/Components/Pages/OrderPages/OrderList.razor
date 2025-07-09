@@ -1,0 +1,119 @@
+@page "/manage-order"
+@using MeoMeo.Contract.DTOs.Order
+@using MeoMeo.Contract.DTOs.OrderDetail
+@using MeoMeo.Domain.Commons.Enums
+@using MeoMeo.CMS.IServices
+
+@inject IOrderClientService OrderClientService
+
+<Table @ref="orderTable" TItem="OrderDTO" DataSource="orders" RowExpandable="@(order => order.Data != null)">
+   
+    <ColumnDefinitions>
+        <PropertyColumn Property="o => o.Code" Title="Mã đơn hàng" />
+        <PropertyColumn Property="o => o.CustomerName" Title="Khách hàng" />
+        <PropertyColumn Property="o => o.CustomerPhoneNumber" Title="Số điện thoại" />
+        <PropertyColumn Property="o => o.CreationTime" Title="Thời gian đặt hàng" />
+        <PropertyColumn Property="o => o.DeliveryDate" Title="Thời gian giao hàng" />
+        <PropertyColumn Property="o => o.TotalPrice" Title="Tổng tiền (đ)" />
+       
+        <Column TData="OrderDTO" Title="Phương thức thanh toán">
+                @GetPaymentMethodName(context.PaymentMethod)
+        </Column>
+        <Column TData="OrderDTO" Title="Trạng thái">
+                @GetStatusName(context.Status)
+        </Column>
+        <ActionColumn Title="Thao tác" Width="150">
+            <CellRender Context="cellData">
+                <Tooltip Title="Sửa">
+                    <Button Size="ButtonSize.Small" Shape="ButtonShape.Circle">
+                        <i class="fas fa-pen"></i>
+                    </Button>
+                </Tooltip>               
+                
+                <Popconfirm Title=@($"Bạn có chắc muốn xóa khách hàng ?")
+                           
+                            OkText="Đồng ý"
+                            CancelText="Hủy">
+
+                    <Tooltip Title="Xóa">
+                        <Button Size="ButtonSize.Small" Danger Shape="ButtonShape.Circle">
+                            <i class="fas fa-minus"></i>
+                        </Button>
+                    </Tooltip>
+                </Popconfirm>
+            </CellRender>
+        </ActionColumn>
+    </ColumnDefinitions>
+    <ExpandTemplate>
+        @if (context.Data.OrderDetails.Any())
+        {
+            <Table TItem="OrderDetailDTO" DataSource="(context.Data.OrderDetails)" Size="TableSize.Middle">
+                <ColumnDefinitions Context="detailContext">
+                    <PropertyColumn Property="d => d.ProductName" Title="Tên sản phẩm" />
+                    <PropertyColumn Property="d => d.Sku" Title="SKU" />
+                    <PropertyColumn Property="d => d.Quantity" Title="Số lượng" />
+                    <PropertyColumn Property="d => d.Price" Title="Giá" />
+                    <PropertyColumn Property="d => d.Discount" Title="Giảm giá" />
+                    <PropertyColumn Property="d => d.Note" Title="Ghi chú" />
+                </ColumnDefinitions>
+            </Table>
+        }
+        else
+        {
+            <span>Không có chi tiết đơn hàng</span>
+        }
+    </ExpandTemplate>
+</Table>
+
+<Button OnClick="()=> orderTable.ExpandAll()" Class="mr-1">Expand All</Button>
+<Button OnClick="()=> orderTable.CollapseAll()">Collapse All</Button>
+
+@code {
+    ITable orderTable;
+    List<OrderDTO> orders = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadOrdersAsync();
+    }
+
+    private async Task LoadOrdersAsync()
+    {
+        var filter = new GetListOrderRequestDTO
+        {
+            PageIndex = 1,
+            PageSize = 10
+        };
+        var response = await OrderClientService.GetListOrderAsync(filter);
+        orders = response.Items ?? new List<OrderDTO>();
+        await InvokeAsync(StateHasChanged);
+    }
+
+    void OnExpand(OrderDTO order)
+    {
+        // Xử lý khi expand row nếu cần
+    }
+
+    string GetPaymentMethodName(EOrderPaymentMethod method)
+    {
+        return method switch
+        {
+            EOrderPaymentMethod.Cash => "Tiền mặt",
+            EOrderPaymentMethod.Transfer => "Chuyển khoản",
+            _ => method.ToString()
+        };
+    }
+
+    string GetStatusName(EOrderStatus status)
+    {
+        return status switch
+        {
+            EOrderStatus.Pending => "Chờ xác nhận",
+            EOrderStatus.Confirmed => "Đã xác nhận",
+            EOrderStatus.InTransit => "Đang giao",
+            EOrderStatus.Canceled => "Đã huỷ",
+            EOrderStatus.Completed => "Hoàn thành",
+            _ => status.ToString()
+        };
+    }
+}

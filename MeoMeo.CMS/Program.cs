@@ -25,6 +25,7 @@ builder.Services.AddScoped<IInventoryBatchClientService, InventoryBatchClientSer
 builder.Services.AddScoped<ISizeClientService, SizeClientService>();
 builder.Services.AddScoped<IMaterialClientService, MaterialClientService>();
 builder.Services.AddScoped<IEmployeesClientService, EmployeesClientService>();
+builder.Services.AddScoped<IOrderClientService,OrderClientService>();
 
 builder.Services.AddHttpClient<IApiCaller, ApiCaller>(client =>
 {
