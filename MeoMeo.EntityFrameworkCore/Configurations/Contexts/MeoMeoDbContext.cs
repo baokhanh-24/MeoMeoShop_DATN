@@ -42,6 +42,7 @@ namespace MeoMeo.EntityFrameworkCore.Configurations.Contexts
         public DbSet<SystemConfig> systemConfigs { get; set; }
         public DbSet<User> users { get; set; }
         public DbSet<Voucher> vouchers { get; set; }
+        public DbSet<OrderDetailInventoryBatch> OrderDetailInventoryBatches { get; set; }
 
         protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
         {
@@ -83,6 +84,8 @@ namespace MeoMeo.EntityFrameworkCore.Configurations.Contexts
             modelBuilder.ApplyConfiguration(new SystemConfigConfiguration());
             modelBuilder.ApplyConfiguration(new UserConfiguration());
             modelBuilder.ApplyConfiguration(new VoucherConfiguration());
+            modelBuilder.ApplyConfiguration(new OrderDetailInventoryBatchConfiguration());
+
         }
     }
 }

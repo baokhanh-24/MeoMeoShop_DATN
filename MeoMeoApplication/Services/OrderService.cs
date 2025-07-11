@@ -1,5 +1,6 @@
 ﻿using AutoMapper;
 using MeoMeo.Application.IServices;
+using MeoMeo.Contract.BusinessRules;
 using MeoMeo.Contract.Commons;
 using MeoMeo.Contract.DTOs;
 using MeoMeo.Contract.DTOs.Order;
@@ -14,26 +15,25 @@ namespace MeoMeo.Application.Services
 {
     public class OrderService : IOrderService
     {
-        private readonly IOrderRepository _orderRepository;
+        private readonly IIventoryBtachReposiory _inventoryRepository;
+        private readonly IProductsDetailRepository _productsDetailRepository;
+        private readonly IInventoryTranSactionRepository _inventoryTransactionRepository;
         private readonly IOrderDetailRepository _orderDetailRepository;
+        private readonly IOrderRepository _orderRepository;
         private readonly IMapper _mapper;
+        private readonly IUnitOfWork _unitOfWork;
 
-        public OrderService(IOrderRepository orderRepository, IMapper mapper,
-            IOrderDetailRepository orderDetailRepository)
+        public OrderService(IIventoryBtachReposiory inventoryRepository, IOrderRepository orderRepository, IMapper mapper, IOrderDetailRepository orderDetailRepository, IInventoryTranSactionRepository inventoryTransactionRepository, IProductsDetailRepository productsDetailRepository, IUnitOfWork unitOfWork)
         {
+            _inventoryRepository = inventoryRepository;
             _orderRepository = orderRepository;
             _mapper = mapper;
             _orderDetailRepository = orderDetailRepository;
+            _inventoryTransactionRepository = inventoryTransactionRepository;
+            _productsDetailRepository = productsDetailRepository;
+            _unitOfWork = unitOfWork;
         }
-
-        // public async Task<Order> CreateOrderAsync(CreateOrUpdateOrderDTO order)
-        // {
-        //     var mappedOrder = _mapper.Map<Order>(order);
-        //     mappedOrder.Id = Guid.NewGuid();
-        //     var result = await _orderRepository.CreateOrderAsync(mappedOrder);
-        //     return result;
-        // }
-
+        
 
         public async Task<PagingExtensions.PagedResult<OrderDTO>> GetListOrderAsync(GetListOrderRequestDTO request)
         {
@@ -98,7 +98,7 @@ namespace MeoMeo.Application.Services
                 }
 
                 query = query.OrderByDescending(o => o.CreationTime);
-                var pagedOrders = await _orderRepository.GetPagedAsync(query, request.PageIndex, request.PageSize);
+                var pagedOrders = await  _orderRepository.GetPagedAsync(query, request.PageIndex, request.PageSize);
 
                 var dtoItems = _mapper.Map<List<OrderDTO>>(pagedOrders.Items);
                 var listOrderIds = dtoItems.Select(c => c.Id).ToList();
@@ -146,6 +146,128 @@ namespace MeoMeo.Application.Services
             }
         }
 
+        public async Task<UpdateStatusOrderResponseDTO> UpdateStatusOrderAsync(UpdateStatusOrderRequestDTO request)
+        {
+            try
+            {
+          
+                    await _unitOfWork.BeginTransactionAsync();
+                    var orders = await _orderRepository.Query().Where(c => request.OrderIds.Contains(c.Id)).ToListAsync();
+                    if (!orders.Any())
+                    {
+                        return new UpdateStatusOrderResponseDTO()
+                            { Message = "Không tìm thấy đơn hàng", ResponseStatus = BaseStatus.Error };
+                    }
+
+                    foreach (var order in orders)
+                    {
+                        if (!OrderValidator.CanTransition(order.Status, request.Status))
+                        {
+                            return new UpdateStatusOrderResponseDTO
+                            {
+                                Message = OrderValidator.GetErrorMessage(order.Status, request.Status),
+                                ResponseStatus = BaseStatus.Error
+                            };
+                        }
+                    }
+                    var listOrderDetails = await _orderDetailRepository.Query().Where(c => request.OrderIds.Contains(c.OrderId)).ToListAsync();
+                    var groupedByProduct = listOrderDetails
+                        .GroupBy(od => od.ProductDetailId)
+                        .Select(g => new {
+                            ProductDetailId = g.Key,
+                            TotalQuantity = g.Sum(od => od.Quantity)
+                        }).ToList();
+                    
+                    var productDetailMap = await _productsDetailRepository.Query()
+                        .Where(p => groupedByProduct.Select(g => g.ProductDetailId).Contains(p.Id))
+                        .ToDictionaryAsync(p => p.Id, p => p.Sku);
+                    var insufficientStocks = new Dictionary<string, int>();
+
+                    if (request.Status == EOrderStatus.Confirmed)
+                    {
+                        foreach (var item in groupedByProduct)
+                        {
+                            int quantityToDeduct = item.TotalQuantity;
+
+                            var inventoryBatches = await _inventoryRepository.Query()
+                                .Where(b => b.ProductDetailId == item.ProductDetailId && b.Quantity > 0 &&b.Status==EInventoryBatchStatus.Aprroved)
+                                .OrderBy(b => b.CreationTime)
+                                .ToListAsync();
+
+                            foreach (var batch in inventoryBatches)
+                            {
+                                if (quantityToDeduct == 0) break;
+
+                                int deduct = Math.Min(batch.Quantity, quantityToDeduct);
+                                batch.Quantity -= deduct;
+                                quantityToDeduct -= deduct;
+
+                                await _inventoryRepository.UpdateAsync(batch);
+
+                                await _inventoryTransactionRepository.AddAsync(new InventoryTransaction
+                                {
+                                    InventoryBatchId = batch.Id,
+                                    Quantity = deduct,
+                                    CreationTime = DateTime.Now,
+                                    Type = EInventoryTranctionType.Export
+                                });
+                            }
+
+                            if (quantityToDeduct > 0)
+                            {
+                                var sku = productDetailMap.ContainsKey(item.ProductDetailId)
+                                    ? productDetailMap[item.ProductDetailId]
+                                    : $"ProductDetailId={item.ProductDetailId}";
+
+                                if (insufficientStocks.ContainsKey(sku))
+                                    insufficientStocks[sku] += quantityToDeduct;
+                                else
+                                    insufficientStocks[sku] = quantityToDeduct;
+                            }
+                        }
+                        if (insufficientStocks.Any())
+                        {
+                            var message = "Không đủ tồn kho cho các sản phẩm: " +
+                                          string.Join(", ", insufficientStocks.Select(kvp => $"{kvp.Key} thiếu {kvp.Value}"));
+                            return new UpdateStatusOrderResponseDTO
+                            {
+                                Message = message,
+                                ResponseStatus = BaseStatus.Error
+                            };
+                        }
+       
+                    }
+                    else if (request.Status == EOrderStatus.Canceled)
+                    {
+                        
+                    }
+                    orders.ForEach(o =>
+                    {
+                        o.Status = request.Status;
+                        o.LastModifiedTime = DateTime.Now;
+                    });
+                    await _orderRepository.UpdateRangeAsync(orders);
+                    await _unitOfWork.CommitAsync();
+                    return new UpdateStatusOrderResponseDTO()
+                        { Message = "", ResponseStatus = BaseStatus.Success };
+                    
+            }
+            catch (Exception ex)
+            {
+                await _unitOfWork.RollbackAsync();
+                return new UpdateStatusOrderResponseDTO
+                {
+                    Message = ex.Message,
+                    ResponseStatus = BaseStatus.Error
+                };
+            }
+        }
+
+        public Task<BaseResponse> CreateOrderAsync(CreateOrderDTO request)
+        {
+            throw new NotImplementedException();
+        }
+
         public async Task<bool> DeleteOrderAsync(Guid id)
         {
             var checkOrder = await _orderRepository.GetOrderByIdAsync(id);
@@ -158,11 +280,6 @@ namespace MeoMeo.Application.Services
                 await _orderRepository.DeleteOrderAsync(checkOrder);
                 return true;
             }
-        }
-
-        public Task<IEnumerable<Order>> GetAllAsync()
-        {
-            return _orderRepository.GetAllAsync();
         }
 
         // public async Task<CreateOrUpdateOrderResponse> GetOrderByIdAsync(Guid id)
