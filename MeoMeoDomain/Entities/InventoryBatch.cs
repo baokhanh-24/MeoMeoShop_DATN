@@ -13,6 +13,7 @@ namespace MeoMeo.Domain.Entities
         public EInventoryBatchStatus Status { get; set; }
         public virtual ProductDetail ProductDetail { get; set; }
         public virtual ICollection<InventoryTransaction> InventoryTransactions { get; set; }
-        public virtual ICollection<OrderDetail> OrderDetails { get; set; }
+        public virtual ICollection<OrderDetailInventoryBatch> OrderDetailInventoryBatches { get; set; } = new List<OrderDetailInventoryBatch>();
+
     }
 }

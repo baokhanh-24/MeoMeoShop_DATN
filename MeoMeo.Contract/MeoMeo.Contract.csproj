@@ -40,8 +40,6 @@
     <Folder Include="DTOs\Province\" />
     <Folder Include="DTOs\Promotion\" />
     <Folder Include="DTOs\PromotionDetail\" />
-    <Folder Include="DTOs\Order\" />
-    <Folder Include="DTOs\OrderDetail\" />
   </ItemGroup>
 
 </Project>

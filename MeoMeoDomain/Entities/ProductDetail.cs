@@ -25,6 +25,8 @@ namespace MeoMeo.Domain.Entities
         public virtual ICollection<ProductDetailColour> ProductDetailColours { get; set; }
         public virtual ICollection<ProductDetailSize> ProductDetailSizes { get; set; }
         public virtual ICollection<ProductDetailMaterial> ProductDetailMaterials { get; set; }
+        
+        public virtual ICollection<PromotionDetail> PromotionDetails { get; set; }
         public virtual ICollection<Image> Images { get; set; }
     }
 }
