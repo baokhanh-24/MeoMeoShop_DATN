@@ -2,14 +2,15 @@
 @using System
 @using System.ComponentModel.DataAnnotations
 @using System.Reflection
+@using MeoMeo.CMS.IServices
 @using MeoMeo.CMS.Services
-@using MeoMeo.Contract.DTOs
 @using MeoMeo.Contract.Commons
+@using MeoMeo.Contract.DTOs
+@using MeoMeo.Contract.DTOs.InventoryBatch
 @using MeoMeo.Contract.DTOs.Product
 @using MeoMeo.Contract.DTOs.ProductDetail
 @using MeoMeo.Domain.Commons
 @using MeoMeo.Domain.Commons.Enums
-@using MeoMeo.CMS.IServices
 @using MeoMeo.Utilities
 @inject MessageModalService MessageModalService
 @inject IApiCaller Http
@@ -21,17 +22,18 @@
         <BreadcrumbItem Href="/">Trang chủ</BreadcrumbItem>
         <BreadcrumbItem Href="/manage-inventoryBatch">Quản lý lô nhập</BreadcrumbItem>
     </Breadcrumb>
-   @*  <Button OnClick="AddNewInventoryBatch" Type="ButtonType.Primary" Class="mb-2">
-        <i class="fas fa-plus"></i> Thêm mới
-    </Button> *@
     <div class="">
         <a href="/InventoryBatchCreate" class="btn btn-primary">Thêm mới</a>
     </div>
 </div>
 <p></p>
 <div class="d-flex justify-content-end gap-3 mb-2">
-    <Input AllowClear="true" @bind-Value="filter.CodeFilter" Placeholder="Nhập mã" OnClear="OnFilterChanged" />
-    <Input AllowClear="true" @bind-Value="filter.NoteFilter" Placeholder="Nhập mô tả" OnClear="OnFilterChanged" />
+    <div Style="width: 400px">
+        <Input AllowClear="true" @bind-Value="filter.CodeFilter" Placeholder="Nhập mã" OnClear="OnFilterChanged" />
+    </div>
+    <div Style="width: 400px">
+        <Input AllowClear="true" @bind-Value="filter.NoteFilter" Placeholder="Nhập mô tả" OnClear="OnFilterChanged" />
+    </div>  
     <div style="width: 150px">
         <Select TItem="(EInventoryBatchStatus Value, string Name)"
                 TItemValue="EInventoryBatchStatus?"

@@ -1,9 +1,11 @@
 ﻿using AutoMapper;
 using MeoMeo.Application.IServices;
 using MeoMeo.Contract.Commons;
-using MeoMeo.Contract.DTOs;
+using MeoMeo.Contract.DTOs.Promotion;
+using MeoMeo.Domain.Commons;
 using MeoMeo.Domain.Entities;
 using MeoMeo.Domain.IRepositories;
+using Microsoft.EntityFrameworkCore;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -26,7 +28,7 @@ namespace MeoMeo.Application.Services
         public async Task<Promotion> CreatePromotionAsync(CreateOrUpdatePromotionDTO promotion)
         {
             var mappedPromotion = _mapper.Map<Promotion>(promotion);
-            mappedPromotion.Id = Guid.NewGuid();
+            //mappedPromotion.Id = Guid.NewGuid();
             return await _repository.CreatePromotionAsync(mappedPromotion);
         }
 
@@ -45,9 +47,46 @@ namespace MeoMeo.Application.Services
 
         }
 
-        public async Task<List<Promotion>> GetAllPromotionAsync()
+        public async Task<PagingExtensions.PagedResult<CreateOrUpdatePromotionDTO>> GetAllPromotionAsync(GetListPromotionRequestDTO request)
         {
-            return await _repository.GetAllPromotionAsync();
+            try
+            {
+                var query = _repository.Query();
+                if (!string.IsNullOrEmpty(request.TitleFilter))
+                {
+                    query = query.Where(c => EF.Functions.Like(c.Title, $"%{request.TitleFilter}%"));
+                }
+                if (request.StartDateFilter != null)
+                {
+                    query = query.Where(c => c.StartDate.HasValue && DateOnly.FromDateTime(c.StartDate.Value) == request.StartDateFilter.Value);
+                }
+                if (request.EndDateFilter != null)
+                {
+                    query = query.Where(c => c.EndDate.HasValue && DateOnly.FromDateTime(c.EndDate.Value) == request.EndDateFilter.Value);
+                }
+                if (!string.IsNullOrEmpty(request.DescriptionFilter))
+                {
+                    query = query.Where(c => EF.Functions.Like(c.Description, $"%{request.DescriptionFilter}%"));
+                }
+                if (request.StatusFilter != null)
+                {
+                    query = query.Where(c => c.Status == request.StatusFilter);
+                }
+                var filteredPromotion = await _repository.GetPagedAsync(query, request.PageIndex, request.PageSize);
+                var dtoItems = _mapper.Map<List<CreateOrUpdatePromotionDTO>>(filteredPromotion.Items);
+                return new PagingExtensions.PagedResult<CreateOrUpdatePromotionDTO>
+                {
+                    TotalRecords = filteredPromotion.TotalRecords,
+                    PageIndex = filteredPromotion.PageIndex,
+                    PageSize = filteredPromotion.PageSize,
+                    Items = dtoItems
+                };
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine(ex.Message);
+                throw;
+            }
         }
 
         public async Task<CreateOrUpdatePromotionResponseDTO> GetPromotionByIdAsync(Guid id)

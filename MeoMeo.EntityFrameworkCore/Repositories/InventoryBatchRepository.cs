@@ -11,7 +11,7 @@ using System.Threading.Tasks;
 
 namespace MeoMeo.EntityFrameworkCore.Repositories
 {
-    public class InventoryBatchRepository : BaseRepository<InventoryBatch>, IIventoryBtachReposiory
+    public class InventoryBatchRepository : BaseRepository<InventoryBatch>, IIventoryBatchReposiory
     {
         public InventoryBatchRepository(MeoMeoDbContext context) : base(context)
         {

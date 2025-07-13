@@ -1,0 +1,421 @@
+﻿@* @page "/promotion-create"
+@using MeoMeo.CMS.IServices
+@using MeoMeo.CMS.Services
+@using MeoMeo.Contract.Commons
+@using MeoMeo.Contract.DTOs.Promotion
+@using MeoMeo.Contract.DTOs.PromotionDetail
+@using MeoMeo.Contract.DTOs.ProductDetail
+@using MeoMeo.Domain.Commons.Enums
+@inject IPromotionClientService PromotionService
+@inject IPromotionDetailClientService PromotionDetailService
+@inject IProductDetailClientService ProductDetailService
+@inject NavigationManager Navigation
+
+<h3>Thêm mới chương trình khuyến mãi</h3>
+
+<EditForm Model="promotion" OnValidSubmit="HandleSave">
+    <DataAnnotationsValidator />
+    <ValidationSummary />
+
+    <div class="row">
+        <div class="col-md-6">
+            <InputText @bind-Value="promotion.Title" class="form-control" placeholder="Tên chương trình" />
+            <InputDate @bind-Value="promotion.StartDate" class="form-control mt-2" placeholder="Bắt đầu" />
+            <InputDate @bind-Value="promotion.EndDate" class="form-control mt-2" placeholder="Kết thúc" />
+            <InputTextArea @bind-Value="promotion.Description" class="form-control mt-2" placeholder="Mô tả" />
+        </div>
+    </div>
+
+    <h5 class="mt-4">Danh sách sản phẩm khuyến mãi</h5>
+
+    <div class="table-responsive">
+        <table class="table table-bordered">
+            <thead>
+                <tr>
+                    <th>STT</th>
+                    <th>Mã SP</th>
+                    <th>Tên sản phẩm</th>
+                    <th>Giá gốc</th>
+                    <th>% Giảm</th>
+                    <th>Giá sau giảm</th>
+                    <th>Mô tả</th>
+                    <th></th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var item in selectedProducts)
+                {
+                    var discountedPrice = item.OriginalPrice * (1 - item.Discount / 100);
+                    <tr>
+                        <td>@(selectedProducts.IndexOf(item) + 1)</td>
+                        <td>@item.ProductCode</td>
+                        <td>@item.ProductName</td>
+                        <td>@item.OriginalPrice.ToString("N0")</td>
+                        <td>
+                            <AntDesign.InputNumber @bind-Value="item.Discount" class="form-control" Min="0" Max="100" />
+                        </td>
+                        <td>@discountedPrice.ToString("N0")</td>
+                        <td>
+                            <InputText @bind-Value="item.Note" class="form-control" />
+                        </td>
+                        <td>
+                            <button class="btn btn-danger btn-sm" @onclick="() => RemoveProduct(item.ProductDetailId)">X</button>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+
+    <h5 class="mt-4">Danh sách sản phẩm</h5>
+
+    <div class="d-flex gap-2 mb-3">
+        <select @bind="selectedProductId" class="form-select">
+            <option value="">-- Chọn sản phẩm --</option>
+            @foreach (var p in allProducts)
+            {
+                <option value="@p.Id">@p.Sku - @p.ProductName</option>
+            }
+        </select>
+        <button type="button" class="btn btn-success" @onclick="AddProduct">Thêm</button>
+    </div>
+
+    <div class="mt-4 d-flex justify-content-end gap-2">
+        <button class="btn btn-secondary" @onclick="Huy">Huỷ</button>
+        <button class="btn btn-primary" type="submit">Lưu</button>
+    </div>
+</EditForm>
+
+@code {
+    @inject IProductDetailClientService ProductDetailClientService
+    private CreateOrUpdatePromotionDTO promotion = new();
+    private CreateOrUpdateProductDetailDTO promotionDetail = new();
+    private List<PromotionProductViewModel> selectedProducts = new();
+    private List<ProductDetailDTO> allProducts = new();
+    private Guid selectedProductId;
+    private string message = "";
+    private bool isSuccess = false;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var request = new GetListProductDetailRequestDTO(); // Có thể thêm bộ lọc nếu cần
+        var result = await ProductDetailClientService.GetAllProductDetailAsync(request);
+        allProducts = result.Items;
+    }
+    private void Huy()
+    {
+        Navigation.NavigateTo("/");
+    }
+    private void AddProduct()
+    {
+        if (selectedProductId == Guid.Empty || selectedProducts.Any(p => p.ProductDetailId == selectedProductId))
+            return;
+
+        var product = allProducts.FirstOrDefault(p => p.Id == selectedProductId);
+        if (product != null)
+        {
+            selectedProducts.Add(new PromotionProductViewModel
+            {
+                ProductDetailId = product.Id,
+                ProductName = product.ProductName,
+                ProductCode = product.Sku,
+                OriginalPrice = product.Price,
+                Discount = 0
+            });
+        }
+    }
+
+    private void RemoveProduct(Guid productId)
+    {
+        selectedProducts.RemoveAll(p => p.ProductDetailId == productId);
+    }
+
+    private async Task HandleSave()
+    {
+        // 1. Kiểm tra tất cả ProductDetailId có hợp lệ không
+        var validProducts = new List<PromotionProductViewModel>();
+        foreach (var item in selectedProducts)
+        {
+            var productDetail = await ProductDetailService.GetProductDetailByIdAsync(item.ProductDetailId);
+            if (productDetail != null && productDetail.Id == item.ProductDetailId)
+            {
+                validProducts.Add(item);
+            }
+            else
+            {
+                Console.WriteLine($"❌ ProductDetailId {item.ProductDetailId} không tồn tại trong hệ thống");
+            }
+        }
+
+        if (validProducts.Count == 0)
+        {
+            message = "Không có sản phẩm hợp lệ để thêm.";
+            isSuccess = false;
+            return;
+        }
+
+        // 2. Tạo Promotion
+        promotion.Id = Guid.NewGuid();
+        promotion.Status = EPromotionStatus.Draft;
+        promotion.CreationTime = DateTime.Now;
+
+        var promotionResult = await PromotionService.CreatePromotionAsync(promotion);
+        if (promotionResult.ResponseStatus != BaseStatus.Success)
+        {
+            message = $"❌ Lỗi khi tạo Promotion: {promotionResult.Message}";
+            isSuccess = false;
+            return;
+        }
+
+        // 3. Tạo các PromotionDetail
+        foreach (var item in validProducts)
+        {
+            var detail = new CreateOrUpdatePromotionDetailDTO
+            {
+                Id = Guid.NewGuid(),
+                PromotionId = promotion.Id,
+                ProductDetailId = item.ProductDetailId,
+                Discount = item.Discount,
+                Note = item.Note,
+                CreationTime = DateTime.UtcNow,
+                LastModificationTime = DateTime.UtcNow
+            };
+
+            var result = await PromotionDetailService.CreateAsync(detail);
+            if (result.ResponseStatus != BaseStatus.Success)
+            {
+                Console.WriteLine($"❌ Lỗi khi thêm PromotionDetail: {result.Message}");
+            }
+            else
+            {
+                Console.WriteLine("✅ Thêm thành công PromotionDetail");
+            }
+        }
+
+        // Thành công
+        message = "Thêm chương trình khuyến mãi thành công!";
+        isSuccess = true;
+        Navigation.NavigateTo("/manage-promotion");
+    }
+
+    public class PromotionProductViewModel
+    {
+        public Guid ProductDetailId { get; set; }
+        public string ProductCode { get; set; }
+        public string ProductName { get; set; }
+        public float OriginalPrice { get; set; }
+        public string Note { get; set; }
+        public float Discount { get; set; }
+    }
+}
+ *@
+@page "/promotion-create"
+@using MeoMeo.CMS.IServices
+@using MeoMeo.CMS.Services
+@using MeoMeo.Contract.Commons
+@using MeoMeo.Contract.DTOs.Promotion
+@using MeoMeo.Contract.DTOs.PromotionDetail
+@using MeoMeo.Contract.DTOs.ProductDetail
+@using MeoMeo.Domain.Commons.Enums
+@inject IPromotionClientService PromotionService
+@inject IPromotionDetailClientService PromotionDetailService
+@inject IProductDetailClientService ProductDetailService
+@inject NavigationManager Navigation
+
+<h3>Thêm mới chương trình khuyến mãi</h3>
+
+<EditForm Model="promotion" OnValidSubmit="HandleSave">
+    <DataAnnotationsValidator />
+    <ValidationSummary />
+
+    <div class="row">
+        <div class="col-md-6">
+            <InputText @bind-Value="promotion.Title" class="form-control" placeholder="Tên chương trình" />
+            <InputDate @bind-Value="promotion.StartDate" class="form-control mt-2" placeholder="Bắt đầu" />
+            <InputDate @bind-Value="promotion.EndDate" class="form-control mt-2" placeholder="Kết thúc" />
+            <InputTextArea @bind-Value="promotion.Description" class="form-control mt-2" placeholder="Mô tả" />
+        </div>
+    </div>
+
+    <h5 class="mt-4">Danh sách sản phẩm khuyến mãi</h5>
+
+    <div class="table-responsive">
+        <table class="table table-bordered">
+            <thead>
+                <tr>
+                    <th>STT</th>
+                    <th>Mã SP</th>
+                    <th>Tên sản phẩm</th>
+                    <th>Giá gốc</th>
+                    <th>% Giảm</th>
+                    <th>Giá sau giảm</th>
+                    <th>Mô tả</th>
+                    <th></th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var item in selectedProducts)
+                {
+                    var discountedPrice = item.OriginalPrice * (1 - item.Discount / 100);
+                    <tr>
+                        <td>@(selectedProducts.IndexOf(item) + 1)</td>
+                        <td>@item.ProductCode</td>
+                        <td>@item.ProductName</td>
+                        <td>@item.OriginalPrice.ToString("N0")</td>
+                        <td>
+                            <AntDesign.InputNumber @bind-Value="item.Discount" class="form-control" Min="0" Max="100" />
+                        </td>
+                        <td>@discountedPrice.ToString("N0")</td>
+                        <td>
+                            <InputText @bind-Value="item.Note" class="form-control" />
+                        </td>
+                        <td>
+                            <button class="btn btn-danger btn-sm" @onclick="() => RemoveProduct(item.ProductDetailId)">X</button>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+
+    <h5 class="mt-4">Danh sách sản phẩm</h5>
+
+    <div class="d-flex gap-2 mb-3">
+        <select @bind="selectedProductId" class="form-select">
+            <option value="">-- Chọn sản phẩm --</option>
+            @foreach (var p in allProducts)
+            {
+                <option value="@p.Id">@p.Sku - @p.ProductName</option>
+            }
+        </select>
+        <button type="button" class="btn btn-success" @onclick="AddProduct">Thêm</button>
+    </div>
+
+    <div class="mt-4 d-flex justify-content-end gap-2">
+        <button class="btn btn-secondary" @onclick="Huy">Huỷ</button>
+        <button class="btn btn-primary" type="submit">Lưu</button>
+    </div>
+</EditForm>
+
+@code {
+    private CreateOrUpdatePromotionDTO promotion = new();
+    private List<PromotionProductViewModel> selectedProducts = new();
+    private List<ProductDetailDTO> allProducts = new();
+    private Guid selectedProductId;
+    private string message = "";
+    private bool isSuccess = false;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var request = new GetListProductDetailRequestDTO(); // Có thể thêm bộ lọc nếu cần
+        var result = await ProductDetailService.GetAllProductDetailAsync(request);
+        allProducts = result.Items;
+    }
+
+    private void Huy()
+    {
+        Navigation.NavigateTo("/manage-promotion");
+    }
+
+    private void AddProduct()
+    {
+        if (selectedProductId == Guid.Empty || selectedProducts.Any(p => p.ProductDetailId == selectedProductId))
+            return;
+
+        var product = allProducts.FirstOrDefault(p => p.Id == selectedProductId);
+        if (product != null)
+        {
+            selectedProducts.Add(new PromotionProductViewModel
+            {
+                ProductDetailId = product.Id,
+                ProductName = product.ProductName,
+                ProductCode = product.Sku,
+                OriginalPrice = product.Price,
+                Discount = 0
+            });
+        }
+    }
+
+    private void RemoveProduct(Guid productId)
+    {
+        selectedProducts.RemoveAll(p => p.ProductDetailId == productId);
+    }
+
+    private async Task HandleSave()
+    {
+        // 1. Kiểm tra tất cả ProductDetailId có hợp lệ không
+        var validProducts = new List<PromotionProductViewModel>();
+        foreach (var item in selectedProducts)
+        {
+            var productDetail = await ProductDetailService.GetProductDetailByIdAsync(item.ProductDetailId);
+            if (productDetail != null && productDetail.Id == item.ProductDetailId)
+            {
+                validProducts.Add(item);
+            }
+            else
+            {
+                Console.WriteLine($"❌ ProductDetailId {item.ProductDetailId} không tồn tại trong hệ thống");
+            }
+        }
+
+        if (validProducts.Count == 0)
+        {
+            message = "Không có sản phẩm hợp lệ để thêm.";
+            isSuccess = false;
+            return;
+        }
+
+        // 2. Tạo Promotion
+        promotion.Id = Guid.NewGuid();
+        promotion.Status = EPromotionStatus.Draft;
+        promotion.CreationTime = DateTime.Now;
+
+        var promotionResult = await PromotionService.CreatePromotionAsync(promotion);
+        if (promotionResult.ResponseStatus != BaseStatus.Success)
+        {
+            message = $"❌ Lỗi khi tạo Promotion: {promotionResult.Message}";
+            isSuccess = false;
+            return;
+        }
+
+        // 3. Tạo các PromotionDetail
+        foreach (var item in validProducts)
+        {
+            var detail = new CreateOrUpdatePromotionDetailDTO
+            {
+                Id = Guid.NewGuid(),
+                PromotionId = promotion.Id,
+                ProductDetailId = item.ProductDetailId,
+                Discount = item.Discount,
+                Note = item.Note,
+                CreationTime = DateTime.UtcNow,
+                LastModificationTime = DateTime.UtcNow
+            };
+
+            var result = await PromotionDetailService.CreateAsync(detail);
+            if (result.ResponseStatus != BaseStatus.Success)
+            {
+                Console.WriteLine($"❌ Lỗi khi thêm PromotionDetail: {result.Message}");
+            }
+            else
+            {
+                Console.WriteLine("✅ Thêm thành công PromotionDetail");
+            }
+        }
+
+        // Thành công
+        message = "Thêm chương trình khuyến mãi thành công!";
+        isSuccess = true;
+        Navigation.NavigateTo("/manage-promotion");
+    }
+
+    public class PromotionProductViewModel
+    {
+        public Guid ProductDetailId { get; set; }
+        public string ProductCode { get; set; }
+        public string ProductName { get; set; }
+        public float OriginalPrice { get; set; }
+        public string Note { get; set; }
+        public float Discount { get; set; }
+    }
+}

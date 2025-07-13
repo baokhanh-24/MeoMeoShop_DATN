@@ -2,12 +2,12 @@
 using MeoMeo.CMS.IServices;
 using MeoMeo.Contract.Commons;
 using MeoMeo.Contract.DTOs;
+using MeoMeo.Contract.DTOs.InventoryBatch;
 using MeoMeo.Domain.Commons;
 using MeoMeo.Domain.Entities;
 using MeoMeo.Utilities;
 using System.Linq.Expressions;
 using System.Threading.Tasks;
-using static MeoMeo.Domain.Commons.PagingExtensions;
 
 namespace MeoMeo.CMS.Services
 {

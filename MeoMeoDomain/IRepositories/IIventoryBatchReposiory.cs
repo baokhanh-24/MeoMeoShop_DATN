@@ -8,7 +8,7 @@ using System.Threading.Tasks;
 
 namespace MeoMeo.Domain.IRepositories
 {
-    public interface IIventoryBtachReposiory : IBaseRepository<InventoryBatch>
+    public interface IIventoryBatchReposiory : IBaseRepository<InventoryBatch>
     {
         Task<List<InventoryBatch>> GetAllBatchAsync();
         Task<InventoryBatch> GetBatchByIdAsync(Guid id);

@@ -2,6 +2,7 @@
 using MeoMeo.Application.IServices;
 using MeoMeo.Contract.Commons;
 using MeoMeo.Contract.DTOs;
+using MeoMeo.Contract.DTOs.InventoryBatch;
 using MeoMeo.Domain.Commons;
 using MeoMeo.Domain.Entities;
 using MeoMeo.Domain.IRepositories;
@@ -17,9 +18,9 @@ namespace MeoMeo.Application.Services
 {
     public class InventoryBatchService : IInventoryBatchServices
     {
-        private readonly IIventoryBtachReposiory _inventoryBatchRepository;
+        private readonly IIventoryBatchReposiory _inventoryBatchRepository;
         private readonly IMapper _mapper;
-        public InventoryBatchService(IIventoryBtachReposiory iventoryBtachReposiory, IMapper mapper)
+        public InventoryBatchService(IIventoryBatchReposiory iventoryBtachReposiory, IMapper mapper)
         {
             _inventoryBatchRepository = iventoryBtachReposiory;
             _mapper = mapper;
