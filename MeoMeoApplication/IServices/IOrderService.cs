@@ -8,8 +8,9 @@ namespace MeoMeo.Application.IServices
 {
     public interface IOrderService
     {
-        Task<PagingExtensions.PagedResult<OrderDTO>> GetListOrderAsync(GetListOrderRequestDTO  request);
-        Task<UpdateStatusOrderResponseDTO> UpdateStatusOrderAsync(UpdateStatusOrderRequestDTO request);
+        Task<PagingExtensions.PagedResult<OrderDTO, GetListOrderResponseDTO>> GetListOrderAsync(
+            GetListOrderRequestDTO request);
+        Task<BaseResponse> UpdateStatusOrderAsync(UpdateStatusOrderRequestDTO request);
         Task<BaseResponse> CreateOrderAsync(CreateOrderDTO request);
         // Task<Order> GetOrderByIdAsync(Guid id);
         // Task<Order> CreateOrderAsync(CreateOrUpdateOrderDTO order);

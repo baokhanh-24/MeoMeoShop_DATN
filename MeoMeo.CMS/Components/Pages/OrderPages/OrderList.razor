@@ -1,37 +1,77 @@
 @page "/manage-order"
+@using AntDesign.TableModels
 @using MeoMeo.Contract.DTOs.Order
 @using MeoMeo.Contract.DTOs.OrderDetail
 @using MeoMeo.Domain.Commons.Enums
 @using MeoMeo.CMS.IServices
-
 @inject IOrderClientService OrderClientService
+<div class="d-flex justify-content-between">
+    <Breadcrumb>
+        <BreadcrumbItem Href="/">Trang chủ</BreadcrumbItem>
+        <BreadcrumbItem Href="/manage-order">Quản lý đơn hàng</BreadcrumbItem>
+    </Breadcrumb>
+    <div>
+        <Button OnClick="()=>ExpandCollapseOrder()" Type="ButtonType.Primary" Class="mb-2">
+            <i class="fa-solid @(isExpaned ? "fa-minimize" : "fa-up-right-and-down-left-from-center")"></i>
+            @(isExpaned ? " Thu gọn" : " Mở rộng")
+        </Button>
 
-<Table @ref="orderTable" TItem="OrderDTO" DataSource="orders" RowExpandable="@(order => order.Data != null)">
-   
+        @if (selectedRows != null && selectedRows.Any()  && filter.OrderStatusFilter == EOrderStatus.Pending)
+        {
+            <Popconfirm
+                Title=@($"Bạn có chắc chắn muốn phê duyệt đơn hàng {string.Join(",", selectedRows.Select(c => c.Code))}")
+                OnConfirm="() => ConfirmOrder()"
+                OkText="Đồng ý"
+                CancelText="Hủy">
+                <Button Type="ButtonType.Primary" Class="mb-2">
+                    Xác nhận
+                </Button>
+            </Popconfirm>
+        }
+
+
+    </div>
+</div>
+<Tabs DefaultActiveKey="All" @bind-ActiveKey="@activeTab" OnChange="OnTabChange">
+    <TabPane Key="All" Tab=@($"Tất cả ({metaData.TotalAll})")/>
+    <TabPane Key="Pending" Tab=@($"Chờ xác nhận ({metaData.Pending})")/>
+    <TabPane Key="Confirmed" Tab=@($"Đã xác nhận ({metaData.Confirmed})")/>
+    <TabPane Key="Confirmed" Tab=@($"Đã xác nhận ({metaData.Confirmed})")/>
+    <TabPane Key="InTransit" Tab=@($"Đang giao ({metaData.InTransit})")/>
+    <TabPane Key="Canceled" Tab=@($"Đã huỷ ({metaData.Canceled})")/>
+    <TabPane Key="Completed" Tab=@($"Hoàn thành ({metaData.Completed})")/>
+</Tabs>
+<Table @ref="orderTable" OnChange="@OnPageChange" PageSize="@filter.PageSize" Total="@totalRecords"
+       @bind-SelectedRows="selectedRows" RowKey="x => x.Id" TItem="OrderDTO" DataSource="orders"
+       RowExpandable="@(order => order.Data != null)">
     <ColumnDefinitions>
-        <PropertyColumn Property="o => o.Code" Title="Mã đơn hàng" />
-        <PropertyColumn Property="o => o.CustomerName" Title="Khách hàng" />
-        <PropertyColumn Property="o => o.CustomerPhoneNumber" Title="Số điện thoại" />
-        <PropertyColumn Property="o => o.CreationTime" Title="Thời gian đặt hàng" />
-        <PropertyColumn Property="o => o.DeliveryDate" Title="Thời gian giao hàng" />
-        <PropertyColumn Property="o => o.TotalPrice" Title="Tổng tiền (đ)" />
-       
+        @if (activeTab != "All")
+        {
+            <Selection Type="@selectionType"/>
+        }
+        <PropertyColumn Property="o => o.Code" Title="Mã đơn hàng"/>
+        <PropertyColumn Property="o => o.CustomerName" Title="Khách hàng"/>
+        <PropertyColumn Property="o => o.CustomerPhoneNumber" Title="Số điện thoại"/>
+        <PropertyColumn Property="o => o.CreationTime" Title="Thời gian đặt hàng"/>
+        <PropertyColumn Property="o => o.DeliveryDate" Title="Thời gian giao hàng"/>
+        <PropertyColumn Property="o => o.TotalPrice" Title="Tổng tiền (đ)"/>
+
         <Column TData="OrderDTO" Title="Phương thức thanh toán">
-                @GetPaymentMethodName(context.PaymentMethod)
+            @GetPaymentMethodName(context.PaymentMethod)
         </Column>
         <Column TData="OrderDTO" Title="Trạng thái">
-                @GetStatusName(context.Status)
+            @GetStatusName(context.Status)
         </Column>
-        <ActionColumn Title="Thao tác" Width="150">
+        <ActionColumn Title="Thao tác" Class="text-end gap-2" Width="150">
             <CellRender Context="cellData">
                 <Tooltip Title="Sửa">
                     <Button Size="ButtonSize.Small" Shape="ButtonShape.Circle">
                         <i class="fas fa-pen"></i>
                     </Button>
-                </Tooltip>               
-                
+                </Tooltip>
+
                 <Popconfirm Title=@($"Bạn có chắc muốn xóa khách hàng ?")
-                           
+
                             OkText="Đồng ý"
                             CancelText="Hủy">
 
@@ -47,16 +87,98 @@
     <ExpandTemplate>
         @if (context.Data.OrderDetails.Any())
         {
-            <Table TItem="OrderDetailDTO" DataSource="(context.Data.OrderDetails)" Size="TableSize.Middle">
-                <ColumnDefinitions Context="detailContext">
-                    <PropertyColumn Property="d => d.ProductName" Title="Tên sản phẩm" />
-                    <PropertyColumn Property="d => d.Sku" Title="SKU" />
-                    <PropertyColumn Property="d => d.Quantity" Title="Số lượng" />
-                    <PropertyColumn Property="d => d.Price" Title="Giá" />
-                    <PropertyColumn Property="d => d.Discount" Title="Giảm giá" />
-                    <PropertyColumn Property="d => d.Note" Title="Ghi chú" />
-                </ColumnDefinitions>
-            </Table>
+            <div class="row">
+                <div class="col-3">
+                    <div class="space-coverage">
+                        <div class="title mb-2">
+                            Thông tin nhận hàng
+                        </div>
+                        <div class="d-flex justify-content-between">
+                            <div class="left-content">
+                                Họ tên
+                            </div>
+                            <div class="right-content">
+                                @context.Data.CustomerName
+                            </div>
+                        </div>
+                        <hr/>
+                        <div class="d-flex justify-content-between">
+                            <div class="left-content">
+                                Điện thoại
+                            </div>
+                            <div class="right-content">
+                                @context.Data.CustomerPhoneNumber
+                            </div>
+                        </div>
+                        <hr/>
+                        <div class="d-flex justify-content-between">
+                            <div class="left-content">
+                                Địa chỉ
+                            </div>
+                            <div class="right-content">
+                                @context.Data.DeliveryAddress
+                            </div>
+                        </div>
+                        <hr/>
+                        <div class="d-flex justify-content-between">
+                            <div class="left-content">
+                                Ghi chú
+                            </div>
+                            <div class="right-content">
+                                @context.Data.Note
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-9">
+                    <div class="space-coverage">
+                        <Table TItem="OrderDetailDTO" DataSource="(context.Data.OrderDetails)" Size="TableSize.Middle">
+                            <ColumnDefinitions Context="detailContext">
+                                <PropertyColumn Property="d => d.ProductName" Title="Tên sản phẩm"/>
+                                <PropertyColumn Property="d => d.Sku" Title="SKU"/>
+                                <PropertyColumn Property="d => d.Quantity" Title="Số lượng"/>
+                                <PropertyColumn Property="d => d.Price" Title="Giá"/>
+                                <PropertyColumn Property="d => d.Discount" Title="Giảm giá"/>
+                                <PropertyColumn Property="d => d.GrandTotal" Title="Thành tiền"/>
+                                <PropertyColumn Property="d => d.Note" Title="Ghi chú"/>
+                            </ColumnDefinitions>
+                        </Table>
+                        <div class="row">
+                            <div class="col-8">
+
+                            </div>
+                            <div class="col-4">
+                                <div class="d-flex justify-content-between">
+                                    <div class="left-content">
+                                        Cộng thành tiền:
+                                    </div>
+                                    <div class="right-content">
+                                        @context.Data.OrderDetails.Sum(c => c.GrandTotal);
+                                    </div>
+                                </div>
+                                <div class="d-flex justify-content-between">
+                                    <div class="left-content">
+                                        Phí vận chuyển:
+
+                                    </div>
+                                    <div class="right-content">
+                                        0
+                                    </div>
+                                </div>
+                                <div class="d-flex justify-content-between">
+                                    <div class="left-content">
+                                        Mã giảm giá:
+                                    </div>
+                                    <div class="right-content">
+                                        - @context.Data.
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
         }
         else
         {
@@ -65,33 +187,93 @@
     </ExpandTemplate>
 </Table>
 
-<Button OnClick="()=> orderTable.ExpandAll()" Class="mr-1">Expand All</Button>
-<Button OnClick="()=> orderTable.CollapseAll()">Collapse All</Button>
+
 
 @code {
     ITable orderTable;
     List<OrderDTO> orders = new();
+    private string activeTab = "All";
+    private GetListOrderResponseDTO metaData = new();
+    private int totalRecords = 0;
+    private bool isExpaned = false;
+    IEnumerable<OrderDTO> selectedRows;
+    SelectionType selectionType = SelectionType.Checkbox;
+
+    private async void ExpandCollapseOrder()
+    {
+        isExpaned = !isExpaned;
+        if (isExpaned)
+        {
+            orderTable.ExpandAll();
+        }
+        else
+        {
+            orderTable.CollapseAll();
+        }
+
+        await InvokeAsync(StateHasChanged);
+    }
+
+    private async Task ConfirmOrder()
+    {
+    }
+
+    private async Task CompleteOrder()
+    {
+    }
+
+    private async Task CancelOrder()
+    {
+    }
+
+    private async Task OnPageChange(QueryModel<OrderDTO> query)
+    {
+        filter.PageIndex = query.PageIndex;
+        filter.PageSize = query.PageSize;
+        await LoadOrdersAsync();
+    }
+
+    GetListOrderRequestDTO filter = new GetListOrderRequestDTO()
+    {
+        PageIndex = 1,
+        PageSize = 10,
+        CodeFilter = "",
+        CustomerNameFilter = null,
+        CustomerPhoneNumberFilter = "",
+        CustomerEmailFilter = "",
+        CreationDateStartFilter = null,
+        CreationDateEndFilter = null,
+        PaymentMethodFilter = null,
+        OrderStatusFilter = null
+    };
 
     protected override async Task OnInitializedAsync()
     {
         await LoadOrdersAsync();
     }
 
-    private async Task LoadOrdersAsync()
+    private async Task OnTabChange()
     {
-        var filter = new GetListOrderRequestDTO
+        if (activeTab == "All")
         {
-            PageIndex = 1,
-            PageSize = 10
-        };
-        var response = await OrderClientService.GetListOrderAsync(filter);
-        orders = response.Items ?? new List<OrderDTO>();
+            filter.OrderStatusFilter = null;
+        }
+        else if (Enum.TryParse<EOrderStatus>(activeTab, out var status))
+        {
+            filter.OrderStatusFilter = status;
+        }
+
+        await LoadOrdersAsync();
         await InvokeAsync(StateHasChanged);
     }
 
-    void OnExpand(OrderDTO order)
+    private async Task LoadOrdersAsync()
     {
-        // Xử lý khi expand row nếu cần
+        var response = await OrderClientService.GetListOrderAsync(filter);
+        orders = response.Items ?? new List<OrderDTO>();
+        metaData = response.Metadata;
+        totalRecords = response.TotalRecords;
+        await InvokeAsync(StateHasChanged);
     }
 
     string GetPaymentMethodName(EOrderPaymentMethod method)
@@ -116,4 +298,5 @@
             _ => status.ToString()
         };
     }
+
 }
