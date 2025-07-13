@@ -1,7 +1,9 @@
 ﻿using AutoMapper;
 using MeoMeo.Contract.DTOs;
+using MeoMeo.Contract.DTOs.Material;
 using MeoMeo.Contract.DTOs.Product;
 using MeoMeo.Contract.DTOs.ProductDetail;
+using MeoMeo.Contract.DTOs.Size;
 using MeoMeo.Domain.Entities;
 
 namespace MeoMeo.Contract

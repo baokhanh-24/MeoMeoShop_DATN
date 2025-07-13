@@ -9,13 +9,12 @@ using System.Threading.Tasks;
 
 namespace MeoMeo.Application.IServices
 {
-    public interface IUserServices
+    public interface IUserService
     {
         Task<List<User>> GetAllUserAsync();
         Task<CreateOrUpdateUserResponseDTO> GetUserByIdAsync(Guid id);
         Task<User> CreateUserAsync(CreateOrUpdateUserDTO user);
         Task<CreateOrUpdateUserResponseDTO> UpdateUserAsync(CreateOrUpdateUserDTO user);
         Task<bool> DeleteUserAsync(Guid id);
-        Task<CreateOrUpdateUserResponseDTO> ChangePasswordAsync(ChangePasswordRequestDTO request);
     }
 }

@@ -15,38 +15,17 @@ using System.Threading.Tasks;
 
 namespace MeoMeo.Application.Services
 {
-    public class UserServices : IUserServices
+    public class UserService : IUserService
     {
         private readonly IUserRepository _repository;
         private readonly IMapper _mapper;
 
-        public UserServices(IUserRepository repository, IMapper mapper)
+        public UserService(IUserRepository repository, IMapper mapper)
         {
             _repository = repository;
             _mapper = mapper;
         }
 
-        public async Task<CreateOrUpdateUserResponseDTO> ChangePasswordAsync(ChangePasswordRequestDTO request)
-        {
-            var user = await _repository.GetUserByIdAsync(request.UserId);
-            if (user == null)
-            {
-                return new CreateOrUpdateUserResponseDTO
-                {
-                    ResponseStatus = BaseStatus.Error,
-                    Message = "Tài khỏan không tồn tại."
-                };
-            }
-
-            user.PasswordHash = BCrypt.Net.BCrypt.HashPassword(request.NewPassword);
-            await _repository.UpdateUserAsync(user);
-
-            return new CreateOrUpdateUserResponseDTO
-            {
-                ResponseStatus = BaseStatus.Success,
-                Message = "Đổi mật khẩu thành công."
-            };
-        }
 
         public async Task<User> CreateUserAsync(CreateOrUpdateUserDTO user)
         {

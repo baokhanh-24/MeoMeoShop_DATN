@@ -1,6 +1,7 @@
 ﻿using MeoMeo.CMS.IServices;
 using MeoMeo.Contract.Commons;
 using MeoMeo.Contract.DTOs;
+using MeoMeo.Contract.DTOs.Material;
 using MeoMeo.Domain.Commons;
 using MeoMeo.Utilities;
 
@@ -111,6 +112,24 @@ namespace MeoMeo.CMS.Services
                 {
                     ResponseStatus = BaseStatus.Error,
                     Message = "Có lỗi xảy ra khi cập nhật chất liệu"
+                };
+            }
+        }
+
+        public async Task<CreateOrUpdateMaterialResponse> UpdateMaterialStatusAsync(UpdateStatusRequestDTO dto)
+        {
+            try
+            {
+                var url = "api/Materials/update-status";
+                var result = await _httpClient.PutAsync<UpdateStatusRequestDTO, CreateOrUpdateMaterialResponse>(url, dto);
+                return result ?? new CreateOrUpdateMaterialResponse { ResponseStatus = BaseStatus.Error, Message = "Không có phản hồi từ server." };
+            }
+            catch (Exception ex)
+            {
+                return new CreateOrUpdateMaterialResponse
+                {
+                    ResponseStatus = BaseStatus.Error,
+                    Message = $"Lỗi khi gọi API: {ex.Message}"
                 };
             }
         }

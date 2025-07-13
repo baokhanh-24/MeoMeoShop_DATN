@@ -13,7 +13,7 @@ using System.Threading.Tasks;
 
 namespace MeoMeo.Application.Services
 {
-    public class SeasonService : ISeasonServices
+    public class SeasonService : ISeasonService
     {
         private readonly ISeasonRepository _seasonRepository;
         public SeasonService(ISeasonRepository seasonRepository)
@@ -56,7 +56,7 @@ namespace MeoMeo.Application.Services
             return response;
         }
 
-        async Task<CreateOrUpdateSeasonResponse> ISeasonServices.CreateSeasonAsync(SeasonDTO dto)
+        async Task<CreateOrUpdateSeasonResponse> ISeasonService.CreateSeasonAsync(SeasonDTO dto)
         {
             CreateOrUpdateSeasonResponse response = new CreateOrUpdateSeasonResponse();
             var newseason = new Season
@@ -77,7 +77,7 @@ namespace MeoMeo.Application.Services
         }
 
 
-        async Task<CreateOrUpdateSeasonResponse> ISeasonServices.UpdateSeasonAsync(SeasonDTO dto)
+        async Task<CreateOrUpdateSeasonResponse> ISeasonService.UpdateSeasonAsync(SeasonDTO dto)
         {
             CreateOrUpdateSeasonResponse response = new CreateOrUpdateSeasonResponse();
             var getId = await _seasonRepository.GetSeasonByID(dto.Id);

@@ -1,4 +1,5 @@
 ﻿using MeoMeo.Contract.DTOs;
+using MeoMeo.Contract.DTOs.Size;
 using MeoMeo.Domain.Commons;
 using MeoMeo.Domain.Entities;
 using System;
@@ -15,6 +16,7 @@ namespace MeoMeo.Application.IServices
         Task<SizeResponseDTO> GetSizeByIdAsync(Guid id);
         Task<SizeResponseDTO> CreateSizeAsync(SizeDTO sizeDTO);
         Task<SizeResponseDTO> UpdateSizeAsync(SizeDTO sizeDTO);
+        Task<SizeResponseDTO> UpdateSizeStatusAsync(UpdateSizeStatusRequestDTO dto);
         Task<SizeResponseDTO> DeleteSizeAsync(Guid id);
     }
 }

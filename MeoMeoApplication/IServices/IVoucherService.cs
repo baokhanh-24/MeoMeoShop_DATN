@@ -8,7 +8,7 @@ using System.Threading.Tasks;
 
 namespace MeoMeo.Application.IServices
 {
-    public interface IVoucherServices
+    public interface IVoucherService
     {
         Task<List<Voucher>> GetAllVoucherAsync();
         Task<CreateOrUpdateVoucherResponseDTO> GetVoucherByIdAsync(Guid id);

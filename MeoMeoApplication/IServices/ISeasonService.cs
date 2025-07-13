@@ -8,7 +8,7 @@ using System.Threading.Tasks;
 
 namespace MeoMeo.Application.IServices
 {
-    public interface ISeasonServices 
+    public interface ISeasonService 
     {
         Task<IEnumerable<Season>> GetAllSeasonsAsync();
         Task<CreateOrUpdateSeasonResponse> GetSeasonByIdAsync(Guid id);
