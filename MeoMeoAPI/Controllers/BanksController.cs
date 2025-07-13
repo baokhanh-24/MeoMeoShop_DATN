@@ -10,9 +10,9 @@ namespace MeoMeo.API.Controllers
     [ApiController]
     public class BanksController : ControllerBase
     {
-        private readonly IBankServices _bankServices;
+        private readonly IBankService _bankServices;
 
-        public BanksController(IBankServices bankServices)
+        public BanksController(IBankService bankServices)
         {
             _bankServices = bankServices;
         }

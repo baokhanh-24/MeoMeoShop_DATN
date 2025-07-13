@@ -14,7 +14,7 @@ using System.Threading.Tasks;
 
 namespace MeoMeo.Application.Services
 {
-    public class VoucherServices : IVoucherServices
+    public class VoucherServices : IVoucherService
     {
         private readonly IVoucherRepository _repository;
         private readonly IMapper _mapper;

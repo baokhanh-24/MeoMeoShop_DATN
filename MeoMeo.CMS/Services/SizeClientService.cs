@@ -1,6 +1,7 @@
 ﻿using MeoMeo.CMS.IServices;
 using MeoMeo.Contract.Commons;
 using MeoMeo.Contract.DTOs;
+using MeoMeo.Contract.DTOs.Size;
 using MeoMeo.Domain.Commons;
 using MeoMeo.Utilities;
 
@@ -111,6 +112,29 @@ namespace MeoMeo.CMS.Services
             {
                 _logger.LogError(ex, "Có lỗi xảy ra khi xoá Size Id {Id}: {Message}", id, ex.Message);
                 return false;
+            }
+        }
+
+        public async Task<SizeResponseDTO> UpdateSizeStatusAsync(UpdateSizeStatusRequestDTO dto)
+        {
+            try
+            {
+                var url = "api/Size/update-size-status";
+                var result = await _httpClient.PutAsync<UpdateSizeStatusRequestDTO, SizeResponseDTO>(url, dto);
+                return result ?? new SizeResponseDTO
+                {
+                    ResponseStatus = BaseStatus.Error,
+                    Message = "Không có dữ liệu trả về"
+                };
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Có lỗi xảy ra khi cập nhật trạng thái Size: {Message}", ex.Message);
+                return new SizeResponseDTO
+                {
+                    ResponseStatus = BaseStatus.Error,
+                    Message = "Có lỗi xảy ra khi cập nhật trạng thái Size"
+                };
             }
         }
     }

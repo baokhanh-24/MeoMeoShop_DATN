@@ -5,5 +5,6 @@ namespace MeoMeo.CMS.IServices;
 
 public interface IOrderClientService
 {
-    Task<PagingExtensions.PagedResult<OrderDTO>> GetListOrderAsync(GetListOrderRequestDTO  filter);
+    Task<PagingExtensions.PagedResult<OrderDTO, GetListOrderResponseDTO>> GetListOrderAsync(
+        GetListOrderRequestDTO request);
 }

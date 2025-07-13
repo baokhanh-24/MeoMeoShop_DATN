@@ -8,12 +8,12 @@ using MeoMeo.Domain.IRepositories;
 
 namespace MeoMeo.Application.Services
 {
-    public class UserServices : IUserServices
+    public class UserService : IUserService
     {
         private readonly IUserRepository _repository;
         private readonly IMapper _mapper;
 
-        public UserServices(IUserRepository repository, IMapper mapper)
+        public UserService(IUserRepository repository, IMapper mapper)
         {
             _repository = repository;
             _mapper = mapper;

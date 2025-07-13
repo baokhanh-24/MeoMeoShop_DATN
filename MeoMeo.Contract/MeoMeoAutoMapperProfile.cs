@@ -1,5 +1,6 @@
 ﻿using AutoMapper;
 using MeoMeo.Contract.DTOs;
+using MeoMeo.Contract.DTOs.Material;
 using MeoMeo.Contract.DTOs.Order;
 using MeoMeo.Contract.DTOs.OrderDetail;
 using MeoMeo.Contract.DTOs.InventoryBatch;
@@ -7,6 +8,7 @@ using MeoMeo.Contract.DTOs.Product;
 using MeoMeo.Contract.DTOs.ProductDetail;
 using MeoMeo.Contract.DTOs.Promotion;
 using MeoMeo.Contract.DTOs.PromotionDetail;
+using MeoMeo.Contract.DTOs.Size;
 using MeoMeo.Domain.Entities;
 
 namespace MeoMeo.Contract

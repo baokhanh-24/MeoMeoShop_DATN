@@ -1,4 +1,5 @@
 ﻿using MeoMeo.Contract.DTOs;
+using MeoMeo.Contract.DTOs.Material;
 using MeoMeo.Domain.Commons;
 using System;
 using System.Collections.Generic;
@@ -14,6 +15,7 @@ namespace MeoMeo.Application.IServices
         Task<CreateOrUpdateMaterialResponse> GetMaterialsByIdAsync(Guid id);
         Task<CreateOrUpdateMaterialResponse> CreateMaterialsAsync(CreateOrUpdateMaterialDTO material);
         Task<CreateOrUpdateMaterialResponse> UpdateMaterialsAsync(CreateOrUpdateMaterialDTO material);
+        Task<CreateOrUpdateMaterialResponse> UpdateMaterialStatusAsync(UpdateStatusRequestDTO dto);
         Task<CreateOrUpdateMaterialResponse> DeleteMaterialsAsync(Guid id);
     }
 }

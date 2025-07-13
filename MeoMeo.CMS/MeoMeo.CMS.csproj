@@ -17,9 +17,5 @@
     <ItemGroup>
       <_ContentIncludedByDefault Remove="Components\BaseInputs\SearchTextTrim.razor" />
     </ItemGroup>
-
-    <ItemGroup>
-      <Folder Include="Components\Pages\OrderPages\" />
-    </ItemGroup>
   
 </Project>

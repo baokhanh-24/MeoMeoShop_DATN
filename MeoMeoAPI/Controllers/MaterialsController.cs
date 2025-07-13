@@ -12,6 +12,8 @@ using MeoMeo.Contract.DTOs;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using MeoMeo.Domain.Commons;
 using static MeoMeo.Domain.Commons.PagingExtensions;
+using MeoMeo.Application.Services;
+using MeoMeo.Contract.DTOs.Material;
 
 namespace MeoMeo.API.Controllers
 {
@@ -68,5 +70,13 @@ namespace MeoMeo.API.Controllers
             var result = await _materialServices.DeleteMaterialsAsync(id);
             return Ok(result);
         }
+        [HttpPut("update-status")]
+        public async Task<IActionResult> UpdateStatus([FromBody] UpdateStatusRequestDTO dto)
+        {
+            var result = await _materialServices.UpdateMaterialStatusAsync(dto);
+            return Ok(result);
+        }
+
+
     }
 }

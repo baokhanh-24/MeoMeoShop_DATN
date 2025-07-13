@@ -5,6 +5,7 @@
 @using MeoMeo.Contract.DTOs
 @using MeoMeo.CMS.IServices
 @using MeoMeo.Contract.Commons
+@using MeoMeo.Contract.DTOs.Material
 @using MeoMeo.Domain.Commons.Enums
 @inject MeoMeo.Utilities.MessageModalService MessageModalService
 @rendermode InteractiveServer
@@ -14,12 +15,19 @@
 <div class="d-flex justify-content-between">
     <Breadcrumb>
         <BreadcrumbItem Href="/">Trang chủ</BreadcrumbItem>
-        <BreadcrumbItem Href="/manage-customer">Quản lý kích thước</BreadcrumbItem>
+        <BreadcrumbItem Href="/manage-customer">Quản lý chất liệu</BreadcrumbItem>
     </Breadcrumb>
     <Button OnClick="AddnewMaterial" Type="ButtonType.Primary" Class="mb-2">
         <i class="fas fa-plus"></i> Thêm mới
     </Button>
 </div>
+
+<Tabs @bind-ActiveKey="selectedTab" OnChange="OnTabChanged" Class="mb-3">
+    <TabPane Key="all" Tab="Tất cả" />
+    <TabPane Key="active" Tab="Hoạt động" />
+    <TabPane Key="inactive" Tab="Không hoạt động" />
+    <TabPane Key="deleted" Tab="Đã xóa" />
+</Tabs>
 
 <div class="d-flex justify-content-end gap-3 mb-2">
 
@@ -29,38 +37,38 @@
 
     <div style="width: 150px">
         <Select TItem="(EMaterialDurability Value, string Name)"
-                TItemValue="EMaterialDurability?"
-                AllowClear
-                DataSource="materialDurabilitylist"
-                @bind-Value="filter.DurabilityFilter"
-                Placeholder="Chọn độ bền"
-                ItemValue="c => (EMaterialDurability?)c.Value"
-                ItemLabel="c => c.Name">
+        TItemValue="EMaterialDurability?"
+        AllowClear
+        DataSource="materialDurabilitylist"
+        @bind-Value="filter.DurabilityFilter"
+        Placeholder="Chọn độ bền"
+        ItemValue="c => (EMaterialDurability?)c.Value"
+        ItemLabel="c => c.Name">
         </Select>
     </div>
 
     <div style="width: 150px">
         <Select TItem="(bool Value, string Name)"
-                TItemValue="bool?"
-                AllowClear
-                DataSource="waterProofOptions"
-                @bind-Value="filter.WaterProofFilter"
-                Placeholder="Chống nước"
-                ItemValue="c => c.Value"
-                ItemLabel="c => c.Name">
+        TItemValue="bool?"
+        AllowClear
+        DataSource="waterProofOptions"
+        @bind-Value="filter.WaterProofFilter"
+        Placeholder="Chống nước"
+        ItemValue="c => c.Value"
+        ItemLabel="c => c.Name">
         </Select>
     </div>
 
 
     <div style="width: 150px">
         <Select TItem="(EMaterialWeight Value, string Name)"
-                TItemValue="EMaterialWeight?"
-                AllowClear
-                DataSource="materialWeightlist"
-                @bind-Value="filter.WeightFilter"
-                Placeholder="Chọn trọng lượng"
-                ItemValue="c => (EMaterialWeight?)c.Value"
-                ItemLabel="c => c.Name">
+        TItemValue="EMaterialWeight?"
+        AllowClear
+        DataSource="materialWeightlist"
+        @bind-Value="filter.WeightFilter"
+        Placeholder="Chọn trọng lượng"
+        ItemValue="c => (EMaterialWeight?)c.Value"
+        ItemLabel="c => c.Name">
         </Select>
     </div>
 
@@ -70,13 +78,13 @@
 
     <div style="width: 150px">
         <Select TItem="(EMaterialStatus Value, string Name)"
-                TItemValue="EMaterialStatus?"
-                AllowClear
-                DataSource="materialStatuslist"
-                @bind-Value="filter.StatusFilter"
-                Placeholder="Chọn trạng thái"
-                ItemValue="c => (EMaterialStatus?)c.Value"
-                ItemLabel="c => c.Name">
+        TItemValue="EMaterialStatus?"
+        AllowClear
+        DataSource="materialStatuslist"
+        @bind-Value="filter.StatusFilter"
+        Placeholder="Chọn trạng thái"
+        ItemValue="c => (EMaterialStatus?)c.Value"
+        ItemLabel="c => c.Name">
         </Select>
     </div>
     <Tooltip Title="Tìm kiếm">
@@ -87,6 +95,11 @@
 
 <Table DataSource="listOfData" TItem="CreateOrUpdateMaterialDTO" RowClassName="@(_ => "editable-row")" Bordered TableLayout="fixed">
     <ChildContent Context="data">
+
+        <Column TData="CreateOrUpdateMaterialDTO" Title="STT" Width="70px">
+            @(listOfData.IndexOf(data) + 1)
+        </Column>
+
         <Column TData="string" Title="Tên chất liệu">
             @if (editCache.ContainsKey(data.Id) && !editCache[data.Id].edit)
             {
@@ -107,11 +120,11 @@
             else if (editCache.ContainsKey(data.Id))
             {
                 <Select TItem="(EMaterialDurability Value, string Name)"
-                        TItemValue="EMaterialDurability"
-                        DataSource="materialDurabilitylist"
-                        @bind-Value="editCache[data.Id].data.Durability"
-                        ItemValue="c => c.Value"
-                        ItemLabel="c => c.Name">
+                TItemValue="EMaterialDurability"
+                DataSource="materialDurabilitylist"
+                @bind-Value="editCache[data.Id].data.Durability"
+                ItemValue="c => c.Value"
+                ItemLabel="c => c.Name">
                 </Select>
             }
         </Column>
@@ -121,14 +134,14 @@
             {
                 @(data.WaterProof ? "Chống nước" : "Không Chống nước")
             }
-                else if (editCache.ContainsKey(data.Id))
+            else if (editCache.ContainsKey(data.Id))
             {
                 <Select TItem="(bool Value, string Name)"
-                        TItemValue="bool"
-                        DataSource="waterProofOptions"
-                        @bind-Value="editCache[data.Id].data.WaterProof"
-                        ItemValue="c => c.Value"
-                        ItemLabel="c => c.Name">
+                TItemValue="bool"
+                DataSource="waterProofOptions"
+                @bind-Value="editCache[data.Id].data.WaterProof"
+                ItemValue="c => c.Value"
+                ItemLabel="c => c.Name">
                 </Select>
 
             }
@@ -139,14 +152,14 @@
             {
                 @materialWeightlist.FirstOrDefault(x => x.Value == data.Weight).Name
             }
-                else if (editCache.ContainsKey(data.Id))
+            else if (editCache.ContainsKey(data.Id))
             {
                 <Select TItem="(EMaterialWeight Value, string Name)"
-                        TItemValue="EMaterialWeight"
-                        DataSource="materialWeightlist"
-                        @bind-Value="editCache[data.Id].data.Weight"
-                        ItemValue="c => c.Value"
-                        ItemLabel="c => c.Name">
+                TItemValue="EMaterialWeight"
+                DataSource="materialWeightlist"
+                @bind-Value="editCache[data.Id].data.Weight"
+                ItemValue="c => c.Value"
+                ItemLabel="c => c.Name">
                 </Select>
             }
         </Column>
@@ -156,7 +169,7 @@
             {
                 @data.Description
             }
-                else if (editCache.ContainsKey(data.Id))
+            else if (editCache.ContainsKey(data.Id))
             {
                 <Input MaxLength="500" @bind-Value="editCache[data.Id].data.Description" />
             }
@@ -165,18 +178,20 @@
         <Column TData="EMaterialStatus" Title="Trạng thái">
             @if (editCache.ContainsKey(data.Id) && !editCache[data.Id].edit)
             {
-                @materialStatuslist.FirstOrDefault(x => x.Value == data.StatusEnum).Name
+                @materialStatuslist.FirstOrDefault(x => x.Value == (EMaterialStatus)data.Status).Name
             }
-               else if (editCache.ContainsKey(data.Id))
+            else if (editCache.ContainsKey(data.Id))
             {
                 <Select TItem="(EMaterialStatus Value, string Name)"
                         TItemValue="EMaterialStatus"
                         DataSource="materialStatuslist"
                         @bind-Value="editCache[data.Id].data.StatusEnum"
                         ItemValue="c => c.Value"
-                        ItemLabel="c => c.Name">
+                        ItemLabel="p => p.Name">
                 </Select>
+
             }
+
         </Column>
 
         <ActionColumn Title="Thao tác" Class="text-end gap-2">
@@ -244,7 +259,7 @@
         DescriptionFilter = "",
         StatusFilter = null,
         PageIndex = 1,
-            PageSize = 10
+        PageSize = 10
     };
 
     protected override async Task OnInitializedAsync()
@@ -288,6 +303,24 @@
     {
         await LoadData();
     }
+
+    private string selectedTab = "all";
+
+    private async Task OnTabChanged(string key)
+    {
+        selectedTab = key;
+
+        filter.StatusFilter = key switch
+        {
+            "active" => EMaterialStatus.Active,
+            "inactive" => EMaterialStatus.Inactive,
+            "deleted" => EMaterialStatus.Deleted,
+            _ => null // "all" tab
+        };
+
+        await LoadData();
+    }
+
 
     async Task AddnewMaterial()
     {

@@ -32,5 +32,6 @@ public class OrderDTO
     public string? Reason { get; set; }
     public EOrderStatus Status { get; set; }
     public IEnumerable<OrderDetailDTO> OrderDetails { get; set; } = new List<OrderDetailDTO>();
+    
 
 }

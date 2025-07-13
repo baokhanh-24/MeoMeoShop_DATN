@@ -25,7 +25,7 @@ namespace MeoMeo.EntityFrameworkCore.Configurations
             builder.Property(x => x.Note).HasMaxLength(255).HasColumnType("nvarchar(255)");
             builder.Property(x => x.Reason).HasMaxLength(500).HasColumnType("nvarchar(500)");
             builder.HasOne(x => x.Customers).WithMany(x => x.Orders).HasForeignKey(x => x.CustomerId).OnDelete(DeleteBehavior.NoAction);
-            builder.HasOne(x => x.Employee).WithMany(x => x.Orders).HasForeignKey(x => x.EmployeeId);
+            builder.HasOne(x => x.Employee).WithMany(x => x.Orders).HasForeignKey(x => x.EmployeeId).IsRequired(false);
             builder.HasOne(x => x.Voucher).WithMany(x => x.Orders).HasForeignKey(x => x.VoucherId).IsRequired(false);
             builder.HasOne(x => x.Address).WithMany(x => x.Orders).HasForeignKey(x => x.DeliveryAddressId).IsRequired(false);
         }

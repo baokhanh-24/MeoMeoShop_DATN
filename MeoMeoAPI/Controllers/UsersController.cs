@@ -12,9 +12,9 @@ namespace MeoMeo.API.Controllers
     [ApiController]
     public class UsersController : ControllerBase
     {
-        private readonly IUserServices _userServices;
+        private readonly IUserService _userServices;
 
-        public UsersController(IUserServices userServices)
+        public UsersController(IUserService userServices)
         {
             _userServices = userServices;
         }
@@ -53,19 +53,5 @@ namespace MeoMeo.API.Controllers
             var result = await _userServices.UpdateUserAsync(user);
             return Ok(result);
         }
-        [HttpPut("change-password-async")]
-        public async Task<ActionResult> ChangePassword([FromBody] ChangePasswordRequestDTO request)
-        {
-            Console.WriteLine($"🔁 GỌI API đổi mật khẩu cho UserId: {request.UserId}");
-
-            var result = await _userServices.ChangePasswordAsync(request);
-
-            if (result.ResponseStatus == BaseStatus.Success)
-                return Ok(result.Message);
-
-            return BadRequest(result.Message);
-        }
-
-
     }
 }

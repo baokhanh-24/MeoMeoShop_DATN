@@ -6,7 +6,7 @@ namespace MeoMeo.Domain.Entities
     public class Order : BaseEntity
     {
         public Guid CustomerId { get; set; }
-        public Guid EmployeeId { get; set; }
+        public Guid? EmployeeId { get; set; }
         public Guid? VoucherId { get; set; }
         public Guid? DeliveryAddressId { get; set; }
         public string EmployeeName { get; set; }
