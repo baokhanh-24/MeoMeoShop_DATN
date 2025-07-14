@@ -3,6 +3,8 @@ using Azure.Core;
 using MeoMeo.Application.IServices;
 using MeoMeo.Contract.Commons;
 using MeoMeo.Contract.DTOs;
+using MeoMeo.Contract.DTOs.Material;
+using MeoMeo.Contract.DTOs.Size;
 using MeoMeo.Domain.Commons;
 using MeoMeo.Domain.Entities;
 using MeoMeo.Domain.IRepositories;
@@ -127,6 +129,30 @@ namespace MeoMeo.Application.Services
 
             await _sizeRepository.Update(size);
             return new SizeResponseDTO { ResponseStatus = BaseStatus.Success, Message = "Cập nhật thành công" };
+        }
+
+        public async Task<SizeResponseDTO> UpdateSizeStatusAsync(UpdateSizeStatusRequestDTO dto)
+        {
+            var material = await _sizeRepository.GetSizeById(dto.Id);
+
+            if (material == null)
+            {
+                return new SizeResponseDTO
+                {
+                    ResponseStatus = BaseStatus.Error,
+                    Message = "Không tìm thấy chất liệu."
+                };
+            }
+
+            material.Status = dto.Status;
+
+            await _sizeRepository.Update(material);
+
+            var response = _mapper.Map<SizeResponseDTO>(material);
+            response.ResponseStatus = BaseStatus.Success;
+            response.Message = "Cập nhật trạng thái chất liệu thành công.";
+
+            return response;
         }
     }
 }

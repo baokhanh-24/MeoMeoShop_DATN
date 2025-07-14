@@ -10,9 +10,9 @@ namespace MeoMeo.API.Controllers
     [ApiController]
     public class VouchersController : ControllerBase
     {
-        private readonly IVoucherServices _voucherServices;
+        private readonly IVoucherService _voucherServices;
 
-        public VouchersController(IVoucherServices voucherServices)
+        public VouchersController(IVoucherService voucherServices)
         {
             _voucherServices = voucherServices;
         }

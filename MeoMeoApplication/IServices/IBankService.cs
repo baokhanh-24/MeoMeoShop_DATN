@@ -9,7 +9,7 @@ using System.Threading.Tasks;
 
 namespace MeoMeo.Application.IServices
 {
-    public interface IBankServices
+    public interface IBankService
     {
         Task<PagingExtensions.PagedResult<BankDTO>> GetAllBankAsync(GetListBankRequestDTO request);
         Task<List<Bank>> GetListAllBankAsync();

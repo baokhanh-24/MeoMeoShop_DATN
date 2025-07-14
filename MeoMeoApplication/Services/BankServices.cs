@@ -14,7 +14,7 @@ using System.Threading.Tasks;
 
 namespace MeoMeo.Application.Services
 {
-    public class BankServices : IBankServices
+    public class BankServices : IBankService
     {
         private readonly IBankRepository _repository;
         private readonly IMapper _mapper;

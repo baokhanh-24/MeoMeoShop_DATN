@@ -1,6 +1,7 @@
 ﻿using MeoMeo.Application.IServices;
 using MeoMeo.Application.Services;
-using MeoMeo.Contract.DTOs;
+using MeoMeo.Contract.DTOs.Material;
+using MeoMeo.Contract.DTOs.Size;
 using MeoMeo.Domain.Commons;
 using MeoMeo.Domain.Entities;
 using MeoMeo.Domain.IRepositories;
@@ -54,6 +55,12 @@ namespace MeoMeo.API.Controllers
         public async Task<IActionResult> Delete(Guid id)
         {
             var result = await _sizeService.DeleteSizeAsync(id);
+            return Ok(result);
+        }
+        [HttpPut("update-size-status")]
+        public async Task<IActionResult> UpdateSizeStatus([FromBody] UpdateSizeStatusRequestDTO dto)
+        {
+            var result = await _sizeService.UpdateSizeStatusAsync(dto);
             return Ok(result);
         }
     }
