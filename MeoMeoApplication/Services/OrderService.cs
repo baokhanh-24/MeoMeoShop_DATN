@@ -18,6 +18,7 @@ namespace MeoMeo.Application.Services
         private readonly IIventoryBtachReposiory _inventoryRepository;
         private readonly ICartDetaillRepository _cartDetailRepository;
         private readonly ICartRepository _cartRepository;
+        private readonly IOrderHistoryRepository _orderHistoryRepository;
         private readonly IProductsDetailRepository _productsDetailRepository;
         private readonly IInventoryTranSactionRepository _inventoryTransactionRepository;
         private readonly IOrderDetailRepository _orderDetailRepository;
@@ -30,7 +31,7 @@ namespace MeoMeo.Application.Services
             IMapper mapper, IOrderDetailRepository orderDetailRepository,
             IInventoryTranSactionRepository inventoryTransactionRepository,
             IProductsDetailRepository productsDetailRepository, IUnitOfWork unitOfWork,
-            IOrderDetailInventoryBatchRepository orderDetailInventoryBatchRepository, ICartDetaillRepository cartDetailRepository, ICartRepository cartRepository)
+            IOrderDetailInventoryBatchRepository orderDetailInventoryBatchRepository, ICartDetaillRepository cartDetailRepository, ICartRepository cartRepository, IOrderHistoryRepository orderHistoryRepository)
         {
             _inventoryRepository = inventoryRepository;
             _orderRepository = orderRepository;
@@ -42,6 +43,7 @@ namespace MeoMeo.Application.Services
             _orderDetailInventoryBatchRepository = orderDetailInventoryBatchRepository;
             _cartDetailRepository = cartDetailRepository;
             _cartRepository = cartRepository;
+            _orderHistoryRepository = orderHistoryRepository;
         }
 
 
@@ -75,9 +77,9 @@ namespace MeoMeo.Application.Services
                     query = query.Where(o => EF.Functions.Like(o.Code, $"%{request.CodeFilter}%"));
                 }
 
-                if (request.CustomerNameFilter.HasValue)
+                if (!string.IsNullOrEmpty(request.CustomerNameFilter))
                 {
-                    query = query.Where(o => o.CustomerId == request.CustomerNameFilter.Value);
+                    query = query.Where(o => EF.Functions.Like(o.CustomerName, $"%{request.CustomerNameFilter}%"));
                 }
 
                 if (!string.IsNullOrEmpty(request.CustomerPhoneNumberFilter))
@@ -100,6 +102,15 @@ namespace MeoMeo.Application.Services
                 {
                     query = query.Where(o => o.CreationTime <= request.CreationDateEndFilter.Value);
                 }
+                if (request.ShippingDateStartFilter.HasValue)
+                {
+                    query = query.Where(o => o.DeliveryDate >= request.ShippingDateStartFilter.Value);
+                }
+
+                if (request.ShippingDateEndFilter.HasValue)
+                {
+                    query = query.Where(o => o.DeliveryDate <= request.ShippingDateEndFilter.Value);
+                }
 
                 if (request.PaymentMethodFilter.HasValue)
                 {
@@ -111,7 +122,7 @@ namespace MeoMeo.Application.Services
                     query = query.Where(o => o.Status == request.OrderStatusFilter.Value);
                 }
 
-                query = query.OrderByDescending(o => o.CreationTime);
+                query = query.OrderByDescending(o => o.LastModifiedTime ?? o.CreationTime);
                 var pagedOrders = await _orderRepository.GetPagedAsync(query, request.PageIndex, request.PageSize);
 
                 var dtoItems = _mapper.Map<List<OrderDTO>>(pagedOrders.Items);
@@ -178,7 +189,6 @@ namespace MeoMeo.Application.Services
                     return new BaseResponse()
                         { Message = "Không tìm thấy đơn hàng", ResponseStatus = BaseStatus.Error };
                 }
-
                 foreach (var order in orders)
                 {
                     if (!OrderValidator.CanTransition(order.Status, request.Status))
@@ -190,26 +200,14 @@ namespace MeoMeo.Application.Services
                         };
                     }
                 }
-
+                var currentStatus= orders.First().Status;
                 var listOrderDetails = await _orderDetailRepository.Query()
                     .Where(c => request.OrderIds.Contains(c.OrderId)).ToListAsync();
-                var groupedByProduct = listOrderDetails
-                    .GroupBy(od => od.ProductDetailId)
-                    .Select(g => new
-                    {
-                        ProductDetailId = g.Key,
-                        TotalQuantity = g.Sum(od => od.Quantity)
-                    }).ToList();
-
-                var productDetailMap = await _productsDetailRepository.Query()
-                    .Where(p => groupedByProduct.Select(g => g.ProductDetailId).Contains(p.Id))
-                    .ToDictionaryAsync(p => p.Id, p => p.Sku);
-                var insufficientStocks = new Dictionary<string, int>();
-
+                var orderDetailIds = listOrderDetails.Select(x => x.Id).ToList();
                 if (request.Status == EOrderStatus.Confirmed)
                 {
                     var inventoryErrors = await OrderValidator.ValidateInventoryAsync(
-                        listOrderDetails, // danh sách các OrderDetail chuẩn bị insert
+                        listOrderDetails,
                         async productDetailId => await _inventoryRepository.Query()
                             .Where(x => x.ProductDetailId == productDetailId)
                             .ToListAsync(),
@@ -229,25 +227,50 @@ namespace MeoMeo.Application.Services
                             ResponseStatus = BaseStatus.Error,
                         };
                     }
-                }
-                else if (request.Status == EOrderStatus.Canceled)
-                {
-                    var orderDetailIds = listOrderDetails.Select(x => x.Id).ToList();
+                    foreach (var orderDetail in listOrderDetails)
+                    {
+                        var requiredQuantity = orderDetail.Quantity;
+                        var availableBatches = await _inventoryRepository.Query()
+                            .Where(x => x.ProductDetailId == orderDetail.ProductDetailId && x.Quantity > 0 && x.Status == EInventoryBatchStatus.Aprroved)
+                            .OrderBy(x => x.CreationTime) 
+                            .ToListAsync();
+                        foreach (var batch in availableBatches)
+                        {
+                            if (requiredQuantity <= 0) break;
 
+                            var deductedQuantity = Math.Min(batch.Quantity, requiredQuantity);
+                            batch.Quantity -= deductedQuantity;
+                            requiredQuantity -= deductedQuantity;
+
+                            await _inventoryRepository.UpdateAsync(batch);
+                            await _inventoryTransactionRepository.AddAsync(new InventoryTransaction
+                            {
+                                InventoryBatchId = batch.Id,
+                                Quantity = deductedQuantity,
+                                CreationTime = DateTime.Now,
+                                Type = EInventoryTranctionType.Export,
+                            });
+                            await _orderDetailInventoryBatchRepository.AddAsync(new OrderDetailInventoryBatch
+                            {
+                                OrderDetailId = orderDetail.Id,
+                                InventoryBatchId = batch.Id,
+                                Quantity = deductedQuantity,
+                            });
+                        }
+                    }
+                }
+                else if ((currentStatus == EOrderStatus.Confirmed || currentStatus== EOrderStatus.InTransit || currentStatus == EOrderStatus.Completed) && request.Status == EOrderStatus.Canceled)
+                {
                     var orderDetailBatchMappings = await _orderDetailInventoryBatchRepository.Query()
                         .Where(x => orderDetailIds.Contains(x.OrderDetailId))
                         .ToListAsync();
-
                     foreach (var mapping in orderDetailBatchMappings)
                     {
                         var batch = await _inventoryRepository.GetByIdAsync(mapping.InventoryBatchId);
                         if (batch == null) continue;
 
                         batch.Quantity += mapping.Quantity;
-
-
                         await _inventoryRepository.UpdateAsync(batch);
-
                         await _inventoryTransactionRepository.AddAsync(new InventoryTransaction
                         {
                             InventoryBatchId = batch.Id,
@@ -256,16 +279,37 @@ namespace MeoMeo.Application.Services
                             Type = EInventoryTranctionType.Import,
                         });
                     }
-
-                    await _inventoryRepository.SaveChangesAsync();
-                    await _inventoryTransactionRepository.SaveChangesAsync();
                 }
-
                 orders.ForEach(o =>
                 {
                     o.Status = request.Status;
                     o.LastModifiedTime = DateTime.Now;
+                    o.Reason = request.Reason;
+
                 });
+                var lstHistory = orders.Select(o =>
+                {
+                    var currentStatus = o.Status;
+                    var content = $"""
+                                   <p><strong>Trạng thái đơn hàng:</strong> Từ 
+                                   <span class="status-old">{MapStatus(currentStatus)}</span> 
+                                   => 
+                                   <span class="status-new">{MapStatus(request.Status)}</span></p>
+                                   """;
+                    if (request.Status == EOrderStatus.Canceled && !string.IsNullOrWhiteSpace(request.Reason))
+                    {
+                        content += $"""<p><strong>Lý do từ chối:</strong> <span class="status-new">{request.Reason}</span></p>""";
+                    }
+                    return new OrderHistory
+                    {
+                        OrderId = o.Id,
+                        Type = EHistoryType.Update,
+                        CreationTime = DateTime.Now,
+                        CreatedBy = Guid.Empty,
+                        Content = content
+                    };
+                }).ToList();
+                await _orderHistoryRepository.AddRangeAsync(lstHistory);
                 await _orderRepository.UpdateRangeAsync(orders);
                 await _unitOfWork.CommitAsync();
                 return new BaseResponse()
@@ -281,7 +325,18 @@ namespace MeoMeo.Application.Services
                 };
             }
         }
-
+        private static string MapStatus(EOrderStatus status)
+        {
+            return status switch
+            {
+                EOrderStatus.Pending => "Chờ xác nhận",
+                EOrderStatus.Confirmed => "Đã xác nhận",
+                EOrderStatus.InTransit => "Đang giao",
+                EOrderStatus.Canceled => "Đã huỷ",
+                EOrderStatus.Completed => "Hoàn thành",
+                _ => status.ToString()
+            };
+        }
         public async Task<BaseResponse> CreateOrderAsync(CreateOrderDTO request)
         {
             var cartDetailItems = await _cartDetailRepository.Query()
@@ -296,8 +351,7 @@ namespace MeoMeo.Application.Services
                     ResponseStatus = BaseStatus.Error
                 };
             }
-
-            // 1. Tạo Order
+            
             var order = new Order
             {
                 Id = Guid.NewGuid(),

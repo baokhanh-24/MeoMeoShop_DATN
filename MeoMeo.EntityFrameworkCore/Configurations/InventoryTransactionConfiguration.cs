@@ -10,7 +10,7 @@ namespace MeoMeo.EntityFrameworkCore.Configurations
         {
             builder.ToTable("InventoryTransactions");
             builder.HasKey(x => x.Id);
-            builder.Property(x => x.Note).HasMaxLength(500).HasColumnType("nvarchar(500)");
+            builder.Property(x => x.Note).HasMaxLength(500).HasColumnType("nvarchar(500)").IsRequired(false);
             builder.HasOne(x => x.InventoryBatch).WithMany(x => x.InventoryTransactions).HasForeignKey(x => x.InventoryBatchId);
         }
     }

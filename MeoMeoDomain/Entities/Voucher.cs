@@ -3,7 +3,7 @@ using MeoMeo.Domain.Commons.Enums;
 
 namespace MeoMeo.Domain.Entities
 {
-    public class Voucher : BaseEnitityAudited
+    public class Voucher : BaseEntityAudited
     {
         public float Discount { get; set; }
         public string Code { get; set; }

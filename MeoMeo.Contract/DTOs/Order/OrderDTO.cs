@@ -19,6 +19,8 @@ public class OrderDTO
     public string? EmployeeEmail { get; set; }
     public string? CustomerEmail { get; set; }
     public Decimal TotalPrice { get; set; }
+    public Decimal? DiscountPrice { get; set; }
+    public Decimal? ShippingFee { get; set; }
     public EOrderPaymentMethod PaymentMethod { get; set; }
     public string? DeliveryAddress { get; set; }
     public DateTime? DeliveryDate { get; set; }
@@ -32,6 +34,4 @@ public class OrderDTO
     public string? Reason { get; set; }
     public EOrderStatus Status { get; set; }
     public IEnumerable<OrderDetailDTO> OrderDetails { get; set; } = new List<OrderDetailDTO>();
-    
-
 }

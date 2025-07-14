@@ -3,7 +3,7 @@ using MeoMeo.Domain.Commons.Enums;
 
 namespace MeoMeo.Domain.Entities
 {
-    public class SystemConfig : BaseEnitityAudited
+    public class SystemConfig : BaseEntityAudited
     {
         public string Name { get; set; }
         public string Value { get; set; }

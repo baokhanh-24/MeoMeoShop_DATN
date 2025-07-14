@@ -10,7 +10,7 @@ namespace MeoMeo.Domain.Entities
         public DateTime CreationTime { get; set; }
         public int CreateBy { get; set; }
         public EInventoryTranctionType Type { get; set; }
-        public string Note { get; set; }
+        public string? Note { get; set; }
         public virtual InventoryBatch InventoryBatch { get; set; }
     }
 }

@@ -12,9 +12,6 @@ namespace MeoMeo.Application.IServices
             GetListOrderRequestDTO request);
         Task<BaseResponse> UpdateStatusOrderAsync(UpdateStatusOrderRequestDTO request);
         Task<BaseResponse> CreateOrderAsync(CreateOrderDTO request);
-        // Task<Order> GetOrderByIdAsync(Guid id);
-        // Task<Order> CreateOrderAsync(CreateOrUpdateOrderDTO order);
-        // Task<CreateOrUpdateOrderResponse> UpdateOrderAsync(CreateOrUpdateOrderDTO order);
         Task<bool> DeleteOrderAsync(Guid id);
     }
 }

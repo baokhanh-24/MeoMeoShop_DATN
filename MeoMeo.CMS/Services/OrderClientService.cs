@@ -1,4 +1,5 @@
 using MeoMeo.CMS.IServices;
+using MeoMeo.Contract.Commons;
 using MeoMeo.Contract.DTOs.Order;
 using MeoMeo.Domain.Commons;
 using MeoMeo.Utilities;
@@ -21,5 +22,24 @@ public class OrderClientService:IOrderClientService
         var url = $"/api/Orders/get-list-order-async?{query}";
         var response = await _httpClient.GetAsync<PagingExtensions.PagedResult<OrderDTO,GetListOrderResponseDTO>>(url);
         return response ?? new PagingExtensions.PagedResult<OrderDTO,GetListOrderResponseDTO>();
+    }
+
+    public async Task<BaseResponse> UpdateStatusOrderAsync(UpdateStatusOrderRequestDTO request)
+    {
+        try
+        {
+            var url = $"/api/Orders/update-status-order-async";
+            var result = await _httpClient.PutAsync<UpdateStatusOrderRequestDTO, BaseResponse>(url, request);
+            return result ?? new BaseResponse
+            {
+                ResponseStatus = BaseStatus.Error,
+                Message = result.Message
+            };
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Có lỗi xảy ra khi cập nhật trạng thái Order {Id}: {Message}", string.Join(',',request.OrderIds), ex.Message);
+            return new BaseResponse { ResponseStatus = BaseStatus.Error, Message = ex.Message };
+        }
     }
 }

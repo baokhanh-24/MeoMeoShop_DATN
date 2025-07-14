@@ -2,7 +2,7 @@
 
 namespace MeoMeo.Domain.Entities
 {
-    public class Product : BaseEnitityAudited
+    public class Product : BaseEntityAudited
     {
         public Guid BrandId { get; set; }
         public string Name { get; set; }

@@ -18,6 +18,8 @@ namespace MeoMeo.Domain.Entities
         public string? EmployeeEmail { get; set; }
         public string? CustomerEmail { get; set; }
         public Decimal TotalPrice { get; set; }
+        public Decimal? DiscountPrice { get; set; }
+        public Decimal? ShippingFee { get; set; }
         public EOrderPaymentMethod PaymentMethod { get; set; }
         public string? DeliveryAddress { get; set; }
         public DateTime? DeliveryDate { get; set; }
@@ -35,5 +37,6 @@ namespace MeoMeo.Domain.Entities
         public virtual Voucher? Voucher { get; set; }
         public virtual DeliveryAddress? Address { get; set; }
         public virtual ICollection<OrderDetail> OrderDetails { get; set; }
+        public virtual ICollection<OrderHistory> OrderHistories { get; set; }
     }
 }

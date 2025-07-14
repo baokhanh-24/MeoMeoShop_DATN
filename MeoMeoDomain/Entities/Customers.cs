@@ -3,7 +3,7 @@ using MeoMeo.Domain.Commons.Enums;
 
 namespace MeoMeo.Domain.Entities
 {
-    public class Customers : BaseEnitityAudited
+    public class Customers : BaseEntityAudited
     {
         public Guid Id { get; set; }
         public Guid UserId { get; set; }

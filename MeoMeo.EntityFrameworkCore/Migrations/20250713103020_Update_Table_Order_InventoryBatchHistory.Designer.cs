@@ -4,6 +4,7 @@ using MeoMeo.EntityFrameworkCore.Configurations.Contexts;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace MeoMeo.EntityFrameworkCore.Migrations
 {
     [DbContext(typeof(MeoMeoDbContext))]
-    partial class MeoMeoDbContextModelSnapshot : ModelSnapshot
+    [Migration("20250713103020_Update_Table_Order_InventoryBatchHistory")]
+    partial class Update_Table_Order_InventoryBatchHistory
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -764,41 +767,6 @@ namespace MeoMeo.EntityFrameworkCore.Migrations
                     b.ToTable("OrderDetailInventoryBatches", (string)null);
                 });
 
-            modelBuilder.Entity("MeoMeo.Domain.Entities.OrderHistory", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<string>("Content")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<Guid>("CreatedBy")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<DateTime>("CreationTime")
-                        .HasColumnType("datetime2");
-
-                    b.Property<DateTime?>("LastModificationTime")
-                        .HasColumnType("datetime2");
-
-                    b.Property<Guid>("OrderId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<int>("Type")
-                        .HasColumnType("int");
-
-                    b.Property<Guid?>("UpdatedBy")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("OrderId");
-
-                    b.ToTable("OrderHistories", (string)null);
-                });
-
             modelBuilder.Entity("MeoMeo.Domain.Entities.Product", b =>
                 {
                     b.Property<Guid>("Id")
@@ -1506,17 +1474,6 @@ namespace MeoMeo.EntityFrameworkCore.Migrations
                     b.Navigation("OrderDetail");
                 });
 
-            modelBuilder.Entity("MeoMeo.Domain.Entities.OrderHistory", b =>
-                {
-                    b.HasOne("MeoMeo.Domain.Entities.Order", "Order")
-                        .WithMany("OrderHistories")
-                        .HasForeignKey("OrderId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Order");
-                });
-
             modelBuilder.Entity("MeoMeo.Domain.Entities.Product", b =>
                 {
                     b.HasOne("MeoMeo.Domain.Entities.Brand", "Brand")
@@ -1714,8 +1671,6 @@ namespace MeoMeo.EntityFrameworkCore.Migrations
             modelBuilder.Entity("MeoMeo.Domain.Entities.Order", b =>
                 {
                     b.Navigation("OrderDetails");
-
-                    b.Navigation("OrderHistories");
                 });
 
             modelBuilder.Entity("MeoMeo.Domain.Entities.OrderDetail", b =>

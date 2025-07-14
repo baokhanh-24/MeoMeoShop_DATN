@@ -2,7 +2,7 @@
 
 namespace MeoMeo.Domain.Entities
 {
-    public class DeliveryAddress : BaseEnitityAudited
+    public class DeliveryAddress : BaseEntityAudited
     {
         public Guid CustomerId { get; set; }
         public Guid ProvinceId { get; set; }

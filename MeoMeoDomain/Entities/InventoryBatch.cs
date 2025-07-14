@@ -3,7 +3,7 @@ using MeoMeo.Domain.Commons.Enums;
 
 namespace MeoMeo.Domain.Entities
 {
-    public class InventoryBatch : BaseEnitityAudited
+    public class InventoryBatch : BaseEntityAudited
     {
         public Guid ProductDetailId { get; set; }
         public float OriginalPrice { get; set; }

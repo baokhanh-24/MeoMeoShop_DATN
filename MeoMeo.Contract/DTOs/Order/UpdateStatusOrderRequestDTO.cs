@@ -6,4 +6,5 @@ public class UpdateStatusOrderRequestDTO
 {
     public List<Guid> OrderIds { get; set; } 
     public EOrderStatus Status { get; set; }
+    public string? Reason { get; set; } 
 }

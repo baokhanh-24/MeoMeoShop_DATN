@@ -1,4 +1,5 @@
 ﻿using MeoMeo.Application.IServices;
+using MeoMeo.Contract.Commons;
 using MeoMeo.Contract.DTOs;
 using MeoMeo.Contract.DTOs.Order;
 using MeoMeo.Domain.Commons;
@@ -18,37 +19,18 @@ namespace MeoMeo.API.Controllers
         {
             _orderService = orderService;
         }
-
-        // [HttpGet("find-order-by-id/{id}")]
-        // public async Task<IActionResult> GetOrderById(Guid id)
-        // {
-        //     var result = await _orderService.GetOrderByIdAsync(id);
-        //     return Ok(result);
-        // }
-
         [HttpGet("get-list-order-async")]
         public async Task<PagingExtensions.PagedResult<OrderDTO>> GetAllCustomersAsync([FromQuery] GetListOrderRequestDTO request)
         {
             var result = await _orderService.GetListOrderAsync(request);
             return result;
+        }   
+        [HttpPut("update-status-order-async")]
+        public async Task<BaseResponse> UpdateStatusOrderAsync([FromBody] UpdateStatusOrderRequestDTO request)
+        {
+            var result = await _orderService.UpdateStatusOrderAsync(request);
+            return result;
         }
-
-
-        // [HttpPost("create-order")]
-        // public async Task<IActionResult> CreateOrder([FromBody] CreateOrUpdateOrderDTO order)
-        // {
-        //     var result = await _orderService.CreateOrderAsync(order);
-        //     return Ok(result);
-        // }
-        //
-        // [HttpPut("update-order/{id}")]
-        // public async Task<IActionResult> UpdateOrder(Guid id, [FromBody] CreateOrUpdateOrderDTO order)
-        // {
-        //     var result = await _orderService.UpdateOrderAsync(order);
-        //     //var result = await _orderService.UpdateOrderAsync(order);
-        //     return Ok(result);
-        // }
-
         // DELETE api/<OrdersController>/5
         [HttpDelete("delete-order/{id}")]
         public async Task<IActionResult> DeleteOrder(Guid id)

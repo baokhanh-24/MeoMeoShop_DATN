@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 
 namespace MeoMeo.Domain.Commons
 {
-    public class BaseEnitityAudited
+    public class BaseEntityAudited
     {
         public Guid Id { get; set; }
         public DateTime CreationTime { get; set; } = DateTime.Now;

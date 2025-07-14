@@ -3,7 +3,7 @@ using MeoMeo.Domain.Commons.Enums;
 
 namespace MeoMeo.Domain.Entities
 {
-    public class Promotion : BaseEnitityAudited
+    public class Promotion : BaseEntityAudited
     {
         public string Title { get; set; }
         public DateTime StartDate { get; set; }

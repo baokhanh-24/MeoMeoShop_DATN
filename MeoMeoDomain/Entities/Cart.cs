@@ -2,7 +2,7 @@
 
 namespace MeoMeo.Domain.Entities
 {
-    public class Cart : BaseEnitityAudited
+    public class Cart : BaseEntityAudited
     {
         public Guid CustomerId { get; set; }
         public decimal TotalPrice { get; set; }
