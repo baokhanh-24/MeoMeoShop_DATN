@@ -50,6 +50,10 @@ namespace MeoMeo.Application.Services
             try
             {
                 var query = _repository.Query();
+                if (request.PromotionIdFilter != Guid.Empty)
+                {
+                    query = query.Where(c => c.PromotionId == request.PromotionIdFilter);
+                }
                 if (request.DiscountFilter != null)
                 {
                     query = query.Where(c => EF.Functions.Like(c.Discount.ToString(), $"%{request.DiscountFilter}%"));
@@ -58,7 +62,7 @@ namespace MeoMeo.Application.Services
                 {
                     query = query.Where(c => EF.Functions.Like(c.Note, $"%{request.NoteFilter}%"));
                 }
-                var filtedPromotionDetail = await _repository.GetPagedAsync(query, request.PageSize, request.PageIndex);
+                var filtedPromotionDetail = await _repository.GetPagedAsync(query, request.PageIndex, request.PageSize);
                 var dtoItems = _mapper.Map<List<CreateOrUpdatePromotionDetailDTO>>(filtedPromotionDetail.Items);
                 return new PagingExtensions.PagedResult<CreateOrUpdatePromotionDetailDTO>
                 {

@@ -1,4 +1,5 @@
 ﻿@page "/manage-promotion"
+@using AntDesign.TableModels
 @using MeoMeo.CMS.IServices
 @using MeoMeo.Contract.Commons
 @using MeoMeo.Contract.DTOs.Promotion
@@ -14,18 +15,24 @@
         <BreadcrumbItem Href="/">Trang chủ</BreadcrumbItem>
         <BreadcrumbItem Href="/manage-promotion">Chương trình khuyến mãi</BreadcrumbItem>
     </Breadcrumb>
-    <div class="">
-        <a href="/promotion-create" class="btn btn-primary">Thêm mới</a>
-    </div>
+    <Button OnClick="AddPromotion" Type="ButtonType.Primary" Class="mb-2">
+        <i class="fas fa-plus"></i> Thêm mới
+    </Button>
 </div>
-<p></p>
+<Tabs DefaultActiveKey="All" @bind-ActiveKey="@activeTab" OnChange="OnTabChange">
+    <TabPane Key="All" Tab=@($"Tất cả ({metaData.TotalAll})")/>
+    <TabPane Key="Draft" Tab=@($"Nháp ({metaData.Draft})")/>
+    <TabPane Key="NotHappenedYet" Tab=@($"Chưa diễn ra ({metaData.NotHappenedYet})")/>
+    <TabPane Key="IsGoingOn" Tab=@($"Đang diễn ra ({metaData.IsGoingOn})")/>
+    <TabPane Key="Ended" Tab=@($"Đã kết thúc ({metaData.Ended})")/>
+</Tabs>
 <div class="d-flex justify-content-end gap-3 mb-2">
-    <div style="width: 350px">
+    <div style="width: 250px">
         <Input AllowClear="true" @bind-Value="filter.TitleFilter" Placeholder="Nhập tên khuyến mãi" OnClear="OnFilterChanged" />
     </div>
-    <DatePicker Class="w-full" TValue="DateOnly?" @bind-Value="filter.StartDateFilter" />
+    <DatePicker Class="w-full" TValue="DateOnly?" @bind-Value="filter.StartDateFilter"/>
     <DatePicker Class="w-full" TValue="DateOnly?" @bind-Value="filter.EndDateFilter" />
-    <div style="width: 350px">
+    <div style="width: 250px">
         <Input AllowClear="true" @bind-Value="filter.DescriptionFilter" Placeholder="Nhập mô tả" OnClear="OnFilterChanged" />
     </div>
     <div style="width: 150px">
@@ -43,7 +50,7 @@
         <Button @onclick="() => OnFilterChanged()" Type="ButtonType.Primary" Shape="ButtonShape.Circle" Icon="@IconType.Outline.Search" />
     </Tooltip>
 </div>
-<Table DataSource="listOfData" TItem="CreateOrUpdatePromotionDTO" RowClassName="@(_ => "editable-row")" Bordered TableLayout="fixed">
+<Table DataSource="listOfData" TItem="CreateOrUpdatePromotionDTO" RowClassName="@(_ => "editable-row")" Bordered TableLayout="fixed" OnChange="@OnPageChange" PageSize="@filter.PageSize" Total="@totalRecords">
     <ChildContent Context="data">
         <Column TData="int" Title="STT">
             @{
@@ -147,6 +154,9 @@
 </Table>
 @code {
     [Inject] private IPromotionClientService PromotionClientService { get; set; } = default!;
+    private string activeTab = "All";
+    private GetListPromotionResponseDTO metaData = new();
+    private int totalRecords = 0;
     IDictionary<Guid, (bool edit, CreateOrUpdatePromotionDTO data)> editCache = new Dictionary<Guid, (bool, CreateOrUpdatePromotionDTO)>();
     List<CreateOrUpdatePromotionDTO> listOfData = new();
     List<(EPromotionStatus Value, string Name)> promotionStatusList = new();
@@ -182,11 +192,37 @@
         filter.PageIndex = 1;
         await LoadDataAsync();
     }
+    private async Task OnPageChange(QueryModel<CreateOrUpdatePromotionDTO> query)
+    {
+        filter.PageIndex = query.PageIndex;
+        filter.PageSize = query.PageSize;
+        await LoadDataAsync();
+    }
+    private void AddPromotion()
+    {
+        Navigation.NavigateTo("/promotion-create");
+    }
+    private async Task OnTabChange()
+    {
+        if (activeTab == "All")
+        {
+            filter.StatusFilter = null;
+        }
+        else if (Enum.TryParse<EPromotionStatus>(activeTab, out var status))
+        {
+            filter.StatusFilter = status;
+        }
+
+        await LoadDataAsync();
+        await InvokeAsync(StateHasChanged);
+    }
     private async Task LoadDataAsync()
     {
 
         var response = await PromotionClientService.GetAllPromotionAsync(filter);
         listOfData = response.Items;
+        metaData = response.Metadata;
+        totalRecords = response.TotalRecords;
         editCache = listOfData.ToDictionary(
             item => item.Id,
             item => (false, ClonePromotion(item))

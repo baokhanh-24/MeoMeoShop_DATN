@@ -17,12 +17,12 @@ namespace MeoMeo.CMS.Services
             _logger = logger;
         }
         //
-        public async Task<PagingExtensions.PagedResult<CreateOrUpdatePromotionDTO>> GetAllPromotionAsync(GetListPromotionRequestDTO request)
+        public async Task<PagingExtensions.PagedResult<CreateOrUpdatePromotionDTO, GetListPromotionResponseDTO>> GetAllPromotionAsync(GetListPromotionRequestDTO request)
         {
             var query = BuildQuery.ToQueryString(request);
             var url = $"/api/Promotions/get-all-promotion-async?{query}";
-            var response = await _httpClient.GetAsync<PagingExtensions.PagedResult<CreateOrUpdatePromotionDTO>>(url);
-            return response ?? new PagingExtensions.PagedResult<CreateOrUpdatePromotionDTO>();
+            var response = await _httpClient.GetAsync<PagingExtensions.PagedResult<CreateOrUpdatePromotionDTO, GetListPromotionResponseDTO>>(url);
+            return response ?? new PagingExtensions.PagedResult<CreateOrUpdatePromotionDTO, GetListPromotionResponseDTO>();
         }
         public async Task<CreateOrUpdatePromotionDTO> GetPromotionByIdAsync(Guid id)
         {

@@ -3,6 +3,7 @@ using MeoMeo.Application.IServices;
 using MeoMeo.Contract.Commons;
 using MeoMeo.Contract.DTOs.Promotion;
 using MeoMeo.Domain.Commons;
+using MeoMeo.Domain.Commons.Enums;
 using MeoMeo.Domain.Entities;
 using MeoMeo.Domain.IRepositories;
 using Microsoft.EntityFrameworkCore;
@@ -47,11 +48,22 @@ namespace MeoMeo.Application.Services
 
         }
 
-        public async Task<PagingExtensions.PagedResult<CreateOrUpdatePromotionDTO>> GetAllPromotionAsync(GetListPromotionRequestDTO request)
+        public async Task<PagingExtensions.PagedResult<CreateOrUpdatePromotionDTO, GetListPromotionResponseDTO>> GetAllPromotionAsync(GetListPromotionRequestDTO request)
         {
+            var metaDataValue = new GetListPromotionResponseDTO();
             try
             {
                 var query = _repository.Query();
+                var statusCounts = await _repository.Query().GroupBy(p => p.Status).Select(g => new
+                {
+                    Status = g.Key,
+                    Count = g.Count()
+                }).ToListAsync();
+                metaDataValue.TotalAll = statusCounts.Sum(s => s.Count);
+                metaDataValue.Draft = statusCounts.FirstOrDefault(s => s.Status == EPromotionStatus.Draft)?.Count ?? 0;
+                metaDataValue.NotHappenedYet = statusCounts.FirstOrDefault(s => s.Status == EPromotionStatus.NotHappenedYet)?.Count ?? 0;
+                metaDataValue.IsGoingOn = statusCounts.FirstOrDefault(s => s.Status == EPromotionStatus.IsGoingOn)?.Count ?? 0;
+                metaDataValue.Ended = statusCounts.FirstOrDefault(s => s.Status == EPromotionStatus.Ended)?.Count ?? 0;
                 if (!string.IsNullOrEmpty(request.TitleFilter))
                 {
                     query = query.Where(c => EF.Functions.Like(c.Title, $"%{request.TitleFilter}%"));
@@ -74,12 +86,14 @@ namespace MeoMeo.Application.Services
                 }
                 var filteredPromotion = await _repository.GetPagedAsync(query, request.PageIndex, request.PageSize);
                 var dtoItems = _mapper.Map<List<CreateOrUpdatePromotionDTO>>(filteredPromotion.Items);
-                return new PagingExtensions.PagedResult<CreateOrUpdatePromotionDTO>
+                metaDataValue.ResponseStatus = BaseStatus.Success;
+                return new PagingExtensions.PagedResult<CreateOrUpdatePromotionDTO, GetListPromotionResponseDTO>
                 {
                     TotalRecords = filteredPromotion.TotalRecords,
                     PageIndex = filteredPromotion.PageIndex,
                     PageSize = filteredPromotion.PageSize,
-                    Items = dtoItems
+                    Items = dtoItems,
+                    Metadata = metaDataValue,
                 };
             }
             catch (Exception ex)

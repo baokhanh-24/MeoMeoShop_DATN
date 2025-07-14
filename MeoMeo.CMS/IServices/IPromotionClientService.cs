@@ -5,7 +5,7 @@ namespace MeoMeo.CMS.IServices
 {
     public interface IPromotionClientService
     {
-        Task<PagingExtensions.PagedResult<CreateOrUpdatePromotionDTO>> GetAllPromotionAsync(GetListPromotionRequestDTO request);
+        Task<PagingExtensions.PagedResult<CreateOrUpdatePromotionDTO, GetListPromotionResponseDTO>> GetAllPromotionAsync(GetListPromotionRequestDTO request);
         Task<CreateOrUpdatePromotionDTO> GetPromotionByIdAsync(Guid id);
         Task<CreateOrUpdatePromotionResponseDTO> CreatePromotionAsync(CreateOrUpdatePromotionDTO dto);
         Task<CreateOrUpdatePromotionResponseDTO> UpdatePromotionAsync(CreateOrUpdatePromotionDTO dto);

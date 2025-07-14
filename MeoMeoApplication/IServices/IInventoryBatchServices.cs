@@ -12,7 +12,7 @@ namespace MeoMeo.Application.IServices
 {
     public interface IInventoryBatchServices
     {
-        Task<PagingExtensions.PagedResult<InventoryBatchDTO>> GetAllAsync(GetListInventoryBatchRequestDTO request);
+        Task<PagingExtensions.PagedResult<InventoryBatchDTO, GetListInventoryBatchResponseDTO>> GetAllAsync(GetListInventoryBatchRequestDTO request);
         Task<InventoryBatchResponseDTO> GetByIdAsync(Guid id);
         Task<InventoryBatchResponseDTO> CreateAsync(List<InventoryBatchDTO> dto);
         Task<InventoryBatchResponseDTO> UpdateAsync(Guid id, InventoryBatchDTO dto);

@@ -4,7 +4,6 @@ using MeoMeo.Contract.DTOs.PromotionDetail;
 using MeoMeo.Domain.Commons;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
-using static MeoMeo.Domain.Commons.PagingExtensions;
 
 namespace MeoMeo.API.Controllers
 {

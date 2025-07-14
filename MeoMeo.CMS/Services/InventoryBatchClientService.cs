@@ -22,12 +22,12 @@ namespace MeoMeo.CMS.Services
             _logger = logger;
         }
         ///api/InventoryBatches
-        public async Task<PagingExtensions.PagedResult<InventoryBatchDTO>> GetAllInventoryBatchAsync(GetListInventoryBatchRequestDTO filter)
+        public async Task<PagingExtensions.PagedResult<InventoryBatchDTO, GetListInventoryBatchResponseDTO>> GetAllInventoryBatchAsync(GetListInventoryBatchRequestDTO filter)
         {
             var query = BuildQuery.ToQueryString(filter);
             var url = $"/api/InventoryBatches/get-all-inventoryBatch-async?{query}";
-            var response = await _httpClient.GetAsync<PagingExtensions.PagedResult<InventoryBatchDTO>>(url);
-            return response ?? new PagingExtensions.PagedResult<InventoryBatchDTO>();
+            var response = await _httpClient.GetAsync<PagingExtensions.PagedResult<InventoryBatchDTO, GetListInventoryBatchResponseDTO>>(url);
+            return response ?? new PagingExtensions.PagedResult<InventoryBatchDTO, GetListInventoryBatchResponseDTO>();
         }
         public async Task<InventoryBatchDTO> GetInventoryBatchByIdAsync(Guid id)
         {

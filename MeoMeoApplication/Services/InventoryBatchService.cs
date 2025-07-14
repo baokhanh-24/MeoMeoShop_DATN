@@ -4,6 +4,7 @@ using MeoMeo.Contract.Commons;
 using MeoMeo.Contract.DTOs;
 using MeoMeo.Contract.DTOs.InventoryBatch;
 using MeoMeo.Domain.Commons;
+using MeoMeo.Domain.Commons.Enums;
 using MeoMeo.Domain.Entities;
 using MeoMeo.Domain.IRepositories;
 using MeoMeo.EntityFrameworkCore.Configurations.Contexts;
@@ -60,11 +61,22 @@ namespace MeoMeo.Application.Services
             await _inventoryBatchRepository.DeleteInventoryBatchAsync(id);
             return true;
         }
-        public async Task<PagingExtensions.PagedResult<InventoryBatchDTO>> GetAllAsync(GetListInventoryBatchRequestDTO request)
+        public async Task<PagingExtensions.PagedResult<InventoryBatchDTO, GetListInventoryBatchResponseDTO>> GetAllAsync(GetListInventoryBatchRequestDTO request)
         {
+            var metaDataValue = new GetListInventoryBatchResponseDTO();
             try
             {
                 var query = _inventoryBatchRepository.Query();
+                var statusCounts = await _inventoryBatchRepository.Query().GroupBy(p => p.Status).Select(g => new
+                {
+                    Status = g.Key,
+                    Count = g.Count()
+                }).ToListAsync();
+                metaDataValue.TotalAll = statusCounts.Sum(s => s.Count);
+                metaDataValue.Draft = statusCounts.FirstOrDefault(s => s.Status == EInventoryBatchStatus.Draft)?.Count ?? 0;
+                metaDataValue.PendingApproval = statusCounts.FirstOrDefault(s => s.Status == EInventoryBatchStatus.PendingApproval)?.Count ?? 0;
+                metaDataValue.Aprroved = statusCounts.FirstOrDefault(s => s.Status == EInventoryBatchStatus.Aprroved)?.Count ?? 0;
+                metaDataValue.Rejected = statusCounts.FirstOrDefault(s => s.Status == EInventoryBatchStatus.Rejected)?.Count ?? 0;
                 if (!string.IsNullOrEmpty(request.CodeFilter))
                 {
                     query = query.Where(c => EF.Functions.Like(c.Code, $"%{request.CodeFilter}%"));
@@ -79,12 +91,14 @@ namespace MeoMeo.Application.Services
                 }
                 var filtedInventorryBatch = await _inventoryBatchRepository.GetPagedAsync(query,request.PageIndex,request.PageSize);
                 var dtoItems = _mapper.Map<List<InventoryBatchDTO>>(filtedInventorryBatch.Items);
-                return new PagingExtensions.PagedResult<InventoryBatchDTO>
+                metaDataValue.ResponseStatus = BaseStatus.Success;
+                return new PagingExtensions.PagedResult<InventoryBatchDTO, GetListInventoryBatchResponseDTO>
                 {
                     TotalRecords = filtedInventorryBatch.TotalRecords,
                     PageIndex = filtedInventorryBatch.PageIndex,
                     PageSize = filtedInventorryBatch.PageSize,
-                    Items = dtoItems
+                    Items = dtoItems,
+                    Metadata = metaDataValue,
                 };
             }
             catch (Exception ex) 

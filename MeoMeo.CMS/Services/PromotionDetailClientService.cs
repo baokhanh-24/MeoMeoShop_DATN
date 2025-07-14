@@ -2,8 +2,9 @@
 using MeoMeo.Contract.Commons;
 using MeoMeo.Contract.DTOs.Promotion;
 using MeoMeo.Contract.DTOs.PromotionDetail;
+using MeoMeo.Domain.Commons;
 using MeoMeo.Utilities;
-using static MeoMeo.Domain.Commons.PagingExtensions;
+
 
 namespace MeoMeo.CMS.Services
 {
@@ -18,12 +19,12 @@ namespace MeoMeo.CMS.Services
             _logger = logger;
         }
 
-        public async Task<PagedResult<CreateOrUpdatePromotionDetailDTO>> GetAllPromotionDetailAsync(GetListPromotionDetailRequestDTO request)
+        public async Task<PagingExtensions.PagedResult<CreateOrUpdatePromotionDetailDTO>> GetAllPromotionDetailAsync(GetListPromotionDetailRequestDTO request)
         {
             var query = BuildQuery.ToQueryString(request);
             var url = $"/api/PromotionDetails/get-all-promotion-detail-async?{query}";
-            var response = await _httpClient.GetAsync<PagedResult<CreateOrUpdatePromotionDetailDTO>>(url);
-            return response ?? new PagedResult<CreateOrUpdatePromotionDetailDTO>();
+            var response = await _httpClient.GetAsync<PagingExtensions.PagedResult<CreateOrUpdatePromotionDetailDTO>>(url);
+            return response ?? new PagingExtensions.PagedResult<CreateOrUpdatePromotionDetailDTO>();
         }
 
         public async Task<CreateOrUpdatePromotionDetailDTO> GetPromotionDetailByIdAsync(Guid id)

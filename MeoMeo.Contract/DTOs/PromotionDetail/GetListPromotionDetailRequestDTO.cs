@@ -9,6 +9,8 @@ namespace MeoMeo.Contract.DTOs.PromotionDetail
 {
     public class GetListPromotionDetailRequestDTO : BasePaging
     {
+        public Guid PromotionIdFilter { get; set; }
+        public Guid ProductDetailIdFilter { get; set; }
         public float? DiscountFilter { get; set; }
         public string? NoteFilter { get; set; }
     }
