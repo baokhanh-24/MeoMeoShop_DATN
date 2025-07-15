@@ -17,6 +17,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MeoMeo.CMS", "MeoMeo.CMS\Me
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MeoMeo.PORTAL", "MeoMeo.PORTAL\MeoMeo.PORTAL.csproj", "{5A384FF3-0002-4B4A-AD79-7B302097B2BD}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MeoMeo.Shared", "MeoMeo.Shared\MeoMeo.Shared.csproj", "{F03FB154-5C05-4D36-85AC-D4DC661BE75C}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -51,6 +53,10 @@ Global
 		{5A384FF3-0002-4B4A-AD79-7B302097B2BD}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{5A384FF3-0002-4B4A-AD79-7B302097B2BD}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{5A384FF3-0002-4B4A-AD79-7B302097B2BD}.Release|Any CPU.Build.0 = Release|Any CPU
+		{F03FB154-5C05-4D36-85AC-D4DC661BE75C}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{F03FB154-5C05-4D36-85AC-D4DC661BE75C}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{F03FB154-5C05-4D36-85AC-D4DC661BE75C}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{F03FB154-5C05-4D36-85AC-D4DC661BE75C}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

@@ -8,9 +8,11 @@
 @using MeoMeo.Domain.Commons.Enums
 @using MeoMeo.CMS.IServices
 @using MeoMeo.Contract.Commons
-@using MeoMeo.Utilities
+@using MeoMeo.CMS.Components.Common
+@using MeoMeo.Shared.Utilities
 @inject IOrderClientService OrderClientService
-@inject MeoMeo.Utilities.MessageModalService MessageModalService
+@inject MeoMeo.Shared.Utilities.MessageModalService MessageModalService
+
 <div class="d-flex justify-content-between">
     <Breadcrumb>
         <BreadcrumbItem Href="/">Trang chủ</BreadcrumbItem>
@@ -73,8 +75,8 @@
 </Tabs>
 <div class="d-flex justify-content-end gap-3 mb-2">
     
-    <div style="width: 100px">
-        <Input AllowClear="true"  OnClear="LoadOrdersAsync"  @bind-Value="filter.CodeFilter" Placeholder="Nhập mã đơn hàng" />
+    <div style="width: 140px">
+        <Input AllowClear="true"  OnClear="LoadOrdersAsync"  @bind-Value="filter.CodeFilter" Placeholder="Nhập mã DH" />
     </div>
     
     <div style="width: 150px">
@@ -87,10 +89,10 @@
     <div style="width: 150px">
         <Input AllowClear="true"   OnClear="LoadOrdersAsync"  @bind-Value="filter.CustomerEmailFilter" Placeholder="Nhập email" />
     </div>
-    <div >
+    <div style="width: 200px">
         <RangePicker Placeholder="@(new string[] { "Từ ngày", "Đến ngày" })"   AllowClear OnClear="LoadOrdersAsync"   CultureInfo="CultureInfo.CurrentCulture"  TValue="DateTime?[]" Ranges="dayRanges" OnChange="OnCreationRangeChange" />
     </div> 
-    <div style="width: 150px">
+    <div style="width: 170px">
         <Select TItem="(EOrderPaymentMethod Value, string Name)"
                 TItemValue="EOrderPaymentMethod?"
                 AllowClear
@@ -187,6 +189,11 @@
                 </Button>
             </Tooltip>
         }
+        <Tooltip Title="Lịch sử">
+            <Button Size="ButtonSize.Small" Shape="ButtonShape.Circle" OnClick="@(() => ShowHistory(context.Id))">
+                <i class="fa-solid fa-clock-rotate-left"></i>
+            </Button>
+        </Tooltip>
     </CellRender>
 </ActionColumn>
 
@@ -302,6 +309,12 @@
         }
     </ExpandTemplate>
 </Table>
+<DrawerHistory TItem="OrderHistoryDTO"
+               Visible="@isDrawerVisible"
+               Title="Lịch sử đơn hàng"
+               OnClose="@CloseDrawer"
+               Items="@orderHistories">
+</DrawerHistory>
 
 
 
@@ -326,6 +339,8 @@
         { "Tháng trước",new DateTime?[] { new DateTime(DateTime.Now.Year,DateTime.Now.Month,1), new DateTime(DateTime.Now.Year,DateTime.Now.Month,1).AddMonths(1).AddDays(-1) }},
         { "3 Ngày trước",new DateTime?[] { DateTime.Now.AddDays(-3), DateTime.Now }},
     };
+    private List<OrderHistoryDTO> orderHistories = new();
+    private bool isDrawerVisible = false;
     protected override async Task OnInitializedAsync()
     {
         orderStatusList = Enum.GetValues(typeof(EOrderStatus))
@@ -351,6 +366,12 @@
         
         await LoadOrdersAsync();
     }
+    private async Task ShowHistory(Guid orderId)
+    {
+        var result = await OrderClientService.GetListOrderHistoryAsync(orderId);
+        orderHistories = result.Items;
+        isDrawerVisible = true;
+    }
     private void OnClickConfirm(EOrderStatus status,OrderDTO context)
     {
         selectedRows = new List<OrderDTO>()
@@ -359,17 +380,17 @@
         };
         ShowPopUpConfirm(status);
     }
+    private Task CloseDrawer()
+    {
+        isDrawerVisible = false;
+        return Task.CompletedTask;
+    }
     private async Task OnCreationRangeChange(DateRangeChangedEventArgs<DateTime?[]> args)
     {
         filter.CreationDateStartFilter = args.Dates[0];
         filter.CreationDateEndFilter = args.Dates[1];
         await LoadOrdersAsync();
     }  
-    private void OnShippingRangeChange(DateRangeChangedEventArgs<DateTime?[]> args)
-    {
-      
-    
-    }
     private void ShowPopUpConfirm(EOrderStatus status)
     {
         targetStatusOrder = status;
@@ -416,10 +437,11 @@
         await InvokeAsync(StateHasChanged);
     }
 
-    private void cancelShowModel()
+    private async Task cancelShowModel()
     {
         _visible = false;
         _confirmLoading = false;
+        await InvokeAsync(StateHasChanged);
     }
     private async Task ConfirmOrder()
     {
@@ -436,9 +458,9 @@
             Status = targetStatusOrder
         };
        var result = await OrderClientService.UpdateStatusOrderAsync(bodyUpdate);
-       cancelShowModel();
        if (result.ResponseStatus == BaseStatus.Success)
        {
+           await cancelShowModel();
            await MessageModalService.Success("Cập nhật trạng thái đơn hàng thành công");
            selectedRows = new List<OrderDTO>();
            await LoadOrdersAsync();

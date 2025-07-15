@@ -4,9 +4,9 @@ using MeoMeo.Contract.Commons;
 using MeoMeo.Contract.DTOs;
 using MeoMeo.Domain.Commons;
 using MeoMeo.Domain.Entities;
-using MeoMeo.Utilities;
 using System.Linq.Expressions;
 using System.Threading.Tasks;
+using MeoMeo.Shared.Utilities;
 using static MeoMeo.Domain.Commons.PagingExtensions;
 
 namespace MeoMeo.CMS.Services

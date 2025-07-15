@@ -1,12 +1,8 @@
 ﻿using MeoMeo.Application.IServices;
 using MeoMeo.Contract.Commons;
-using MeoMeo.Contract.DTOs;
 using MeoMeo.Contract.DTOs.Order;
 using MeoMeo.Domain.Commons;
 using Microsoft.AspNetCore.Mvc;
-
-// For more information on enabling Web API for empty projects, visit https://go.microsoft.com/fwlink/?LinkID=397860
-
 namespace MeoMeo.API.Controllers
 {
     [Route("api/[controller]")]
@@ -14,7 +10,6 @@ namespace MeoMeo.API.Controllers
     public class OrdersController : ControllerBase
     {
         private readonly IOrderService _orderService;
-
         public OrdersController(IOrderService orderService)
         {
             _orderService = orderService;
@@ -30,8 +25,13 @@ namespace MeoMeo.API.Controllers
         {
             var result = await _orderService.UpdateStatusOrderAsync(request);
             return result;
+        }   
+        [HttpGet("history/{orderId}")]
+        public async Task<BaseResponse> UpdateStatusOrderAsync(Guid orderId)
+        {
+            var result = await _orderService.GetListOrderHistoryAsync(orderId);
+            return result;
         }
-        // DELETE api/<OrdersController>/5
         [HttpDelete("delete-order/{id}")]
         public async Task<IActionResult> DeleteOrder(Guid id)
         {

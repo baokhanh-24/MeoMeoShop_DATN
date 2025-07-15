@@ -70,7 +70,7 @@ builder.Services.AddScoped<IUserRepository, UserRepository>();
 builder.Services.AddScoped<IUserService, UserService>();
 builder.Services.AddScoped<IOrderDetailInventoryBatchRepository, OrderDetailInventoryBatchRepository>();
 builder.Services.AddScoped<IOrderHistoryRepository, OrderHistoryRepository>();
-builder.Services.AddScoped<IUserServices, UserServices>();
+// builder.Services.AddScoped<IUserServices, UserServices>();
 builder.Services.AddScoped<IEmployeeRepository, EmployeeRepository>();
 builder.Services.AddScoped<IEmployeeServices, EmployeeServices>();
 builder.Services.AddScoped<ICustomerRepository, CustomerRepository>();

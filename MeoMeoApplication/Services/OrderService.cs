@@ -17,6 +17,7 @@ namespace MeoMeo.Application.Services
     {
         private readonly IIventoryBtachReposiory _inventoryRepository;
         private readonly ICartDetaillRepository _cartDetailRepository;
+        private readonly IUserRepository _userRepository;
         private readonly ICartRepository _cartRepository;
         private readonly IOrderHistoryRepository _orderHistoryRepository;
         private readonly IProductsDetailRepository _productsDetailRepository;
@@ -31,7 +32,7 @@ namespace MeoMeo.Application.Services
             IMapper mapper, IOrderDetailRepository orderDetailRepository,
             IInventoryTranSactionRepository inventoryTransactionRepository,
             IProductsDetailRepository productsDetailRepository, IUnitOfWork unitOfWork,
-            IOrderDetailInventoryBatchRepository orderDetailInventoryBatchRepository, ICartDetaillRepository cartDetailRepository, ICartRepository cartRepository, IOrderHistoryRepository orderHistoryRepository)
+            IOrderDetailInventoryBatchRepository orderDetailInventoryBatchRepository, ICartDetaillRepository cartDetailRepository, ICartRepository cartRepository, IOrderHistoryRepository orderHistoryRepository, IUserRepository userRepository)
         {
             _inventoryRepository = inventoryRepository;
             _orderRepository = orderRepository;
@@ -44,6 +45,7 @@ namespace MeoMeo.Application.Services
             _cartDetailRepository = cartDetailRepository;
             _cartRepository = cartRepository;
             _orderHistoryRepository = orderHistoryRepository;
+            _userRepository = userRepository;
         }
 
 
@@ -189,6 +191,7 @@ namespace MeoMeo.Application.Services
                     return new BaseResponse()
                         { Message = "Không tìm thấy đơn hàng", ResponseStatus = BaseStatus.Error };
                 }
+                var currentStatus= orders.First().Status;
                 foreach (var order in orders)
                 {
                     if (!OrderValidator.CanTransition(order.Status, request.Status))
@@ -200,7 +203,7 @@ namespace MeoMeo.Application.Services
                         };
                     }
                 }
-                var currentStatus= orders.First().Status;
+   
                 var listOrderDetails = await _orderDetailRepository.Query()
                     .Where(c => request.OrderIds.Contains(c.OrderId)).ToListAsync();
                 var orderDetailIds = listOrderDetails.Select(x => x.Id).ToList();
@@ -289,7 +292,6 @@ namespace MeoMeo.Application.Services
                 });
                 var lstHistory = orders.Select(o =>
                 {
-                    var currentStatus = o.Status;
                     var content = $"""
                                    <p><strong>Trạng thái đơn hàng:</strong> Từ 
                                    <span class="status-old">{MapStatus(currentStatus)}</span> 
@@ -325,6 +327,40 @@ namespace MeoMeo.Application.Services
                 };
             }
         }
+
+        public async Task<GetListOrderHistoryResponseDTO> GetListOrderHistoryAsync(Guid orderId)
+        {
+            try
+            {
+                GetListOrderHistoryResponseDTO response = new GetListOrderHistoryResponseDTO();
+                var orderHistory = await (from oh in _orderHistoryRepository.Query()
+                    join u in _userRepository.Query() on oh.CreatedBy equals u.Id into userJoin
+                    from u in userJoin.DefaultIfEmpty()
+                    where oh.OrderId == orderId
+                    select new OrderHistoryDTO
+                    {
+                      Id = oh.Id,
+                      CreationTime = oh.CreationTime,
+                      Content = oh.Content,
+                      Type = oh.Type,
+                      OrderId = oh.OrderId,
+                      Actor = String.IsNullOrEmpty(u.UserName) ? "Admin hệ thống":u.UserName
+                    }).OrderByDescending(oh => oh.CreationTime).ToListAsync();
+                response.Items= orderHistory;
+                return response;
+            }
+            catch (Exception ex)
+            {
+                return new GetListOrderHistoryResponseDTO()
+                {
+                    Items = new List<OrderHistoryDTO>(),
+                    ResponseStatus = BaseStatus.Error,
+                    Message = ex.Message
+                };
+               
+            }
+        }
+
         private static string MapStatus(EOrderStatus status)
         {
             return status switch

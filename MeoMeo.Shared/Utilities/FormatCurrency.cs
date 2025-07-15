@@ -1,6 +1,6 @@
 using System.Globalization;
 
-namespace MeoMeo.Utilities;
+namespace MeoMeo.Shared.Utilities;
 
 public static class FormatCurrency
 {

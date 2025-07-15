@@ -11,6 +11,7 @@ namespace MeoMeo.Application.IServices
         Task<PagingExtensions.PagedResult<OrderDTO, GetListOrderResponseDTO>> GetListOrderAsync(
             GetListOrderRequestDTO request);
         Task<BaseResponse> UpdateStatusOrderAsync(UpdateStatusOrderRequestDTO request);
+        Task<GetListOrderHistoryResponseDTO> GetListOrderHistoryAsync(Guid orderId);
         Task<BaseResponse> CreateOrderAsync(CreateOrderDTO request);
         Task<bool> DeleteOrderAsync(Guid id);
     }

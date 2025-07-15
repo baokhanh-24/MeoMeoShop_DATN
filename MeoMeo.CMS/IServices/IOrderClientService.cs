@@ -10,4 +10,6 @@ public interface IOrderClientService
     Task<PagingExtensions.PagedResult<OrderDTO, GetListOrderResponseDTO>> GetListOrderAsync(
         GetListOrderRequestDTO request);
     Task<BaseResponse> UpdateStatusOrderAsync([FromBody] UpdateStatusOrderRequestDTO request);
+    
+    Task<GetListOrderHistoryResponseDTO> GetListOrderHistoryAsync(Guid orderId);
 }

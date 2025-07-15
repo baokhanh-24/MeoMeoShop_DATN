@@ -1,8 +1,9 @@
 
 using System.Text;
 using System.Text.Json;
+using Microsoft.Extensions.Logging;
 
-namespace MeoMeo.Utilities
+namespace MeoMeo.Shared.Utilities
 {
     public class ApiCaller : IApiCaller
     {

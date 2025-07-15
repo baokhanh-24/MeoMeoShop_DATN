@@ -1,5 +1,4 @@
-namespace MeoMeo.Utilities;
-
+namespace MeoMeo.Shared.Utilities;
 public class BuildQuery
 {
     public static string ToQueryString(object obj)

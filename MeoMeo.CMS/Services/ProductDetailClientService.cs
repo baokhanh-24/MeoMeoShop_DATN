@@ -2,7 +2,7 @@
 using MeoMeo.Contract.Commons;
 using MeoMeo.Contract.DTOs.ProductDetail;
 using MeoMeo.Domain.Commons;
-using MeoMeo.Utilities;
+using MeoMeo.Shared.Utilities;
 
 namespace MeoMeo.CMS.Services
 {

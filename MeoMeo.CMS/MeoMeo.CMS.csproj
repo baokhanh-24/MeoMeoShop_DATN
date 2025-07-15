@@ -12,6 +12,7 @@
 
     <ItemGroup>
       <ProjectReference Include="..\MeoMeo.Contract\MeoMeo.Contract.csproj" />
+      <ProjectReference Include="..\MeoMeo.Shared\MeoMeo.Shared.csproj" />
     </ItemGroup>
 
     <ItemGroup>

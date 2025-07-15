@@ -1,7 +1,9 @@
-using AntDesign;
+
 using System.Threading.Tasks;
+using AntDesign;
 using Microsoft.AspNetCore.Components;
-namespace MeoMeo.Utilities;
+
+namespace MeoMeo.Shared.Utilities;
 public class MessageModalService
 {
     private readonly NotificationService _notification;

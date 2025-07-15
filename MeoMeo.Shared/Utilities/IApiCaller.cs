@@ -1,4 +1,4 @@
-namespace MeoMeo.Utilities;
+namespace MeoMeo.Shared.Utilities;
 
 public interface IApiCaller
 {

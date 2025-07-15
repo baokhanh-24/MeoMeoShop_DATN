@@ -2,7 +2,7 @@ using MeoMeo.CMS.IServices;
 using MeoMeo.Contract.Commons;
 using MeoMeo.Contract.DTOs.Order;
 using MeoMeo.Domain.Commons;
-using MeoMeo.Utilities;
+using MeoMeo.Shared.Utilities;
 
 namespace MeoMeo.CMS.Services;
 
@@ -41,5 +41,12 @@ public class OrderClientService:IOrderClientService
             _logger.LogError(ex, "Có lỗi xảy ra khi cập nhật trạng thái Order {Id}: {Message}", string.Join(',',request.OrderIds), ex.Message);
             return new BaseResponse { ResponseStatus = BaseStatus.Error, Message = ex.Message };
         }
+    }
+
+    public async Task<GetListOrderHistoryResponseDTO> GetListOrderHistoryAsync(Guid orderId)
+    {
+        var url = $"/api/Orders/history/{orderId}";
+        var response = await _httpClient.GetAsync<GetListOrderHistoryResponseDTO>(url);
+        return response ?? new GetListOrderHistoryResponseDTO();
     }
 }

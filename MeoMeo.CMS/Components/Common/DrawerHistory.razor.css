@@ -1,0 +1,75 @@
+
+.history-item {
+    padding: 6px 0;
+    border-radius: 4px;
+}
+.history-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 4px;
+}
+
+.history-actor {
+    font-weight: 600;
+    color: #333;
+}
+
+.history-type {
+    font-style: italic;
+    color: #ffff;
+    font-size: 16px;
+    border-radius: 16px;
+    background: #52c41a;
+    padding: 2px 16px;
+}
+
+.type-created {
+    color: #52c41a; 
+}
+
+.type-updated {
+    color: #1890ff;
+}
+
+.type-cancelled {
+    color: #f5222d;
+}
+
+.type-deleted {
+    color: #722ed1; 
+}
+
+.history-time {
+    color: #999;
+    font-size: 0.8rem;
+}
+
+.history-content {
+    margin-top: 4px;
+    font-size: 0.95rem;
+    white-space: pre-wrap;
+    color: #555;
+}
+::deep .ant-timeline.ant-timeline-label .ant-timeline-item-label {
+    width: calc(30% - 12px) !important;
+}
+::deep .ant-timeline.ant-timeline-alternate .ant-timeline-item-tail,
+.ant-timeline.ant-timeline-right .ant-timeline-item-tail,
+.ant-timeline.ant-timeline-label .ant-timeline-item-tail,
+.ant-timeline.ant-timeline-alternate .ant-timeline-item-head,
+.ant-timeline.ant-timeline-right .ant-timeline-item-head,
+.ant-timeline.ant-timeline-label .ant-timeline-item-head,
+.ant-timeline.ant-timeline-alternate .ant-timeline-item-head-custom,
+.ant-timeline.ant-timeline-right .ant-timeline-item-head-custom,
+.ant-timeline.ant-timeline-label .ant-timeline-item-head-custom {
+    left: 30% !important;
+}
+::deep .ant-timeline.ant-timeline-alternate .ant-timeline-item-left .ant-timeline-item-content,
+.ant-timeline.ant-timeline-right .ant-timeline-item-left .ant-timeline-item-content,
+.ant-timeline.ant-timeline-label .ant-timeline-item-left .ant-timeline-item-content {
+    left: calc(30% - 4px)  !important;
+    width: calc(70% - 14px)  !important;
+    text-align: left  !important;
+}
