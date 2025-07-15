@@ -3,7 +3,7 @@ using MeoMeo.Contract.Commons;
 using MeoMeo.Contract.DTOs.Promotion;
 using MeoMeo.Contract.DTOs.PromotionDetail;
 using MeoMeo.Domain.Commons;
-using MeoMeo.Utilities;
+using MeoMeo.Shared.Utilities;
 
 
 namespace MeoMeo.CMS.Services

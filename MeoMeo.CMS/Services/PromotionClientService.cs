@@ -3,7 +3,7 @@ using MeoMeo.Contract.Commons;
 using MeoMeo.Contract.DTOs.InventoryBatch;
 using MeoMeo.Contract.DTOs.Promotion;
 using MeoMeo.Domain.Commons;
-using MeoMeo.Utilities;
+using MeoMeo.Shared.Utilities;
 
 namespace MeoMeo.CMS.Services
 {
