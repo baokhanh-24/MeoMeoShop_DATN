@@ -23,7 +23,6 @@
     <Folder Include="DTOs\DeliveryAddress\" />
     <Folder Include="DTOs\District\" />
     <Folder Include="DTOs\Image\" />
-    <Folder Include="DTOs\InventoryBatch\" />
     <Folder Include="DTOs\InventoryTranSaction\" />
     <Folder Include="DTOs\Commune\" />
     <Folder Include="DTOs\CustomersBank\" />
@@ -40,6 +39,8 @@
     <Folder Include="DTOs\Province\" />
     <Folder Include="DTOs\Promotion\" />
     <Folder Include="DTOs\PromotionDetail\" />
+    <Folder Include="DTOs\Order\" />
+    <Folder Include="DTOs\OrderDetail\" />
   </ItemGroup>
 
 </Project>

@@ -50,7 +50,7 @@ builder.Services.AddScoped<IDeliveryAddressRepository, DeliveryAddressRepository
 builder.Services.AddScoped<IDeliveryAddressService, DeliveryAddressService>();
 builder.Services.AddScoped<IProvinceRepository, ProvinceRepository>();
 builder.Services.AddScoped<IProvinceService, ProvinceService>();
-builder.Services.AddScoped<IIventoryBtachReposiory, InventoryBatchRepository>();
+builder.Services.AddScoped<IIventoryBatchReposiory, InventoryBatchRepository>();
 builder.Services.AddScoped<IInventoryBatchServices, InventoryBatchService>();
 builder.Services.AddScoped<IInventoryTranSactionRepository, InventoryTranSactionRepository>();
 builder.Services.AddScoped<IIventoryTranSactionServices, InventoryTranSactionService>();

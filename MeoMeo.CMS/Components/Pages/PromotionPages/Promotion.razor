@@ -1,0 +1,330 @@
+﻿@page "/manage-promotion"
+@using AntDesign.TableModels
+@using MeoMeo.CMS.IServices
+@using MeoMeo.Contract.Commons
+@using MeoMeo.Contract.DTOs.Promotion
+@using MeoMeo.Domain.Commons.Enums
+@using System.Reflection
+@using System.ComponentModel.DataAnnotations
+@using MeoMeo.Utilities
+@using Microsoft.EntityFrameworkCore.Metadata.Internal
+@inject MessageModalService MessageModalService
+
+<div class="d-flex justify-content-between">
+    <Breadcrumb>
+        <BreadcrumbItem Href="/">Trang chủ</BreadcrumbItem>
+        <BreadcrumbItem Href="/manage-promotion">Chương trình khuyến mãi</BreadcrumbItem>
+    </Breadcrumb>
+    <Button OnClick="AddPromotion" Type="ButtonType.Primary" Class="mb-2">
+        <i class="fas fa-plus"></i> Thêm mới
+    </Button>
+</div>
+<Tabs DefaultActiveKey="All" @bind-ActiveKey="@activeTab" OnChange="OnTabChange">
+    <TabPane Key="All" Tab=@($"Tất cả ({metaData.TotalAll})")/>
+    <TabPane Key="Draft" Tab=@($"Nháp ({metaData.Draft})")/>
+    <TabPane Key="NotHappenedYet" Tab=@($"Chưa diễn ra ({metaData.NotHappenedYet})")/>
+    <TabPane Key="IsGoingOn" Tab=@($"Đang diễn ra ({metaData.IsGoingOn})")/>
+    <TabPane Key="Ended" Tab=@($"Đã kết thúc ({metaData.Ended})")/>
+</Tabs>
+<div class="d-flex justify-content-end gap-3 mb-2">
+    <div style="width: 250px">
+        <Input AllowClear="true" @bind-Value="filter.TitleFilter" Placeholder="Nhập tên khuyến mãi" OnClear="OnFilterChanged" />
+    </div>
+    <DatePicker Class="w-full" TValue="DateOnly?" @bind-Value="filter.StartDateFilter"/>
+    <DatePicker Class="w-full" TValue="DateOnly?" @bind-Value="filter.EndDateFilter" />
+    <div style="width: 250px">
+        <Input AllowClear="true" @bind-Value="filter.DescriptionFilter" Placeholder="Nhập mô tả" OnClear="OnFilterChanged" />
+    </div>
+    <div style="width: 150px">
+        <Select TItem="(EPromotionStatus Value, string Name)"
+                TItemValue="EPromotionStatus?"
+                AllowClear
+                DataSource="promotionStatusList"
+                @bind-Value="filter.StatusFilter"
+                Placeholder="Chọn trạng thái"
+                ItemValue="s => (EPromotionStatus?)s.Value"
+                ItemLabel="s => s.Name">
+        </Select>
+    </div>
+    <Tooltip Title="Tìm kiếm">
+        <Button @onclick="() => OnFilterChanged()" Type="ButtonType.Primary" Shape="ButtonShape.Circle" Icon="@IconType.Outline.Search" />
+    </Tooltip>
+</div>
+<Table DataSource="listOfData" TItem="CreateOrUpdatePromotionDTO" RowClassName="@(_ => "editable-row")" Bordered TableLayout="fixed" OnChange="@OnPageChange" PageSize="@filter.PageSize" Total="@totalRecords">
+    <ChildContent Context="data">
+        <Column TData="int" Title="STT">
+            @{
+                var index = listOfData.IndexOf(data);
+                @((filter.PageIndex - 1) * filter.PageSize + index + 1)
+            }
+        </Column>
+        <Column TData="string" Title="Tên chương trình">
+            <a class="text-primary" style="cursor:pointer" @onclick="() => ViewPromotionDetail(data.Id)">
+                @if (editCache.ContainsKey(data.Id) && !editCache[data.Id].edit)
+                {
+                    @data.Title
+                }
+                else if (editCache.ContainsKey(data.Id))
+                {
+                    <Input MaxLength="500" @bind-Value="editCache[data.Id].data.Title" />
+                }
+            </a>
+        </Column>
+        <Column TData="DateTime?" Title="Ngày bắt đầu">
+            @if (editCache.ContainsKey(data.Id) && !editCache[data.Id].edit)
+            {
+                @data.StartDate?.ToString("dd-MM-yyyy")
+            }
+            else if (editCache.ContainsKey(data.Id))
+            {
+                <DatePicker @bind-Value="editCache[data.Id].data.StartDate" />
+            }
+        </Column>
+        <Column TData="DateTime?" Title="Ngày kết thúc">
+            @if (editCache.ContainsKey(data.Id) && !editCache[data.Id].edit)
+            {
+                @data.EndDate?.ToString("dd-MM-yyyy")
+            }
+            else if (editCache.ContainsKey(data.Id))
+            {
+                <DatePicker @bind-Value="editCache[data.Id].data.EndDate" />
+            }
+        </Column>
+        <Column TData="string" Title="Mô tả">
+            @if (editCache.ContainsKey(data.Id) && !editCache[data.Id].edit)
+            {
+                @data.Description
+            }
+            else if (editCache.ContainsKey(data.Id))
+            {
+                <Input MaxLength="1000" @bind-Value="editCache[data.Id].data.Description" />
+            }
+        </Column>
+        <Column TData="EInventoryBatchStatus" Title="Trạng thái">
+            @if (editCache.ContainsKey(data.Id) && !editCache[data.Id].edit)
+            {
+                @promotionStatusList.FirstOrDefault(p => p.Value == data.Status).Name
+            }
+            else if (editCache.ContainsKey(data.Id))
+            {
+                <Select TItem="(EPromotionStatus Value, string Name)"
+                        TItemValue="EPromotionStatus"
+                        DataSource="promotionStatusList"
+                        @bind-Value="editCache[data.Id].data.Status"
+                        ItemValue="p => p.Value"
+                        ItemLabel="p => p.Name" />
+            }
+        </Column>
+        <ActionColumn Title="Thao tác" Class="text-end gap-2">
+            @if (editCache.ContainsKey(data.Id) && !editCache[data.Id].edit)
+            {
+                <Tooltip Title="Sửa">
+                    <Button Size="ButtonSize.Small" @onclick="() => startEdit(data.Id)" Shape="ButtonShape.Circle">
+                        <i class="fas fa-pen"></i>
+                    </Button>
+                </Tooltip>               
+                
+                <Popconfirm Title=@($"Bạn có chắc muốn xóa {data.Title}?")
+                            OnConfirm="() => DeletePromotion(data.Id)"
+                            OkText="Đồng ý"
+                            CancelText="Hủy">
+
+                    <Tooltip Title="Xóa">
+                        <Button Size="ButtonSize.Small" Danger Shape="ButtonShape.Circle">
+                            <i class="fas fa-minus"></i>
+                        </Button>
+                    </Tooltip>
+                </Popconfirm>
+            }
+            else if (editCache.ContainsKey(data.Id))
+            {
+                <Tooltip Title="Lưu">
+                    <Button Size="ButtonSize.Small" @onclick="() => SaveEdit(data.Id)" Shape="ButtonShape.Circle">
+                        <i class="fas fa-check"></i>
+                    </Button>
+                </Tooltip>
+                <Tooltip Title="Hủy">
+                    <Button Size="ButtonSize.Small" @onclick="() => CancelEdit(data.Id)" Shape="ButtonShape.Circle">
+                        <i class="fa-solid fa-xmark"></i>
+                    </Button>
+                </Tooltip>
+            }
+        </ActionColumn>
+    </ChildContent>
+</Table>
+@code {
+    [Inject] private IPromotionClientService PromotionClientService { get; set; } = default!;
+    private string activeTab = "All";
+    private GetListPromotionResponseDTO metaData = new();
+    private int totalRecords = 0;
+    IDictionary<Guid, (bool edit, CreateOrUpdatePromotionDTO data)> editCache = new Dictionary<Guid, (bool, CreateOrUpdatePromotionDTO)>();
+    List<CreateOrUpdatePromotionDTO> listOfData = new();
+    List<(EPromotionStatus Value, string Name)> promotionStatusList = new();
+    [Inject] private NavigationManager Navigation { get; set; } = default!;
+
+    GetListPromotionRequestDTO filter = new GetListPromotionRequestDTO()
+    {
+        TitleFilter = "",
+        StartDateFilter = null,
+        EndDateFilter = null,
+        DescriptionFilter = "",
+        StatusFilter = null,
+        PageIndex = 1,
+        PageSize = 10
+    };
+    protected override async Task OnInitializedAsync()
+    {
+        promotionStatusList = Enum.GetValues(typeof(EPromotionStatus))
+            .Cast<EPromotionStatus>()
+            .Select(x => (
+                x,
+                x.GetType().GetMember(x.ToString())
+                    .First()
+                    .GetCustomAttribute<DisplayAttribute>()?.Name ?? x.ToString()
+            ))
+            .ToList();
+
+        await LoadDataAsync();
+    }
+    private async Task OnStatusChanged(EPromotionStatus? value)
+    {
+        filter.StatusFilter = value;
+        filter.PageIndex = 1;
+        await LoadDataAsync();
+    }
+    private async Task OnPageChange(QueryModel<CreateOrUpdatePromotionDTO> query)
+    {
+        filter.PageIndex = query.PageIndex;
+        filter.PageSize = query.PageSize;
+        await LoadDataAsync();
+    }
+    private void AddPromotion()
+    {
+        Navigation.NavigateTo("/promotion-create");
+    }
+    private async Task OnTabChange()
+    {
+        if (activeTab == "All")
+        {
+            filter.StatusFilter = null;
+        }
+        else if (Enum.TryParse<EPromotionStatus>(activeTab, out var status))
+        {
+            filter.StatusFilter = status;
+        }
+
+        await LoadDataAsync();
+        await InvokeAsync(StateHasChanged);
+    }
+    private async Task LoadDataAsync()
+    {
+
+        var response = await PromotionClientService.GetAllPromotionAsync(filter);
+        listOfData = response.Items;
+        metaData = response.Metadata;
+        totalRecords = response.TotalRecords;
+        editCache = listOfData.ToDictionary(
+            item => item.Id,
+            item => (false, ClonePromotion(item))
+        );
+        await InvokeAsync(StateHasChanged);
+    }
+    async void OnFilterChanged()
+    {
+        await LoadDataAsync();
+    }
+    void ViewPromotionDetail(Guid id)
+    {
+        Navigation.NavigateTo($"/promotion-detail/{id}");
+    }
+    async Task startEdit(Guid id)
+    {
+        var data = editCache[id];
+        editCache[id] = (true, data.data);
+        await InvokeAsync(StateHasChanged);
+    }
+    async Task CancelEdit(Guid Id)
+    {
+        var Item = listOfData.FirstOrDefault(x => x.Id == Id);
+        var isNew = Item == null || Item.Id == Guid.Empty;
+
+        if (isNew)
+        {
+            listOfData.RemoveAll(x => x.Id == Id);
+            editCache.Remove(Id);
+        }
+        else
+        {
+            var Original = listOfData.FirstOrDefault(x => x.Id == Id);
+            editCache[Id] = (false, ClonePromotion(Original));
+        }
+        await InvokeAsync(StateHasChanged);
+    }
+    async Task SaveEdit(Guid id)
+    {
+        var dto = editCache[id].data;
+        var CreateOrUpdateDTO = new CreateOrUpdatePromotionDTO
+        {
+            Id = dto.Id,
+            Title = dto.Title,
+            StartDate = dto.StartDate,
+            EndDate = dto.EndDate,
+            Description = dto.Description,
+            CreationTime = dto.CreationTime,
+            LastModificationTime = dto.LastModificationTime,
+            CreatedBy = dto.CreatedBy,
+            UpdatedBy = dto.UpdatedBy,
+            Status = dto.Status
+        };
+
+        BaseResponse result;
+        if (dto.Id == Guid.Empty)
+        {
+            result = result = await PromotionClientService.CreatePromotionAsync(CreateOrUpdateDTO);
+        }
+        else
+        {
+            result = await PromotionClientService.UpdatePromotionAsync(CreateOrUpdateDTO);
+        }
+
+        if (result.ResponseStatus == BaseStatus.Success)
+        {
+            await MessageModalService.Success("Lưu thành công!");
+            await LoadDataAsync();
+        }
+        else
+        {
+            await MessageModalService.Error(result.Message);
+        }
+    }
+    async Task DeletePromotion(Guid id)
+    {
+        var success = await PromotionClientService.DeletePromotionAsync(id);
+        if (success)
+        {
+            listOfData.RemoveAll(x => x.Id == id);
+            editCache.Remove(id);
+            await MessageModalService.Success("Xoá thành công!");
+        }
+        else
+        {
+            await MessageModalService.Error("Xoá thất bại!");
+        }
+    }
+    CreateOrUpdatePromotionDTO ClonePromotion(CreateOrUpdatePromotionDTO dto)
+    {
+        return new CreateOrUpdatePromotionDTO
+        {
+            Id = dto.Id,
+            Title = dto.Title,
+            StartDate = dto.StartDate,
+            EndDate = dto.EndDate,
+            Description = dto.Description,
+            CreationTime = dto.CreationTime,
+            LastModificationTime = dto.LastModificationTime,
+            CreatedBy = dto.CreatedBy,
+            UpdatedBy = dto.UpdatedBy,
+            Status = dto.Status
+        };
+    }
+}

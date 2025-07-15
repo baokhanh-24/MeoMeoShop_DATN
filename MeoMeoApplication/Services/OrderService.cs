@@ -15,7 +15,7 @@ namespace MeoMeo.Application.Services
 {
     public class OrderService : IOrderService
     {
-        private readonly IIventoryBtachReposiory _inventoryRepository;
+        private readonly IIventoryBatchReposiory _inventoryRepository;
         private readonly ICartDetaillRepository _cartDetailRepository;
         private readonly IUserRepository _userRepository;
         private readonly ICartRepository _cartRepository;
@@ -28,7 +28,7 @@ namespace MeoMeo.Application.Services
         private readonly IMapper _mapper;
         private readonly IUnitOfWork _unitOfWork;
 
-        public OrderService(IIventoryBtachReposiory inventoryRepository, IOrderRepository orderRepository,
+        public OrderService(IIventoryBatchReposiory inventoryRepository, IOrderRepository orderRepository,
             IMapper mapper, IOrderDetailRepository orderDetailRepository,
             IInventoryTranSactionRepository inventoryTransactionRepository,
             IProductsDetailRepository productsDetailRepository, IUnitOfWork unitOfWork,

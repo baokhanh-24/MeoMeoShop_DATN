@@ -1,8 +1,10 @@
 ﻿using MeoMeo.Application.IServices;
 using MeoMeo.Application.Services;
-using MeoMeo.Contract.DTOs;
+using MeoMeo.Contract.DTOs.Promotion;
+using MeoMeo.Domain.Commons;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using static MeoMeo.Domain.Commons.PagingExtensions;
 
 namespace MeoMeo.API.Controllers
 {
@@ -18,10 +20,10 @@ namespace MeoMeo.API.Controllers
         }
 
         [HttpGet("get-all-promotion-async")]
-        public async Task<IActionResult> GetAllPromotionAsync()
+        public async Task<PagingExtensions.PagedResult<CreateOrUpdatePromotionDTO>> GetAllPromotionAsync([FromQuery] GetListPromotionRequestDTO request)
         {
-            var result = await _promotionServices.GetAllPromotionAsync();
-            return Ok(result);
+            var result = await _promotionServices.GetAllPromotionAsync(request);
+            return result;
         }
 
         [HttpGet("find-promotion-by-id-async/{id}")]

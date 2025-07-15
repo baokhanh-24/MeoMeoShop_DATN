@@ -3,8 +3,11 @@ using MeoMeo.Contract.DTOs;
 using MeoMeo.Contract.DTOs.Material;
 using MeoMeo.Contract.DTOs.Order;
 using MeoMeo.Contract.DTOs.OrderDetail;
+using MeoMeo.Contract.DTOs.InventoryBatch;
 using MeoMeo.Contract.DTOs.Product;
 using MeoMeo.Contract.DTOs.ProductDetail;
+using MeoMeo.Contract.DTOs.Promotion;
+using MeoMeo.Contract.DTOs.PromotionDetail;
 using MeoMeo.Contract.DTOs.Size;
 using MeoMeo.Domain.Entities;
 
@@ -28,6 +31,7 @@ namespace MeoMeo.Contract
             CreateMap<SizeDTO, Size>();
             CreateMap<ProductDetaillSizeDTO, ProductDetailSize>();
             CreateMap<CreateOrUpdatePromotionDTO, Promotion>();
+            CreateMap<Promotion, CreateOrUpdatePromotionDTO>();
             CreateMap<CreateOrUpdatePromotionDetailDTO, PromotionDetail>();
             CreateMap<CreateOrUpdateVoucherDTO, Voucher>();
             CreateMap<CreateOrUpdateUserDTO, User>();
@@ -54,6 +58,8 @@ namespace MeoMeo.Contract
             CreateMap<Voucher, CreateOrUpdateVoucherResponseDTO>();
             CreateMap<Promotion, CreateOrUpdatePromotionResponseDTO>();
             CreateMap<PromotionDetail, CreateOrUpdatePromotionDetailResponseDTO>();
+            CreateMap<PromotionDetail, CreateOrUpdatePromotionDetailDTO>();
+            CreateMap<CreateOrUpdatePromotionDetailDTO, PromotionDetail>();
             CreateMap<Bank, CreateOrUpdateBankResponseDTO>();
             CreateMap<User, CreateOrUpdateUserResponseDTO>();
             CreateMap<Employee, CreateOrUpdateEmployeeResponseDTO>();

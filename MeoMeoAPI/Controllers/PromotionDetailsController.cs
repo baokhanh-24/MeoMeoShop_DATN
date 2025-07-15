@@ -1,6 +1,7 @@
 ﻿using MeoMeo.Application.IServices;
 using MeoMeo.Application.Services;
-using MeoMeo.Contract.DTOs;
+using MeoMeo.Contract.DTOs.PromotionDetail;
+using MeoMeo.Domain.Commons;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 
@@ -18,10 +19,10 @@ namespace MeoMeo.API.Controllers
         }
 
         [HttpGet("get-all-promotion-detail-async")]
-        public async Task<IActionResult> GetAllPromotionDetailAsync()
+        public async Task<PagingExtensions.PagedResult<CreateOrUpdatePromotionDetailDTO>> GetAllPromotionDetailAsync([FromQuery] GetListPromotionDetailRequestDTO request)
         {
-            var result = await _promotionDetailServices.GetAllPromotionDetailAsync();
-            return Ok(result);
+            var result = await _promotionDetailServices.GetAllPromotionDetailAsync(request);
+            return result;
         }
 
         [HttpGet("find-promotion-detail-by-id-async/{id}")]

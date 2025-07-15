@@ -6,7 +6,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace MeoMeo.Contract.DTOs
+namespace MeoMeo.Contract.DTOs.InventoryBatch
 {
     public class GetListInventoryBatchRequestDTO : BasePaging
     {

@@ -1,9 +1,12 @@
 ﻿using AutoMapper;
 using MeoMeo.Application.IServices;
 using MeoMeo.Contract.Commons;
-using MeoMeo.Contract.DTOs;
+using MeoMeo.Contract.DTOs.Promotion;
+using MeoMeo.Domain.Commons;
+using MeoMeo.Domain.Commons.Enums;
 using MeoMeo.Domain.Entities;
 using MeoMeo.Domain.IRepositories;
+using Microsoft.EntityFrameworkCore;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -26,7 +29,7 @@ namespace MeoMeo.Application.Services
         public async Task<Promotion> CreatePromotionAsync(CreateOrUpdatePromotionDTO promotion)
         {
             var mappedPromotion = _mapper.Map<Promotion>(promotion);
-            mappedPromotion.Id = Guid.NewGuid();
+            //mappedPromotion.Id = Guid.NewGuid();
             return await _repository.CreatePromotionAsync(mappedPromotion);
         }
 
@@ -45,9 +48,59 @@ namespace MeoMeo.Application.Services
 
         }
 
-        public async Task<List<Promotion>> GetAllPromotionAsync()
+        public async Task<PagingExtensions.PagedResult<CreateOrUpdatePromotionDTO, GetListPromotionResponseDTO>> GetAllPromotionAsync(GetListPromotionRequestDTO request)
         {
-            return await _repository.GetAllPromotionAsync();
+            var metaDataValue = new GetListPromotionResponseDTO();
+            try
+            {
+                var query = _repository.Query();
+                var statusCounts = await _repository.Query().GroupBy(p => p.Status).Select(g => new
+                {
+                    Status = g.Key,
+                    Count = g.Count()
+                }).ToListAsync();
+                metaDataValue.TotalAll = statusCounts.Sum(s => s.Count);
+                metaDataValue.Draft = statusCounts.FirstOrDefault(s => s.Status == EPromotionStatus.Draft)?.Count ?? 0;
+                metaDataValue.NotHappenedYet = statusCounts.FirstOrDefault(s => s.Status == EPromotionStatus.NotHappenedYet)?.Count ?? 0;
+                metaDataValue.IsGoingOn = statusCounts.FirstOrDefault(s => s.Status == EPromotionStatus.IsGoingOn)?.Count ?? 0;
+                metaDataValue.Ended = statusCounts.FirstOrDefault(s => s.Status == EPromotionStatus.Ended)?.Count ?? 0;
+                if (!string.IsNullOrEmpty(request.TitleFilter))
+                {
+                    query = query.Where(c => EF.Functions.Like(c.Title, $"%{request.TitleFilter}%"));
+                }
+                if (request.StartDateFilter != null)
+                {
+                    query = query.Where(c => c.StartDate.HasValue && DateOnly.FromDateTime(c.StartDate.Value) == request.StartDateFilter.Value);
+                }
+                if (request.EndDateFilter != null)
+                {
+                    query = query.Where(c => c.EndDate.HasValue && DateOnly.FromDateTime(c.EndDate.Value) == request.EndDateFilter.Value);
+                }
+                if (!string.IsNullOrEmpty(request.DescriptionFilter))
+                {
+                    query = query.Where(c => EF.Functions.Like(c.Description, $"%{request.DescriptionFilter}%"));
+                }
+                if (request.StatusFilter != null)
+                {
+                    query = query.Where(c => c.Status == request.StatusFilter);
+                }
+                var filteredPromotion = await _repository.GetPagedAsync(query, request.PageIndex, request.PageSize);
+                var dtoItems = _mapper.Map<List<CreateOrUpdatePromotionDTO>>(filteredPromotion.Items);
+                metaDataValue.ResponseStatus = BaseStatus.Success;
+                return new PagingExtensions.PagedResult<CreateOrUpdatePromotionDTO, GetListPromotionResponseDTO>
+                {
+                    TotalRecords = filteredPromotion.TotalRecords,
+                    PageIndex = filteredPromotion.PageIndex,
+                    PageSize = filteredPromotion.PageSize,
+                    Items = dtoItems,
+                    Metadata = metaDataValue,
+                };
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine(ex.Message);
+                throw;
+            }
         }
 
         public async Task<CreateOrUpdatePromotionResponseDTO> GetPromotionByIdAsync(Guid id)

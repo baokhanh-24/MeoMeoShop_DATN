@@ -1,5 +1,6 @@
 ﻿using MeoMeo.Application.IServices;
 using MeoMeo.Contract.DTOs;
+using MeoMeo.Contract.DTOs.InventoryBatch;
 using MeoMeo.Domain.Commons;
 using MeoMeo.Domain.Entities;
 using MeoMeo.EntityFrameworkCore.Configurations.Contexts;
