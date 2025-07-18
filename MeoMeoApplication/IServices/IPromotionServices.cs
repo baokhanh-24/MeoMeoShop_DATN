@@ -1,4 +1,5 @@
-﻿using MeoMeo.Contract.DTOs;
+﻿using MeoMeo.Contract.DTOs.Promotion;
+using MeoMeo.Domain.Commons;
 using MeoMeo.Domain.Entities;
 using System;
 using System.Collections.Generic;
@@ -10,7 +11,7 @@ namespace MeoMeo.Application.IServices
 {
     public interface IPromotionServices
     {
-        Task<List<Promotion>> GetAllPromotionAsync();
+        Task<PagingExtensions.PagedResult<CreateOrUpdatePromotionDTO, GetListPromotionResponseDTO>> GetAllPromotionAsync(GetListPromotionRequestDTO request);
         Task<CreateOrUpdatePromotionResponseDTO> GetPromotionByIdAsync(Guid id);
         Task<Promotion> CreatePromotionAsync(CreateOrUpdatePromotionDTO promotion);
         Task<CreateOrUpdatePromotionResponseDTO> UpdatePromotionAsync(CreateOrUpdatePromotionDTO promotion);

@@ -1,9 +1,11 @@
 ﻿using AutoMapper;
 using MeoMeo.Application.IServices;
 using MeoMeo.Contract.Commons;
-using MeoMeo.Contract.DTOs;
+using MeoMeo.Contract.DTOs.PromotionDetail;
+using MeoMeo.Domain.Commons;
 using MeoMeo.Domain.Entities;
 using MeoMeo.Domain.IRepositories;
+using Microsoft.EntityFrameworkCore;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -43,9 +45,38 @@ namespace MeoMeo.Application.Services
             return true;
         }
 
-        public async Task<List<PromotionDetail>> GetAllPromotionDetailAsync()
+        public async Task<PagingExtensions.PagedResult<CreateOrUpdatePromotionDetailDTO>> GetAllPromotionDetailAsync(GetListPromotionDetailRequestDTO request)
         {
-            return await _repository.GetAllPromotionDetailAsync();
+            try
+            {
+                var query = _repository.Query();
+                if (request.PromotionIdFilter != Guid.Empty)
+                {
+                    query = query.Where(c => c.PromotionId == request.PromotionIdFilter);
+                }
+                if (request.DiscountFilter != null)
+                {
+                    query = query.Where(c => EF.Functions.Like(c.Discount.ToString(), $"%{request.DiscountFilter}%"));
+                }
+                if (!string.IsNullOrEmpty(request.NoteFilter))
+                {
+                    query = query.Where(c => EF.Functions.Like(c.Note, $"%{request.NoteFilter}%"));
+                }
+                var filtedPromotionDetail = await _repository.GetPagedAsync(query, request.PageIndex, request.PageSize);
+                var dtoItems = _mapper.Map<List<CreateOrUpdatePromotionDetailDTO>>(filtedPromotionDetail.Items);
+                return new PagingExtensions.PagedResult<CreateOrUpdatePromotionDetailDTO>
+                {
+                    TotalRecords = filtedPromotionDetail.TotalRecords,
+                    PageIndex = filtedPromotionDetail.PageIndex,
+                    PageSize = filtedPromotionDetail.PageSize,
+                    Items = dtoItems
+                };
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine(ex.Message);
+                throw;
+            }
         }
 
         public async Task<CreateOrUpdatePromotionDetailResponseDTO> GetPromotionDetailByIdAsync(Guid id)

@@ -1,0 +1,74 @@
+﻿@page "/add-employees-pages"
+@using System.ComponentModel.DataAnnotations
+@using System.Reflection
+@using MeoMeo.Contract.DTOs
+@using MeoMeo.CMS.IServices
+@using MeoMeo.Contract.Commons
+@using MeoMeo.Domain.Commons.Enums
+@inject MeoMeo.Utilities.MessageModalService MessageModalService
+@rendermode InteractiveServer
+
+@if (Visible)
+{
+    <Modal Title="Thêm mới nhân viên" Visible="true" OnCancel="OnCancel" Footer="null">
+        <Form Model="@employee" OnFinish="HandleValidSubmit">
+            <FormItem Label="Họ và tên">
+                <Input @bind-Value="employee.Name" />
+            </FormItem>
+            <FormItem Label="Mã nhân viên">
+                <Input @bind-Value="employee.Code" />
+            </FormItem>
+            <FormItem Label="SĐT">
+                <Input @bind-Value="employee.PhoneNumber" />
+            </FormItem>
+            <FormItem Label="Ngày sinh">
+                <Input @bind-Value="employee.DateOfBird" />
+            </FormItem>
+            <FormItem Label="Địa chỉ">
+                <Input @bind-Value="employee.Address" />
+            </FormItem>
+            <FormItem Label="Trạng thái">
+                <Select TItem="(EEmployeesStatus Value, string Name)"
+                        TItemValue="EEmployeesStatus"
+                        @bind-Value="employee.StatusEnum"
+                        DataSource="StatusList"
+                        ItemValue="item => item.Value"
+                        ItemLabel="item => item.Name">
+                </Select>
+
+            </FormItem>
+
+            <div class="text-end">
+                <Button OnClick="OnCancel" Type="ButtonType.Default" Class="me-2">Hủy</Button>
+                <Button Type="ButtonType.Primary" HtmlType="submit">Lưu</Button>
+            </div>
+        </Form>
+    </Modal>
+}
+
+@code {
+    [Parameter] public bool Visible { get; set; }
+    [Parameter] public EventCallback<bool> VisibleChanged { get; set; }
+    [Parameter] public EventCallback<CreateOrUpdateEmployeeDTO> OnSave { get; set; }
+
+    private CreateOrUpdateEmployeeDTO employee = new();
+
+    [Parameter] public List<(EEmployeesStatus Value, string Name)> StatusList { get; set; }
+
+    private async Task HandleValidSubmit()
+    {
+        await OnSave.InvokeAsync(employee);
+        await InvokeAsync(StateHasChanged);
+        ResetForm();
+    }
+
+    private void ResetForm()
+    {
+        employee = new CreateOrUpdateEmployeeDTO();
+    }
+
+    private async Task OnCancel()
+    {
+        await VisibleChanged.InvokeAsync(false);
+    }
+}

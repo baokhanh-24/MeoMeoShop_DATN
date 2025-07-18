@@ -93,6 +93,24 @@ namespace MeoMeo.EntityFrameworkCore.Commons
                 Items = items
             };
         }
+        public async Task AddRangeAsync(IEnumerable<TEntity> entities)
+        {
+            await _dbSet.AddRangeAsync(entities);
+            await SaveChangesAsync();
+        }
+
+        public async Task UpdateRangeAsync(IEnumerable<TEntity> entities)
+        {
+            _dbSet.UpdateRange(entities);
+            await SaveChangesAsync();
+           
+        }
+
+        public async Task DeleteRangeAsync(IEnumerable<TEntity> entities)
+        {
+            _dbSet.RemoveRange(entities);
+            await SaveChangesAsync();
+        }
     }
 
 }

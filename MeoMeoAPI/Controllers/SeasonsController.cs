@@ -19,9 +19,9 @@ namespace MeoMeo.API.Controllers
     [ApiController]
     public class SeasonsController : ControllerBase
     {
-        private readonly ISeasonServices _seasonServices;
+        private readonly ISeasonService _seasonServices;
 
-        public SeasonsController(ISeasonServices context)
+        public SeasonsController(ISeasonService context)
         {
             _seasonServices = context;
         }

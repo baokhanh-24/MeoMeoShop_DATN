@@ -1,7 +1,14 @@
 ﻿using AutoMapper;
 using MeoMeo.Contract.DTOs;
+using MeoMeo.Contract.DTOs.Material;
+using MeoMeo.Contract.DTOs.Order;
+using MeoMeo.Contract.DTOs.OrderDetail;
+using MeoMeo.Contract.DTOs.InventoryBatch;
 using MeoMeo.Contract.DTOs.Product;
 using MeoMeo.Contract.DTOs.ProductDetail;
+using MeoMeo.Contract.DTOs.Promotion;
+using MeoMeo.Contract.DTOs.PromotionDetail;
+using MeoMeo.Contract.DTOs.Size;
 using MeoMeo.Domain.Entities;
 
 namespace MeoMeo.Contract
@@ -24,6 +31,7 @@ namespace MeoMeo.Contract
             CreateMap<SizeDTO, Size>();
             CreateMap<ProductDetaillSizeDTO, ProductDetailSize>();
             CreateMap<CreateOrUpdatePromotionDTO, Promotion>();
+            CreateMap<Promotion, CreateOrUpdatePromotionDTO>();
             CreateMap<CreateOrUpdatePromotionDetailDTO, PromotionDetail>();
             CreateMap<CreateOrUpdateVoucherDTO, Voucher>();
             CreateMap<CreateOrUpdateUserDTO, User>();
@@ -39,7 +47,6 @@ namespace MeoMeo.Contract
             CreateMap<ProductDetaillColourDTO, ProductDetailColour>();
             CreateMap<SizeDTO, Size>();
             CreateMap<ProductDetaillSizeDTO, ProductDetailSize>();
-            CreateMap<CreateOrUpdateOrderDTO, Order>();
             CreateMap<CreateOrUpdateOrderDetailDTO, OrderDetail>();
             CreateMap<CreateOrUpdateDeliveryAddressDTO, DeliveryAddress>();
             CreateMap<CreateOrUpdateProvinceDTO, Province>();
@@ -51,36 +58,33 @@ namespace MeoMeo.Contract
             CreateMap<Voucher, CreateOrUpdateVoucherResponseDTO>();
             CreateMap<Promotion, CreateOrUpdatePromotionResponseDTO>();
             CreateMap<PromotionDetail, CreateOrUpdatePromotionDetailResponseDTO>();
+            CreateMap<PromotionDetail, CreateOrUpdatePromotionDetailDTO>();
+            CreateMap<CreateOrUpdatePromotionDetailDTO, PromotionDetail>();
             CreateMap<Bank, CreateOrUpdateBankResponseDTO>();
             CreateMap<User, CreateOrUpdateUserResponseDTO>();
             CreateMap<Employee, CreateOrUpdateEmployeeResponseDTO>();
             CreateMap<CreateOrUpdateDistrictDTO, District>();
             CreateMap<Order, CreateOrUpdateOrderResponse>();
-
-
             CreateMap<Customers,CreateOrUpdateCustomerResponse>();
             CreateMap<Customers,CustomerDTO>();
-
-            CreateMap<Bank,BankDTO>();
             CreateMap<Brand, BrandDTO>();
             CreateMap<Brand, CreateOrUpdateBrandResponseDTO>();
-
             CreateMap<Season, SeasonDTO>();
             CreateMap<Season, CreateOrUpdateSeasonResponseDTO>();
             CreateMap<CreateOrUpdateSeasonDTO, Season>();
-
-
-
             CreateMap<Customers, CreateOrUpdateCustomerResponse>();
             CreateMap<Customers, CustomerDTO>();
-            CreateMap<Bank, BankDTO>();
             CreateMap<Bank,BankDTO>();
             CreateMap<Material, CreateOrUpdateMaterialDTO>();
             CreateMap<Material, CreateOrUpdateMaterialResponse>();
             CreateMap<Size, SizeDTO>();
-
             CreateMap<Voucher, VoucherDTO>();
-
+            CreateMap<Employee, CreateOrUpdateEmployeeDTO>();
+            CreateMap<CreateOrUpdateEmployeeDTO, Employee>();
+            CreateMap<CreateOrUpdateEmployeeResponseDTO, Employee>();
+            CreateMap<Employee, CreateOrUpdateEmployeeResponseDTO>();
+            CreateMap<Order,OrderDTO>();
+            CreateMap<OrderDetail,OrderDetailDTO>();
         }
 
     }

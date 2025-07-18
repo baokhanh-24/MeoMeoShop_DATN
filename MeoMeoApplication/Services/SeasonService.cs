@@ -17,7 +17,7 @@ using System.Threading.Tasks;
 
 namespace MeoMeo.Application.Services
 {
-    public class SeasonService : ISeasonServices
+    public class SeasonService : ISeasonService
     {
         private readonly ISeasonRepository _seasonRepository;
         private readonly IMapper _mapper;
@@ -147,6 +147,65 @@ namespace MeoMeo.Application.Services
         {
             return await _seasonRepository.GetSeasonsAsync();
         }
+        public async Task<CreateOrUpdateSeasonResponse> GetSeasonByIdAsync(Guid id)
+        {
+            CreateOrUpdateSeasonResponse response = new CreateOrUpdateSeasonResponse();
+            var season = await _seasonRepository.GetSeasonByID(id);
+            if (season == null)
+            {
+                response.Message = "Không tìm thấy mùa này";
+                response.ResponseStatus = BaseStatus.Error;
+                return response;
+            }
+            response.Id = season.Id;
+            response.Name = season.Name;
+            response.Description = season.Description;
+            response.Status = season.Status;
+            response.Message = "Lấy thông tin mùa thành công";
+            response.ResponseStatus = BaseStatus.Success;
+            return response;
+        }
 
+        async Task<CreateOrUpdateSeasonResponse> ISeasonService.CreateSeasonAsync(SeasonDTO dto)
+        {
+            CreateOrUpdateSeasonResponse response = new CreateOrUpdateSeasonResponse();
+            var newseason = new Season
+            {
+                Id = Guid.NewGuid(),
+                Name = dto.Name,
+                Description = dto.Description,
+                Status = dto.Status
+            };
+            await _seasonRepository.CreateAsync(newseason);
+            response.Id = newseason.Id;
+            response.Name = newseason.Name;
+            response.Description = newseason.Description;
+            response.Status = newseason.Status;
+            response.Message = "Tạo mùa thành công";
+            response.ResponseStatus = BaseStatus.Success;
+            return response;
+        }
+
+
+        async Task<CreateOrUpdateSeasonResponse> ISeasonService.UpdateSeasonAsync(SeasonDTO dto)
+        {
+            CreateOrUpdateSeasonResponse response = new CreateOrUpdateSeasonResponse();
+            var getId = await _seasonRepository.GetSeasonByID(dto.Id);
+            if(getId == null)
+            {
+                response.Message = "Không tìm thấy mùa này";
+                response.ResponseStatus = BaseStatus.Error;
+                return response;
+            }
+            getId.Name = dto.Name;
+            getId.Description = dto.Description;
+            getId.Status = dto.Status;
+
+            await _seasonRepository.UpdateAsync(getId);
+
+            response.Message = "Cập nhật mùa thành công";
+            response.ResponseStatus = BaseStatus.Success;
+            return response;
+        }
     }
 }

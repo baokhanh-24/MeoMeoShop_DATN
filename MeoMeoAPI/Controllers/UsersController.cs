@@ -1,6 +1,8 @@
 ﻿using MeoMeo.Application.IServices;
 using MeoMeo.Application.Services;
+using MeoMeo.Contract.Commons;
 using MeoMeo.Contract.DTOs;
+using MeoMeo.Contract.DTOs.Employees;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 
@@ -10,9 +12,9 @@ namespace MeoMeo.API.Controllers
     [ApiController]
     public class UsersController : ControllerBase
     {
-        private readonly IUserServices _userServices;
+        private readonly IUserService _userServices;
 
-        public UsersController(IUserServices userServices)
+        public UsersController(IUserService userServices)
         {
             _userServices = userServices;
         }

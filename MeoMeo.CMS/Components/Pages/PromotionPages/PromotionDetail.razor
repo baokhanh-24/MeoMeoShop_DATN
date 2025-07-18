@@ -1,0 +1,164 @@
+﻿@page "/promotion-detail/{PromotionId:guid}"
+@inject IPromotionClientService PromotionClientService
+@inject IPromotionDetailClientService PromotionDetailClientService
+@inject IApiCaller Http
+@inject NavigationManager Navigation
+
+@using MeoMeo.CMS.IServices
+@using MeoMeo.Contract.DTOs.Promotion
+@using MeoMeo.Contract.DTOs.PromotionDetail
+@using MeoMeo.Contract.DTOs.ProductDetail
+@using MeoMeo.Utilities
+@using MeoMeo.Domain.Commons
+@using static MeoMeo.Domain.Commons.PagingExtensions
+<div class="d-flex justify-content-between">
+    <Breadcrumb>
+        <BreadcrumbItem Href="/">Trang chủ</BreadcrumbItem>
+        <BreadcrumbItem Href="/manage-promotion">Chương trình khuyến mãi</BreadcrumbItem>
+        <BreadcrumbItem Href="/promotion-detail/{id}">Chi tiết chương trình khuyến mãi</BreadcrumbItem>
+    </Breadcrumb>
+    <div class="">
+        <button class="btn btn-secondary" @onclick="GoBack">
+            <i class="fas fa-arrow-left"></i> Quay lại danh sách
+        </button>
+    </div>
+</div>
+<PageTitle>Chi tiết khuyến mãi</PageTitle>
+
+@if (isLoading)
+{
+    <div class="text-center mt-4">
+        <div class="spinner-border text-primary" role="status"></div>
+        <p>Đang tải chi tiết chương trình khuyến mãi...</p>
+    </div>
+}
+else if (promotion == null)
+{
+    <div class="alert alert-danger mt-4">Không tìm thấy chương trình khuyến mãi.</div>
+}
+else
+{
+    <div class="card shadow p-4 mt-3">
+        <h4 class="mb-3 text-primary">Thông tin chung</h4>
+        <dl class="row">
+            <dt class="col-sm-3">Tên chương trình</dt>
+            <dd class="col-sm-9">@promotion.Title</dd>
+
+            <dt class="col-sm-3">Bắt đầu</dt>
+            <dd class="col-sm-9">@promotion.StartDate?.ToString("dd/MM/yyyy")</dd>
+
+            <dt class="col-sm-3">Kết thúc</dt>
+            <dd class="col-sm-9">@promotion.EndDate?.ToString("dd/MM/yyyy")</dd>
+
+            <dt class="col-sm-3">Trạng thái</dt>
+            <dd class="col-sm-9">@promotion.Status</dd>
+
+            <dt class="col-sm-3">Mô tả</dt>
+            <dd class="col-sm-9">@promotion.Description</dd>
+        </dl>
+    </div>
+
+    <div class="card shadow p-4 mt-4">
+        <h4 class="mb-3 text-success">Danh sách sản phẩm khuyến mãi</h4>
+        @if (promotionDetailsView.Count == 0)
+        {
+            <p>Không có sản phẩm nào trong chương trình này.</p>
+        }
+        else
+        {
+            <table class="table table-bordered">
+                <thead class="table-light">
+                    <tr>
+                        <th>STT</th>
+                        <th>Mã sản phẩm</th>
+                        <th>Tên sản phẩm</th>
+                        <th>Giá gốc (đ)</th>
+                        <th>% giảm</th>
+                        <th>Giá khi giảm (đ)</th>
+                        <th>Ghi chú</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var (item, index) in promotionDetailsView.Select((v, i) => (v, i + 1)))
+                    {
+                        <tr>
+                            <td>@index</td>
+                            <td>@item.ProductCode</td>
+                            <td>@item.ProductName</td>
+                            <td>@($"{item.OriginalPrice:N0}")</td>
+                            <td>@($"{item.DiscountAmount:N0}")%</td>
+                            <td>@($"{item.DiscountedPrice:N0}")</td>
+                            <td>@item.Note</td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        }
+    </div>
+}
+@code {
+    [Parameter] public Guid PromotionId { get; set; }
+
+    private CreateOrUpdatePromotionDTO? promotion;
+    private List<CreateOrUpdatePromotionDetailDTO> promotionDetails = new();
+    private List<ProductPromotionView> promotionDetailsView = new();
+    private bool isLoading = true;
+
+    public class ProductPromotionView
+    {
+        public string ProductCode { get; set; } = "";
+        public string ProductName { get; set; } = "";
+        public float OriginalPrice { get; set; }
+        public float DiscountAmount { get; set; }
+        public float DiscountedPrice => OriginalPrice * (1 - DiscountAmount / 100);
+        public string Note { get; set; } = "";
+    }
+    private void GoBack()
+    {
+        Navigation.NavigateTo("/manage-promotion");
+    }
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            promotion = await PromotionClientService.GetPromotionByIdAsync(PromotionId);
+
+            var detailRequest = new GetListPromotionDetailRequestDTO
+            {
+                PageIndex = 1,
+                PageSize = 100,
+                PromotionIdFilter = PromotionId
+            };
+
+            var result = await PromotionDetailClientService.GetAllPromotionDetailAsync(detailRequest);
+            Console.WriteLine("Số lượng PromotionDetail:", result.Items.Count);
+            // Tạm lọc thủ công tại client nếu cần
+            promotionDetails = result.Items
+                .Where(x => x.PromotionId == PromotionId)
+                .ToList();
+
+            // Lấy toàn bộ ProductDetail
+            var query = BuildQuery.ToQueryString(new GetListProductDetailRequestDTO());
+            var productDetailResponse = await Http.GetAsync<PagedResult<ProductDetailDTO>>($"/api/ProductDetails/get-all-product-detail-async?{query}");
+            var productDetails = productDetailResponse?.Items ?? new List<ProductDetailDTO>();
+
+            promotionDetailsView = (
+                from detail in promotionDetails
+                join pd in productDetails on detail.ProductDetailId equals pd.Id
+                select new ProductPromotionView
+                {
+                    ProductCode = pd.Sku,
+                    ProductName = pd.ProductName,
+                    OriginalPrice = pd.Price,
+                    DiscountAmount = detail.Discount,
+                    Note = detail.Note
+                }).ToList();
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine("Lỗi khi tải chi tiết khuyến mãi: " + ex.Message);
+        }
+
+        isLoading = false;
+    }
+}

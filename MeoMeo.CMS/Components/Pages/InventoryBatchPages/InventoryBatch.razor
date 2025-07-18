@@ -2,14 +2,16 @@
 @using System
 @using System.ComponentModel.DataAnnotations
 @using System.Reflection
+@using AntDesign.TableModels
+@using MeoMeo.CMS.IServices
 @using MeoMeo.CMS.Services
-@using MeoMeo.Contract.DTOs
 @using MeoMeo.Contract.Commons
+@using MeoMeo.Contract.DTOs
+@using MeoMeo.Contract.DTOs.InventoryBatch
 @using MeoMeo.Contract.DTOs.Product
 @using MeoMeo.Contract.DTOs.ProductDetail
 @using MeoMeo.Domain.Commons
 @using MeoMeo.Domain.Commons.Enums
-@using MeoMeo.CMS.IServices
 @using MeoMeo.Utilities
 @inject MessageModalService MessageModalService
 @inject IApiCaller Http
@@ -21,17 +23,24 @@
         <BreadcrumbItem Href="/">Trang chủ</BreadcrumbItem>
         <BreadcrumbItem Href="/manage-inventoryBatch">Quản lý lô nhập</BreadcrumbItem>
     </Breadcrumb>
-   @*  <Button OnClick="AddNewInventoryBatch" Type="ButtonType.Primary" Class="mb-2">
+    <Button OnClick="AddInventoryBatch" Type="ButtonType.Primary" Class="mb-2">
         <i class="fas fa-plus"></i> Thêm mới
-    </Button> *@
-    <div class="">
-        <a href="/InventoryBatchCreate" class="btn btn-primary">Thêm mới</a>
-    </div>
+    </Button>
 </div>
-<p></p>
+<Tabs DefaultActiveKey="All" @bind-ActiveKey="@activeTab" OnChange="OnTabChange">
+    <TabPane Key="All" Tab=@($"Tất cả ({metaData.TotalAll})")/>
+    <TabPane Key="Draft" Tab=@($"Lưu tạm ({metaData.Draft})")/>
+    <TabPane Key="PendingApproval" Tab=@($"Chờ duyệt ({metaData.PendingApproval})")/>
+    <TabPane Key="Aprroved" Tab=@($"Đã phê duyệt ({metaData.Aprroved})")/>
+    <TabPane Key="Rejected" Tab=@($"Bị từ chối ({metaData.Rejected})")/>
+</Tabs>
 <div class="d-flex justify-content-end gap-3 mb-2">
-    <Input AllowClear="true" @bind-Value="filter.CodeFilter" Placeholder="Nhập mã" OnClear="OnFilterChanged" />
-    <Input AllowClear="true" @bind-Value="filter.NoteFilter" Placeholder="Nhập mô tả" OnClear="OnFilterChanged" />
+    <div Style="width: 250px">
+        <Input AllowClear="true" @bind-Value="filter.CodeFilter" Placeholder="Nhập mã" OnClear="OnFilterChanged" />
+    </div>
+    <div Style="width: 250px">
+        <Input AllowClear="true" @bind-Value="filter.NoteFilter" Placeholder="Nhập mô tả" OnClear="OnFilterChanged" />
+    </div>  
     <div style="width: 150px">
         <Select TItem="(EInventoryBatchStatus Value, string Name)"
                 TItemValue="EInventoryBatchStatus?"
@@ -48,7 +57,7 @@
     </Tooltip>
 </div>
 
-<Table DataSource="listOfData" TItem="InventoryBatchDTO" RowClassName="@(_ => "editable-row")" Bordered TableLayout="fixed">
+<Table DataSource="listOfData" TItem="InventoryBatchDTO" RowClassName="@(_ => "editable-row")" Bordered TableLayout="fixed" Total="@totalRecords" OnChange="@OnPageChange" PageSize="@filter.PageSize">
     <ChildContent Context="data">
         <Column TData="int" Title="STT">
             @{
@@ -180,10 +189,13 @@
         public float OriginalPrice { get; set; }
         public int Quantity { get; set; }
     }
+    private string activeTab = "All";
     private List<ProductItem> productItems = new();
     private List<SelectedProductItem> selectedProducts = new();
     List<CreateOrUpdateProductDTO>? productsResult = null;
     private List<ProductDetailDTO> productDetails = new();
+    private GetListInventoryBatchResponseDTO metaData = new();
+    private int totalRecords = 0;
     private string message = "";
     private bool isSuccess = false;
     [Inject] private IInventoryBatchClientService InventoryBatchClientService { get; set; } = default!;
@@ -201,7 +213,30 @@
         PageIndex = 1,
         PageSize = 10
     };
+    private async Task OnTabChange()
+    {
+        if (activeTab == "All")
+        {
+            filter.StatusFilter = null;
+        }
+        else if (Enum.TryParse<EInventoryBatchStatus>(activeTab, out var status))
+        {
+            filter.StatusFilter = status;
+        }
 
+        await LoadDataAsync();
+        await InvokeAsync(StateHasChanged);
+    }
+    private async Task OnPageChange(QueryModel<InventoryBatchDTO> query)
+    {
+        filter.PageIndex = query.PageIndex;
+        filter.PageSize = query.PageSize;
+        await LoadDataAsync();
+    }
+    private void AddInventoryBatch()
+    {
+        Navigation.NavigateTo("/InventoryBatchCreate");
+    }
     protected override async Task OnInitializedAsync()
     {
         inventoryBatchStatusList = Enum.GetValues(typeof(EInventoryBatchStatus))
@@ -215,6 +250,8 @@
     async Task LoadDataAsync()
     {
         var response = await InventoryBatchClientService.GetAllInventoryBatchAsync(filter);
+        totalRecords = response.TotalRecords;
+        metaData = response.Metadata;
         listOfData = response.Items;
         editCache = listOfData.ToDictionary(x => x.Id, x => (false, Clone(x)));
         //
@@ -254,25 +291,6 @@
     {
         Navigation.NavigateTo($"/inventory-batch-detail/{id}");
     }
-    //thêm mới
-    async Task AddNewInventoryBatch()
-    {
-        var newItem = new InventoryBatchDTO
-        {
-            Id = Guid.NewGuid(),
-            Code = "",
-            OriginalPrice = 0,
-            Quantity = 0,
-            Note = "",
-            Status = EInventoryBatchStatus.Draft,
-            ProductDetailId = Guid.Empty
-        };
-
-        listOfData.Insert(0, newItem);
-        editCache[newItem.Id] = (true, Clone(newItem));
-        await InvokeAsync(StateHasChanged);
-    }
-
     async Task StartEdit(Guid id)
     {
         var item = editCache[id];

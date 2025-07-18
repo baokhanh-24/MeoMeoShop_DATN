@@ -1,9 +1,12 @@
 ﻿using AutoMapper;
+using Azure.Core;
 using MeoMeo.Application.IServices;
 using MeoMeo.Contract.Commons;
 using MeoMeo.Contract.DTOs;
+using MeoMeo.Domain.Commons;
 using MeoMeo.Domain.Entities;
 using MeoMeo.Domain.IRepositories;
+using Microsoft.EntityFrameworkCore;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -16,18 +19,48 @@ namespace MeoMeo.Application.Services
     {
         private readonly IEmployeeRepository _repository;
         private readonly IMapper _mapper;
+        private readonly IUnitOfWork _unitOfWork;
+        private readonly IUserRepository _userRepository;
 
-        public EmployeeServices(IEmployeeRepository repository, IMapper mapper)
+        public EmployeeServices(IEmployeeRepository repository, IMapper mapper, IUnitOfWork unitOfWork, IUserRepository userRepository)
         {
             _repository = repository;
             _mapper = mapper;
+            _unitOfWork = unitOfWork;
+            _userRepository = userRepository;
         }
 
-        public async Task<Employee> CreateEmployeeAsync(CreateOrUpdateEmployeeDTO employee)
+        public async Task<CreateOrUpdateEmployeeResponseDTO> CreateEmployeeAsync(CreateOrUpdateEmployeeDTO employee)
         {
-            var mappedEmployee = _mapper.Map<Employee>(employee);
-            mappedEmployee.Id = Guid.NewGuid();
-            return await _repository.CreateEmployeeAsync(mappedEmployee);
+            try
+            {
+                await _unitOfWork.BeginTransactionAsync();
+                var userId = Guid.NewGuid();
+                var usertoAdd = new User()
+                {
+                    Id = userId,
+                    PasswordHash = "Ab@12345",
+                    Avatar = "//////",
+                    LastLogin = DateTime.Now,
+                    CreationTime = DateTime.Now,
+                    Email = "aaaa@gmail,com",
+                    UserName = "aaaa@gmail,com",
+                    Status = 1
+                };
+                await _userRepository.AddAsync(usertoAdd);
+                var mappedEmployee = _mapper.Map<Employee>(employee);
+                mappedEmployee.Id = Guid.NewGuid();
+                mappedEmployee.UserId = userId;
+                var response = await _repository.CreateEmployeeAsync(mappedEmployee);
+                await _unitOfWork.SaveChangesAsync();
+                await _unitOfWork.CommitAsync();
+                return _mapper.Map<CreateOrUpdateEmployeeResponseDTO>(response);
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Transaction failed: {ex.Message}");
+                throw new Exception("Lỗi khi tạo nhân viên", ex);
+            }
         }
 
         public async Task<bool> DeleteEmployeeAsync(Guid id)
@@ -43,12 +76,62 @@ namespace MeoMeo.Application.Services
             return true;
         }
 
-        public async Task<List<Employee>> GetAllEmployeeAsync()
+        public async Task<PagingExtensions.PagedResult<CreateOrUpdateEmployeeDTO>> GetAllEmployeeAsync(GetlistEmployeesRequestDTO requestDTO)
         {
-            return await _repository.GetAllEmployeeAsync();
+            try
+            {
+                var query = _repository.Query();
+                if (!string.IsNullOrEmpty(requestDTO.NameFilter))
+                {
+                    query = query.Where(c => EF.Functions.Like(c.Name, $"%{requestDTO.NameFilter}%"));
+                }
+
+                if (!string.IsNullOrEmpty(requestDTO.CodeFilter))
+                {
+                    query = query.Where(c => EF.Functions.Like(c.Name, $"%{requestDTO.CodeFilter}%"));
+                }
+
+                if (!string.IsNullOrEmpty(requestDTO.PhoneNumberFilter))
+                {
+                    query = query.Where(c => EF.Functions.Like(c.PhoneNumber, $"%{requestDTO.PhoneNumberFilter}%"));
+                }
+
+                if (requestDTO.DateOfBirthFilter != null)
+                {
+                    var filterDate = requestDTO.DateOfBirthFilter.Value.Date;
+                    query = query.Where(c => c.DateOfBird.Date == filterDate);
+                }
+
+                if (!string.IsNullOrEmpty(requestDTO.AddressFilter))
+                {
+                    query = query.Where(c => EF.Functions.Like(c.Address, $"%{requestDTO.AddressFilter}%"));
+                }
+
+                if (requestDTO.StatusFilter.HasValue)
+                {
+                    query = query.Where(c => c.Status == (int)requestDTO.StatusFilter.Value);
+                }
+
+                query = query.OrderByDescending(c => c.Name);
+                var fileteredEmployees = await _repository.GetPagedAsync(query, requestDTO.PageIndex, requestDTO.PageSize);
+                var dtoItems = _mapper.Map<List<CreateOrUpdateEmployeeDTO>>(fileteredEmployees.Items);
+
+                return new PagingExtensions.PagedResult<CreateOrUpdateEmployeeDTO>
+                {
+                    Items = dtoItems,
+                    PageIndex = fileteredEmployees.PageIndex,
+                    PageSize = fileteredEmployees.PageSize,
+                    TotalRecords = fileteredEmployees.TotalRecords,
+                };
+
+            }
+            catch (Exception ex)
+            {
+                throw new Exception("Lỗi khi lấy danh sách nhân viên", ex);
+            }
         }
 
-        public async Task<CreateOrUpdateEmployeeResponseDTO> GetEmployeeByIdAsync(Guid id)
+        public async Task<CreateOrUpdateEmployeeResponseDTO> GetEmployeeByIdAsyncccc(Guid id)
         {
             CreateOrUpdateEmployeeResponseDTO responseDTO = new CreateOrUpdateEmployeeResponseDTO();
 
@@ -68,15 +151,25 @@ namespace MeoMeo.Application.Services
 
         public async Task<CreateOrUpdateEmployeeResponseDTO> UpdateEmployeeAsync(CreateOrUpdateEmployeeDTO employee)
         {
-            var itemEmployee = await _repository.GetEmployeeByIdAsync(Guid.Parse(employee.Id.ToString()));
-            if (itemEmployee == null)
+            var existing = await _repository.GetEmployeeByIdAsync(employee.Id);
+            if (existing == null)
             {
-                return new CreateOrUpdateEmployeeResponseDTO { ResponseStatus = BaseStatus.Error, Message = "Không tìm thấy employee" };
-            }
-            _mapper.Map(employee, itemEmployee);
+                return new CreateOrUpdateEmployeeResponseDTO
+                {
+                    ResponseStatus = BaseStatus.Error,
+                    Message = "Không tìm thấy nhân viên này."
 
-            await _repository.UpdateEmployeeAsync(itemEmployee);
-            return new CreateOrUpdateEmployeeResponseDTO { ResponseStatus = BaseStatus.Success, Message = "Cập nhật thành công" };
+                };
+            }
+
+            _mapper.Map(employee, existing);
+            await _repository.UpdateEmployeeAsync(existing);
+            Console.WriteLine($"[Update] Nhận ID: {employee.Id}");
+
+            var response = _mapper.Map<CreateOrUpdateEmployeeResponseDTO>(existing);
+            response.Message = "Update nhân viên successfully.";
+            response.ResponseStatus = BaseStatus.Success;
+            return response;
         }
     }
 }

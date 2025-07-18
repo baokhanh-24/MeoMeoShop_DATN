@@ -4,11 +4,13 @@ namespace MeoMeo.Domain.Commons.Enums
 {
     public enum EInventoryBatchStatus
     {
-        [Display(Name = "Nháp")]
+        [Display(Name = "Lưu tạm")]
         Draft,
         [Display(Name = "Chờ duyệt")]
         PendingApproval,
         [Display(Name = "Đã phê duyệt")]
-        Aprroved
+        Aprroved,
+        [Display(Name = "Bị từ chối")]
+        Rejected
     }
 }

@@ -1,5 +1,7 @@
 ﻿using MeoMeo.Application.IServices;
 using MeoMeo.Contract.DTOs;
+using MeoMeo.Contract.DTOs.Order;
+using MeoMeo.Domain.Commons;
 using Microsoft.AspNetCore.Mvc;
 
 // For more information on enabling Web API for empty projects, visit https://go.microsoft.com/fwlink/?LinkID=397860
@@ -17,35 +19,35 @@ namespace MeoMeo.API.Controllers
             _orderService = orderService;
         }
 
-        [HttpGet("find-order-by-id/{id}")]
-        public async Task<IActionResult> GetOrderById(Guid id)
+        // [HttpGet("find-order-by-id/{id}")]
+        // public async Task<IActionResult> GetOrderById(Guid id)
+        // {
+        //     var result = await _orderService.GetOrderByIdAsync(id);
+        //     return Ok(result);
+        // }
+
+        [HttpGet("get-list-order-async")]
+        public async Task<PagingExtensions.PagedResult<OrderDTO>> GetAllCustomersAsync([FromQuery] GetListOrderRequestDTO request)
         {
-            var result = await _orderService.GetOrderByIdAsync(id);
-            return Ok(result);
+            var result = await _orderService.GetListOrderAsync(request);
+            return result;
         }
 
-        [HttpGet]
-        public async Task<IActionResult> GetAll()
-        {
-            var result = await _orderService.GetAllAsync();
-            return Ok(result);
-        }
 
-
-        [HttpPost("create-order")]
-        public async Task<IActionResult> CreateOrder([FromBody] CreateOrUpdateOrderDTO order)
-        {
-            var result = await _orderService.CreateOrderAsync(order);
-            return Ok(result);
-        }
-
-        [HttpPut("update-order/{id}")]
-        public async Task<IActionResult> UpdateOrder(Guid id, [FromBody] CreateOrUpdateOrderDTO order)
-        {
-            var result = await _orderService.UpdateOrderAsync(order);
-            //var result = await _orderService.UpdateOrderAsync(order);
-            return Ok(result);
-        }
+        // [HttpPost("create-order")]
+        // public async Task<IActionResult> CreateOrder([FromBody] CreateOrUpdateOrderDTO order)
+        // {
+        //     var result = await _orderService.CreateOrderAsync(order);
+        //     return Ok(result);
+        // }
+        //
+        // [HttpPut("update-order/{id}")]
+        // public async Task<IActionResult> UpdateOrder(Guid id, [FromBody] CreateOrUpdateOrderDTO order)
+        // {
+        //     var result = await _orderService.UpdateOrderAsync(order);
+        //     //var result = await _orderService.UpdateOrderAsync(order);
+        //     return Ok(result);
+        // }
 
         // DELETE api/<OrdersController>/5
         [HttpDelete("delete-order/{id}")]

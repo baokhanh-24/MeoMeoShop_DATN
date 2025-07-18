@@ -27,7 +27,10 @@ builder.Services.AddScoped<IMaterialClientService, MaterialClientService>();
 builder.Services.AddScoped<IVoucherClientService, VoucherClientService>();
 builder.Services.AddScoped<IBrandClientService, BrandClientService>();
 builder.Services.AddScoped<ISeasonClientService, SeasonClientService>();
-
+builder.Services.AddScoped<IEmployeesClientService, EmployeesClientService>();
+builder.Services.AddScoped<IOrderClientService,OrderClientService>();
+builder.Services.AddScoped<IPromotionClientService, PromotionClientService>();
+builder.Services.AddScoped<IPromotionDetailClientService, PromotionDetailClientService>();
 builder.Services.AddHttpClient<IApiCaller, ApiCaller>(client =>
 {
     client.BaseAddress = new Uri(apiBaseUrl!);

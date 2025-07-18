@@ -2,12 +2,12 @@
 using MeoMeo.CMS.IServices;
 using MeoMeo.Contract.Commons;
 using MeoMeo.Contract.DTOs;
+using MeoMeo.Contract.DTOs.InventoryBatch;
 using MeoMeo.Domain.Commons;
 using MeoMeo.Domain.Entities;
 using MeoMeo.Utilities;
 using System.Linq.Expressions;
 using System.Threading.Tasks;
-using static MeoMeo.Domain.Commons.PagingExtensions;
 
 namespace MeoMeo.CMS.Services
 {
@@ -22,12 +22,12 @@ namespace MeoMeo.CMS.Services
             _logger = logger;
         }
         ///api/InventoryBatches
-        public async Task<PagingExtensions.PagedResult<InventoryBatchDTO>> GetAllInventoryBatchAsync(GetListInventoryBatchRequestDTO filter)
+        public async Task<PagingExtensions.PagedResult<InventoryBatchDTO, GetListInventoryBatchResponseDTO>> GetAllInventoryBatchAsync(GetListInventoryBatchRequestDTO filter)
         {
             var query = BuildQuery.ToQueryString(filter);
             var url = $"/api/InventoryBatches/get-all-inventoryBatch-async?{query}";
-            var response = await _httpClient.GetAsync<PagingExtensions.PagedResult<InventoryBatchDTO>>(url);
-            return response ?? new PagingExtensions.PagedResult<InventoryBatchDTO>();
+            var response = await _httpClient.GetAsync<PagingExtensions.PagedResult<InventoryBatchDTO, GetListInventoryBatchResponseDTO>>(url);
+            return response ?? new PagingExtensions.PagedResult<InventoryBatchDTO, GetListInventoryBatchResponseDTO>();
         }
         public async Task<InventoryBatchDTO> GetInventoryBatchByIdAsync(Guid id)
         {

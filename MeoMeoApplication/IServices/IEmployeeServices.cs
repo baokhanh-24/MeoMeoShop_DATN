@@ -1,4 +1,5 @@
 ﻿using MeoMeo.Contract.DTOs;
+using MeoMeo.Domain.Commons;
 using MeoMeo.Domain.Entities;
 using System;
 using System.Collections.Generic;
@@ -10,9 +11,9 @@ namespace MeoMeo.Application.IServices
 {
     public interface IEmployeeServices
     {
-        Task<List<Employee>> GetAllEmployeeAsync();
-        Task<CreateOrUpdateEmployeeResponseDTO> GetEmployeeByIdAsync(Guid id);
-        Task<Employee> CreateEmployeeAsync(CreateOrUpdateEmployeeDTO employee);
+        Task<PagingExtensions.PagedResult<CreateOrUpdateEmployeeDTO>> GetAllEmployeeAsync(GetlistEmployeesRequestDTO requestDTO);
+        Task<CreateOrUpdateEmployeeResponseDTO> GetEmployeeByIdAsyncccc(Guid id);
+        Task<CreateOrUpdateEmployeeResponseDTO> CreateEmployeeAsync(CreateOrUpdateEmployeeDTO employee);
         Task<CreateOrUpdateEmployeeResponseDTO> UpdateEmployeeAsync(CreateOrUpdateEmployeeDTO employee);
         Task<bool> DeleteEmployeeAsync(Guid id);
     }

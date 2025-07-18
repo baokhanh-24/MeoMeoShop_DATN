@@ -5,6 +5,7 @@
 @using MeoMeo.Contract.DTOs
 @using MeoMeo.CMS.IServices
 @using MeoMeo.Contract.Commons
+@using MeoMeo.Contract.DTOs.Size
 @using MeoMeo.Domain.Commons.Enums
 @inject MeoMeo.Utilities.MessageModalService MessageModalService
 @rendermode InteractiveServer
@@ -19,6 +20,14 @@
         <i class="fas fa-plus"></i> Thêm mới
     </Button>
 </div>
+
+<Tabs @bind-ActiveKey="selectedTab" OnChange="OnTabChanged" Class="w-100">
+    <TabPane Key="all" Tab="Tất cả" Class="flex-fill text-center fw-bold" />
+    <TabPane Key="active" Tab="Hoạt động" Class="flex-fill text-center fw-bold" />
+    <TabPane Key="inactive" Tab="Không hoạt động" Class="flex-fill text-center fw-bold" />
+    <TabPane Key="deleted" Tab="Đã xóa" Class="flex-fill text-center fw-bold" />
+</Tabs>
+
 
 <div class="d-flex justify-content-end gap-3 mb-2">
 
@@ -49,7 +58,12 @@
 
 <Table DataSource="listOfData" TItem="SizeDTO" RowClassName="@(_ => "editable-row")" Bordered TableLayout="fixed">
     <ChildContent Context="data">
-        <Column TData="string" Title="Value">
+
+        <Column TData="SizeDTO" Title="STT" Width="40px">
+            @(listOfData.IndexOf(data) + 1)
+        </Column>
+
+        <Column TData="string" Title="Tên kích thước" Width="150px">
             @if (editCache.ContainsKey(data.Id) && !editCache[data.Id].edit)
             {
                 @data.Value
@@ -60,7 +74,7 @@
             }
         </Column>
 
-        <Column TData="string" Title="Mã kích thước">
+        <Column TData="string" Title="Mã kích thước" Width="150px">
             @if (editCache.ContainsKey(data.Id) && !editCache[data.Id].edit)
             {
                 @data.Code
@@ -71,7 +85,7 @@
             }
         </Column>
 
-        <Column TData="ESizeStatus" Title="Trạng thái">
+        <Column TData="ESizeStatus" Title="Trạng thái" Width="150px">
             @if (editCache.ContainsKey(data.Id) && !editCache[data.Id].edit)
             {
                 @sizeStatusList.FirstOrDefault(x => x.Value == (ESizeStatus)data.Status).Name
@@ -90,7 +104,7 @@
             }
         </Column>
 
-        <ActionColumn Title="Thao tác" Class="text-end gap-2">
+        <ActionColumn Title="Thao tác" Class="text-end gap-2" Width="150px">
             @if(editCache.ContainsKey(data.Id) && !editCache[data.Id].edit)
             {
                 <Tooltip Title="Sửa">
@@ -175,6 +189,23 @@
     }
     private async Task OnFilterChanged()
     {
+        await LoadData();
+    }
+
+    private string selectedTab = "all";
+
+    private async Task OnTabChanged(string key)
+    {
+        selectedTab = key;
+
+        filter.StatusFilter = key switch
+        {
+            "active" => ESizeStatus.Active,
+            "inactive" => ESizeStatus.Inactive,
+            "deleted" => ESizeStatus.Deleted,
+            _ => null // "all" tab
+        };
+
         await LoadData();
     }
 

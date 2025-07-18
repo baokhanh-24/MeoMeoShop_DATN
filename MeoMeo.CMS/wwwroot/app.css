@@ -83,3 +83,6 @@ h1:focus {
     width: auto;
     text-align: right;
 }
+.main-content-body {
+    width: 100% !important;
+}

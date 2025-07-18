@@ -1,4 +1,5 @@
 ﻿using MeoMeo.Contract.DTOs;
+using MeoMeo.Contract.DTOs.InventoryBatch;
 using MeoMeo.Domain.Commons;
 using MeoMeo.Domain.Entities;
 using System;
@@ -11,7 +12,7 @@ namespace MeoMeo.Application.IServices
 {
     public interface IInventoryBatchServices
     {
-        Task<PagingExtensions.PagedResult<InventoryBatchDTO>> GetAllAsync(GetListInventoryBatchRequestDTO request);
+        Task<PagingExtensions.PagedResult<InventoryBatchDTO, GetListInventoryBatchResponseDTO>> GetAllAsync(GetListInventoryBatchRequestDTO request);
         Task<InventoryBatchResponseDTO> GetByIdAsync(Guid id);
         Task<InventoryBatchResponseDTO> CreateAsync(List<InventoryBatchDTO> dto);
         Task<InventoryBatchResponseDTO> UpdateAsync(Guid id, InventoryBatchDTO dto);
