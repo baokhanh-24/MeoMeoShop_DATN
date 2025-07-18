@@ -62,7 +62,6 @@ namespace MeoMeo.Contract
             CreateMap<Customers,CustomerDTO>();
 
             CreateMap<Bank,BankDTO>();
-            CreateMap<CreateOrUpdateBrandDTO, Brand>();
             CreateMap<Brand, BrandDTO>();
             CreateMap<Brand, CreateOrUpdateBrandResponseDTO>();
 
@@ -79,6 +78,8 @@ namespace MeoMeo.Contract
             CreateMap<Material, CreateOrUpdateMaterialDTO>();
             CreateMap<Material, CreateOrUpdateMaterialResponse>();
             CreateMap<Size, SizeDTO>();
+
+            CreateMap<Voucher, VoucherDTO>();
 
         }
 

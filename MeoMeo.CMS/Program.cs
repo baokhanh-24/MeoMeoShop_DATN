@@ -24,7 +24,7 @@ builder.Services.AddScoped<IBankClientService, BankClientService>();
 builder.Services.AddScoped<IInventoryBatchClientService, InventoryBatchClientService>();
 builder.Services.AddScoped<ISizeClientService, SizeClientService>();
 builder.Services.AddScoped<IMaterialClientService, MaterialClientService>();
-
+builder.Services.AddScoped<IVoucherClientService, VoucherClientService>();
 builder.Services.AddScoped<IBrandClientService, BrandClientService>();
 builder.Services.AddScoped<ISeasonClientService, SeasonClientService>();
 
