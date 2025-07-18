@@ -86,6 +86,8 @@ builder.Services.AddScoped<IDistrictService, DistrictService>();
 builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();
 builder.Services.AddScoped<IMaterialRepository, MaterialRepository>();
 builder.Services.AddScoped<IMaterialServices, MaterialServices>();
+builder.Services.AddScoped<ISystemConfigRepository, SystemConfigRepository>();
+builder.Services.AddScoped<ISystemConfigService, SystemConfigService>();
 
 
 builder.Services.AddAutoMapper(typeof(MeoMeoAutoMapperProfile));

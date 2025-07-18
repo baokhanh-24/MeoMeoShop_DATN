@@ -6,6 +6,7 @@ using MeoMeo.Contract.DTOs.OrderDetail;
 using MeoMeo.Contract.DTOs.Product;
 using MeoMeo.Contract.DTOs.ProductDetail;
 using MeoMeo.Contract.DTOs.Size;
+using MeoMeo.Contract.DTOs.SystemConfig;
 using MeoMeo.Domain.Entities;
 
 namespace MeoMeo.Contract
@@ -29,8 +30,8 @@ namespace MeoMeo.Contract
             CreateMap<ProductDetaillSizeDTO, ProductDetailSize>();
             CreateMap<CreateOrUpdatePromotionDTO, Promotion>();
             CreateMap<CreateOrUpdatePromotionDetailDTO, PromotionDetail>();
-            CreateMap<CreateOrUpdateVoucherDTO, Voucher>();
-            CreateMap<CreateOrUpdateUserDTO, User>();
+            CreateMap<DTOs.CreateOrUpdateVoucherDTO, Voucher>();
+            CreateMap<DTOs.CreateOrUpdateUserDTO, User>();
             CreateMap<CreateOrUpdateEmployeeDTO, Employee>();
             CreateMap<CreateOrUpdateCustomerDTO, Customers>();
             CreateMap<CreateOrUpdateResetPasswordHistoryDTO, ResetPasswordHistory>();
@@ -51,11 +52,11 @@ namespace MeoMeo.Contract
             CreateMap<InventoryBatch, InventoryBatchResponseDTO>();
             CreateMap<InventoryBatchResponseDTO, InventoryBatch>();
             CreateMap<CreateOrUpdateMaterialDTO, Material>();
-            CreateMap<Voucher, CreateOrUpdateVoucherResponseDTO>();
+            CreateMap<Voucher, DTOs.CreateOrUpdateVoucherResponseDTO>();
             CreateMap<Promotion, CreateOrUpdatePromotionResponseDTO>();
             CreateMap<PromotionDetail, CreateOrUpdatePromotionDetailResponseDTO>();
             CreateMap<Bank, CreateOrUpdateBankResponseDTO>();
-            CreateMap<User, CreateOrUpdateUserResponseDTO>();
+            CreateMap<User, DTOs.CreateOrUpdateUserResponseDTO>();
             CreateMap<Employee, CreateOrUpdateEmployeeResponseDTO>();
             CreateMap<CreateOrUpdateDistrictDTO, District>();
             CreateMap<Customers, CreateOrUpdateCustomerResponse>();
@@ -71,6 +72,16 @@ namespace MeoMeo.Contract
             CreateMap<Employee, CreateOrUpdateEmployeeResponseDTO>();
             CreateMap<Order,OrderDTO>();
             CreateMap<OrderDetail,OrderDetailDTO>();
+            CreateMap<SystemConfig, SystemConfigDTO>();
+            CreateMap<CreateOrUpdateSystemConfigDTO, SystemConfig>();
+            CreateMap<CreateOrUpdateSystemConfigResponseDTO, SystemConfig>();
+            CreateMap<CreateOrUpdateSystemConfigResponseDTO, SystemConfigDTO>();
+            CreateMap<CreateOrUpdateSystemConfigDTO, SystemConfigDTO>();
+            CreateMap<SystemConfig, CreateOrUpdateSystemConfigResponseDTO>();
+            CreateMap<SystemConfig, CreateOrUpdateSystemConfigDTO>();
+            CreateMap<SystemConfigDTO, CreateOrUpdateSystemConfigResponseDTO>();
+            CreateMap<SystemConfigDTO, CreateOrUpdateSystemConfigDTO>();
+            CreateMap<SystemConfigDTO, SystemConfig>();
         }
 
     }
