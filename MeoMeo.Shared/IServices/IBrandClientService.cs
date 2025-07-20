@@ -1,18 +1,12 @@
 ﻿using MeoMeo.Contract.DTOs;
+using MeoMeo.Contract.Commons;
 using MeoMeo.Domain.Commons;
 using MeoMeo.Domain.Entities;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-
-namespace MeoMeo.Application.IServices
+namespace MeoMeo.CMS.IServices
 {
-    public interface IBrandServices
+    public interface IBrandClientService
     {
-
-        Task<PagingExtensions.PagedResult<BrandDTO>> GetAllBrandsAsync(GetListBrandRequestDTO request);
+        Task<PagingExtensions.PagedResult<BrandDTO>> GetAllBrandAsync(GetListBrandRequestDTO request);
         Task<BrandDTO> GetBrandByIdAsync(Guid id);
         Task<CreateOrUpdateBrandResponseDTO> CreateBrandAsync(CreateOrUpdateBrandDTO brandDto);
         Task<CreateOrUpdateBrandResponseDTO> UpdateBrandAsync(CreateOrUpdateBrandDTO brandDto);

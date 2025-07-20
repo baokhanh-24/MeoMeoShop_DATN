@@ -9,6 +9,7 @@ using MeoMeo.Domain.Entities;
 using MeoMeo.EntityFrameworkCore.Configurations.Contexts;
 using MeoMeo.Application.IServices;
 using MeoMeo.Contract.DTOs;
+using MeoMeo.Domain.Commons;
 
 namespace MeoMeo.API.Controllers
 {
@@ -18,55 +19,61 @@ namespace MeoMeo.API.Controllers
     {
         private readonly IBrandServices _brandServices;
 
-        public BrandsController(IBrandServices context)
+        public BrandsController(IBrandServices brandServices)
         {
-            _brandServices = context;
+            _brandServices = brandServices;
         }
 
-        // GET: api/Brands
-        [HttpGet]
-        public async Task<ActionResult<IEnumerable<Brand>>> Getbrands()
+
+        [HttpGet("get-all-brand-async")]
+        public async Task<PagingExtensions.PagedResult<BrandDTO>> GetAllBrandsAsync([FromQuery] GetListBrandRequestDTO request)
         {
-            var result = await _brandServices.GetAllBrandsAsync();
-            return Ok(result);
+            var result = await _brandServices.GetAllBrandsAsync(request);
+            return result;
         }
 
-        // GET: api/Brands/5
-        [HttpGet("{id}")]
-        public async Task<ActionResult<Brand>> GetBrand(Guid id)
+
+        [HttpGet("find-brand-by-id-async/{id}")]
+        public async Task<BrandDTO> GetBrandByIdAsync(Guid id)
         {
-            var getId = await _brandServices.GetBrandByIdAsync(id);
-            if (getId == null)
-            {
-                return NotFound();
-            }
-            return Ok(getId);
+
+            var result = await _brandServices.GetBrandByIdAsync(id);
+            return result;
+        
         }
 
-        // PUT: api/Brands/5
-        // To protect from overposting attacks, see https://go.microsoft.com/fwlink/?linkid=2123754
-        [HttpPut("{id}")]
-        public async Task<IActionResult> PutBrand(Guid id,[FromBody] BrandDTO brand)
+        [HttpPut("update-brand-async/{id}")]
+        public async Task<CreateOrUpdateBrandResponseDTO> UpdateBrandAsync(Guid id, [FromBody] CreateOrUpdateBrandDTO brandDto)
         {
-            var getBrand = await _brandServices.UpdateBrandAsync(id, brand);
-            return Ok(getBrand);
+
+            var result = await _brandServices.UpdateBrandAsync(brandDto);
+            return result;
+
+            
+
         }
 
-        // POST: api/Brands
-        // To protect from overposting attacks, see https://go.microsoft.com/fwlink/?linkid=2123754
-        [HttpPost]
-        public async Task<ActionResult<Brand>> PostBrand([FromBody] BrandDTO brand)
+
+        [HttpPost("create-brand-async")]
+        public async Task<CreateOrUpdateBrandResponseDTO> CreateBrandAsync([FromBody] CreateOrUpdateBrandDTO brandDto)
         {
-            var createbrand = await _brandServices.CreateBrandAsync(brand);
-            return CreatedAtAction("GetBrand", new { id = createbrand.Id }, createbrand);
+
+            var result = await _brandServices.CreateBrandAsync(brandDto);
+            return result;
+
+            
+
         }
 
-        // DELETE: api/Brands/5
-        [HttpDelete("{id}")]
-        public async Task<IActionResult> DeleteBrand(Guid id)
+
+        [HttpDelete("delete-brand-async/{id}")]
+        public async Task<bool> DeleteBrandAsync(Guid id)
         {
-            var deleteBrand = await _brandServices.DeleteBrandAsync(id);
-            return Ok(deleteBrand);
+
+            var result = await _brandServices.DeleteBrandAsync(id);
+            return result;
+
+            
         }
     }
 }

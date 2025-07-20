@@ -6,14 +6,11 @@ using System.Threading.Tasks;
 
 namespace MeoMeo.Contract.DTOs
 {
-    public class BrandDTO
+    public class CreateOrUpdateSeasonDTO
     {
         public Guid Id { get; set; }
         public string Name { get; set; }
-        public string Code { get; set; }
-        public DateTime EstablishDate { get; set; }
-        public string Country { get; set; }
         public string Description { get; set; }
-        public string Logo { get; set; }
+        public int Status { get; set; }
     }
 }

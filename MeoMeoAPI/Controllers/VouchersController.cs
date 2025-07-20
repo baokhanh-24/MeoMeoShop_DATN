@@ -1,6 +1,7 @@
 ﻿using MeoMeo.Application.IServices;
 using MeoMeo.Application.Services;
 using MeoMeo.Contract.DTOs;
+using MeoMeo.Domain.Commons;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 
@@ -18,38 +19,39 @@ namespace MeoMeo.API.Controllers
         }
 
         [HttpGet("get-all-voucher-async")]
-        public async Task<IActionResult> GetAllVoucherAsync()
+        public async Task<PagingExtensions.PagedResult<VoucherDTO>> GetAllVouchersAsync([FromQuery] GetListVoucherRequestDTO request)
         {
-            var result = await _voucherServices.GetAllVoucherAsync();
-            return Ok(result);
+            var result = await _voucherServices.GetAllVoucherAsync(request);
+            return result;
         }
 
         [HttpGet("find-voucher-by-id-async/{id}")]
-        public async Task<IActionResult> GetVoucherByIdAsync(Guid id)
+        public async Task<CreateOrUpdateVoucherResponseDTO> GetVoucherByIdAsync(Guid id)
         {
             var result = await _voucherServices.GetVoucherByIdAsync(id);
-            return Ok(result);
+            return result;
         }
 
         [HttpPost("create-voucher-async")]
-        public async Task<IActionResult> CreateVoucherAsync([FromBody] CreateOrUpdateVoucherDTO voucher)
+        public async Task<CreateOrUpdateVoucherResponseDTO> CreateVoucherAsync([FromBody] CreateOrUpdateVoucherDTO voucher)
         {
             var result = await _voucherServices.CreateVoucherAsync(voucher);
-            return Ok(result);
-        }
-
-        [HttpDelete("delete-voucher-async/{id}")]
-        public async Task<IActionResult> DeleteVoucherAsync(Guid id)
-        {
-            var result = await _voucherServices.DeleteVoucherAsync(id);
-            return Ok(result);
+            return result;
         }
 
         [HttpPut("update-voucher-async/{id}")]
-        public async Task<IActionResult> UpdateVoucherAsync(Guid id,[FromBody] CreateOrUpdateVoucherDTO voucher)
+        public async Task<CreateOrUpdateVoucherResponseDTO> UpdateVoucherAsync(Guid id, [FromBody] CreateOrUpdateVoucherDTO voucher)
         {
-            var result = await _voucherServices.UpdateVoucherAsync( voucher);
-            return Ok(result);
+            voucher.Id = id; // gán id từ route vào DTO
+            var result = await _voucherServices.UpdateVoucherAsync(voucher);
+            return result;
+        }
+
+        [HttpDelete("delete-voucher-async/{id}")]
+        public async Task<bool> DeleteVoucherAsync(Guid id)
+        {
+            var result = await _voucherServices.DeleteVoucherAsync(id);
+            return result;
         }
     }
 }

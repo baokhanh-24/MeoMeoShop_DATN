@@ -10,6 +10,7 @@ using MeoMeo.EntityFrameworkCore.Configurations.Contexts;
 using MeoMeo.Domain.IRepositories;
 using MeoMeo.Contract.DTOs;
 using MeoMeo.Application.IServices;
+using MeoMeo.Domain.Commons;
 using MeoMeo.Contract.Commons;
 
 namespace MeoMeo.API.Controllers
@@ -25,52 +26,42 @@ namespace MeoMeo.API.Controllers
             _seasonServices = context;
         }
 
-        // GET: api/Seasons
-        [HttpGet]
-        public async Task<ActionResult<IEnumerable<Season>>> Getseasons()
+        [HttpGet("get-all-season-async")]
+        public async Task<PagingExtensions.PagedResult<SeasonDTO>> GetAllSeasonsAsync([FromQuery] GetListSeasonRequestDTO request)
         {
-            var x = await _seasonServices.GetAllSeasonsAsync();
-            return Ok(x);
+            var result = await _seasonServices.GetAllSeasonsAsync(request);
+            return result;
         }
 
-        // GET: api/Seasons/5
-        [HttpGet("{id}")]
-        public async Task<ActionResult<Season>> GetSeason(Guid id)
+        [HttpGet("find-season-by-id-async/{id}")]
+        public async Task<SeasonDTO> GetSeasonByIdAsync(Guid id)
         {
-            var season = await _seasonServices.GetSeasonByIdAsync(id);
-
-            if (season == null)
-            {
-                return NotFound();
-            }
-
-            return Ok(season);
+            var result = await _seasonServices.GetSeasonByIdAsync(id);
+            return result;
         }
 
-        // PUT: api/Seasons/5
-        // To protect from overposting attacks, see https://go.microsoft.com/fwlink/?linkid=2123754
-        [HttpPut]
-        public async Task<IActionResult> PutSeason([FromBody] SeasonDTO dto)
+        [HttpPost("create-season-async")]
+        public async Task<CreateOrUpdateSeasonResponseDTO> CreateSeasonAsync([FromBody] CreateOrUpdateSeasonDTO dto)
+        {
+            var result = await _seasonServices.CreateSeasonAsync(dto);
+            return result;
+
+
+        }
+
+        [HttpDelete("delete-season-async/{id}")]
+        public async Task<bool> DeleteSeasonAsync(Guid id)
+        {
+            var result = await _seasonServices.DeleteSeasonAsync(id);
+            return result;
+        }
+
+        [HttpPut("update-season-async/{id}")]
+        public async Task<CreateOrUpdateSeasonResponseDTO> UpdateSeasonAsync(Guid id, [FromBody] CreateOrUpdateSeasonDTO dto)
         {
             var result = await _seasonServices.UpdateSeasonAsync(dto);
-            return Ok(result);
-        }
+            return result;
 
-        // POST: api/Seasons
-        // To protect from overposting attacks, see https://go.microsoft.com/fwlink/?linkid=2123754
-        [HttpPost]
-        public async Task<ActionResult<Season>> PostSeason([FromBody] SeasonDTO dto)
-        {
-            var id = await _seasonServices.CreateSeasonAsync(dto);
-            return CreatedAtAction("GetSeason", new { id = id.Id }, id);
-        }
-
-        // DELETE: api/Seasons/5
-        [HttpDelete("{id}")]
-        public async Task<IActionResult> DeleteSeason(Guid id)
-        {
-            var deleteSeason = await _seasonServices.DeleteSeasonAsync(id);
-            return Ok(deleteSeason);
         }
     }
 }

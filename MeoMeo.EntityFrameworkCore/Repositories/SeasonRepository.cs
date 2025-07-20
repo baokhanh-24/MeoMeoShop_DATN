@@ -17,54 +17,34 @@ namespace MeoMeo.EntityFrameworkCore.Repositories
         {
         }
 
-        public async Task<Season> CreateAsync(Season season)
+        public async Task<Season> CreateSeasonAsync(Season season)
         {
-            try
-            {
-                await AddAsync(season);
-                return season;
-            }
-            catch (Exception ex)
-            {
-                // Log the exception (not implemented here)
-                throw new Exception("An error occurred while creating the season.", ex);
-            }
+           var seasonCreate = await AddAsync(season);
+            return seasonCreate;    
         }
 
-        public async Task<bool> DeleteAsync(Guid id)
+        public async Task<bool> DeleteSeasonAsync(Guid id)
         {
-            var phat = await GetByIdAsync(id);
-            if (phat == null)
-            {
-                return false;
-            }
-            await base.DeleteAsync(id);
+            await DeleteAsync(id);
             return true;
         }
 
-        public async Task<Season> GetSeasonByID(Guid id)
+        public async Task<Season> GetSeasonByIDAsync(Guid id)
         {
             var season = await GetByIdAsync(id);
             return season;
         }
 
-        public async Task<IEnumerable<Season>> GetSeasonsAsync()
+        public async Task<List<Season>> GetSeasonsAsync()
         {
-            return await GetAllAsync(); 
+            var seasonAll = await GetAllAsync();
+            return seasonAll.ToList(); 
         }
 
-        public async Task<Season> UpdateSeason(Season season)
+        public async Task<Season> UpdateSeasonAsync(Season season)
         {
-            var phat = await GetByIdAsync(season.Id);
-            if (phat == null)
-            {
-                throw new Exception("Season not found.");
-            }
-            phat.Name = season.Name;
-            phat.Description = season.Description;
-            phat.Status = season.Status;
-            await UpdateAsync(phat);
-            return phat;
+           var seasonUpdate = await UpdateAsync(season);
+            return seasonUpdate;
         }
     }
 }

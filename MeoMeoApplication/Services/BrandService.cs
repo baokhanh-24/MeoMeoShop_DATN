@@ -1,14 +1,16 @@
+
+﻿using AutoMapper;
+using MeoMeo.Application.IServices;
 ﻿using MeoMeo.Application.IServices;
+
 using MeoMeo.Contract.Commons;
 using MeoMeo.Contract.DTOs;
+using MeoMeo.Domain.Commons;
 using MeoMeo.Domain.Entities;
 using MeoMeo.Domain.IRepositories;
-using MeoMeo.EntityFrameworkCore.Configurations.Contexts;
 using Microsoft.EntityFrameworkCore;
 using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.Text;
 using System.Threading.Tasks;
 
 namespace MeoMeo.Application.Services
@@ -16,96 +18,142 @@ namespace MeoMeo.Application.Services
     public class BrandService : IBrandServices
     {
         private readonly IBrandRepository _brandRepository;
-        public BrandService(IBrandRepository context)
+        private readonly IMapper _mapper;
+        private readonly IUnitOfWork _unitOfWork;
+
+        public BrandService(IBrandRepository brandRepository, IMapper mapper, IUnitOfWork unitOfWork)
         {
-            _brandRepository = context;
+            _brandRepository = brandRepository;
+            _mapper = mapper;
+            _unitOfWork = unitOfWork;
         }
+
+
+       public async Task<PagingExtensions.PagedResult<BrandDTO>> GetAllBrandsAsync(GetListBrandRequestDTO request)
+{
+    try
+    {
+        var query = _brandRepository.Query();
+
+        if (!string.IsNullOrWhiteSpace(request.NameFilter))
+        {
+            query = query.Where(x => EF.Functions.Like(x.Name, $"%{request.NameFilter}%"));
+        }
+        if (!string.IsNullOrWhiteSpace(request.CountryFilter))
+        {
+            query = query.Where(x => EF.Functions.Like(x.Country, $"%{request.CountryFilter}%"));
+        }
+        if (!string.IsNullOrWhiteSpace(request.CodeFilter))
+        {
+            query = query.Where(x => EF.Functions.Like(x.Code, $"%{request.CodeFilter}%"));
+        }
+        if (request.EstablishYearFilter.HasValue)
+        {
+            query = query.Where(x => x.EstablishYear.Year == request.EstablishYearFilter.Value); // 🔁 Sửa chỗ này
+        }
+
+        query = query.OrderByDescending(x => x.Name);
+        var pagedResult = await _brandRepository.GetPagedAsync(query, request.PageIndex, request.PageSize);
+        var dtoItems = _mapper.Map<List<BrandDTO>>(pagedResult.Items);
+
+        return new PagingExtensions.PagedResult<BrandDTO>
+        {
+            TotalRecords = pagedResult.TotalRecords,
+            PageIndex = pagedResult.PageIndex,
+            PageSize = pagedResult.PageSize,
+            Items = dtoItems
+        };
+    }
+    catch (Exception e)
+    {
+        Console.WriteLine(e);
+        throw;
+    }
+}
+
+
+        public async Task<BrandDTO> GetBrandByIdAsync(Guid id)
+        {
+            var brand = await _brandRepository.GetBrandByIdAsync(id);
+            return _mapper.Map<BrandDTO>(brand);
+        }
+
+        public async Task<CreateOrUpdateBrandResponseDTO> UpdateBrandAsync(CreateOrUpdateBrandDTO brandDto)
+        {
+            var brandExists = await _brandRepository.AnyAsync(c => c.Code == brandDto.Code && c.Id != brandDto.Id);
+            if (brandExists)
+            {
+                return new CreateOrUpdateBrandResponseDTO()
+                {
+                    Message = $"Code đã tồn tại",
+                    ResponseStatus = BaseStatus.Error,
+                };
+            }
+
+            var brandToUpdate = await _brandRepository.GetBrandByIdAsync(brandDto.Id);
+            _mapper.Map(brandDto, brandToUpdate);
+
+            var result = await _brandRepository.UpdateBrandAsync(brandToUpdate);
+            return _mapper.Map<CreateOrUpdateBrandResponseDTO>(result);
+        }
+
 
         public async Task<bool> DeleteBrandAsync(Guid id)
         {
-            var phat = await _brandRepository.GetBrandByIdAsync(id);
-            if (phat == null)
-            {
-                return false; 
-            }
-            return await _brandRepository.DeleteBrandAsync(id);
-
-        }
-        public async Task<IEnumerable<Brand>> GetAllBrandsAsync()
-        {
-            return await _brandRepository.GetAllBrandsAsync();
-        }
-
-        async Task<CreateOrUpdateBrandResponse> IBrandServices.CreateBrandAsync(BrandDTO brandDto)
-        {
-            CreateOrUpdateBrandResponse response = new CreateOrUpdateBrandResponse();
-            var brand = new Brand
-            {
-                Id = Guid.NewGuid(),
-                Name = brandDto.Name,
-                Code = brandDto.Code,
-                EstablishYear = brandDto.EstablishYear,
-                Country = brandDto.Country,
-                Description = brandDto.Description,
-                Logo = brandDto.Logo
-            };
-            await _brandRepository.CreateBrandAsync(brand);
-            response.Id = brand.Id;
-            response.Name = brand.Name;
-            response.Code = brand.Code;
-
-            response.EstablishYear = brand.EstablishYear;
-            response.Country = brand.Country;
-            response.Description = brand.Description;
-            response.Logo = brand.Logo;
-            response.Message = "Tạo thương hiệu thành công";
-            response.ResponseStatus = BaseStatus.Success;
-            return response;
-        }
-
-        async Task<CreateOrUpdateBrandResponse> IBrandServices.GetBrandByIdAsync(Guid id)
-        {
-            CreateOrUpdateBrandResponse response = new CreateOrUpdateBrandResponse();
             var brand = await _brandRepository.GetBrandByIdAsync(id);
             if (brand == null)
             {
-                response.Message = "Brand not found";
-                response.ResponseStatus = BaseStatus.Error;
-                return response;
+                return false;
             }
-            response.Id = brand.Id;
-            response.Name = brand.Name;
-            response.Code = brand.Code;
-            response.EstablishYear = brand.EstablishYear;
-            response.Country = brand.Country;
-            response.Description = brand.Description;
-            response.Logo = brand.Logo;
-            response.Message = "Lấy thương hiệu thành công";
-            response.ResponseStatus = BaseStatus.Success;
-            return response;
+            await _brandRepository.DeleteBrandAsync(brand.Id);
+            return true;
         }
 
-        async Task<CreateOrUpdateBrandResponse> IBrandServices.UpdateBrandAsync(Guid id, BrandDTO brandDto)
+
+        public async Task<CreateOrUpdateBrandResponseDTO> CreateBrandAsync(CreateOrUpdateBrandDTO brandDto)
+
         {
-            CreateOrUpdateBrandResponse response = new CreateOrUpdateBrandResponse();
-            var getbran = await _brandRepository.GetBrandByIdAsync(id);
-            if (getbran == null)
+            await _unitOfWork.BeginTransactionAsync();
+            try
             {
-                response.Message = "Không tìm thấy thương hiệu này";
-                response.ResponseStatus = BaseStatus.Error;
+                var isCodeExist = await _brandRepository.AnyAsync(x => x.Code == brandDto.Code);
+                if (isCodeExist)
+                {
+                    return new CreateOrUpdateBrandResponseDTO
+                    {
+                        ResponseStatus = BaseStatus.Error,
+                        Message = "Mã code đã tồn tại."
+                    };
+                }
+
+
+                var brand = _mapper.Map<Brand>(brandDto);
+                brand.Id = Guid.NewGuid();
+
+                var createdBrand = await _brandRepository.CreateBrandAsync(brand);
+                await _unitOfWork.SaveChangesAsync();
+                await _unitOfWork.CommitAsync();
+                var response = _mapper.Map<CreateOrUpdateBrandResponseDTO>(createdBrand);
+                response.ResponseStatus = BaseStatus.Success;
+                response.Message = "Tạo brand thành công";
                 return response;
             }
-
-            getbran.Name = brandDto.Name;
-            getbran.Code = brandDto.Code;
-            getbran.EstablishYear = brandDto.EstablishYear;
-            getbran.Country = brandDto.Country;
-            getbran.Description = brandDto.Description;
-            getbran.Logo = brandDto.Logo;
-            await _brandRepository.UpdateBrandAsync(id, getbran);
-            response.Message = "Cập nhật thương hiệu thành công";
-            response.ResponseStatus = BaseStatus.Success;
-            return response;
+            catch (Exception ex)
+            {
+                await _unitOfWork.RollbackAsync();
+                Console.WriteLine($"Lỗi khi tạo brand: {ex.Message}");
+                return new CreateOrUpdateBrandResponseDTO
+                {
+                    ResponseStatus = BaseStatus.Error,
+                    Message = ex.Message,
+                };
+            }
         }
+
+      
+
+
+
+      
     }
 }

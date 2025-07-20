@@ -1,6 +1,8 @@
 ﻿using MeoMeo.CMS.Components;
 using MeoMeo.Shared.IServices;
 using System.Globalization;
+using MeoMeo.CMS.IServices;
+using MeoMeo.CMS.Services;
 using MeoMeo.Shared.Services;
 using MeoMeo.Shared.Utilities;
 
@@ -24,12 +26,13 @@ builder.Services.AddScoped<IBankClientService, BankClientService>();
 builder.Services.AddScoped<IInventoryBatchClientService, InventoryBatchClientService>();
 builder.Services.AddScoped<ISizeClientService, SizeClientService>();
 builder.Services.AddScoped<IMaterialClientService, MaterialClientService>();
+builder.Services.AddScoped<IVoucherClientService, VoucherClientService>();
+builder.Services.AddScoped<IBrandClientService, BrandClientService>();
+builder.Services.AddScoped<ISeasonClientService, SeasonClientService>();
 builder.Services.AddScoped<IEmployeesClientService, EmployeesClientService>();
 builder.Services.AddScoped<IOrderClientService,OrderClientService>();
 builder.Services.AddScoped<IPromotionClientService, PromotionClientService>();
 builder.Services.AddScoped<IPromotionDetailClientService, PromotionDetailClientService>();
-
-
 builder.Services.AddHttpClient<IApiCaller, ApiCaller>(client =>
 {
     client.BaseAddress = new Uri(apiBaseUrl!);
