@@ -3,7 +3,8 @@
 @using System.ComponentModel.DataAnnotations
 @using System.Reflection
 @using AntDesign.TableModels
-@using MeoMeo.Shared.IServices;
+@using MeoMeo.CMS.IServices
+@using MeoMeo.CMS.Services
 @using MeoMeo.Contract.Commons
 @using MeoMeo.Contract.DTOs
 @using MeoMeo.Contract.DTOs.InventoryBatch
@@ -11,8 +12,7 @@
 @using MeoMeo.Contract.DTOs.ProductDetail
 @using MeoMeo.Domain.Commons
 @using MeoMeo.Domain.Commons.Enums
-@using MeoMeo.Shared.IServices;
-@using MeoMeo.Shared.Utilities
+@using MeoMeo.Utilities
 @inject MessageModalService MessageModalService
 @inject IApiCaller Http
 @inject IProductDetailClientService ProductDetailClientService
@@ -28,11 +28,11 @@
     </Button>
 </div>
 <Tabs DefaultActiveKey="All" @bind-ActiveKey="@activeTab" OnChange="OnTabChange">
-    <TabPane Key="All" Tab=@($"Tất cả ({metaData.TotalAll})") />
-    <TabPane Key="Draft" Tab=@($"Lưu tạm ({metaData.Draft})") />
-    <TabPane Key="PendingApproval" Tab=@($"Chờ duyệt ({metaData.PendingApproval})") />
-    <TabPane Key="Aprroved" Tab=@($"Đã phê duyệt ({metaData.Aprroved})") />
-    <TabPane Key="Rejected" Tab=@($"Bị từ chối ({metaData.Rejected})") />
+    <TabPane Key="All" Tab=@($"Tất cả ({metaData.TotalAll})")/>
+    <TabPane Key="Draft" Tab=@($"Lưu tạm ({metaData.Draft})")/>
+    <TabPane Key="PendingApproval" Tab=@($"Chờ duyệt ({metaData.PendingApproval})")/>
+    <TabPane Key="Aprroved" Tab=@($"Đã phê duyệt ({metaData.Aprroved})")/>
+    <TabPane Key="Rejected" Tab=@($"Bị từ chối ({metaData.Rejected})")/>
 </Tabs>
 <div class="d-flex justify-content-end gap-3 mb-2">
     <div Style="width: 250px">
@@ -40,21 +40,24 @@
     </div>
     <div Style="width: 250px">
         <Input AllowClear="true" @bind-Value="filter.NoteFilter" Placeholder="Nhập mô tả" OnClear="OnFilterChanged" />
-    </div>
+    </div>  
     <div style="width: 150px">
-        <Select TItem="(EInventoryBatchStatus Value, string Name)" TItemValue="EInventoryBatchStatus ?" AllowClear
-            DataSource="inventoryBatchStatusList" @bind-Value="filter.StatusFilter" Placeholder="Chọn trạng thái"
-            ItemValue="s => (EInventoryBatchStatus?)s.Value" ItemLabel="s => s.Name">
+        <Select TItem="(EInventoryBatchStatus Value, string Name)"
+                TItemValue="EInventoryBatchStatus?"
+                AllowClear
+                DataSource="inventoryBatchStatusList"
+                @bind-Value="filter.StatusFilter"
+                Placeholder="Chọn trạng thái"
+                ItemValue="s => (EInventoryBatchStatus?)s.Value"
+                ItemLabel="s => s.Name">
         </Select>
     </div>
     <Tooltip Title="Tìm kiếm">
-        <Button @onclick="() => OnFilterChanged()" Type="ButtonType.Primary" Shape="ButtonShape.Circle"
-            Icon="@IconType.Outline.Search" />
+        <Button @onclick="() => OnFilterChanged()" Type="ButtonType.Primary" Shape="ButtonShape.Circle" Icon="@IconType.Outline.Search" />
     </Tooltip>
 </div>
 
-<Table DataSource="listOfData" TItem="InventoryBatchDTO" RowClassName="@(_ => "editable-row")" Bordered
-    TableLayout="fixed" Total="@totalRecords" OnChange="@OnPageChange" PageSize="@filter.PageSize">
+<Table DataSource="listOfData" TItem="InventoryBatchDTO" RowClassName="@(_ => "editable-row")" Bordered TableLayout="fixed" Total="@totalRecords" OnChange="@OnPageChange" PageSize="@filter.PageSize">
     <ChildContent Context="data">
         <Column TData="int" Title="STT">
             @{
@@ -63,8 +66,8 @@
             }
         </Column>
         <Column TData="string" Title="Mã lô">
-            <a class="text-primary" style="cursor:pointer" @onclick="() => ViewInventoryBatchDetail(data.Id)">
-                @if (editCache.ContainsKey(data.Id) && !editCache[data.Id].edit)
+                <a class="text-primary" style="cursor:pointer" @onclick="() => ViewInventoryBatchDetail(data.Id)">
+                    @if (editCache.ContainsKey(data.Id) && !editCache[data.Id].edit)
                 {
                     @data.Code
                 }
@@ -72,20 +75,24 @@
                 {
                     <Input MaxLength="10" @bind-Value="editCache[data.Id].data.Code" />
                 }
-            </a>
+                </a>
         </Column>
         <Column TData="Guid" Title="Sản phẩm">
-            @if (editCache.ContainsKey(data.Id) && !editCache[data.Id].edit)
-            {
-                @(productItems.FirstOrDefault(p => p.Id == data.ProductDetailId)?.DisplayName ?? "Không rõ")
-            }
-            else if (editCache.ContainsKey(data.Id))
-            {
-                <Select TItem="(Guid Id, string Name)" TItemValue="Guid" DataSource="productDetailOptions"
-                    @bind-Value="editCache[data.Id].data.ProductDetailId" ItemValue="p => p.Id" ItemLabel="p => p.Name"
+        @if (editCache.ContainsKey(data.Id) && !editCache[data.Id].edit)
+        {
+           @(productItems.FirstOrDefault(p => p.Id == data.ProductDetailId)?.DisplayName ?? "Không rõ")
+        }
+        else if (editCache.ContainsKey(data.Id))
+        {
+            <Select TItem="(Guid Id, string Name)"
+                    TItemValue="Guid"
+                    DataSource="productDetailOptions"
+                    @bind-Value="editCache[data.Id].data.ProductDetailId"
+                    ItemValue="p => p.Id"
+                    ItemLabel="p => p.Name"
                     Placeholder="Chọn sản phẩm" />
-            }
-        </Column>
+        }
+    </Column>
         <Column TData="float" Title="Giá nhập">
             @if (editCache.ContainsKey(data.Id) && !editCache[data.Id].edit)
             {
@@ -123,9 +130,12 @@
             }
             else if (editCache.ContainsKey(data.Id))
             {
-                <Select TItem="(EInventoryBatchStatus Value, string Name)" TItemValue="EInventoryBatchStatus"
-                    DataSource="inventoryBatchStatusList" @bind-Value="editCache[data.Id].data.Status"
-                    ItemValue="p => p.Value" ItemLabel="p => p.Name" />
+                <Select TItem="(EInventoryBatchStatus Value, string Name)"
+                        TItemValue="EInventoryBatchStatus"
+                        DataSource="inventoryBatchStatusList"
+                        @bind-Value="editCache[data.Id].data.Status"
+                        ItemValue="p => p.Value"
+                        ItemLabel="p => p.Name" />
             }
         </Column>
         <ActionColumn Title="Thao tác" Class="text-end gap-2">
@@ -135,10 +145,12 @@
                     <Button Size="ButtonSize.Small" @onclick="() => StartEdit(data.Id)" Shape="ButtonShape.Circle">
                         <i class="fas fa-pen"></i>
                     </Button>
-                </Tooltip>
-
-                <Popconfirm Title=@($"Bạn có chắc muốn xóa {data.Code}?") OnConfirm="() => DeleteInventoryBatch(data.Id)"
-                    OkText="Đồng ý" CancelText="Hủy">
+                </Tooltip>               
+                
+                <Popconfirm Title=@($"Bạn có chắc muốn xóa {data.Code}?")
+                            OnConfirm="() => DeleteInventoryBatch(data.Id)"
+                            OkText="Đồng ý"
+                            CancelText="Hủy">
 
                     <Tooltip Title="Xóa">
                         <Button Size="ButtonSize.Small" Danger Shape="ButtonShape.Circle">
@@ -228,10 +240,9 @@
     protected override async Task OnInitializedAsync()
     {
         inventoryBatchStatusList = Enum.GetValues(typeof(EInventoryBatchStatus))
-        .Cast<EInventoryBatchStatus>()
-        .Select(x => (x, x.GetType().GetMember(x.ToString())?.First()?.GetCustomAttribute<DisplayAttribute>()?.Name ??
-        x.ToString()))
-        .ToList();
+            .Cast<EInventoryBatchStatus>()
+            .Select(x => (x, x.GetType().GetMember(x.ToString())?.First()?.GetCustomAttribute<DisplayAttribute>()?.Name ?? x.ToString()))
+            .ToList();
 
         await LoadDataAsync();
     }
@@ -248,9 +259,7 @@
         {
             // Gọi song song
             var detailRequest = new GetListProductDetailRequestDTO(); // Không truyền gì, lấy tất cả
-            var queryString = BuildQuery.ToQueryString(detailRequest);
-            var detailTask =
-            Http.GetAsync<PagingExtensions.PagedResult<ProductDetailDTO>>($"/api/ProductDetails/get-all-product-detail-async?{queryString}");
+             var detailTask = ProductDetailClientService.GetAllProductDetailAsync(detailRequest);
             var productTask = Http.GetAsync<List<CreateOrUpdateProductDTO>>("/api/Products");
             await Task.WhenAll(detailTask, productTask);
             var productDetailsPagedResult = await detailTask;
@@ -258,12 +267,12 @@
 
             var productDetailsResult = productDetailsPagedResult.Items;
             productItems = (from detail in productDetailsResult
-                            join product in productsResult on detail.ProductId equals product.Id
-                            select new ProductItem
-                            {
-                                Id = detail.Id,
-                                DisplayName = product.Name // hoặc $"{product.Name} - {detail.Size}" nếu có nhiều chi tiết
-                            }).ToList();
+                join product in productsResult on detail.ProductId equals product.Id
+                select new ProductItem
+                {
+                    Id = detail.Id,
+                    DisplayName = product.Name // hoặc $"{product.Name} - {detail.Size}" nếu có nhiều chi tiết
+                }).ToList();
         }
         catch (Exception ex)
         {
@@ -347,15 +356,15 @@
     InventoryBatchDTO Clone(InventoryBatchDTO dto)
     {
         return new InventoryBatchDTO
-        {
-            Id = dto.Id,
-            Code = dto.Code,
-            Quantity = dto.Quantity,
-            Note = dto.Note,
-            Status = dto.Status,
-            OriginalPrice = dto.OriginalPrice,
-            ProductDetailId = dto.ProductDetailId
-        };
+            {
+                Id = dto.Id,
+                Code = dto.Code,
+                Quantity = dto.Quantity,
+                Note = dto.Note,
+                Status = dto.Status,
+                OriginalPrice = dto.OriginalPrice,
+                ProductDetailId = dto.ProductDetailId
+            };
     }
 
 }

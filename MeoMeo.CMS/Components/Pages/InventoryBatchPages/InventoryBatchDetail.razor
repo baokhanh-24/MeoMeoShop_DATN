@@ -6,6 +6,7 @@
 @using MeoMeo.Shared.Utilities
 @using MeoMeo.Domain.Commons
 @inject IInventoryBatchClientService InventoryBatchClientService
+@inject IProductDetailClientService ProductDetailClientService
 @inject IApiCaller Http
 @inject NavigationManager Navigation
 
@@ -31,9 +32,8 @@
             if (batch != null)
             {
                 // Gọi song song
-            var detailRequest = new GetListProductDetailRequestDTO(); // Không truyền gì, lấy tất cả
-            var queryString = BuildQuery.ToQueryString(detailRequest);
-            var detailTask = Http.GetAsync<PagingExtensions.PagedResult<ProductDetailDTO>>($"/api/ProductDetails/get-all-product-detail-async?{queryString}");
+                var detailRequest = new GetListProductDetailRequestDTO(); // Không truyền gì, lấy tất cả
+                var detailTask = ProductDetailClientService.GetAllProductDetailAsync(detailRequest);
             var productTask = Http.GetAsync<List<CreateOrUpdateProductDTO>>("/api/Products");
             await Task.WhenAll(detailTask, productTask);
             var productDetailsPagedResult = await detailTask;
