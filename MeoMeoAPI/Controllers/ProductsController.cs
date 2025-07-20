@@ -1,6 +1,5 @@
 ﻿using MeoMeo.Application.IServices;
 using MeoMeo.Contract.DTOs.Product;
-using MeoMeo.Domain.Entities;
 using Microsoft.AspNetCore.Mvc;
 
 namespace MeoMeo.API.Controllers
@@ -15,7 +14,7 @@ namespace MeoMeo.API.Controllers
         {
             _productServices = productServices;
         }
-        [HttpGet()]
+        [HttpGet("get-all-product-async")]
         public async Task<IActionResult> GetProduct()
         {
             var result = await _productServices.GetAllAsync();
@@ -45,7 +44,7 @@ namespace MeoMeo.API.Controllers
         public async Task<IActionResult> DeleteProduct(Guid id)
         {
             var result = await _productServices.GetProductByIdAsync(id);
-           
+
             return Ok(result);
         }
     }
