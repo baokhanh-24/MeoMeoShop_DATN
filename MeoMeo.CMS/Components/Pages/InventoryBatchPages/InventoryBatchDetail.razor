@@ -1,10 +1,13 @@
 ﻿@page "/inventory-batch-detail/{Id:guid}"
+@using MeoMeo.Domain.Commons.Enums
 @using MeoMeo.Shared.IServices;
 @using MeoMeo.Contract.DTOs
 @using MeoMeo.Contract.DTOs.Product
 @using MeoMeo.Contract.DTOs.ProductDetail
 @using MeoMeo.Shared.Utilities
 @using MeoMeo.Domain.Commons
+@using System.Reflection
+@using System.ComponentModel.DataAnnotations
 @inject IInventoryBatchClientService InventoryBatchClientService
 @inject IProductDetailClientService ProductDetailClientService
 @inject IApiCaller Http
@@ -21,9 +24,19 @@
     private InventoryBatchDTO? batch;
     private string productDisplayName = "";
     private bool isLoading = true;
+    List<(EInventoryBatchStatus Value, string Name)> inventoryBatchStatusList = new();
 
     protected override async Task OnInitializedAsync()
     {
+        inventoryBatchStatusList = Enum.GetValues(typeof(EInventoryBatchStatus))
+            .Cast<EInventoryBatchStatus>()
+            .Select(status => (
+                status,
+                status.GetType()
+                      .GetMember(status.ToString())
+                      .First()
+                      .GetCustomAttribute<DisplayAttribute>()?.Name ?? status.ToString()
+            )).ToList();
         try
         {
             var result = await InventoryBatchClientService.GetInventoryBatchByIdAsync(Id);
@@ -31,21 +44,14 @@
 
             if (batch != null)
             {
-                // Gọi song song
-                var detailRequest = new GetListProductDetailRequestDTO(); // Không truyền gì, lấy tất cả
-                var detailTask = ProductDetailClientService.GetAllProductDetailAsync(detailRequest);
-            var productTask = Http.GetAsync<List<CreateOrUpdateProductDTO>>("/api/Products");
-            await Task.WhenAll(detailTask, productTask);
-            var productDetailsPagedResult = await detailTask;
-            var productsResult = await productTask;
+                var detailRequest = new GetListProductDetailRequestDTO(); // lấy tất cả
+                var productDetailsPagedResult = await ProductDetailClientService.GetAllProductDetailAsync(detailRequest);
+                var productDetailsResult = productDetailsPagedResult.Items;
 
-            var productDetailsResult = productDetailsPagedResult.Items;
-            productItems = (from detail in productDetailsResult
-                join product in productsResult on detail.ProductId equals product.Id
-                select new ProductItem
+                productItems = productDetailsResult.Select(detail => new ProductItem
                 {
                     Id = detail.Id,
-                    DisplayName = product.Name // hoặc $"{product.Name} - {detail.Size}" nếu có nhiều chi tiết
+                    DisplayName = detail.ProductName ?? "(Không có tên)"
                 }).ToList();
             }
         }
@@ -92,27 +98,29 @@ else if (batch == null)
 }
 else
 {
-    <div class="card shadow p-4 mt-3">
-        <h4 class="mb-3 text-primary">Chi tiết Lô Nhập</h4>
+    <div class="card p-4 mt-3">
+        <h4 class="mb-3 text-primary">Chi tiết lô nhập</h4>
         <dl class="row">
-            <dt class="col-sm-3">Mã lô</dt>
+            <dt class="col-sm-3">Mã lô: </dt>
             <dd class="col-sm-9">@batch.Code</dd>
 
-            <dt class="col-sm-3">Sản phẩm</dt>
+            <dt class="col-sm-3">Sản phẩm: </dt>
             <dd class="col-sm-9">@(productItems.FirstOrDefault(p => p.Id == batch.ProductDetailId)?.DisplayName ?? "Không rõ")</dd>
 
-            <dt class="col-sm-3">Giá nhập</dt>
+            <dt class="col-sm-3">Giá nhập: </dt>
             <dd class="col-sm-9">@($"{batch.OriginalPrice:N0} đ")</dd>
 
-            <dt class="col-sm-3">Số lượng</dt>
+            <dt class="col-sm-3">Số lượng: </dt>
             <dd class="col-sm-9">@batch.Quantity</dd>
 
-            <dt class="col-sm-3">Mô tả</dt>
+            <dt class="col-sm-3">Mô tả: </dt>
             <dd class="col-sm-9">@batch.Note</dd>
 
-            <dt class="col-sm-3">Trạng thái</dt>
+            <dt class="col-sm-3">Trạng thái: </dt>
             <dd class="col-sm-9">
-                <span class="badge bg-info">@batch.Status.ToString()</span>
+                <span>
+                    @(inventoryBatchStatusList.FirstOrDefault(p => p.Value == batch.Status).Name ?? batch.Status.ToString())
+                </span>
             </dd>
         </dl>
     </div>
