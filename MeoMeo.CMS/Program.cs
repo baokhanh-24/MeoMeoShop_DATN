@@ -1,7 +1,7 @@
 ﻿using MeoMeo.CMS.Components;
-using MeoMeo.CMS.IServices;
-using MeoMeo.CMS.Services;
+using MeoMeo.Shared.IServices;
 using System.Globalization;
+using MeoMeo.Shared.Services;
 using MeoMeo.Shared.Utilities;
 
 var builder = WebApplication.CreateBuilder(args);

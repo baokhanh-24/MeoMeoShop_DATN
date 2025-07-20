@@ -1,6 +1,6 @@
 ﻿@page "/manage-promotion"
 @using AntDesign.TableModels
-@using MeoMeo.CMS.IServices
+@using MeoMeo.Shared.IServices;
 @using MeoMeo.Contract.Commons
 @using MeoMeo.Contract.DTOs.Promotion
 @using MeoMeo.Domain.Commons.Enums
@@ -19,37 +19,36 @@
     </Button>
 </div>
 <Tabs DefaultActiveKey="All" @bind-ActiveKey="@activeTab" OnChange="OnTabChange">
-    <TabPane Key="All" Tab=@($"Tất cả ({metaData.TotalAll})")/>
-    <TabPane Key="Draft" Tab=@($"Nháp ({metaData.Draft})")/>
-    <TabPane Key="NotHappenedYet" Tab=@($"Chưa diễn ra ({metaData.NotHappenedYet})")/>
-    <TabPane Key="IsGoingOn" Tab=@($"Đang diễn ra ({metaData.IsGoingOn})")/>
-    <TabPane Key="Ended" Tab=@($"Đã kết thúc ({metaData.Ended})")/>
+    <TabPane Key="All" Tab=@($"Tất cả ({metaData.TotalAll})") />
+    <TabPane Key="Draft" Tab=@($"Nháp ({metaData.Draft})") />
+    <TabPane Key="NotHappenedYet" Tab=@($"Chưa diễn ra ({metaData.NotHappenedYet})") />
+    <TabPane Key="IsGoingOn" Tab=@($"Đang diễn ra ({metaData.IsGoingOn})") />
+    <TabPane Key="Ended" Tab=@($"Đã kết thúc ({metaData.Ended})") />
 </Tabs>
 <div class="d-flex justify-content-end gap-3 mb-2">
     <div style="width: 250px">
-        <Input AllowClear="true" @bind-Value="filter.TitleFilter" Placeholder="Nhập tên khuyến mãi" OnClear="OnFilterChanged" />
+        <Input AllowClear="true" @bind-Value="filter.TitleFilter" Placeholder="Nhập tên khuyến mãi"
+            OnClear="OnFilterChanged" />
     </div>
-    <DatePicker Class="w-full" TValue="DateOnly?" @bind-Value="filter.StartDateFilter"/>
-    <DatePicker Class="w-full" TValue="DateOnly?" @bind-Value="filter.EndDateFilter" />
+    <DatePicker Class="w-full" TValue="DateOnly ?" @bind-Value="filter.StartDateFilter" />
+    <DatePicker Class="w-full" TValue="DateOnly ?" @bind-Value="filter.EndDateFilter" />
     <div style="width: 250px">
-        <Input AllowClear="true" @bind-Value="filter.DescriptionFilter" Placeholder="Nhập mô tả" OnClear="OnFilterChanged" />
+        <Input AllowClear="true" @bind-Value="filter.DescriptionFilter" Placeholder="Nhập mô tả"
+            OnClear="OnFilterChanged" />
     </div>
     <div style="width: 150px">
-        <Select TItem="(EPromotionStatus Value, string Name)"
-                TItemValue="EPromotionStatus?"
-                AllowClear
-                DataSource="promotionStatusList"
-                @bind-Value="filter.StatusFilter"
-                Placeholder="Chọn trạng thái"
-                ItemValue="s => (EPromotionStatus?)s.Value"
-                ItemLabel="s => s.Name">
+        <Select TItem="(EPromotionStatus Value, string Name)" TItemValue="EPromotionStatus ?" AllowClear
+            DataSource="promotionStatusList" @bind-Value="filter.StatusFilter" Placeholder="Chọn trạng thái"
+            ItemValue="s => (EPromotionStatus?)s.Value" ItemLabel="s => s.Name">
         </Select>
     </div>
     <Tooltip Title="Tìm kiếm">
-        <Button @onclick="() => OnFilterChanged()" Type="ButtonType.Primary" Shape="ButtonShape.Circle" Icon="@IconType.Outline.Search" />
+        <Button @onclick="() => OnFilterChanged()" Type="ButtonType.Primary" Shape="ButtonShape.Circle"
+            Icon="@IconType.Outline.Search" />
     </Tooltip>
 </div>
-<Table DataSource="listOfData" TItem="CreateOrUpdatePromotionDTO" RowClassName="@(_ => "editable-row")" Bordered TableLayout="fixed" OnChange="@OnPageChange" PageSize="@filter.PageSize" Total="@totalRecords">
+<Table DataSource="listOfData" TItem="CreateOrUpdatePromotionDTO" RowClassName="@(_ => "editable-row")" Bordered
+    TableLayout="fixed" OnChange="@OnPageChange" PageSize="@filter.PageSize" Total="@totalRecords">
     <ChildContent Context="data">
         <Column TData="int" Title="STT">
             @{
@@ -69,7 +68,7 @@
                 }
             </a>
         </Column>
-        <Column TData="DateTime?" Title="Ngày bắt đầu">
+        <Column TData="DateTime ?" Title="Ngày bắt đầu">
             @if (editCache.ContainsKey(data.Id) && !editCache[data.Id].edit)
             {
                 @data.StartDate?.ToString("dd-MM-yyyy")
@@ -79,7 +78,7 @@
                 <DatePicker @bind-Value="editCache[data.Id].data.StartDate" />
             }
         </Column>
-        <Column TData="DateTime?" Title="Ngày kết thúc">
+        <Column TData="DateTime ?" Title="Ngày kết thúc">
             @if (editCache.ContainsKey(data.Id) && !editCache[data.Id].edit)
             {
                 @data.EndDate?.ToString("dd-MM-yyyy")
@@ -106,12 +105,9 @@
             }
             else if (editCache.ContainsKey(data.Id))
             {
-                <Select TItem="(EPromotionStatus Value, string Name)"
-                        TItemValue="EPromotionStatus"
-                        DataSource="promotionStatusList"
-                        @bind-Value="editCache[data.Id].data.Status"
-                        ItemValue="p => p.Value"
-                        ItemLabel="p => p.Name" />
+                <Select TItem="(EPromotionStatus Value, string Name)" TItemValue="EPromotionStatus"
+                    DataSource="promotionStatusList" @bind-Value="editCache[data.Id].data.Status" ItemValue="p => p.Value"
+                    ItemLabel="p => p.Name" />
             }
         </Column>
         <ActionColumn Title="Thao tác" Class="text-end gap-2">
@@ -121,12 +117,10 @@
                     <Button Size="ButtonSize.Small" @onclick="() => startEdit(data.Id)" Shape="ButtonShape.Circle">
                         <i class="fas fa-pen"></i>
                     </Button>
-                </Tooltip>               
-                
-                <Popconfirm Title=@($"Bạn có chắc muốn xóa {data.Title}?")
-                            OnConfirm="() => DeletePromotion(data.Id)"
-                            OkText="Đồng ý"
-                            CancelText="Hủy">
+                </Tooltip>
+
+                <Popconfirm Title=@($"Bạn có chắc muốn xóa {data.Title}?") OnConfirm="() => DeletePromotion(data.Id)"
+                    OkText="Đồng ý" CancelText="Hủy">
 
                     <Tooltip Title="Xóa">
                         <Button Size="ButtonSize.Small" Danger Shape="ButtonShape.Circle">
@@ -156,7 +150,8 @@
     private string activeTab = "All";
     private GetListPromotionResponseDTO metaData = new();
     private int totalRecords = 0;
-    IDictionary<Guid, (bool edit, CreateOrUpdatePromotionDTO data)> editCache = new Dictionary<Guid, (bool, CreateOrUpdatePromotionDTO)>();
+    IDictionary<Guid, (bool edit, CreateOrUpdatePromotionDTO data)> editCache = new Dictionary<Guid, (bool,
+    CreateOrUpdatePromotionDTO)>();
     List<CreateOrUpdatePromotionDTO> listOfData = new();
     List<(EPromotionStatus Value, string Name)> promotionStatusList = new();
     [Inject] private NavigationManager Navigation { get; set; } = default!;
@@ -174,14 +169,14 @@
     protected override async Task OnInitializedAsync()
     {
         promotionStatusList = Enum.GetValues(typeof(EPromotionStatus))
-            .Cast<EPromotionStatus>()
-            .Select(x => (
-                x,
-                x.GetType().GetMember(x.ToString())
-                    .First()
-                    .GetCustomAttribute<DisplayAttribute>()?.Name ?? x.ToString()
-            ))
-            .ToList();
+        .Cast<EPromotionStatus>()
+        .Select(x => (
+        x,
+        x.GetType().GetMember(x.ToString())
+        .First()
+        .GetCustomAttribute<DisplayAttribute>()?.Name ?? x.ToString()
+        ))
+        .ToList();
 
         await LoadDataAsync();
     }
@@ -223,8 +218,8 @@
         metaData = response.Metadata;
         totalRecords = response.TotalRecords;
         editCache = listOfData.ToDictionary(
-            item => item.Id,
-            item => (false, ClonePromotion(item))
+        item => item.Id,
+        item => (false, ClonePromotion(item))
         );
         await InvokeAsync(StateHasChanged);
     }

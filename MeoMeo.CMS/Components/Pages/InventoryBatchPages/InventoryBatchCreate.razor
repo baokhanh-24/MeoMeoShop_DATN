@@ -1,6 +1,5 @@
 ﻿@page "/InventoryBatchCreate"
-@using MeoMeo.CMS.IServices
-@using MeoMeo.CMS.Services
+@using MeoMeo.Shared.IServices;
 @using MeoMeo.Contract.DTOs
 @using MeoMeo.Contract.DTOs.Product
 @using MeoMeo.Contract.DTOs.ProductDetail
@@ -38,15 +37,16 @@
         <InputText class="form-control" @bind-Value="kho.Code" />
     </div>
     <p></p>
-     <div class="form-group">
+    <div class="form-group">
         <label for="Note" class="form-label">Mô tả</label>
         <p></p>
         <InputText class="form-control" @bind-Value="kho.Note" />
     </div>
     <p></p>
-    <button type="button" class="btn btn-success" @onclick="() => isProductDialogVisible = true">+ Thêm sản phẩm</button>
+    <button type="button" class="btn btn-success" @onclick="() => isProductDialogVisible = true">+ Thêm sản
+        phẩm</button>
     <p></p>
-    
+
     @if (selectedProducts.Count > 0)
     {
         <table class="table">
@@ -70,7 +70,8 @@
                             <AntDesign.InputNumber TValue="int" class="form-control" @bind-Value="sp.Quantity" />
                         </td>
                         <td>
-                            <button type="button" class="btn btn-danger btn-sm" @onclick="() => RemoveProduct(sp.ProductDetailId)">Xóa</button>
+                            <button type="button" class="btn btn-danger btn-sm"
+                                @onclick="() => RemoveProduct(sp.ProductDetailId)">Xóa</button>
                         </td>
                     </tr>
                 }
@@ -91,12 +92,14 @@
                         @foreach (var item in productItems)
                         {
                             <div>
-                                <input type="checkbox" value="@item.Id" @onchange="e => OnProductCheckedChanged(e, item)" /> @item.DisplayName
+                                <input type="checkbox" value="@item.Id" @onchange="e => OnProductCheckedChanged(e, item)" />
+                                @item.DisplayName
                             </div>
                         }
                     </div>
                     <div class="modal-footer">
-                        <button type="button" class="btn btn-primary" @onclick="() => isProductDialogVisible = false">Xác nhận</button>
+                        <button type="button" class="btn btn-primary" @onclick="() => isProductDialogVisible = false">Xác
+                            nhận</button>
                     </div>
                 </div>
             </div>
@@ -145,7 +148,8 @@
             // Gọi song song
             var detailRequest = new GetListProductDetailRequestDTO(); // Không truyền gì, lấy tất cả
             var queryString = BuildQuery.ToQueryString(detailRequest);
-            var detailTask = Http.GetAsync<PagingExtensions.PagedResult<ProductDetailDTO>>($"/api/ProductDetails/get-all-product-detail-async?{queryString}");
+            var detailTask =
+            Http.GetAsync<PagingExtensions.PagedResult<ProductDetailDTO>>($"/api/ProductDetails/get-all-product-detail-async?{queryString}");
             var productTask = Http.GetAsync<List<CreateOrUpdateProductDTO>>("/api/Products");
             await Task.WhenAll(detailTask, productTask);
             var productDetailsPagedResult = await detailTask;

@@ -1,6 +1,5 @@
 ﻿@page "/promotion-create"
-@using MeoMeo.CMS.IServices
-@using MeoMeo.CMS.Services
+@using MeoMeo.Shared.IServices;
 @using MeoMeo.Contract.Commons
 @using MeoMeo.Contract.DTOs.Promotion
 @using MeoMeo.Contract.DTOs.PromotionDetail
@@ -66,7 +65,8 @@
                             <InputText @bind-Value="item.Note" class="form-control" />
                         </td>
                         <td>
-                            <button class="btn btn-danger btn-sm" @onclick="() => RemoveProduct(item.ProductDetailId)">X</button>
+                            <button class="btn btn-danger btn-sm"
+                                @onclick="() => RemoveProduct(item.ProductDetailId)">X</button>
                         </td>
                     </tr>
                 }

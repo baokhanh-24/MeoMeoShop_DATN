@@ -1,0 +1,32 @@
+@using MeoMeo.Shared.Utilities
+@inject LoadingService LoadingService
+
+<Spin Spinning="true" Indicator="@GetCustomIndicator()">
+    @ChildContent
+</Spin>
+
+@code {
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+    private RenderFragment GetCustomIndicator() => builder =>
+    {
+        builder.OpenElement(0, "img");
+        builder.AddAttribute(1, "src", "images/loading.gif");
+        builder.AddAttribute(2, "alt", "Loading...");
+        builder.CloseElement();
+    };
+    private Func<Task>? _onChangeHandler;
+
+    protected override void OnInitialized()
+    {
+        _onChangeHandler = async () => await InvokeAsync(StateHasChanged);
+        LoadingService.OnChange += _onChangeHandler;
+    }
+
+    public void Dispose()
+    {
+        if (_onChangeHandler != null)
+        {
+            LoadingService.OnChange -= _onChangeHandler;
+        }
+    }
+}

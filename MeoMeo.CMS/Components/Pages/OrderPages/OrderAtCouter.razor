@@ -1,0 +1,335 @@
+@page "/order-at-counter"
+@using System.ComponentModel.DataAnnotations
+@using System.Reflection
+@using AntDesign;
+@using MeoMeo.Domain.Commons.Enums
+
+@{
+    var ProductListTitle = $"Danh sách sản phẩm ({products.Count})";
+}
+
+<Row Justify="RowJustify.SpaceBetween" Align="RowAlign.Middle" class="page-header-row">
+    <Col>
+        <Breadcrumb>
+            <BreadcrumbItem>Quản lý hệ thống</BreadcrumbItem>
+            <BreadcrumbItem>Thêm mới đơn hàng</BreadcrumbItem>
+        </Breadcrumb>
+    </Col>
+    <Col>
+        <Space Direction="SpaceDirection.Vertical" Size="SpaceSize.Middle">
+            <Button OnClick="Cancel">Hủy</Button>
+            <Button> Lưu tạm </Button>
+            <Button Type="ButtonType.Primary" OnClick="HandleValidSubmit" Size="ButtonSize.Small">Lưu</Button>
+            <Button Size="ButtonSize.Small">In đơn</Button>
+            <Button Size="ButtonSize.Small">Quay lại</Button>
+        </Space>
+    </Col>
+</Row>
+
+<Row Gutter="16" class="main-content-row">
+    <Col Span="18">
+        <Card Title="Thông tin chung" class="mb-3">
+            <Form Model="@order" Layout="FormLayout.Horizontal">
+                <Row Gutter="16">
+                    <Col Span="6">
+                        <FormItem Label="Loại" Required>
+                            <Select TItem="OrderTypeOption" TItemValue="EOrderType?" @bind-Value="order.Type" DataSource="orderTypeList" ItemValue="o => o.Value" ItemLabel="o => o.Name" Placeholder="Chọn trạng thái" />
+                        </FormItem>
+                    </Col>
+                    <Col Span="6">
+                        <FormItem Label="Thời gian đặt hàng" Required>
+                            <DatePicker @bind-Value="order.OrderTime" Style="width: 100%;" />
+                        </FormItem>
+                    </Col>
+                    <Col Span="8">
+                        <FormItem Label="Tên khách hàng">
+                            <Input @bind-Value="order.CustomerName" Placeholder="Chọn khách hàng..." ReadOnly />
+                        </FormItem>
+                    </Col>
+                    <Col Span="2" Style="display: flex; align-items: flex-end;">
+                        <Button Type="ButtonType.Primary" OnClick="ShowAddCustomerModal" Icon="plus" Size="ButtonSize.Small"> </Button>
+                    </Col>
+                </Row>
+                <Row Gutter="16">
+                    <Col Span="6">
+                        <FormItem Label="Số điện thoại">
+                            <Input @bind-Value="order.CustomerPhone" Placeholder="Nhập số điện thoại..." />
+                        </FormItem>
+                    </Col>
+                    <Col Span="10">
+                        <FormItem Label="Địa chỉ">
+                            <Input @bind-Value="order.CustomerAddress" Placeholder="Nhập địa chỉ..." />
+                        </FormItem>
+                    </Col>
+                </Row>
+            </Form>
+        </Card>
+        <Card Title="@ProductListTitle" class="mb-3">
+            <Row Gutter="8" Align="RowAlign.Middle" class="mb-3">
+                <Col Flex="1">
+                    <Input @bind-Value="ProductNameFilter" Placeholder="Nhập barcode, mã sản phẩm, tên sản phẩm để tìm kiếm" AllowClear />
+                </Col>
+                <Col>
+                    <Button Type="ButtonType.Primary" OnClick="SearchProduct" Size="ButtonSize.Small">Tìm kiếm</Button>
+                </Col>
+            </Row>
+            <Table DataSource="products" Bordered="true" >
+                <ChildContent Context="p">
+                    <Column TData="string" Title="Mã sản phẩm" DataIndex="Code" />
+                    <Column TData="string" Title="Ảnh sản phẩm">
+                        <Template>
+                            <img src="@p.ImageUrl" class="product-image" />
+                        </Template>
+                    </Column>
+                    <Column TData="string" Title="Tên sản phẩm" DataIndex="Name" />
+                    <Column TData="string" Title="Đơn vị tính" DataIndex="Unit" />
+                    <Column TData="decimal" Title="Đơn giá (đ)">
+                        <Template>@p.Price.ToString("N0")</Template>
+                    </Column>
+                    <Column TData="int" Title="Số lượng">
+                        <Template>
+                            <AntDesign.InputNumber TValue="int" @bind-Value="p.Quantity" Min="1" class="product-qty-input" OnChange="(v) => UpdateProductQuantity(p, v)" />
+                        </Template>
+                    </Column>
+                    <Column TData="decimal" Title="Thành tiền (đ)">
+                        <Template>@((p.Price * p.Quantity).ToString("N0"))</Template>
+                    </Column>
+                    <ActionColumn  Title="Thao tác">
+                        <Template>
+                            <Button Type="ButtonType.Primary" Size="ButtonSize.Small" OnClick="() => RemoveProduct(p)">Xóa</Button>
+                        </Template>
+                    </ActionColumn>
+                </ChildContent>
+            </Table>
+        </Card>
+    </Col>
+    <Col Span="6">
+        <Card Title="Tổng kết đơn hàng" class="order-summary-card">
+            <Space Direction="SpaceDirection.Vertical" Size="SpaceSize.Middle" Style="width: 100%;">
+                <Row Justify="RowJustify.SpaceBetween">
+                    <Col>Tổng tiền</Col>
+                    <Col>@(products.Sum(p => p.Price * p.Quantity).ToString("N0")) đ</Col>
+                </Row>
+                <Row Justify="RowJustify.SpaceBetween" Align="RowAlign.Middle">
+                    <Col>Phí vận chuyển</Col>
+                    <Col>
+                        <AntDesign.InputNumber TValue="decimal?" @bind-Value="order.ShippingFee" Min="0" Size="InputSize.Small" Style="width: 100px;" /> đ
+                    </Col>
+                </Row>
+                <Row Justify="RowJustify.SpaceBetween" Align="RowAlign.Middle">
+                    <Col>Mã giảm giá</Col>
+                    <Col>
+                        <Input @bind-Value="order.DiscountCode" Placeholder="Nhập mã giảm giá" Size="InputSize.Small" Style="width: 120px;" />
+                        <Button Type="ButtonType.Default" Size="ButtonSize.Small" OnClick="ApplyDiscountCode" Style="margin-left: 4px;">Áp dụng</Button>
+                    </Col>
+                </Row>
+                <Divider />
+                <Row Justify="RowJustify.SpaceBetween">
+                    <Col><b>Thành tiền</b></Col>
+                    <Col><b>@TotalAmount.ToString("N0") đ</b></Col>
+                </Row>
+                <Divider />
+                <Row Justify="RowJustify.SpaceBetween" Align="RowAlign.Middle">
+                    <Col>Hình thức thanh toán</Col>
+                    <Col>
+                        <RadioGroup @bind-Value="order.PaymentType" ButtonStyle="RadioButtonStyle.Outline">
+                            <RadioButton Value="0">Tiền mặt</RadioButton>
+                            <RadioButton Value="1">Chuyển khoản</RadioButton>
+                        </RadioGroup>
+                    </Col>
+                </Row>
+            </Space>
+        </Card>
+    </Col>
+</Row>
+
+<Modal @bind-Visible="AddCustomerModalVisible" Title="Thêm mới khách hàng" Width="400">
+    <EditForm Model="@newCustomer" OnValidSubmit="HandleAddCustomer">
+        <FormItem Label="Họ tên" Required>
+            <Input @bind-Value="newCustomer.Name" MaxLength="255" />
+        </FormItem>
+        <FormItem Label="Điện thoại" Required>
+            <Input @bind-Value="newCustomer.Phone" MaxLength="15" />
+        </FormItem>
+        <div class="d-flex justify-content-end mt-3">
+            <Button Type="ButtonType.Default" OnClick="CloseAddCustomerModal" class="me-2">Hủy</Button>
+            <Button Type="ButtonType.Primary" HtmlType="submit">Lưu</Button>
+        </div>
+    </EditForm>
+</Modal>
+
+<Modal @bind-Visible="SelectCouponModalVisible" Title="Chọn mã giảm giá" Width="600">
+    <div>
+        <p>Mã giảm giá/tổng đơn hàng</p>
+        <span>Chọn tối đa 1 mã</span>
+        <div class="mt-3">
+            @foreach (var coupon in CouponList)
+            {
+                <div class="d-flex align-items-center mb-2">
+                    <div class="ms-2">
+                        <span class="fw-bold">@coupon.Title</span>
+                        <span class="ms-2">@coupon.Description</span>
+                        <span class="ms-2 text-muted">HSD: @coupon.ExpiryDate.ToString("dd/MM/yyyy (HH:mm)")</span>
+                    </div>
+                </div>
+            }
+        </div>
+        <div class="d-flex justify-content-end mt-3">
+            <Button Type="ButtonType.Default" OnClick="CloseSelectCouponModal" class="me-2">Hủy</Button>
+            <Button Type="ButtonType.Primary" OnClick="ApplySelectedCoupon">Áp dụng</Button>
+        </div>
+    </div>
+</Modal>
+
+@code {
+    string ProductNameFilter = "";
+    private OrderModel order = new();
+    private List<ProductModel> products = new();
+    List<OrderTypeOption> orderTypeList = new();
+
+    // Modal state
+    bool AddCustomerModalVisible = false;
+    bool SelectCouponModalVisible = false;
+
+    // Thông tin khách hàng mới
+    CustomerModel newCustomer = new();
+
+    // Coupon
+    List<CouponModel> CouponList = new()
+    {
+        new CouponModel { Id = 1, Title = "Giảm 50%", Description = "Giảm tối đa 300k cho đơn hàng từ 2tr", ExpiryDate = DateTime.Now.AddDays(7) },
+        new CouponModel { Id = 2, Title = "Giảm 20%", Description = "Giảm tối đa 100k cho đơn hàng từ 1tr", ExpiryDate = DateTime.Now.AddDays(10) }
+    };
+    int? SelectedCouponId = null;
+    decimal DiscountAmount = 0;
+
+    private decimal TotalAmount => products.Sum(p => p.Price * p.Quantity) + (order.ShippingFee ?? 0) - DiscountAmount;
+
+    protected override async Task OnInitializedAsync()
+    {
+        orderTypeList = Enum.GetValues(typeof(EOrderType))
+            .Cast<EOrderType>()
+            .Select(x => new OrderTypeOption
+            {
+                Value = x,
+                Name = x.GetType().GetMember(x.ToString())
+                    .First()
+                    .GetCustomAttribute<DisplayAttribute>()?.Name ?? x.ToString()
+            })
+            .ToList();
+    }
+
+    void ShowAddCustomerModal()
+    {
+        AddCustomerModalVisible = true;
+    }
+    void CloseAddCustomerModal()
+    {
+        AddCustomerModalVisible = false;
+    }
+    void HandleAddCustomer()
+    {
+        order.CustomerName = newCustomer.Name;
+        order.CustomerPhone = newCustomer.Phone;
+        AddCustomerModalVisible = false;
+    }
+
+    void ShowSelectCouponModal()
+    {
+        SelectCouponModalVisible = true;
+    }
+    void CloseSelectCouponModal()
+    {
+        SelectCouponModalVisible = false;
+    }
+    void SelectCoupon(int id)
+    {
+        SelectedCouponId = id;
+    }
+    void ApplySelectedCoupon()
+    {
+        var coupon = CouponList.FirstOrDefault(c => c.Id == SelectedCouponId);
+        if (coupon != null)
+        {
+            order.DiscountCode = coupon.Title;
+            DiscountAmount = coupon.Id == 1 ? 300000 : 100000; // Demo logic
+        }
+        SelectCouponModalVisible = false;
+    }
+    void ApplyDiscountCode()
+    {
+        if (order.DiscountCode == "SALE50")
+        {
+            DiscountAmount = 50000;
+        }
+        else
+        {
+            DiscountAmount = 0;
+        }
+    }
+    void ClearDiscountCode()
+    {
+        order.DiscountCode = string.Empty;
+        DiscountAmount = 0;
+        SelectedCouponId = null;
+    }
+    void SearchProduct()
+    {
+    }
+    void UpdateProductQuantity(ProductModel p, object value)
+    {
+        if (value is int qty && qty > 0)
+        {
+            p.Quantity = qty;
+        }
+    }
+    void RemoveProduct(ProductModel p)
+    {
+        products.Remove(p);
+    }
+    void Cancel()
+    {
+    }
+    private void HandleValidSubmit()
+    {
+    }
+
+    public class OrderModel
+    {
+        public EOrderType? Type { get; set; } = null;
+        [Required]
+        public DateTime OrderTime { get; set; } = DateTime.Now;
+        public string CustomerName { get; set; }
+        public string CustomerPhone { get; set; }
+        public string CustomerAddress { get; set; }
+        public decimal? ShippingFee { get; set; }
+        public string DiscountCode { get; set; }
+        public int PaymentType { get; set; } = 0;
+    }
+    public class ProductModel
+    {
+        public string Code { get; set; }
+        public string Name { get; set; }
+        public string ImageUrl { get; set; }
+        public string Unit { get; set; }
+        public decimal Price { get; set; }
+        public int Quantity { get; set; } = 1;
+    }
+    public class CustomerModel
+    {
+        public string Name { get; set; }
+        public string Phone { get; set; }
+    }
+    public class CouponModel
+    {
+        public int Id { get; set; }
+        public string Title { get; set; }
+        public string Description { get; set; }
+        public DateTime ExpiryDate { get; set; }
+    }
+    public class OrderTypeOption
+    {
+        public EOrderType Value { get; set; }
+        public string Name { get; set; }
+    }
+}

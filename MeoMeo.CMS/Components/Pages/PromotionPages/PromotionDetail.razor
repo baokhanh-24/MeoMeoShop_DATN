@@ -4,7 +4,7 @@
 @inject IApiCaller Http
 @inject NavigationManager Navigation
 
-@using MeoMeo.CMS.IServices
+@using MeoMeo.Shared.IServices;
 @using MeoMeo.Contract.DTOs.Promotion
 @using MeoMeo.Contract.DTOs.PromotionDetail
 @using MeoMeo.Contract.DTOs.ProductDetail
@@ -134,25 +134,26 @@ else
             Console.WriteLine("Số lượng PromotionDetail:", result.Items.Count);
             // Tạm lọc thủ công tại client nếu cần
             promotionDetails = result.Items
-                .Where(x => x.PromotionId == PromotionId)
-                .ToList();
+            .Where(x => x.PromotionId == PromotionId)
+            .ToList();
 
             // Lấy toàn bộ ProductDetail
             var query = BuildQuery.ToQueryString(new GetListProductDetailRequestDTO());
-            var productDetailResponse = await Http.GetAsync<PagedResult<ProductDetailDTO>>($"/api/ProductDetails/get-all-product-detail-async?{query}");
+            var productDetailResponse = await
+            Http.GetAsync<PagedResult<ProductDetailDTO>>($"/api/ProductDetails/get-all-product-detail-async?{query}");
             var productDetails = productDetailResponse?.Items ?? new List<ProductDetailDTO>();
 
             promotionDetailsView = (
-                from detail in promotionDetails
-                join pd in productDetails on detail.ProductDetailId equals pd.Id
-                select new ProductPromotionView
-                {
-                    ProductCode = pd.Sku,
-                    ProductName = pd.ProductName,
-                    OriginalPrice = pd.Price,
-                    DiscountAmount = detail.Discount,
-                    Note = detail.Note
-                }).ToList();
+            from detail in promotionDetails
+            join pd in productDetails on detail.ProductDetailId equals pd.Id
+            select new ProductPromotionView
+            {
+                ProductCode = pd.Sku,
+                ProductName = pd.ProductName,
+                OriginalPrice = pd.Price,
+                DiscountAmount = detail.Discount,
+                Note = detail.Note
+            }).ToList();
         }
         catch (Exception ex)
         {

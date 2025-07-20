@@ -2,7 +2,7 @@
 @using System.ComponentModel.DataAnnotations
 @using System.Reflection
 @using MeoMeo.Contract.DTOs
-@using MeoMeo.CMS.IServices
+@using MeoMeo.Shared.IServices;
 @using MeoMeo.Contract.Commons
 @using MeoMeo.Domain.Commons.Enums
 @inject MeoMeo.Shared.Utilities.MessageModalService MessageModalService
@@ -28,12 +28,9 @@
                 <Input @bind-Value="employee.Address" />
             </FormItem>
             <FormItem Label="Trạng thái">
-                <Select TItem="(EEmployeesStatus Value, string Name)"
-                        TItemValue="EEmployeesStatus"
-                        @bind-Value="employee.StatusEnum"
-                        DataSource="StatusList"
-                        ItemValue="item => item.Value"
-                        ItemLabel="item => item.Name">
+                <Select TItem="(EEmployeesStatus Value, string Name)" TItemValue="EEmployeesStatus"
+                    @bind-Value="employee.StatusEnum" DataSource="StatusList" ItemValue="item => item.Value"
+                    ItemLabel="item => item.Name">
                 </Select>
 
             </FormItem>

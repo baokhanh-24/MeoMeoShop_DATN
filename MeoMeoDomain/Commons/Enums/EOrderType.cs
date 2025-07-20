@@ -1,8 +1,14 @@
-﻿namespace MeoMeo.Domain.Commons.Enums
+﻿using System.ComponentModel.DataAnnotations;
+
+namespace MeoMeo.Domain.Commons.Enums
 {
     public enum EOrderType
     {
+        [Display(Name = "Tại quyầy")]
         Store,
-        Online
+        [Display(Name = "Online")]
+        Online,
+        [Display(Name = "Đi giao")]
+        Shiiping
     }
 }
