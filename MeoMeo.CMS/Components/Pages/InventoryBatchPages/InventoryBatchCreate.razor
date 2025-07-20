@@ -27,11 +27,9 @@
         @message
     </div>
 }
-
 <EditForm Model="kho" OnValidSubmit="HandleValidSubmit">
     <DataAnnotationsValidator />
     <ValidationSummary />
-
     <div class="form-group">
         <label for="Code" class="form-label">Mã lô nhập</label>
         <p></p>
@@ -43,13 +41,10 @@
         <p></p>
         <InputText class="form-control" @bind-Value="kho.Note" />
     </div>
-    <p></p>
-    <button type="button" class="btn btn-success" @onclick="() => isProductDialogVisible = true">+ Thêm sản phẩm</button>
-    <p></p>
-    
-    @if (selectedProducts.Count > 0)
-    {
-        <table class="table">
+    <p></p>  
+    <h5 class="mt-4">Danh sách sản phẩm</h5>
+    <div class="table-responsive">
+        <table class="table table-bordered">
             <thead>
                 <tr>
                     <th>Tên sản phẩm</th>
@@ -76,7 +71,9 @@
                 }
             </tbody>
         </table>
-    }
+    </div>
+    <p></p>
+    <button type="button" class="btn btn-success" @onclick="() => isProductDialogVisible = true">+ Thêm sản phẩm</button>
     <p></p>
     @if (isProductDialogVisible)
     {
@@ -142,22 +139,15 @@
     {
         try
         {
-            // Gọi song song
-            var detailRequest = new GetListProductDetailRequestDTO(); // Không truyền gì, lấy tất cả
-            var detailTask = ProductDetailClientService.GetAllProductDetailAsync(detailRequest);
-            var productTask = Http.GetAsync<List<CreateOrUpdateProductDTO>>("/api/Products");
-            await Task.WhenAll(detailTask, productTask);
-            var productDetailsPagedResult = await detailTask;
-            var productsResult = await productTask;
-
+            var detailRequest = new GetListProductDetailRequestDTO(); // lấy tất cả
+            var productDetailsPagedResult = await ProductDetailClientService.GetAllProductDetailAsync(detailRequest);
             var productDetailsResult = productDetailsPagedResult.Items;
-            productItems = (from detail in productDetailsResult
-                            join product in productsResult on detail.ProductId equals product.Id
-                            select new ProductItem
-                            {
-                                Id = detail.Id,
-                                DisplayName = product.Name // hoặc $"{product.Name} - {detail.Size}" nếu có nhiều chi tiết
-                            }).ToList();
+
+            productItems = productDetailsResult.Select(detail => new ProductItem
+            {
+                Id = detail.Id,
+                DisplayName = detail.ProductName ?? "(Không có tên)"
+            }).ToList();
         }
         catch (Exception ex)
         {
