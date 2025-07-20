@@ -45,7 +45,7 @@ namespace MeoMeo.Shared.Services
         {
             try
             {
-                var url = $"api/SystemConfigs{id}";
+                var url = $"api/SystemConfigs/{id}";
                 var result = await _httpClient.DeleteAsync(url);
                 if (!result)
                 {
@@ -55,7 +55,7 @@ namespace MeoMeo.Shared.Services
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Có lỗi xảy ra khi tạo cấu hình hệ thống: {Message}", ex.Message);
+                _logger.LogError(ex, "Có lỗi xảy ra khi xóa cấu hình hệ thống: {Message}", ex.Message);
                 return false;
             }
         }
