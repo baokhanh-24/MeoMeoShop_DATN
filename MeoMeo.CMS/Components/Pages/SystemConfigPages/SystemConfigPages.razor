@@ -1,15 +1,11 @@
 ﻿@page "/manage-systemconfig"
 @using System.ComponentModel.DataAnnotations
 @using System.Reflection
-@using MeoMeo.CMS.Services
-@using MeoMeo.Contract.DTOs
-@using MeoMeo.CMS.IServices
 @using MeoMeo.Contract.Commons
-@using MeoMeo.Contract.DTOs.Material
 @using MeoMeo.Contract.DTOs.SystemConfig
 @using MeoMeo.Domain.Commons.Enums
-@inject MeoMeo.Utilities.MessageModalService MessageModalService
-@rendermode InteractiveServer
+@using MeoMeo.Shared.IServices
+@inject MeoMeo.Shared.Utilities.MessageModalService MessageModalService
 
 <div class="d-flex justify-content-between">
     <Breadcrumb>

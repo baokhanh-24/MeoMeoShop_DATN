@@ -1,13 +1,14 @@
-﻿using MeoMeo.CMS.IServices;
+﻿
 using MeoMeo.Contract.Commons;
 using MeoMeo.Contract.DTOs;
 using MeoMeo.Domain.Commons;
 using Microsoft.Extensions.Logging;
 using System;
 using System.Threading.Tasks;
+using MeoMeo.Shared.IServices;
 using MeoMeo.Shared.Utilities;
 
-namespace MeoMeo.CMS.Services
+namespace MeoMeo.Shared.Services
 {
     public class VoucherClientService : IVoucherClientService
     {

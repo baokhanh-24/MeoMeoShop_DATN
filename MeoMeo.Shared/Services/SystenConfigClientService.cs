@@ -1,11 +1,13 @@
-﻿using MeoMeo.CMS.IServices;
+﻿
 using MeoMeo.Contract.Commons;
 using MeoMeo.Contract.DTOs.Material;
 using MeoMeo.Contract.DTOs.SystemConfig;
 using MeoMeo.Domain.Commons;
-using MeoMeo.Utilities;
+using MeoMeo.Shared.IServices;
+using MeoMeo.Shared.Utilities;
+using Microsoft.Extensions.Logging;
 
-namespace MeoMeo.CMS.Services
+namespace MeoMeo.Shared.Services
 {
     public class SystenConfigClientService : ISystemConfigClientService
     {
@@ -63,7 +65,7 @@ namespace MeoMeo.CMS.Services
             try
             {
                 var query = BuildQuery.ToQueryString(request);
-                var url = $"api/SystemConfigs{query}";
+                var url = $"api/SystemConfigs?{query}";
                 var response = await _httpClient.GetAsync<PagingExtensions.PagedResult<CreateOrUpdateSystemConfigDTO>>(url);
                 return response ?? new PagingExtensions.PagedResult<CreateOrUpdateSystemConfigDTO>();
             }

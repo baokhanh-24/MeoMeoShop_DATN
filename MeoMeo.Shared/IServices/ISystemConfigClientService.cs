@@ -1,7 +1,7 @@
 ﻿using MeoMeo.Contract.DTOs.SystemConfig;
 using MeoMeo.Domain.Commons;
 
-namespace MeoMeo.CMS.IServices
+namespace MeoMeo.Shared.IServices
 {
     public interface ISystemConfigClientService
     {

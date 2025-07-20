@@ -1,8 +1,6 @@
 ﻿using MeoMeo.CMS.Components;
 using MeoMeo.Shared.IServices;
 using System.Globalization;
-using MeoMeo.CMS.IServices;
-using MeoMeo.CMS.Services;
 using MeoMeo.Shared.Services;
 using MeoMeo.Shared.Utilities;
 
@@ -17,7 +15,6 @@ builder.Services.AddScoped<MessageModalService>();
 builder.Services.AddSingleton<LoadingService>();
 builder.Services.AddHttpClient<IApiCaller, ApiCaller>();
 CultureInfo culture = new CultureInfo("vi-VN");
-CultureInfo.DefaultThreadCurrentCulture = culture;
 CultureInfo.DefaultThreadCurrentUICulture = culture;
 // đăng kí 
 builder.Services.AddScoped<ICustomerClientService, CustomerClientService>();
@@ -33,6 +30,7 @@ builder.Services.AddScoped<IEmployeesClientService, EmployeesClientService>();
 builder.Services.AddScoped<IOrderClientService,OrderClientService>();
 builder.Services.AddScoped<IPromotionClientService, PromotionClientService>();
 builder.Services.AddScoped<IPromotionDetailClientService, PromotionDetailClientService>();
+builder.Services.AddScoped<ISystemConfigClientService, SystenConfigClientService>();
 builder.Services.AddHttpClient<IApiCaller, ApiCaller>(client =>
 {
     client.BaseAddress = new Uri(apiBaseUrl!);

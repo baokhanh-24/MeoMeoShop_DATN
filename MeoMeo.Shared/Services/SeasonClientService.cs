@@ -1,12 +1,12 @@
 ﻿
-using MeoMeo.CMS.IServices;
 using MeoMeo.Contract.Commons;
 using MeoMeo.Contract.DTOs;
 using MeoMeo.Domain.Commons;
+using MeoMeo.Shared.IServices;
 using MeoMeo.Shared.Utilities;
 using Microsoft.Extensions.Logging;
 
-namespace MeoMeo.CMS.Services
+namespace MeoMeo.Shared.Services
 {
     public class SeasonClientService : ISeasonClientService
     {

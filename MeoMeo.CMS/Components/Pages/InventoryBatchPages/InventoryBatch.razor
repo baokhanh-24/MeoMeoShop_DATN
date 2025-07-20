@@ -3,8 +3,6 @@
 @using System.ComponentModel.DataAnnotations
 @using System.Reflection
 @using AntDesign.TableModels
-@using MeoMeo.CMS.IServices
-@using MeoMeo.CMS.Services
 @using MeoMeo.Contract.Commons
 @using MeoMeo.Contract.DTOs
 @using MeoMeo.Contract.DTOs.InventoryBatch
@@ -12,7 +10,8 @@
 @using MeoMeo.Contract.DTOs.ProductDetail
 @using MeoMeo.Domain.Commons
 @using MeoMeo.Domain.Commons.Enums
-@using MeoMeo.Utilities
+@using MeoMeo.Shared.IServices
+@using MeoMeo.Shared.Utilities
 @inject MessageModalService MessageModalService
 @inject IApiCaller Http
 @inject IProductDetailClientService ProductDetailClientService

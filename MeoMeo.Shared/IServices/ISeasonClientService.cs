@@ -2,7 +2,7 @@
 using MeoMeo.Contract.Commons;
 using MeoMeo.Domain.Commons;
 
-namespace MeoMeo.CMS.IServices
+namespace MeoMeo.Shared.IServices
 {
     public interface ISeasonClientService
     {

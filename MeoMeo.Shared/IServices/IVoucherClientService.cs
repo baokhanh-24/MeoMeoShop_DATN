@@ -1,7 +1,7 @@
 ﻿using MeoMeo.Contract.DTOs;
 using MeoMeo.Domain.Commons;
 
-namespace MeoMeo.CMS.IServices
+namespace MeoMeo.Shared.IServices
 {
     public interface IVoucherClientService
     {
