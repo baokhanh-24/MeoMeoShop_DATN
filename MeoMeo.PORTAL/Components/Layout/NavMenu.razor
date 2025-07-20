@@ -1,4 +1,6 @@
 ﻿@inject IJSRuntime JS
+@inject NavigationManager Navigation
+
 <header id="header" class="site-header fixed-top">
     <GridRow>
         <GridCol Span="22" Offset="1">
@@ -29,8 +31,10 @@
                                 <Anchor ShowInkInFixed="false">
                                     <ul id="navbar"
                                         class="navbar-nav text-uppercase justify-content-end align-items-center flex-grow-1 pe-3">
-                                        <AnchorLink class="nav-link me-4" Href="/" Title="Trang Chủ" />
-                                        <AnchorLink class="nav-link me-4" Href="manage-customer" Title="Test Base Components" />
+                                        <span @onclick="() => NavigateToPage(0)" class="me-4  custom-link">Trang
+                                            Chủ</span>
+                                        <span @onclick="() => NavigateToPage(1)" class="me-4 custom-link">Test Khách
+                                            hàng</span>
                                         <AnchorLink class="nav-link me-4" Href="/#product" Title="Dịch vụ" />
                                         <AnchorLink class="nav-link me-4" Href="/#product" Title="Sản Phẩm" />
                                         <AnchorLink class="nav-link me-4" Href="/#product"
@@ -172,6 +176,22 @@
             {
                 Console.WriteLine(exception.Message);
             }
+        }
+    }
+    private void NavigateToPage(int page)
+    {
+        switch (page)
+        {
+            case 0:
+                Navigation.NavigateTo("/");
+                break;
+            case 1:
+                Navigation.NavigateTo("/manage-customer");
+                break;
+
+            default:
+                Navigation.NavigateTo("/");
+                break;
         }
     }
 }
