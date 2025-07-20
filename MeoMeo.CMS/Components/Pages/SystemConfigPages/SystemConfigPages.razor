@@ -1,0 +1,269 @@
+﻿@page "/manage-systemconfig"
+@using System.ComponentModel.DataAnnotations
+@using System.Reflection
+@using MeoMeo.CMS.Services
+@using MeoMeo.Contract.DTOs
+@using MeoMeo.CMS.IServices
+@using MeoMeo.Contract.Commons
+@using MeoMeo.Contract.DTOs.Material
+@using MeoMeo.Contract.DTOs.SystemConfig
+@using MeoMeo.Domain.Commons.Enums
+@inject MeoMeo.Utilities.MessageModalService MessageModalService
+@rendermode InteractiveServer
+
+<div class="d-flex justify-content-between">
+    <Breadcrumb>
+        <BreadcrumbItem Href="/">Trang chủ</BreadcrumbItem>
+        <BreadcrumbItem Href="/manage-customer">Quản lý chất liệu</BreadcrumbItem>
+    </Breadcrumb>
+    <Button OnClick="addNewSystemConfig" Type="ButtonType.Primary" Class="mb-2">
+        <i class="fas fa-plus"></i> Thêm mới
+    </Button>
+</div>
+
+<div class="d-flex justify-content-end gap-3 mb-2">
+    <div style="width: 200px">
+        <Input AllowClear="true" OnClear="OnFilterChanged" @bind-Value="filter.NameFilter" Placeholder="Nhập theo tên" />
+    </div>
+    <div style="width: 200px">
+        <Input AllowClear="true" OnClear="OnFilterChanged" @bind-Value="filter.ValueFilter" Placeholder="Nhập theo" />
+    </div>
+    <div style="width: 150px">
+        <Select TItem="(ESystemConfigType Value, string Name)"
+                TItemValue="ESystemConfigType?"
+        AllowClear
+                DataSource="systemConfigTypesList"
+        @bind-Value="filter.TypeFilter"
+        Placeholder="Chọn type"
+        ItemValue="c=> (ESystemConfigType?)c.Value"
+        ItemLabel="c => c.Name">
+        </Select>
+    </div>
+    <Tooltip Title="Tìm kiếm">
+        <Button @onclick="() => OnFilterChanged()" Type="ButtonType.Primary" Shape="ButtonShape.Circle" Icon="@IconType.Outline.Search" />
+    </Tooltip>
+</div>
+
+<Table DataSource="listOfData" TItem="CreateOrUpdateSystemConfigDTO" RowClassName="@(_ => "editable-row")" Bordered TableLayout="fixed">
+    <ChildContent Context="data">
+        <Column TData="string" Title="Tên cấu hình">
+            @if (editCache.ContainsKey(data.Id) && !editCache[data.Id].edit)
+            {
+                @data.Name
+            }
+            else if (editCache.ContainsKey(data.Id))
+            {
+                <Input MaxLength="100" @bind-Value="editCache[data.Id].data.Name" Placeholder="Nhập tên cấu hình hệ thống" />
+            }
+        </Column>
+
+        <Column TData="string" Title="Giá trị">
+            @if (editCache.ContainsKey(data.Id) && !editCache[data.Id].edit)
+            {
+                @data.Value
+            }
+            else if (editCache.ContainsKey(data.Id))
+            {
+                <Input MaxLength="100" @bind-Value="editCache[data.Id].data.Value" Placeholder="Nhập giá trị cấu hình hệ thống" />
+            }
+        </Column>
+
+        <Column TData="ESystemConfigType" Title="Trạng thái">
+            @if (editCache.ContainsKey(data.Id) && !editCache[data.Id].edit)
+            {
+                @systemConfigTypesList.FirstOrDefault(x => x.Value == data.Type).Name
+            }
+            else if (editCache.ContainsKey(data.Id))
+            {
+
+                <Select TItem="(ESystemConfigType Value, string Name)"
+                        TItemValue="ESystemConfigType"
+                        DataSource="systemConfigTypesList"
+                        @bind-Value="editCache[data.Id].data.Type"
+                        ItemValue="c => c.Value"
+                        ItemLabel="c => c.Name">
+                </Select>
+            }
+        </Column>
+
+        <ActionColumn Title="Thao tác" Class="text-end gap-2">
+            @if (editCache.ContainsKey(data.Id) && !editCache[data.Id].edit)
+            {
+                <Tooltip Title="Sửa">
+                    <Button Size="ButtonSize.Small" @onclick="() => StartEdit(data.Id)" Shape="ButtonShape.Circle">
+                        <i class="fas fa-pen"></i>
+                    </Button>
+                </Tooltip>
+
+                <Popconfirm Title=@($"Bạn có chắc muốn xóa {data.Name}?")
+                            OnConfirm="() => DeleteEmployee(data.Id)"
+                            OkText="Đồng ý"
+                            CancelText="Hủy">
+
+                    <Tooltip Title="Xóa">
+                        <Button Size="ButtonSize.Small" Danger Shape="ButtonShape.Circle">
+                            <i class="fas fa-minus"></i>
+                        </Button>
+                    </Tooltip>
+
+                </Popconfirm>
+            }
+            else if (editCache.ContainsKey(data.Id))
+            {
+                <Tooltip Title="Lưu">
+                    <Button Size="ButtonSize.Small" @onclick="() => saveEdit(data.Id)" Shape="ButtonShape.Circle">
+                        <i class="fas fa-check"></i>
+                    </Button>
+                </Tooltip>
+                <Popconfirm Title=@($"Bạn có chắc muốn hủy {(data.Id ==Guid.Empty ?"thêm mới":"chỉnh sửa")} khách hàng {data.Name}?")
+                            OnConfirm="() => cancelEdit(data.Id)"
+                            OkText="Đồng ý"
+                            CancelText="Hủy">
+
+                    <Button Size="ButtonSize.Small" Shape="ButtonShape.Circle">
+                        <i class="fa-solid fa-xmark"></i>
+                    </Button>
+                </Popconfirm>
+            }
+        </ActionColumn>
+
+    </ChildContent>
+</Table>
+
+@code {
+    [Inject] private ISystemConfigClientService SystemConfigClientService { get; set; } = default!;
+    IDictionary<Guid, (bool edit, CreateOrUpdateSystemConfigDTO data)> editCache = new Dictionary<Guid, (bool edit, CreateOrUpdateSystemConfigDTO data)>();
+    List<(ESystemConfigType Value, string Name)> systemConfigTypesList = new();
+    List<CreateOrUpdateSystemConfigDTO> listOfData = new();
+
+    GetListSystemConfigRequestDTO filter = new GetListSystemConfigRequestDTO
+        {
+            NameFilter = "",
+            ValueFilter = "",
+            TypeFilter = null,
+            PageIndex = 1,
+            PageSize = 10
+        };
+
+    protected override async Task OnInitializedAsync()
+    {
+        systemConfigTypesList = Enum.GetValues(typeof(ESystemConfigType))
+            .Cast<ESystemConfigType>()
+            .Select(x => (x, x
+                .GetType()
+                .GetMember(x.ToString())
+                .First()
+                .GetCustomAttribute<DisplayAttribute>()?.Name ?? x.ToString()))
+                .ToList();
+        await LoadData();
+    }
+
+    async void OnFilterChanged()
+    {
+        await LoadData();
+    }
+
+    private async Task LoadData()
+    {
+        var response = await SystemConfigClientService.GetAllSystemConfigsAsync(filter);
+        listOfData = response.Items;
+        editCache = listOfData.ToDictionary(
+            item => item.Id,
+            item => (false, CloneSystemConfig(item)));
+        await InvokeAsync(StateHasChanged);
+    }
+
+    async Task addNewSystemConfig()
+    {
+        var newsys = new CreateOrUpdateSystemConfigDTO
+            {
+                Id = Guid.NewGuid(),
+                Name = "",
+                Value = "",
+                Type = ESystemConfigType.StoreName
+            };
+        listOfData.Insert(0, newsys);
+        editCache[newsys.Id] = (true, CloneSystemConfig(newsys));
+        await InvokeAsync(StateHasChanged);
+    }
+    async Task StartEdit(Guid Id)
+    {
+        var data = editCache[Id];
+        editCache[Id] = (true, data.data);
+        await InvokeAsync(StateHasChanged);
+    }
+
+    async Task cancelEdit(Guid id)
+    {
+        var isNew = listOfData.FirstOrDefault(x => x.Id == id)?.Id == Guid.Empty;
+        if (isNew)
+        {
+            listOfData.RemoveAll(x => x.Id == id);
+            editCache.Remove(id);
+        }
+        else
+        {
+            var original = listOfData.First(x => x.Id == id);
+            editCache[id] = (false, CloneSystemConfig(original));
+        }
+        await InvokeAsync(StateHasChanged);
+    }
+
+    async Task saveEdit(Guid Id)
+    {
+        var dto = editCache[Id].data;
+        var createOrUpdateDto = new CreateOrUpdateSystemConfigDTO
+            {
+                Id = dto.Id,
+                Name = dto.Name,
+                Value = dto.Value,
+                Type = dto.Type
+            };
+        BaseResponse response;
+        if (dto.Id == Guid.Empty)
+        {
+            response = await SystemConfigClientService.CreateSystemConfigAsync(createOrUpdateDto);
+        }
+        else
+        {
+            response = await SystemConfigClientService.UpdateSystemConfigAsync(createOrUpdateDto);
+        }
+
+        if (response.ResponseStatus == BaseStatus.Success)
+        {
+            await MessageModalService.Success("Lưu thành công!");
+            await LoadData();
+        }
+        else
+        {
+            await MessageModalService.Error(response.Message);
+        }
+    }
+
+    async Task DeleteEmployee(Guid id)
+    {
+        var success = await SystemConfigClientService.DeleteSystemConfigAsync(id);
+        if (success)
+        {
+            listOfData.RemoveAll(x => x.Id == id);
+            editCache.Remove(id);
+            await MessageModalService.Success("Xóa thành công!");
+        }
+        else
+        {
+            await MessageModalService.Error("Xóa thất bại!");
+        }
+    }
+
+
+    CreateOrUpdateSystemConfigDTO CloneSystemConfig(CreateOrUpdateSystemConfigDTO item)
+    {
+        return new CreateOrUpdateSystemConfigDTO
+            {
+                Id = item.Id,
+                Name = item.Name,
+                Value = item.Value,
+                Type = item.Type,
+            };
+    }
+}

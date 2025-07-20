@@ -1,9 +1,20 @@
-﻿namespace MeoMeo.Domain.Commons.Enums
+﻿using System.ComponentModel.DataAnnotations;
+
+namespace MeoMeo.Domain.Commons.Enums
 {
     public enum ESystemConfigType
     {
+        [Display(Name = "Địa chỉ cửa hàng")]
         AddressShop,
-        LinkWebsite,
-        Hotline
+        [Display(Name = "Link website")]
+        WebsiteLink,
+        [Display(Name = "Hotline cửa hàng")]
+        StoreHotline,
+        [Display(Name = "Tên cửa hàng")]
+        StoreName,
+        [Display(Name = "Copyright")]
+        Copyright,
+        [Display(Name = "Giờ làm việc")]
+        WorkingTime
     }
 }

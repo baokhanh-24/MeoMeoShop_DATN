@@ -15,32 +15,9 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Folder Include="DTOs\Bank\" />
-    <Folder Include="DTOs\Brand\" />
-    <Folder Include="DTOs\CartDetail\" />
-    <Folder Include="DTOs\Colour\" />
-    <Folder Include="DTOs\Customer\" />
-    <Folder Include="DTOs\DeliveryAddress\" />
-    <Folder Include="DTOs\District\" />
-    <Folder Include="DTOs\Image\" />
-    <Folder Include="DTOs\InventoryTranSaction\" />
     <Folder Include="DTOs\Commune\" />
-    <Folder Include="DTOs\CustomersBank\" />
-    <Folder Include="DTOs\Cart\" />
-    <Folder Include="DTOs\SystemConfig\" />
-    <Folder Include="DTOs\Season\" />
-    <Folder Include="DTOs\ProductSeason\" />
     <Folder Include="DTOs\ProductDetailMaterial\" />
-    <Folder Include="DTOs\ProductDetailSize\" />
-    <Folder Include="DTOs\ProductDetailColour\" />
-    <Folder Include="DTOs\Voucher\" />
-    <Folder Include="DTOs\User\" />
-    <Folder Include="DTOs\ResetPasswordHistory\" />
-    <Folder Include="DTOs\Province\" />
     <Folder Include="DTOs\Promotion\" />
-    <Folder Include="DTOs\PromotionDetail\" />
-    <Folder Include="DTOs\Order\" />
-    <Folder Include="DTOs\OrderDetail\" />
   </ItemGroup>
 
 </Project>
