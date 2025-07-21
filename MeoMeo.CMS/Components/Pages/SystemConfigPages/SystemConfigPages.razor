@@ -15,7 +15,19 @@
     <Button OnClick="addNewSystemConfig" Type="ButtonType.Primary" Class="mb-2">
         <i class="fas fa-plus"></i> Thêm mới
     </Button>
+
+    
 </div>
+
+<Tabs @bind-ActiveKey="selectTab" OnChange="OnTabChange" Class="mb-3">
+    <TabPane Key="all" Tab="Tất cả" />
+    <TabPane Key="AddressShop" Tab="Địa chỉ cửa hàng" />
+    <TabPane Key="WebsiteLink" Tab="Liên kết website" />
+    <TabPane Key="StoreHotline" Tab="Hotline cửa hàng" />
+    <TabPane Key="StoreName" Tab="Tên cửa hàng" />
+    <TabPane Key="Copyright" Tab="Copyright" />
+    <TabPane Key="WorkingTime" Tab="Giờ làm việc" />
+</Tabs>
 
 <div class="d-flex justify-content-end gap-3 mb-2">
     <div style="width: 200px">
@@ -26,9 +38,9 @@
     </div>
     <div style="width: 150px">
         <Select TItem="(ESystemConfigType Value, string Name)"
-                TItemValue="ESystemConfigType?"
+        TItemValue="ESystemConfigType?"
         AllowClear
-                DataSource="systemConfigTypesList"
+        DataSource="systemConfigTypesList"
         @bind-Value="filter.TypeFilter"
         Placeholder="Chọn type"
         ItemValue="c=> (ESystemConfigType?)c.Value"
@@ -73,11 +85,11 @@
             {
 
                 <Select TItem="(ESystemConfigType Value, string Name)"
-                        TItemValue="ESystemConfigType"
-                        DataSource="systemConfigTypesList"
-                        @bind-Value="editCache[data.Id].data.Type"
-                        ItemValue="c => c.Value"
-                        ItemLabel="c => c.Name">
+                TItemValue="ESystemConfigType"
+                DataSource="systemConfigTypesList"
+                @bind-Value="editCache[data.Id].data.Type"
+                ItemValue="c => c.Value"
+                ItemLabel="c => c.Name">
                 </Select>
             }
         </Column>
@@ -92,9 +104,9 @@
                 </Tooltip>
 
                 <Popconfirm Title=@($"Bạn có chắc muốn xóa {data.Name}?")
-                            OnConfirm="() => DeleteEmployee(data.Id)"
-                            OkText="Đồng ý"
-                            CancelText="Hủy">
+                OnConfirm="() => DeleteEmployee(data.Id)"
+                OkText="Đồng ý"
+                CancelText="Hủy">
 
                     <Tooltip Title="Xóa">
                         <Button Size="ButtonSize.Small" Danger Shape="ButtonShape.Circle">
@@ -112,9 +124,9 @@
                     </Button>
                 </Tooltip>
                 <Popconfirm Title=@($"Bạn có chắc muốn hủy {(data.Id ==Guid.Empty ?"thêm mới":"chỉnh sửa")} khách hàng {data.Name}?")
-                            OnConfirm="() => cancelEdit(data.Id)"
-                            OkText="Đồng ý"
-                            CancelText="Hủy">
+                OnConfirm="() => cancelEdit(data.Id)"
+                OkText="Đồng ý"
+                CancelText="Hủy">
 
                     <Button Size="ButtonSize.Small" Shape="ButtonShape.Circle">
                         <i class="fa-solid fa-xmark"></i>
@@ -169,11 +181,29 @@
         await InvokeAsync(StateHasChanged);
     }
 
+    private string selectTab = "all";
+
+    private async Task OnTabChange(string key)
+    {
+        selectTab = key;
+        filter.TypeFilter = key switch
+        {
+            "AddressShop" => ESystemConfigType.AddressShop,
+            "StoreName" => ESystemConfigType.StoreName,
+            "WebsiteLink" => ESystemConfigType.WebsiteLink,
+            "StoreHotline" => ESystemConfigType.StoreHotline,
+            "Copyright" => ESystemConfigType.Copyright,
+            "WorkingTime" => ESystemConfigType.WorkingTime,
+            _ => null
+        };
+        await LoadData();
+    }
+
     async Task addNewSystemConfig()
     {
         var newsys = new CreateOrUpdateSystemConfigDTO
             {
-                Id = Guid.NewGuid(),
+                Id = Guid.Empty,
                 Name = "",
                 Value = "",
                 Type = ESystemConfigType.StoreName
