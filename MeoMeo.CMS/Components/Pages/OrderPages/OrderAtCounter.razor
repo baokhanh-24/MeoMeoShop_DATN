@@ -1,0 +1,577 @@
+@page "/order-at-counter"
+@using System.ComponentModel.DataAnnotations
+@inject IMessageService MessageService
+
+<div class="content-background layout-container">
+    <Breadcrumb>
+        <BreadcrumbItem>Quản lý hệ thống</BreadcrumbItem>
+        <BreadcrumbItem>
+            <a class="current">@(DetailsItem != null ? "Cập nhật đơn hàng" : "Thêm mới đơn hàng")</a>
+        </BreadcrumbItem>
+    </Breadcrumb>
+    <div class="group-breadcumb">
+        <Button Class="btn-reset w-100px" Icon="close" OnClick="HandleCancel">Hủy</Button>
+        <Button Class="btn-reset" Icon="photo_album" OnClick="() => HandleSave(true)">Lưu tạm</Button>
+        <Button Class="btn-save" Icon="check" OnClick="() => HandleSave(false)">Lưu</Button>
+        @if (HasPermission("ORDER:POS_ORDER:PRINT"))
+        {
+            <Button Class="btn-reset" Icon="print" OnClick="HandlePrintOrder">In đơn</Button>
+        }
+        <Button Class="btn-back" Icon="arrow-left" OnClick="HandleGoBack">Quay lại</Button>
+    </div>
+    <Form Model="OrderModel" Layout="@FormLayout.Vertical" RequiredMark="@FormRequiredMark.Required"
+        OnFinish="OnFinish" OnFinishFailed="OnFinishFailed">
+        <div class="order-section-general">
+            <div class="order-section-general-header">
+                <div class="txt-18-n-600 order-section-general-title">Thông tin chung</div>
+            </div>
+            <Row Gutter="16">
+                <AntDesign.Col Lg="8">
+                    <FormItem Label="Loại" Required="true">
+                        <Select TItem="SelectOption"
+                                TItemValue="int"
+                                DataSource="@TypeOptions"
+                                @bind-Value="@OrderModel.Type"
+                                Placeholder="Chọn loại..."
+                                ItemValue="x => x.Value"
+                                ItemLabel="x => x.Label"
+                                OnSelectedItemChanged="HandleTypeChange"
+                                ShowSearch="true"
+                                AllowClear="true" />
+                    </FormItem>
+                </AntDesign.Col>
+                <AntDesign.Col Lg="8">
+                    <FormItem Label="Thời gian đặt hàng" Required="true">
+                        <DatePicker @bind-Value="@OrderModel.OrderTime" ShowTime="true" Format="HH:mm - dd/MM/yyyy"
+                            DisabledDate="@((current) => current > DateTime.Now)" Style="width: 100%" />
+                    </FormItem>
+                </AntDesign.Col>
+                <AntDesign.Col Lg="8">
+                    <FormItem Label="Tên khách hàng" Required="@(OrderType == 2)">
+                        <div style="display: flex; gap: 4px;">
+                            <Select TItem="Customer"
+                                    TItemValue="int?"
+                                    DataSource="@Customers"
+                                    @bind-Value="@OrderModel.CustomerId"
+                                    Placeholder="Chọn khách hàng..."
+                                    ItemValue="x => x.Id"
+                                    ItemLabel="x => x.Name"
+                                    ShowSearch="true"
+                                    FilterOption="false"
+                                    OnSelectedItemChanged="@(e => OnCustomerChanged(e))"
+                                    Loading="@CustomersLoading"
+                                    Style="flex: 1"
+                                    AllowClear="true">
+                                <NotFoundContent>
+                                    @if (CustomersLoading)
+                                    {
+                                        <Spin Size="SpinSize.Default" />
+                                    }
+                                    else
+                                    {
+                                        <div style="text-align: center; padding: 8px 0;">Không có dữ liệu phù hợp</div>
+                                    }
+                                </NotFoundContent>
+                            </Select>
+                            <Icon Type="plus" OnClick="HandleAddNewCustomer" />
+                        </div>
+                    </FormItem>
+                </AntDesign.Col>
+            </Row>
+        </div>
+        @if (OrderType == 2)
+        {
+            <div class="order-section-delivery">
+                <div class="order-section-delivery-header">
+                    <div class="txt-18-n-600">Thông tin nhận hàng</div>
+                    <Checkbox @bind-Checked="@UseDefaultAddress"
+                        Disabled="@(SelectedCustomer == null || SelectedCustomer.UserId == -1)"
+                        class="order-checkbox-default-address">
+                        <span class="txt-16-n-400 order-checkbox-default-address-label"
+                            style="color: @(SelectedCustomer?.UserId == -1 ? "#999" : "#22313F")">
+                            Giao đến địa chỉ mặc định
+                        </span>
+                    </Checkbox>
+                </div>
+                <Row Gutter="16" class="order-section-delivery-row-margin">
+                    <AntDesign.Col Lg="8">
+                        <FormItem Label="Tên người nhận" Required="true">
+                            <Input @bind-Value="@OrderModel.Delivery.ConsigneeName" Placeholder="Nhập"
+                                MaxLength="255" />
+                        </FormItem>
+                    </AntDesign.Col>
+                    <AntDesign.Col Lg="8">
+                        <FormItem Label="Số điện thoại" Required="true">
+                            <Input @bind-Value="@OrderModel.Delivery.ConsigneePhone" Placeholder="Nhập" />
+                        </FormItem>
+                    </AntDesign.Col>
+                </Row>
+                <Row Gutter="16" class="order-section-delivery-row-margin">
+                    <AntDesign.Col Lg="8">
+                        <FormItem Label="Tỉnh/Thành phố" Required="true">
+                            <Select TItem="Province"
+                                    TItemValue="int?"
+                                    DataSource="@Provinces"
+                                    @bind-Value="@OrderModel.Delivery.ProvinceId"
+                                    Placeholder="Chọn tỉnh/thành phố..."
+                                    ItemValue="x => x.Id"
+                                    ItemLabel="x => x.Name"
+                                    ShowSearch="true"
+                                    FilterOption="false"
+                                    OnSelectedItemChanged="@(e => HandleProvinceChange(e))"
+                                    Loading="@ProvincesLoading"
+                                    AllowClear="true" />
+                        </FormItem>
+                    </AntDesign.Col>
+                    <AntDesign.Col Lg="8">
+                        <FormItem Label="Quận/Huyện" Required="true">
+                            <Select TItem="District"
+                                    TItemValue="int?"
+                                    DataSource="@Districts"
+                                    @bind-Value="@OrderModel.Delivery.DistrictId"
+                                    Placeholder="Chọn quận/huyện..."
+                                    ItemValue="x => x.Id"
+                                    ItemLabel="x => x.Name"
+                                    Disabled="@(SelectedProvinceId == 0)"
+                                    ShowSearch="true"
+                                    FilterOption="false"
+                                    OnSelectedItemChanged="@(e => HandleDistrictChange(e))"
+                                    Loading="@DistrictsLoading"
+                                    AllowClear="true" />
+                        </FormItem>
+                    </AntDesign.Col>
+                    <AntDesign.Col Lg="8">
+                        <FormItem Label="Phường/Xã" Required="true">
+                            <Select TItem="Commune"
+                                    TItemValue="int?"
+                                    DataSource="@Communes"
+                                    @bind-Value="@OrderModel.Delivery.CommuneId"
+                                    Placeholder="Chọn phường/xã..."
+                                    ItemValue="x => x.Id"
+                                    ItemLabel="x => x.Name"
+                                    Disabled="@(SelectedDistrictId == 0 || SelectedProvinceId == 0)"
+                                    ShowSearch="true"
+                                    FilterOption="false"
+                                    OnSelectedItemChanged="@(e => HandleCommuneChange(e))"
+                                    Loading="@CommunesLoading"
+                                    AllowClear="true" />
+                        </FormItem>
+                    </AntDesign.Col>
+                </Row>
+                <Row Gutter="16">
+                    <AntDesign.Col Lg="16">
+                        <FormItem Label="Địa chỉ chi tiết" Required="true">
+                            <Input @bind-Value="@OrderModel.Delivery.ConsigneeAddress" Placeholder="Nhập"
+                                MaxLength="200" />
+                        </FormItem>
+                    </AntDesign.Col>
+                    <AntDesign.Col Lg="8">
+                        <FormItem Label="Ghi chú">
+                            <Input @bind-Value="@OrderModel.Delivery.ConsigneeNote" Placeholder="Nhập"
+                                MaxLength="500" />
+                        </FormItem>
+                    </AntDesign.Col>
+                </Row>
+            </div>
+        }
+        <div class="order-section-product-search">
+            <div class="order-section-product-search-header">
+                <div class="order-section-product-search-header-left">
+                    @if (SelectedProducts.Any())
+                    {
+                        <Tooltip Title="Xóa sản phẩm đã chọn">
+                            <Icon Type="delete" OnClick="HandleRemoveSelectedProducts" class="order-icon-delete-selected" />
+                        </Tooltip>
+                    }
+                    <span class="txt-18-n-500">Danh sách sản phẩm (@Products.Count)</span>
+                    <Popover Content="ProductSearchDropdown"
+                             Visible="@SearchDropdownVisible"
+                             Trigger="@(new Trigger[] { Trigger.Click })"
+                             Placement="Placement.Bottom">
+                        <div class="order-section-product-search-input">
+                            <Search @bind-Value="@ProductSearchKeyword"
+                                    Placeholder="Nhập barcode, mã sản phẩm, tên sản phẩm để tìm kiếm"
+                                    @onclick="OnSearchClick"
+                                    OnSearch="OnProductSearch"
+                                    OnClear="OnSearchClear"
+                                    Loading="@SearchingProduct"
+                                    class="order-search-input" />
+                        </div>
+                    </Popover>
+                </div>
+            </div>
+            <div class="order-section-product-search-right"></div>
+        </div>
+        <div class="order-section-product-table-summary">
+            <div class="product-list order-section-product-table">
+                <Table DataSource="@Products" @bind-SelectedRows="selectedRows" RowKey="x => x.Id"
+                    Loading="@ProductsLoading" Size="@TableSize.Small">
+                    <ChildContent Context="product">
+                        <Selection Type="@selectionType" />
+                        <Column TData="string" Title="Địa chỉ" Width="136">
+                            <div>@product.Sku</div>
+                        </Column>
+                        <Column TData="string" Title="Ảnh sản phẩm" Width="116">
+                            <img src="@product.ImageUrl"
+                                 style="width: 40px; height: 40px; object-fit: cover;" />
+                        </Column>
+                        <Column TData="string" Title="Tên sản phẩm">
+                            <div>@product.Name</div>
+                        </Column>
+                        <Column TData="string" Title="Dung tích" Width="116" Align="@ColumnAlign.Right">
+                            <div>@product.UnitName</div>
+                        </Column>
+                        <Column TData="decimal" Title="Đơn giá (đ)" Width="116" Align="@ColumnAlign.Right">
+                            @product.Price.ToString("N0") đ
+                        </Column>
+                        <Column TData="int" Title="Số lượng" Width="116" Align="@ColumnAlign.Center">
+                            <AntDesign.InputNumber TValue="int" @bind-Value="product.Quantity"
+                              Min="1"
+                              OnChange="@(value => UpdateProductQuantity(product, value))" />
+                        </Column>
+                        <Column TData="decimal" Title="Thành tiền (đ)" Width="116" Align="@ColumnAlign.Right">
+                            @((product.Price * product.Quantity).ToString("N0")) đ
+                        </Column>
+                        <ActionColumn Title="Thao tác" Width="80" Align="@ColumnAlign.Right">
+                            <Icon Type="delete" OnClick="() => RemoveProduct(product)"
+                                  Style="cursor: pointer; color: #ff4d4f;" />
+                        </ActionColumn>
+                    </ChildContent>
+                </Table>
+            </div>
+            <div class="summary order-section-summary-panel">
+                <div class="order-summary-row order-summary-row-total">
+                    <div class="txt-14-n-400">Tổng tiền</div>
+                    <div class="txt-14-n-500">@CalculateSubTotal().ToString("N0") đ</div>
+                </div>
+                <Divider class="order-summary-divider" />
+                <div class="order-summary-row order-summary-row-shipping">
+                    <div class="txt-14-n-400">Phí vận chuyển</div>
+                    @if (OrderType == 2)
+                    {
+                        <AntDesign.InputNumber TValue="decimal" @bind-Value="@ShippingFee"
+                      Placeholder="Nhập..."
+                      class="order-input-shipping-fee" />
+                    }
+                    else
+                    {
+                        <div class="txt-14-n-500">@ShippingFee.ToString("N0") đ</div>
+                    }
+                </div>
+                <Divider class="order-summary-divider" />
+                <div class="txt-14-n-500 order-summary-discount-label">Mã giảm giá</div>
+                <div class="order-summary-discount-row">
+                    <Input @bind-Value="@DiscountCode" Placeholder="Nhập mã giảm giá" MaxLength="20"
+                        AllowClear="true" class="order-input-discount-code" />
+                    <Button Disabled="@(string.IsNullOrEmpty(DiscountCode) || DiscountCodeResponse != null)"
+                        OnClick="CheckDiscountCode">
+                        Áp dụng
+                    </Button>
+                </div>
+                @if (!string.IsNullOrEmpty(DiscountCodeError))
+                {
+                    <div class="txt-12-i-400 order-summary-discount-error">
+                        @DiscountCodeError
+                    </div>
+                }
+                @if (DiscountCodeAmount > 0)
+                {
+                    <div class="order-summary-row order-summary-row-discount">
+                        <div class="txt-14-n-400">Giảm giá/ tổng đơn hàng:</div>
+                        <div class="txt-14-n-500 order-summary-discount-amount">-@DiscountCodeAmount.ToString("N0") đ</div>
+                    </div>
+                    <Divider class="order-summary-divider" />
+                }
+                @if (SelectedCustomer != null && MinusMembership > 0)
+                {
+                    <div class="order-summary-row order-summary-row-membership">
+                        <div class="txt-14-n-400">
+                            Hạng @SelectedCustomer.MembershipName
+                            <Icon Type="crown" class="order-icon-crown" />
+                        </div>
+                        <div class="txt-14-n-500 order-summary-membership-amount">-@MinusMembership.ToString("N0") ₫</div>
+                    </div>
+                    <Divider class="order-summary-divider" />
+                }
+                @if (SelectedCustomer != null && SelectedCustomer.RemainingPoint > 0 && CalcPointCanUse() > 0)
+                {
+                    <div class="order-summary-row order-summary-row-point">
+                        <div class="txt-14-n-400">
+                            Dùng <span class="txt-14-n-500 order-summary-point-amount">@CalcPointUse().ToString("N0")</span> điểm
+                            <Switch @bind-Checked="@UsePoint" class="order-switch-use-point" />
+                        </div>
+                        <div class="txt-14-n-500 order-summary-point-discount">-@(CalcPointUse() * AmountPayRate).ToString("N0") ₫</div>
+                    </div>
+                    <Divider class="order-summary-divider" />
+                }
+                <div class="order-summary-row order-summary-row-final">
+                    <div class="order-summary-final-label">Thành tiền</div>
+                    <div class="order-summary-final-amount">@CalculateTotal().ToString("N0") đ</div>
+                </div>
+                <Divider class="order-summary-divider" />
+                <div class="order-summary-payment-method">
+                    <div class="order-summary-payment-label">Hình thức thanh toán</div>
+                    <RadioGroup @bind-Value="@PaymentType" ButtonStyle="@RadioButtonStyle.Solid">
+                        <Radio RadioButton Value="0" class="order-radio-payment">Tiền mặt</Radio>
+                        <Radio RadioButton Value="1" class="order-radio-payment">Chuyển khoản</Radio>
+                    </RadioGroup>
+                </div>
+            </div>
+        </div>
+    </Form>
+    <Modal Title="Thêm khách hàng mới" Visible="@AddCustomerModalVisible" OnCancel="HandleCloseAddCustomerModal"
+        Footer="null">
+    </Modal>
+</div>
+@code {
+    SelectionType selectionType = SelectionType.Checkbox;
+    public class OrderFormModel
+    {
+        [Required]
+        public int Type { get; set; } = 0;
+        [Required]
+        public DateTime OrderTime { get; set; } = DateTime.Now;
+        public int? CustomerId { get; set; }
+        public DeliveryInfo Delivery { get; set; } = new();
+    }
+    IEnumerable<Product> selectedRows;
+    public class DeliveryInfo
+    {
+        public string ConsigneeName { get; set; } = string.Empty;
+        public string ConsigneePhone { get; set; } = string.Empty;
+        public int? ProvinceId { get; set; }
+        public int? DistrictId { get; set; }
+        public int? CommuneId { get; set; }
+        public string ConsigneeAddress { get; set; } = string.Empty;
+        public string ConsigneeNote { get; set; } = string.Empty;
+    }
+    public class SelectOption
+    {
+        public string Label { get; set; }
+        public int Value { get; set; }
+    }
+    public class Customer
+    {
+        public int Id { get; set; }
+        public string Name { get; set; }
+        public string Phone { get; set; }
+        public int UserId { get; set; }
+        public string MembershipName { get; set; }
+        public int RemainingPoint { get; set; }
+    }
+    public class Province
+    {
+        public int Id { get; set; }
+        public string Name { get; set; }
+    }
+    public class District
+    {
+        public int Id { get; set; }
+        public string Name { get; set; }
+    }
+    public class Commune
+    {
+        public int Id { get; set; }
+        public string Name { get; set; }
+    }
+    public class Product
+    {
+        public int Id { get; set; }
+        public string Sku { get; set; }
+        public string Name { get; set; }
+        public string ImageUrl { get; set; }
+        public string UnitName { get; set; }
+        public decimal Price { get; set; }
+        public int Quantity { get; set; } = 1;
+    }
+    private OrderFormModel OrderModel = new();
+    private object? DetailsItem = null;
+    private int OrderType = 0;
+    private bool UseDefaultAddress = false;
+    private Customer? SelectedCustomer = null;
+    private int SelectedProvinceId = 0;
+    private int SelectedDistrictId = 0;
+    private List<SelectOption> TypeOptions = new()
+{
+new() { Label = "Giao trực tiếp", Value = 0 },
+new() { Label = "Giao hàng", Value = 2 }
+};
+    private List<Customer> Customers = new();
+    private List<Province> Provinces = new();
+    private List<District> Districts = new();
+    private List<Commune> Communes = new();
+    private List<Product> Products = new();
+    private List<Product> SelectedProducts = new();
+    private bool CustomersLoading = false;
+    private bool ProvincesLoading = false;
+    private bool DistrictsLoading = false;
+    private bool CommunesLoading = false;
+    private bool ProductsLoading = false;
+    private bool SearchingProduct = false;
+    private string ProductSearchKeyword = string.Empty;
+    private bool SearchDropdownVisible = false;
+    private bool AddCustomerModalVisible = false;
+    private decimal ShippingFee = 0;
+    private string DiscountCode = string.Empty;
+    private string? DiscountCodeError = null;
+    private object? DiscountCodeResponse = null;
+    private decimal DiscountCodeAmount = 0;
+    private decimal MinusMembership = 0;
+    private bool UsePoint = false;
+    private decimal AmountPayRate = 1000;
+    private decimal RateAmountPay = 1000;
+    private int PaymentType = 0;
+    private RenderFragment ProductSearchDropdown => builder =>
+    {
+        builder.AddContent(0, "Search results here...");
+    };
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadInitialData();
+    }
+    private async Task HandleCancel()
+    {
+    }
+    private async Task HandleSave(bool isDraft)
+    {
+    }
+    private async Task HandlePrintOrder()
+    {
+    }
+    private async Task HandleGoBack()
+    {
+    }
+    private async Task HandleTypeChange(SelectOption selectedOption)
+    {
+        OrderType = selectedOption.Value;
+        StateHasChanged();
+    }
+    private void OnCustomerSearch(string searchText)
+    {
+        CustomersLoading = true;
+        CustomersLoading = false;
+        StateHasChanged();
+    }
+    private void OnCustomerChanged(Customer customer)
+    {
+        SelectedCustomer = customer;
+        if (customer?.UserId == -1)
+        {
+            UseDefaultAddress = false;
+        }
+        StateHasChanged();
+    }
+    private async Task HandleAddNewCustomer()
+    {
+        AddCustomerModalVisible = true;
+    }
+    private async Task HandleCloseAddCustomerModal()
+    {
+        AddCustomerModalVisible = false;
+    }
+    private void OnProvinceSearch(string searchText) { }
+    private void HandleProvinceChange(Province province)
+    {
+        SelectedProvinceId = province?.Id ?? 0;
+        Districts.Clear();
+        Communes.Clear();
+        OrderModel.Delivery.DistrictId = null;
+        OrderModel.Delivery.CommuneId = null;
+        StateHasChanged();
+    }
+    private void OnDistrictSearch(string searchText) { }
+    private void HandleDistrictChange(District district)
+    {
+        SelectedDistrictId = district?.Id ?? 0;
+        Communes.Clear();
+        OrderModel.Delivery.CommuneId = null;
+        StateHasChanged();
+    }
+    private void OnCommuneSearch(string searchText) { }
+    private void HandleCommuneChange(Commune commune)
+    {
+        OrderModel.Delivery.CommuneId = commune?.Id;
+        StateHasChanged();
+    }
+    private async Task OnSearchClick()
+    {
+        SearchDropdownVisible = true;
+    }
+    private async Task OnProductSearch(string searchText)
+    {
+    }
+    private async Task OnSearchClear()
+    {
+        ProductSearchKeyword = string.Empty;
+        SearchDropdownVisible = false;
+    }
+    private async Task HandleRemoveSelectedProducts()
+    {
+        foreach (var product in SelectedProducts)
+        {
+            Products.Remove(product);
+        }
+        SelectedProducts.Clear();
+        StateHasChanged();
+    }
+    private void UpdateProductQuantity(Product product, int quantity)
+    {
+        product.Quantity = Math.Max(1, quantity);
+        StateHasChanged();
+    }
+    private void RemoveProduct(Product product)
+    {
+        Products.Remove(product);
+        SelectedProducts.Remove(product);
+        StateHasChanged();
+    }
+    private async Task CheckDiscountCode()
+    {
+        if (string.IsNullOrEmpty(DiscountCode))
+            return;
+        try
+        {
+        }
+        catch (Exception ex)
+        {
+            DiscountCodeError = "Lỗi khi kiểm tra mã giảm giá";
+        }
+    }
+    private decimal CalculateSubTotal()
+    {
+        return Products.Sum(p => p.Price * p.Quantity);
+    }
+    private decimal CalculateTotal()
+    {
+        var subTotal = CalculateSubTotal();
+        var total = subTotal + ShippingFee - DiscountCodeAmount - MinusMembership;
+        if (UsePoint && SelectedCustomer != null)
+        {
+            total -= CalcPointUse() * AmountPayRate;
+        }
+        return Math.Max(0, total);
+    }
+    private int CalcPointCanUse()
+    {
+        if (SelectedCustomer == null) return 0;
+        var availableAmount = CalculateSubTotal() + ShippingFee - MinusMembership;
+        return Math.Min(SelectedCustomer.RemainingPoint, (int)(availableAmount / RateAmountPay));
+    }
+    private int CalcPointUse()
+    {
+        return UsePoint ? CalcPointCanUse() : 0;
+    }
+    private bool HasPermission(string permission)
+    {
+        return true;
+    }
+    private async Task LoadInitialData()
+    {
+    }
+    private async Task OnFinish()
+    {
+    }
+    private async Task OnFinishFailed()
+    {
+    }
+}

@@ -10,5 +10,7 @@ namespace MeoMeo.Domain.Entities
         public virtual Brand Brand { get; set; }
         public virtual ICollection<ProductDetail> ProductDetails { get; set; }
         public virtual ICollection<ProductSeason> ProductSeasons { get; set; }
+        
+        public virtual ICollection<ProductCategory> ProductCategories { get; set; }
     }
 }

@@ -3,14 +3,18 @@
         <a class="navbar-brand" href="">MeoMeo.Shop</a>
     </div>
 </div>
-<input type="checkbox" title="Navigation menu" class="navbar-toggler"/>
+<input type="checkbox" title="Navigation menu" class="navbar-toggler" />
 <div class="nav-scrollable" onclick="document.querySelector('.navbar-toggler').click()">
     <nav class="flex-column">
         <div class="nav-item px-1">
             <NavLink class="nav-link" href="manage-order">
                 <span class="bi bi-list-nested-nav-menu" aria-hidden="true"></span> Quản lý đơn hàng
             </NavLink>
-        </div>        <div class="nav-item px-1">
+            <NavLink class="nav-link" href="order-at-counter">
+                <span class="bi bi-list-nested-nav-menu" aria-hidden="true"></span> Đơn hàng tại quầy
+            </NavLink>
+        </div>
+        <div class="nav-item px-1">
             <NavLink class="nav-link" href="manage-product-detail">
                 <span class="bi bi-list-nested-nav-menu" aria-hidden="true"></span> Quản lý sản phẩm
             </NavLink>
@@ -20,7 +24,7 @@
                 <span class="bi bi-list-nested-nav-menu" aria-hidden="true"></span> Quản lý khách hàng
             </NavLink>
         </div>
-        
+
         <div class="nav-item px-1">
             <NavLink class="nav-link" href="manage-bank">
                 <span class="bi bi-list-nested-nav-menu" aria-hidden="true"></span> Quản lý ngân hàng

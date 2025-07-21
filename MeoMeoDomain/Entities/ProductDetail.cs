@@ -14,6 +14,10 @@ namespace MeoMeo.Domain.Entities
         public float StockHeight { get; set; }
         public float ShoeLength { get; set; }
         public int OutOfStock { get; set; }
+        
+        public int? SellNumber { get; set; }
+        
+        public int? ViewNumber { get; set; }
         public bool AllowReturn { get; set; }
         public DateTime CreationTime { get; set; }
         public DateTime? LastModificationTime { get; set; }

@@ -1,0 +1,151 @@
+/* General Section */
+.order-section-general {
+    padding: 16px;
+    background: white;
+    border-radius: 16px;
+    margin-bottom: 16px;
+}
+.order-section-general-header {
+    margin-bottom: 16px;
+}
+.order-section-general-title {
+    margin-bottom: 8px;
+}
+
+/* Delivery Section */
+.order-section-delivery {
+    padding: 16px;
+    background: white;
+    border-radius: 16px;
+    margin-bottom: 16px;
+}
+.order-section-delivery-header {
+    display: flex;
+    align-items: center;
+    margin-bottom: 16px;
+}
+.order-checkbox-default-address {
+    margin-left: 16px;
+}
+.order-checkbox-default-address-label {
+    /* color is set inline via style binding */
+}
+.order-section-delivery-row-margin {
+    margin-bottom: 16px;
+}
+
+/* Product Search Section */
+.order-section-product-search {
+    display: flex;
+    margin-bottom: 8px;
+    gap: 16px;
+}
+.order-section-product-search-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-grow: 1;
+}
+.order-section-product-search-header-left {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    padding-left: 8px;
+}
+.order-icon-delete-selected {
+    cursor: pointer;
+}
+.order-section-product-search-input {
+    /* for Popover search input wrapper */
+}
+.order-search-input {
+    width: 480px;
+}
+.order-section-product-search-right {
+    width: 368px;
+    height: 36px;
+}
+
+/* Product Table and Summary */
+.order-section-product-table-summary {
+    display: flex;
+    align-items: flex-start;
+    margin-bottom: 8px;
+    gap: 16px;
+}
+.order-section-product-table {
+    flex: 1;
+}
+.order-section-summary-panel {
+    width: 368px;
+    padding: 16px;
+    background: white;
+    border-radius: 8px;
+}
+.order-summary-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 8px;
+}
+.order-summary-row-final {
+    margin-bottom: 16px;
+}
+.order-summary-final-label {
+    font-size: 14px;
+}
+.order-summary-final-amount {
+    font-size: 14px;
+    font-weight: 500;
+}
+.order-summary-divider {
+    margin: 8px 0;
+}
+.order-input-shipping-fee {
+    width: 160px;
+}
+.order-summary-discount-label {
+    margin-bottom: 8px;
+}
+.order-summary-discount-row {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 8px;
+}
+.order-input-discount-code {
+    flex: 1;
+}
+.order-summary-discount-error {
+    color: #ff3d32;
+    margin-bottom: 8px;
+}
+.order-summary-discount-amount {
+    color: #ff3d32;
+}
+.order-icon-crown {
+    margin-left: 10px;
+}
+.order-summary-membership-amount {
+    color: #ff3d32;
+}
+.order-summary-point-amount {
+    color: #ff3d32;
+}
+.order-switch-use-point {
+    margin-left: 4px;
+}
+.order-summary-point-discount {
+    color: #ff3d32;
+}
+.order-summary-payment-method {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+.order-summary-payment-label {
+    font-size: 14px;
+}
+.order-radio-payment {
+    flex: 1;
+    text-align: center;
+}

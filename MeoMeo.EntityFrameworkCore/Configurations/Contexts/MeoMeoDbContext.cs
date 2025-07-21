@@ -42,8 +42,10 @@ namespace MeoMeo.EntityFrameworkCore.Configurations.Contexts
         public DbSet<SystemConfig> systemConfigs { get; set; }
         public DbSet<User> users { get; set; }
         public DbSet<Voucher> vouchers { get; set; }
-        public DbSet<OrderDetailInventoryBatch> OrderDetailInventoryBatches { get; set; }
-        public DbSet<OrderHistory> OrderHistories { get; set; }
+        public DbSet<OrderDetailInventoryBatch> orderDetailInventoryBatches { get; set; }
+        public DbSet<OrderHistory> orderHistories { get; set; }
+        public DbSet<Category> categories { get; set; }
+        public DbSet<ProductCategory> productCategories { get; set; }
 
         protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
         {
@@ -87,6 +89,8 @@ namespace MeoMeo.EntityFrameworkCore.Configurations.Contexts
             modelBuilder.ApplyConfiguration(new VoucherConfiguration());
             modelBuilder.ApplyConfiguration(new OrderDetailInventoryBatchConfiguration());
             modelBuilder.ApplyConfiguration(new OrderHistoryConfiguration());
+            modelBuilder.ApplyConfiguration(new CategoryConfiguration());
+            modelBuilder.ApplyConfiguration(new ProductCategoryConfiguration());
 
         }
     }
