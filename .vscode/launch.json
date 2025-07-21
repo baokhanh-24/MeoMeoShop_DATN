@@ -1,0 +1,29 @@
+{
+    "version": "0.2.0",
+    "compounds": [
+        {
+            "name": "Debug API & CMS",
+            "configurations": ["Debug MeoMeoAPI", "Debug MeoMeo.CMS"]
+        }
+    ],
+    "configurations": [
+        {
+            "name": "Debug MeoMeoAPI",
+            "type": "coreclr",
+            "request": "launch",
+            "preLaunchTask": "build MeoMeoAPI",
+            "program": "${workspaceFolder}/MeoMeoAPI/bin/Debug/net8.0/MeoMeo.API.dll",
+            "cwd": "${workspaceFolder}/MeoMeoAPI",
+            "stopAtEntry": false
+        },
+        {
+            "name": "Debug MeoMeo.CMS",
+            "type": "coreclr",
+            "request": "launch",
+            "preLaunchTask": "build MeoMeo.CMS",
+            "program": "${workspaceFolder}/MeoMeo.CMS/bin/Debug/net8.0/MeoMeo.CMS.dll",
+            "cwd": "${workspaceFolder}/MeoMeo.CMS",
+            "stopAtEntry": false
+        }
+    ]
+}

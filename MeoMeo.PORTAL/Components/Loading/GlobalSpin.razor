@@ -1,7 +1,7 @@
 @using MeoMeo.Shared.Utilities
 @inject LoadingService LoadingService
 
-<Spin Spinning="true" Indicator="@GetCustomIndicator()">
+<Spin Class="main-loader" Indicator="@GetCustomIndicator()" Spinning="@LoadingService.IsLoading">
     @ChildContent
 </Spin>
 

@@ -1,21 +1,18 @@
 @using MeoMeo.Shared.Utilities
 @typeparam TItem where TItem : MeoMeo.Contract.Commons.IHasHistoryInfo
-<Drawer Width="500"
-        Closable="true"
-        Visible="@Visible"
-        Placement="DrawerPlacement.Right"
-        Title="@Title"
-        OnClose="@OnClose">
+<Drawer Width="500" Closable="true" Visible="@Visible" Placement="DrawerPlacement.Right" Title="@Title"
+    OnClose="@OnClose">
 
     @if (Items != null && Items.Any())
     {
         <Timeline Mode="TimelineMode.Left">
             @foreach (var item in Items)
             {
-                <TimelineItem Label="@item.CreationTime.ToString("dd/MM/yyyy HH:mm")" Dot="dotTemplate" Color="TimelineDotColor.Green">
+                <TimelineItem Label="@item.CreationTime.ToString("dd/MM/yyyy HH:mm")" Dot="dotTemplate"
+                    Color="TimelineDotColor.Green">
                     <div class="history-item">
                         <div class="history-header">
-                            <div class="history-type @GetTypeCss(item.Type) mt-2">@item.Type.GetDisplayName()</div>
+                            <div class="history-type @GetTypeCss(item.Type)">@item.Type.GetDisplayName()</div>
                             <div class="history-actor">Người thực hiện: @item.Actor</div>
                         </div>
                         <div class="history-content">
@@ -38,9 +35,9 @@
     [Parameter] public string Title { get; set; } = "Lịch sử";
     [Parameter] public List<TItem> Items { get; set; } = new();
     RenderFragment dotTemplate =
-        @<Template>
-            <Icon Type="@IconType.Outline.ClockCircle" Style="font-size: 16px;" />
-        </Template>;
+    @<Template>
+        <Icon Type="@IconType.Outline.ClockCircle" Style="font-size: 16px;" />
+    </Template>;
     private string GetTypeCss(object type)
     {
         var typeStr = type.ToString()?.ToLower();

@@ -1,0 +1,21 @@
+{
+    "version": "2.0.0",
+    "tasks": [
+        {
+            "label": "build MeoMeoAPI",
+            "type": "shell",
+            "command": "dotnet build",
+            "options": {
+                "cwd": "${workspaceFolder}/MeoMeoAPI"
+            }
+        },
+        {
+            "label": "build MeoMeo.CMS",
+            "type": "shell",
+            "command": "dotnet build",
+            "options": {
+                "cwd": "${workspaceFolder}/MeoMeo.CMS"
+            }
+        }
+    ]
+}
