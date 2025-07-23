@@ -4,6 +4,7 @@ using MeoMeo.EntityFrameworkCore.Configurations.Contexts;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace MeoMeo.EntityFrameworkCore.Migrations
 {
     [DbContext(typeof(MeoMeoDbContext))]
-    partial class MeoMeoDbContextModelSnapshot : ModelSnapshot
+    [Migration("20250723171113_Add_Table_Product_Review")]
+    partial class Add_Table_Product_Review
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
