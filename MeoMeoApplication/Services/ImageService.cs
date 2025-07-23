@@ -46,7 +46,6 @@ namespace MeoMeo.Application.Services
                 Name = image.Name,
                 Url = image.URL,
                 Type = image.Type,
-                Status = image.Status,
                 ResponseStatus = BaseStatus.Success,
                 Message = $""
             };
@@ -60,7 +59,6 @@ namespace MeoMeo.Application.Services
                 URL = imageDto.Url,
                 Name = imageDto.Name,
                 ProductDetailId = imageDto.ProductDetailId,
-                Status = imageDto.Status,
             };
             //var image = _mapper.Map<Image>(imageDto);
             var updated =  await _imageRepository.CreateImage(image);

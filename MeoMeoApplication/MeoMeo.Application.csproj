@@ -9,7 +9,7 @@
   <ItemGroup>
     <ProjectReference Include="..\MeoMeo.Contract\MeoMeo.Contract.csproj" />
     <ProjectReference Include="..\MeoMeo.EntityFrameworkCore\MeoMeo.EntityFrameworkCore.csproj" />
+    <ProjectReference Include="..\MeoMeo.Shared\MeoMeo.Shared.csproj" />
     <ProjectReference Include="..\MeoMeoDomain\MeoMeo.Domain.csproj" />
   </ItemGroup>
-
 </Project>

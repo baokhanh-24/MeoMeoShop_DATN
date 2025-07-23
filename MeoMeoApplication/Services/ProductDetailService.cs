@@ -1,15 +1,13 @@
 ﻿using AutoMapper;
 using MeoMeo.Application.IServices;
 using MeoMeo.Contract.Commons;
-using MeoMeo.Contract.DTOs;
-using MeoMeo.Contract.DTOs.Material;
 using MeoMeo.Contract.DTOs.ProductDetail;
-using MeoMeo.Contract.DTOs.Size;
 using MeoMeo.Domain.Commons;
 using MeoMeo.Domain.Commons.Enums;
 using MeoMeo.Domain.Entities;
 using MeoMeo.Domain.IRepositories;
 using Microsoft.EntityFrameworkCore;
+using MeoMeo.EntityFrameworkCore.Commons;
 
 namespace MeoMeo.Application.Services
 {
@@ -31,6 +29,7 @@ namespace MeoMeo.Application.Services
         private readonly IUnitOfWork _unitOfWork;
         private readonly IMapper _mapper;
         private readonly IIventoryBatchReposiory _inventoryRepository;
+     
 
         public ProductDetailService(IProductsDetailRepository productDetailRepository,
             IProductRepository productRepository, IBrandRepository brandRepository, ISizeRepository sizeRepository,
@@ -51,6 +50,8 @@ namespace MeoMeo.Application.Services
             _promotionDetailRepository = promotionDetailRepository;
             _productDetaillColourRepository = productDetaillColourRepository;
             _materialRepository = materialRepository;
+            this._imageRepository = imageRepository;
+            this._imageRepository = imageRepository;
             _imageRepository = imageRepository;
             _productDetailMaterialRepository = productDetailMaterialRepository;
             _unitOfWork = unitOfWork;
@@ -273,28 +274,80 @@ namespace MeoMeo.Application.Services
             return _mapper.Map<ProductDetailDTO>(productDetail);
         }
 
-        public async Task<CreateOrUpdateProductDetailResponseDTO> CreateProductDetailAsync(
-            CreateOrUpdateProductDetailDTO productDetail)
+        public async Task<BaseResponse> CreateProductDetailAsync(
+            CreateOrUpdateProductDetailDTO productDetail,List<FileUploadResult> lstFileMedia)
         {
             try
             {
                 await _unitOfWork.BeginTransactionAsync();
-                var productId = Guid.NewGuid();
-                var brandId = "8f2a8e93-58fe-41ef-8adc-386734754261";
-                var ProductToAdd = new Product()
+                var thumbNail = lstFileMedia.First().FileName;
+                var productToAdd = new Product()
                 {
-                    Id = productId,
-                    BrandId = Guid.Parse(brandId),
+                    Id = productDetail.Id,
+                    BrandId = productDetail.BrandId,
                     Name = productDetail.ProductName,
-                    //Name = "Nike",
-                    Thumbnail = "/////",
-                    CreationTime = DateTime.Now,
+                    Thumbnail = thumbNail, 
+                    CreationTime =  DateTime.Now,
                 };
-                await _productRepository.AddAsync(ProductToAdd);
+                await _productRepository.AddAsync(productToAdd);
                 var mappedProductDetail = _mapper.Map<ProductDetail>(productDetail);
                 mappedProductDetail.Id = Guid.NewGuid();
-                mappedProductDetail.ProductId = productId;
+                mappedProductDetail.ProductId = productDetail.Id;
                 var response = await _productDetailRepository.CreateProductDetailAsync(mappedProductDetail);
+
+                if (productDetail.SizeIds.Any())
+                {
+                    var sizeEntities = productDetail.SizeIds.Select(sizeId => new ProductDetailSize
+                    {
+                        ProductDetailId = mappedProductDetail.Id,
+                        SizeId = sizeId
+                    });
+                    await _productDetaillSizeRepository.AddRangeAsync(sizeEntities);
+                }
+                if (productDetail.ColourIds.Any())
+                {
+                    var colourEntities = productDetail.ColourIds.Select(colourId => new ProductDetailColour
+                    {
+                        ProductDetailId = mappedProductDetail.Id,
+                        ColourId = colourId
+                    });
+                    await _productDetaillColourRepository.AddRangeAsync(colourEntities);
+                }
+                if (productDetail.SeasonIds.Any())
+                {
+                    var seasonEntities = productDetail.SeasonIds.Select(seasonId => new ProductSeason
+                    {
+                        ProductId = productDetail.Id,
+                        SeasonId = seasonId
+                    });
+                    await _productSeasonRepository.AddRangeAsync(seasonEntities);
+                }
+                if (productDetail.MaterialIds.Any())
+                {
+                    var materialEntities = productDetail.MaterialIds.Select(materialId => new ProductDetailMaterial
+                    {
+                        ProductDetailId = mappedProductDetail.Id,
+                        MaterialId = materialId
+                    });
+                    await _productDetailMaterialRepository.AddRangeAsync(materialEntities);
+                }
+
+                if (lstFileMedia.Any())
+                {
+                    List<Image> images = new List<Image>();
+                    foreach (var file in lstFileMedia)
+                    {
+                        var newFile = new Image()
+                        {
+                            Id = Guid.NewGuid(),
+                            Name = file.FileName,
+                            Type = Convert.ToInt32(file.FileType),
+                            URL = file.RelativePath
+                        };
+                        images.Add(newFile);
+                    }
+                    await _imageRepository.AddRangeAsync(images);
+                }
                 await _unitOfWork.SaveChangesAsync();
                 await _unitOfWork.CommitAsync();
                 return _mapper.Map<CreateOrUpdateProductDetailResponseDTO>(response);
@@ -309,35 +362,96 @@ namespace MeoMeo.Application.Services
                     ResponseStatus = BaseStatus.Error
                 };
             }
-            //var entity = _mapper.Map<ProductDetail>(dto);
-            //entity.Id = Guid.NewGuid();
-            //return await _repository.AddProductAsync(entity);
         }
 
-        public async Task<CreateOrUpdateProductDetailResponseDTO> UpdateProductDetailAsync(
-            CreateOrUpdateProductDetailDTO productDetail)
+        public async Task<BaseResponse> UpdateProductDetailAsync(CreateOrUpdateProductDetailDTO productDetail, List<FileUploadResult> lstFileMedia)
         {
-            var isExistedSKU =
-                await _productDetailRepository.AnyAsync(p => p.Id != productDetail.Id && p.Sku == productDetail.Sku);
-            if (isExistedSKU)
+            try
             {
-                return new CreateOrUpdateProductDetailResponseDTO()
+                await _unitOfWork.BeginTransactionAsync();
+                var productDetailToUpdate = await _productDetailRepository.GetProductDetailByIdAsync(productDetail.Id);
+                if (productDetailToUpdate == null)
                 {
-                    Message = $"Mã SKU đã tồn tại",
-                    ResponseStatus = BaseStatus.Error
-                };
+                    return new BaseResponse { Message = "Không tìm thấy chi tiết sản phẩm", ResponseStatus = BaseStatus.Error };
+                }
+                _mapper.Map(productDetail, productDetailToUpdate);
+                var product = await _productRepository.GetByIdAsync(productDetailToUpdate.ProductId);
+                if (product != null && !string.IsNullOrWhiteSpace(productDetail.ProductName))
+                {
+                    product.Name = productDetail.ProductName;
+                }
+                // Xử lý ảnh: xóa ảnh cũ không còn, thêm ảnh mới
+                var oldImages = (await _imageRepository.GetAllImage()).Where(x => x.ProductDetailId == productDetail.Id).ToList();
+                var newImageIds = productDetail.Images?.Where(i => i.Id != null).Select(i => i.Id.Value).ToList() ?? new List<Guid>();
+                var imagesToDelete = oldImages.Where(img => !newImageIds.Contains(img.Id)).ToList();
+                // Xóa file vật lý và record DB
+                foreach (var img in imagesToDelete)
+                {
+                    await _imageRepository.DeleteImage(img.Id);
+                }
+                // Thêm ảnh mới
+                if (lstFileMedia != null && lstFileMedia.Count > 0)
+                {
+                    foreach (var file in lstFileMedia)
+                    {
+                        var image = new Image
+                        {
+                            Id = Guid.NewGuid(),
+                            ProductDetailId = productDetail.Id,
+                            Name = file.FileName,
+                            Type = file.FileType ?? 1,
+                            URL = file.FullPath
+                        };
+                        await _imageRepository.CreateImage(image);
+                    }
+                }
+                // Thêm lại dữ liệu mới
+                if (productDetail.SizeIds.Any())
+                {
+                    var sizeEntities = productDetail.SizeIds.Select(sizeId => new ProductDetailSize
+                    {
+                        ProductDetailId = productDetail.Id,
+                        SizeId = sizeId
+                    });
+                    await _productDetaillSizeRepository.AddRangeAsync(sizeEntities);
+                }
+                if (productDetail.ColourIds.Any())
+                {
+                    var colourEntities = productDetail.ColourIds.Select(colourId => new ProductDetailColour
+                    {
+                        ProductDetailId = productDetail.Id,
+                        ColourId = colourId
+                    });
+                    await _productDetaillColourRepository.AddRangeAsync(colourEntities);
+                }
+                if (productDetail.SeasonIds.Any())
+                {
+                    var seasonEntities = productDetail.SeasonIds.Select(seasonId => new ProductSeason
+                    {
+                        ProductId = productDetailToUpdate.ProductId,
+                        SeasonId = seasonId
+                    });
+                    await _productSeasonRepository.AddRangeAsync(seasonEntities);
+                }
+                if (productDetail.MaterialIds.Any())
+                {
+                    var materialEntities = productDetail.MaterialIds.Select(materialId => new ProductDetailMaterial
+                    {
+                        ProductDetailId = productDetail.Id,
+                        MaterialId = materialId
+                    });
+                    await _productDetailMaterialRepository.AddRangeAsync(materialEntities);
+                }
+                await _productDetailRepository.UpdateProductDetailAsync(productDetailToUpdate);
+                await _unitOfWork.SaveChangesAsync();
+                await _unitOfWork.CommitAsync();
+                return new BaseResponse { Message = "Cập nhật thành công", ResponseStatus = BaseStatus.Success };
             }
-
-            var productDetailToUpdate = await _productDetailRepository.GetProductDetailByIdAsync(productDetail.Id);
-            _mapper.Map(productDetail, productDetailToUpdate);
-            var product = await _productRepository.GetByIdAsync(productDetailToUpdate.ProductId);
-            if (product != null && !string.IsNullOrWhiteSpace(productDetail.ProductName))
+            catch (Exception ex)
             {
-                product.Name = productDetail.ProductName;
+                await _unitOfWork.RollbackAsync();
+                return new BaseResponse { Message = ex.Message, ResponseStatus = BaseStatus.Error };
             }
-
-            var result = await _productDetailRepository.UpdateProductDetailAsync(productDetailToUpdate);
-            return _mapper.Map<CreateOrUpdateProductDetailResponseDTO>(result);
         }
 
         public async Task<bool> DeleteProductDetailAsync(Guid id)
@@ -352,6 +466,12 @@ namespace MeoMeo.Application.Services
             await _productDetailRepository.DeleteProductDetailAsync(productDetailToDelete.Id);
             await _unitOfWork.SaveChangesAsync();
             return true;
+        }
+
+        public async Task<List<Image>> GetOldImagesAsync(Guid productDetailId)
+        {
+            var allImages = await _imageRepository.GetAllImage();
+            return allImages.Where(x => x.ProductDetailId == productDetailId).ToList();
         }
     }
     public class ProductDetailRelatedData
