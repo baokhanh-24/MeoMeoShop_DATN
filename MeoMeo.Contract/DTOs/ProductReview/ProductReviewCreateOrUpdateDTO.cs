@@ -15,9 +15,11 @@ namespace MeoMeo.Contract.DTOs.ProductReview
         public Guid ProductDetailId { get; set; }
         public List<ProductReviewFileUpload> Files { get; set; }
     }
+
     public class ProductReviewFileUpload
     {
         public Guid? Id { get; set; }
         public IFormFile UploadFile { get; set; }
+        
     }
 } 

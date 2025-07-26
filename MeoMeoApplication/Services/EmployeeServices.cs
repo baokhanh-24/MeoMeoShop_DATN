@@ -6,6 +6,7 @@ using MeoMeo.Contract.DTOs;
 using MeoMeo.Domain.Commons;
 using MeoMeo.Domain.Entities;
 using MeoMeo.Domain.IRepositories;
+using MeoMeo.Shared.Utilities;
 using Microsoft.EntityFrameworkCore;
 using System;
 using System.Collections.Generic;
@@ -21,13 +22,18 @@ namespace MeoMeo.Application.Services
         private readonly IMapper _mapper;
         private readonly IUnitOfWork _unitOfWork;
         private readonly IUserRepository _userRepository;
+        private readonly IRoleRepository _roleRepository;
+        private readonly IUserRoleRepository _userRoleRepository;
 
-        public EmployeeServices(IEmployeeRepository repository, IMapper mapper, IUnitOfWork unitOfWork, IUserRepository userRepository)
+        public EmployeeServices(IEmployeeRepository repository, IMapper mapper, IUnitOfWork unitOfWork, 
+            IUserRepository userRepository, IRoleRepository roleRepository, IUserRoleRepository userRoleRepository)
         {
             _repository = repository;
             _mapper = mapper;
             _unitOfWork = unitOfWork;
             _userRepository = userRepository;
+            _roleRepository = roleRepository;
+            _userRoleRepository = userRoleRepository;
         }
 
         public async Task<CreateOrUpdateEmployeeResponseDTO> CreateEmployeeAsync(CreateOrUpdateEmployeeDTO employee)
@@ -35,29 +41,47 @@ namespace MeoMeo.Application.Services
             try
             {
                 await _unitOfWork.BeginTransactionAsync();
+                
                 var userId = Guid.NewGuid();
                 var usertoAdd = new User()
                 {
                     Id = userId,
-                    PasswordHash = "Ab@12345",
+                    PasswordHash = FunctionHelper.ComputerSha256Hash(employee.Password ?? "Ab@12345"), 
                     Avatar = "//////",
                     LastLogin = DateTime.Now,
                     CreationTime = DateTime.Now,
-                    Email = "aaaa@gmail,com",
-                    UserName = "aaaa@gmail,com",
-                    Status = 1
+                    Email = employee.Email ?? "employee@meomeo.com",
+                    UserName = employee.Email ?? "employee@meomeo.com",
+                    Status = 1,
+                    IsLocked = false
                 };
                 await _userRepository.AddAsync(usertoAdd);
+                
+                // Tìm role Employee và gán cho user
+                var employeeRole = await _roleRepository.GetRoleByName("Employee");
+                if (employeeRole != null)
+                {
+                    var userRole = new UserRole
+                    {
+                        UserId = userId,
+                        RoleId = employeeRole.Id
+                    };
+                    await _userRoleRepository.AddUserRole(userRole);
+                }
+                
+                // Tạo employee
                 var mappedEmployee = _mapper.Map<Employee>(employee);
                 mappedEmployee.Id = Guid.NewGuid();
                 mappedEmployee.UserId = userId;
                 var response = await _repository.CreateEmployeeAsync(mappedEmployee);
+                
                 await _unitOfWork.SaveChangesAsync();
                 await _unitOfWork.CommitAsync();
                 return _mapper.Map<CreateOrUpdateEmployeeResponseDTO>(response);
             }
             catch (Exception ex)
             {
+                await _unitOfWork.RollbackAsync();
                 Console.WriteLine($"Transaction failed: {ex.Message}");
                 throw new Exception("Lỗi khi tạo nhân viên", ex);
             }

@@ -5,6 +5,7 @@ using MeoMeo.Contract.DTOs;
 using MeoMeo.Domain.Commons;
 using MeoMeo.Domain.Entities;
 using MeoMeo.Domain.IRepositories;
+using MeoMeo.Shared.Utilities;
 using Microsoft.EntityFrameworkCore;
 
 namespace MeoMeo.Application.Services
@@ -13,14 +14,19 @@ namespace MeoMeo.Application.Services
     {
         private readonly ICustomerRepository _repository;
         private readonly IUserRepository _userRepository;
+        private readonly IRoleRepository _roleRepository;
+        private readonly IUserRoleRepository _userRoleRepository;
         private readonly IUnitOfWork _unitOfWork;
         private readonly IMapper _mapper;
 
-        public CustomerServices(ICustomerRepository repository, IMapper mapper, IUserRepository userRepository, IUnitOfWork unitOfWork)
+        public CustomerServices(ICustomerRepository repository, IMapper mapper, IUserRepository userRepository, 
+            IRoleRepository roleRepository, IUserRoleRepository userRoleRepository, IUnitOfWork unitOfWork)
         {
             _repository = repository;
             _mapper = mapper;
             _userRepository = userRepository;
+            _roleRepository = roleRepository;
+            _userRoleRepository = userRoleRepository;
             _unitOfWork = unitOfWork;
         }
 
@@ -29,24 +35,41 @@ namespace MeoMeo.Application.Services
             try
             {
                 await _unitOfWork.BeginTransactionAsync();
-                //sau tạo mới customer thì tạo mới tài khoản luôn sẽ nhận từ UI password với email để tạo
+                
+                // Tạo tài khoản user mới
                 var userId = Guid.NewGuid();
                 var userToAdd = new User()
                 {
                     Id = userId,
-                    PasswordHash = "Ab@12345",
-                    Avatar = "//////",
+                    PasswordHash = FunctionHelper.ComputerSha256Hash(customer.Password ?? "Ab@12345"), 
+                    Avatar =  customer.Avatar,
                     LastLogin = DateTime.Now,
                     CreationTime = DateTime.Now,
-                    Email = "aaaa@gmail,com",
-                    UserName = "aaaa@gmail,com",
-                    Status = 1
+                    Email = customer.Email ?? "customer@meomeo.com",
+                    UserName = customer.Email ?? "customer@meomeo.com",
+                    Status = 1,
+                    IsLocked = false
                 };
                 await _userRepository.AddAsync(userToAdd);
+                
+                // Tìm role Customer và gán cho user
+                var customerRole = await _roleRepository.GetRoleByName("Customer");
+                if (customerRole != null)
+                {
+                    var userRole = new UserRole
+                    {
+                        UserId = userId,
+                        RoleId = customerRole.Id
+                    };
+                    await _userRoleRepository.AddUserRole(userRole);
+                }
+                
+                // Tạo customer
                 var mappedCustomer = _mapper.Map<Customers>(customer);
                 mappedCustomer.Id = Guid.NewGuid();
                 mappedCustomer.UserId = userId;
                 var response = await _repository.CreateCustomersAsync(mappedCustomer);
+                
                 await _unitOfWork.SaveChangesAsync();
                 await _unitOfWork.CommitAsync();
                 return _mapper.Map<CreateOrUpdateCustomerResponse>(response);
@@ -60,9 +83,7 @@ namespace MeoMeo.Application.Services
                     Message = ex.Message,
                     ResponseStatus = BaseStatus.Error
                 };
-
             }
-
         }
 
         public async Task<bool> DeleteCustomersAsync(Guid id)

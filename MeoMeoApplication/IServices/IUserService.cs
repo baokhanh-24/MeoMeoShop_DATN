@@ -16,5 +16,6 @@ namespace MeoMeo.Application.IServices
         Task<User> CreateUserAsync(CreateOrUpdateUserDTO user);
         Task<CreateOrUpdateUserResponseDTO> UpdateUserAsync(CreateOrUpdateUserDTO user);
         Task<bool> DeleteUserAsync(Guid id);
+        Task<CreateOrUpdateUserResponseDTO> ChangePasswordAsync(ChangePasswordRequestDTO request);
     }
 }

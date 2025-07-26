@@ -16,11 +16,11 @@ namespace MeoMeo.API.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
-    public class ProductReviewController : ControllerBase
+    public class ProductReviewsController : ControllerBase
     {
         private readonly IProductReviewService _service;
         private readonly IWebHostEnvironment _env;
-        public ProductReviewController(IProductReviewService service, IWebHostEnvironment env)
+        public ProductReviewsController(IProductReviewService service, IWebHostEnvironment env)
         {
             _service = service;
             _env = env;

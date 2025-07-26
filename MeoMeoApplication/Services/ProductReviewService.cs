@@ -50,7 +50,7 @@ namespace MeoMeo.Application.Services
                     await _fileRepo.AddAsync(reviewFile);
                 }
             }
-            return  new BaseResponse();
+            return new BaseResponse();
         }
 
 
@@ -62,16 +62,22 @@ namespace MeoMeo.Application.Services
         public async Task<BaseResponse> UpdateProductReviewAsync(ProductReviewCreateOrUpdateDTO dto, List<FileUploadResult> filesUpload)
         {
             var review = await _reviewRepo.GetProductReviewByIdAsync(dto.Id.Value);
-            if (review == null) return null;
+            if (review == null)
+            {
+                return null;
+            }
             _mapper.Map(dto, review);
             // Lấy file cũ
             var oldFiles = (await _fileRepo.GetAllAsync()).Where(f => f.ProductReviewId == dto.Id.Value).ToList();
             var keepFileIds = dto.Files?.Where(f => f.Id != null).Select(f => f.Id.Value).ToList() ?? new List<Guid>();
             var filesToDelete = oldFiles.Where(f => !keepFileIds.Contains(f.Id)).ToList();
-           await _fileRepo.DeleteRangeAsync(filesToDelete);
+            foreach (var old in filesToDelete)
+            {
+                await _fileRepo.DeleteAsync(old.Id);
+            }
+            // Thêm file mới
             if (filesUpload != null && filesUpload.Count > 0)
             {
-                List<ProductReviewFile> lstReview = new List<ProductReviewFile>();
                 foreach (var file in filesUpload)
                 {
                     var reviewFile = new ProductReviewFile
@@ -82,20 +88,25 @@ namespace MeoMeo.Application.Services
                         FileUrl = file.RelativePath ?? file.FullPath,
                         FileType = file.FileType ?? 1,
                     };
-                    lstReview.Add(reviewFile);
-                  
+                    await _fileRepo.AddAsync(reviewFile);
                 }
-                await _fileRepo.AddRangeAsync(lstReview);
             }
             await _reviewRepo.UpdateProductReviewAsync(review);
-            return  new BaseResponse();
+            return  new  BaseResponse();
         }
         public async Task<BaseResponse> DeleteProductReviewAsync(Guid id)
         {
             var oldFiles = (await _fileRepo.GetAllAsync()).Where(f => f.ProductReviewId == id).ToList();
-            await _fileRepo.AddRangeAsync(oldFiles);
-            await _reviewRepo.DeleteAsync(id);
+            foreach (var old in oldFiles)
+            {
+                await _fileRepo.DeleteAsync(old.Id);
+            }
+            await _reviewRepo.DeleteProductReviewAsync(id);
             return new BaseResponse();
+        }
+        public async Task<ProductReview> GetProductReviewByIdAsync(Guid id)
+        {
+            return await _reviewRepo.GetProductReviewByIdAsync(id);
         }
         public async Task<IEnumerable<ProductReview>> GetAllProductReviewsAsync()
         {

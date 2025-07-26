@@ -1,5 +1,6 @@
 ﻿using AutoMapper;
 using MeoMeo.Contract.DTOs;
+using MeoMeo.Contract.DTOs.Auth;
 using MeoMeo.Contract.DTOs.Material;
 using MeoMeo.Contract.DTOs.Order;
 using MeoMeo.Contract.DTOs.OrderDetail;
@@ -96,6 +97,7 @@ namespace MeoMeo.Contract
             CreateMap<SystemConfigDTO, CreateOrUpdateSystemConfigResponseDTO>();
             CreateMap<SystemConfigDTO, CreateOrUpdateSystemConfigDTO>();
             CreateMap<SystemConfigDTO, SystemConfig>();
+            CreateMap<User,UserDTO>();
         }
 
     }

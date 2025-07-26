@@ -4,6 +4,7 @@ using MeoMeo.EntityFrameworkCore.Configurations.Contexts;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace MeoMeo.EntityFrameworkCore.Migrations
 {
     [DbContext(typeof(MeoMeoDbContext))]
-    partial class MeoMeoDbContextModelSnapshot : ModelSnapshot
+    [Migration("20250724095042_Add_Identity_Section")]
+    partial class Add_Identity_Section
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -892,7 +895,7 @@ namespace MeoMeo.EntityFrameworkCore.Migrations
 
                     b.HasIndex("ParentId");
 
-                    b.ToTable("PermissionGroups", (string)null);
+                    b.ToTable("permissionGroups");
                 });
 
             modelBuilder.Entity("MeoMeo.Domain.Entities.Product", b =>
@@ -1227,7 +1230,7 @@ namespace MeoMeo.EntityFrameworkCore.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("Roles", (string)null);
+                    b.ToTable("roles");
                 });
 
             modelBuilder.Entity("MeoMeo.Domain.Entities.RolePermission", b =>
@@ -1248,7 +1251,7 @@ namespace MeoMeo.EntityFrameworkCore.Migrations
 
                     b.HasIndex("RoleId");
 
-                    b.ToTable("RolePermissions", (string)null);
+                    b.ToTable("rolePermissions");
                 });
 
             modelBuilder.Entity("MeoMeo.Domain.Entities.Season", b =>
@@ -1346,9 +1349,6 @@ namespace MeoMeo.EntityFrameworkCore.Migrations
                         .HasMaxLength(255)
                         .HasColumnType("varchar(255)");
 
-                    b.Property<Guid>("CreatedBy")
-                        .HasColumnType("uniqueidentifier");
-
                     b.Property<DateTime>("CreationTime")
                         .HasColumnType("datetime2");
 
@@ -1357,16 +1357,7 @@ namespace MeoMeo.EntityFrameworkCore.Migrations
                         .HasMaxLength(255)
                         .HasColumnType("varchar(255)");
 
-                    b.Property<bool>("IsLocked")
-                        .HasColumnType("bit");
-
                     b.Property<DateTime>("LastLogin")
-                        .HasColumnType("datetime2");
-
-                    b.Property<DateTime?>("LastModificationTime")
-                        .HasColumnType("datetime2");
-
-                    b.Property<DateTime?>("LockedEndDate")
                         .HasColumnType("datetime2");
 
                     b.Property<string>("PasswordHash")
@@ -1374,11 +1365,11 @@ namespace MeoMeo.EntityFrameworkCore.Migrations
                         .HasMaxLength(100)
                         .HasColumnType("varchar(100)");
 
-                    b.Property<int>("Status")
+                    b.Property<int>("Role")
                         .HasColumnType("int");
 
-                    b.Property<Guid?>("UpdatedBy")
-                        .HasColumnType("uniqueidentifier");
+                    b.Property<int>("Status")
+                        .HasColumnType("int");
 
                     b.Property<string>("UserName")
                         .IsRequired()
@@ -1402,7 +1393,7 @@ namespace MeoMeo.EntityFrameworkCore.Migrations
 
                     b.HasIndex("RoleId");
 
-                    b.ToTable("UserRoles", (string)null);
+                    b.ToTable("userRoles");
                 });
 
             modelBuilder.Entity("MeoMeo.Domain.Entities.UserToken", b =>
@@ -1446,11 +1437,16 @@ namespace MeoMeo.EntityFrameworkCore.Migrations
                     b.Property<Guid>("UserId")
                         .HasColumnType("uniqueidentifier");
 
+                    b.Property<Guid?>("UserId1")
+                        .HasColumnType("uniqueidentifier");
+
                     b.HasKey("Id");
 
                     b.HasIndex("UserId");
 
-                    b.ToTable("UserTokens", (string)null);
+                    b.HasIndex("UserId1");
+
+                    b.ToTable("userTokens");
                 });
 
             modelBuilder.Entity("MeoMeo.Domain.Entities.Voucher", b =>
@@ -1993,10 +1989,14 @@ namespace MeoMeo.EntityFrameworkCore.Migrations
             modelBuilder.Entity("MeoMeo.Domain.Entities.UserToken", b =>
                 {
                     b.HasOne("MeoMeo.Domain.Entities.User", "User")
-                        .WithMany("UserTokens")
+                        .WithMany()
                         .HasForeignKey("UserId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
+
+                    b.HasOne("MeoMeo.Domain.Entities.User", null)
+                        .WithMany("UserTokens")
+                        .HasForeignKey("UserId1");
 
                     b.Navigation("User");
                 });
