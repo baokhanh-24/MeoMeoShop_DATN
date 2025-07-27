@@ -1,4 +1,5 @@
 ﻿@page "/inventory-batch-detail/{Id:guid}"
+@using MeoMeo.Contract.DTOs.Size
 @using MeoMeo.Domain.Commons.Enums
 @using MeoMeo.Shared.IServices;
 @using MeoMeo.Contract.DTOs
@@ -10,21 +11,18 @@
 @using System.ComponentModel.DataAnnotations
 @inject IInventoryBatchClientService InventoryBatchClientService
 @inject IProductDetailClientService ProductDetailClientService
-@inject IApiCaller Http
+@inject ISizeClientService sizeClientService
 @inject NavigationManager Navigation
 
 @code {
-    private class ProductItem
-    {
-        public Guid Id { get; set; }
-        public string DisplayName { get; set; }
-    }
     [Parameter] public Guid Id { get; set; }
-    private List<ProductItem> productItems = new();
+
     private InventoryBatchDTO? batch;
-    private string productDisplayName = "";
+    private List<(Guid Id, string DisplayName)> productItems = new();
+    private List<(Guid Id, string Name)> sizeOptions = new();
+    private List<(EInventoryBatchStatus Value, string Name)> inventoryBatchStatusList = new();
+
     private bool isLoading = true;
-    List<(EInventoryBatchStatus Value, string Name)> inventoryBatchStatusList = new();
 
     protected override async Task OnInitializedAsync()
     {
@@ -37,22 +35,21 @@
                       .First()
                       .GetCustomAttribute<DisplayAttribute>()?.Name ?? status.ToString()
             )).ToList();
+
         try
         {
-            var result = await InventoryBatchClientService.GetInventoryBatchByIdAsync(Id);
-            batch = result;
+            // Load lô nhập
+            batch = await InventoryBatchClientService.GetInventoryBatchByIdAsync(Id);
 
             if (batch != null)
             {
-                var detailRequest = new GetListProductDetailRequestDTO(); // lấy tất cả
-                var productDetailsPagedResult = await ProductDetailClientService.GetAllProductDetailAsync(detailRequest);
-                var productDetailsResult = productDetailsPagedResult.Items;
+                // Load sản phẩm
+                var productDetails = await ProductDetailClientService.GetAllProductDetailAsync(new GetListProductDetailRequestDTO());
+                productItems = productDetails.Items.Select(detail => (detail.Id, detail.ProductName ?? "(Không có tên)")).ToList();
 
-                productItems = productDetailsResult.Select(detail => new ProductItem
-                {
-                    Id = detail.Id,
-                    DisplayName = detail.ProductName ?? "(Không có tên)"
-                }).ToList();
+                // Load size
+                var sizes = await sizeClientService.GetAllSizeAsync(new GetListSizeRequestDTO());
+                sizeOptions = sizes.Items.Select(size => (size.Id, size.Value)).ToList();
             }
         }
         catch (Exception ex)
@@ -63,24 +60,23 @@
         isLoading = false;
     }
 
-    private void GoBack()
-    {
-        Navigation.NavigateTo("/manage-inventoryBatch");
-    }
+    private void GoBack() => Navigation.NavigateTo("/manage-inventoryBatch");
 }
+
 <div class="d-flex justify-content-between">
     <Breadcrumb>
         <BreadcrumbItem Href="/">Trang chủ</BreadcrumbItem>
         <BreadcrumbItem Href="/manage-inventoryBatch">Quản lý lô nhập</BreadcrumbItem>
-        <BreadcrumbItem Href="/manage-inventoryBatch">Chi tiết</BreadcrumbItem>
+        <BreadcrumbItem>Chi tiết</BreadcrumbItem>
     </Breadcrumb>
-    <div class="">
-            <button class="btn btn-secondary" @onclick="GoBack">
-                <i class="fas fa-arrow-left"></i> Quay lại danh sách
-            </button>
-        </div>
+
+    <div>
+        <button class="btn btn-secondary" @onclick="GoBack">
+            <i class="fas fa-arrow-left"></i> Quay lại danh sách
+        </button>
+    </div>
 </div>
-<p></p>
+
 @if (isLoading)
 {
     <div class="text-center mt-5">
@@ -105,7 +101,14 @@ else
             <dd class="col-sm-9">@batch.Code</dd>
 
             <dt class="col-sm-3">Sản phẩm: </dt>
-            <dd class="col-sm-9">@(productItems.FirstOrDefault(p => p.Id == batch.ProductDetailId)?.DisplayName ?? "Không rõ")</dd>
+            <dd class="col-sm-9">
+                @(productItems.FirstOrDefault(p => p.Id == batch.ProductDetailId).DisplayName ?? "Không rõ")
+            </dd>
+
+            <dt class="col-sm-3">Size: </dt>
+            <dd class="col-sm-9">
+                @(sizeOptions.FirstOrDefault(s => s.Id == batch.SizeId).Name ?? $"Không rõ (ID: {batch.SizeId})")
+            </dd>
 
             <dt class="col-sm-3">Giá nhập: </dt>
             <dd class="col-sm-9">@($"{batch.OriginalPrice:N0} đ")</dd>
@@ -118,9 +121,7 @@ else
 
             <dt class="col-sm-3">Trạng thái: </dt>
             <dd class="col-sm-9">
-                <span>
-                    @(inventoryBatchStatusList.FirstOrDefault(p => p.Value == batch.Status).Name ?? batch.Status.ToString())
-                </span>
+                @(inventoryBatchStatusList.FirstOrDefault(p => p.Value == batch.Status).Name ?? batch.Status.ToString())
             </dd>
         </dl>
     </div>

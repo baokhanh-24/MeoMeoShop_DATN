@@ -10,6 +10,7 @@ namespace MeoMeo.Contract.DTOs
     public class InventoryBatchDTO
     {
         public Guid Id { get; set; }
+        public Guid SizeId { get; set; }
         public Guid ProductDetailId { get; set; }
         public float OriginalPrice { get; set; }
         public string Code { get; set; }

@@ -8,6 +8,7 @@
 @using MeoMeo.Contract.DTOs.InventoryBatch
 @using MeoMeo.Contract.DTOs.Product
 @using MeoMeo.Contract.DTOs.ProductDetail
+@using MeoMeo.Contract.DTOs.Size
 @using MeoMeo.Domain.Commons
 @using MeoMeo.Domain.Commons.Enums
 @using MeoMeo.Shared.IServices
@@ -15,6 +16,7 @@
 @inject MessageModalService MessageModalService
 @inject IApiCaller Http
 @inject IProductDetailClientService ProductDetailClientService
+@inject ISizeClientService sizeClientService
 @rendermode InteractiveServer
 
 <div class="d-flex justify-content-between">
@@ -91,7 +93,23 @@
                     ItemLabel="p => p.Name"
                     Placeholder="Chọn sản phẩm" />
         }
-    </Column>
+        </Column>
+        <Column TData="Guid" Title="Size">
+        @if (editCache.ContainsKey(data.Id) && !editCache[data.Id].edit)
+        {
+            @(sizeOptions.FirstOrDefault(s => s.Id == data.SizeId).Name ?? "Không rõ")
+        }
+        else if (editCache.ContainsKey(data.Id))
+        {
+            <Select TItem="(Guid Id, string Name)"
+                    TItemValue="Guid"
+                    DataSource="sizeOptions"
+                    @bind-Value="editCache[data.Id].data.SizeId"
+                    ItemValue="s => s.Id"
+                    ItemLabel="s => s.Name"
+                    Placeholder="Chọn size" />
+        }
+        </Column>
         <Column TData="float" Title="Giá nhập">
             @if (editCache.ContainsKey(data.Id) && !editCache[data.Id].edit)
             {
@@ -144,19 +162,50 @@
                     <Button Size="ButtonSize.Small" @onclick="() => StartEdit(data.Id)" Shape="ButtonShape.Circle">
                         <i class="fas fa-pen"></i>
                     </Button>
-                </Tooltip>               
-                
+                </Tooltip>
+
                 <Popconfirm Title=@($"Bạn có chắc muốn xóa {data.Code}?")
                             OnConfirm="() => DeleteInventoryBatch(data.Id)"
                             OkText="Đồng ý"
                             CancelText="Hủy">
-
                     <Tooltip Title="Xóa">
                         <Button Size="ButtonSize.Small" Danger Shape="ButtonShape.Circle">
                             <i class="fas fa-minus"></i>
                         </Button>
                     </Tooltip>
                 </Popconfirm>
+                @if (data.Status == EInventoryBatchStatus.Draft)
+                {
+                    <Tooltip Title="Gửi duyệt">
+                        <Button Size="ButtonSize.Small" Type="ButtonType.Primary" @onclick="() => ChangeStatus(data.Id, EInventoryBatchStatus.PendingApproval)">
+                            <i class="fa-solid fa-paper-plane"></i>
+                        </Button>
+                    </Tooltip>
+                }
+                else if (data.Status == EInventoryBatchStatus.PendingApproval)
+                {
+                  <Popconfirm Title="Bạn có chắc muốn phê duyệt lô hàng này?"
+                OnConfirm="() => ChangeStatus(data.Id, EInventoryBatchStatus.Aprroved)"
+                OkText="Phê duyệt"
+                CancelText="Hủy">
+                    <Tooltip Title="Phê duyệt">
+                        <Button Size="ButtonSize.Small" Type="ButtonType.Primary" Shape="ButtonShape.Circle">
+                            <i class="fa-solid fa-check"></i>
+                        </Button>
+                    </Tooltip>
+                </Popconfirm>
+
+                <Popconfirm Title="Bạn có chắc muốn từ chối lô hàng này?"
+                            OnConfirm="() => ChangeStatus(data.Id, EInventoryBatchStatus.Rejected)"
+                            OkText="Từ chối"
+                            CancelText="Hủy">
+                    <Tooltip Title="Từ chối">
+                        <Button Size="ButtonSize.Small" Type="ButtonType.Primary" Shape="ButtonShape.Circle">
+                            <i class="fa-solid fa-xmark"></i>
+                        </Button>
+                    </Tooltip>
+                </Popconfirm>
+                }
             }
             else if (editCache.ContainsKey(data.Id))
             {
@@ -203,6 +252,7 @@
     List<InventoryBatchDTO> listOfData = new();
     Dictionary<Guid, (bool edit, InventoryBatchDTO data)> editCache = new Dictionary<Guid, (bool, InventoryBatchDTO)>();
     List<(EInventoryBatchStatus Value, string Name)> inventoryBatchStatusList = new();
+    private List<(Guid Id, string Name)> sizeOptions = new();
 
     GetListInventoryBatchRequestDTO filter = new GetListInventoryBatchRequestDTO()
     {
@@ -259,6 +309,9 @@
             var detailRequest = new GetListProductDetailRequestDTO(); // lấy tất cả
             var productDetailsPagedResult = await ProductDetailClientService.GetAllProductDetailAsync(detailRequest);
             var productDetailsResult = productDetailsPagedResult.Items;
+            var sizeRequest = new GetListSizeRequestDTO();
+            var sizeResponse = await sizeClientService.GetAllSizeAsync(sizeRequest);
+            sizeOptions = sizeResponse.Items.Select(s => (s.Id, s.Value)).ToList();
 
             productItems = productDetailsResult.Select(detail => new ProductItem
             {
@@ -344,7 +397,24 @@
             await MessageModalService.Error("Xoá thất bại!");
         }
     }
-
+    async Task ChangeStatus(Guid id, EInventoryBatchStatus newStatus)
+    {
+        var dto = listOfData.FirstOrDefault(x => x.Id == id);
+        if (dto != null)
+        {
+            dto.Status = newStatus;
+            var result = await InventoryBatchClientService.UpdateInventoryBatchAsync(dto);
+            if (result.ResponseStatus == BaseStatus.Success)
+            {
+                await MessageModalService.Success("Thay đổi trạng thái thành công!");
+                await LoadDataAsync();
+            }
+            else
+            {
+                await MessageModalService.Error("Thay đổi trạng thái thất bại!");
+            }
+        }
+    }
     InventoryBatchDTO Clone(InventoryBatchDTO dto)
     {
         return new InventoryBatchDTO
@@ -355,7 +425,8 @@
                 Note = dto.Note,
                 Status = dto.Status,
                 OriginalPrice = dto.OriginalPrice,
-                ProductDetailId = dto.ProductDetailId
+                ProductDetailId = dto.ProductDetailId,
+                SizeId = dto.SizeId
             };
     }
 

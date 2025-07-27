@@ -2,6 +2,7 @@
 @using MeoMeo.Contract.DTOs
 @using MeoMeo.Contract.DTOs.Product
 @using MeoMeo.Contract.DTOs.ProductDetail
+@using MeoMeo.Contract.DTOs.Size
 @using MeoMeo.Domain.Commons
 @using MeoMeo.Domain.Commons.Enums
 @using MeoMeo.Shared.IServices
@@ -30,16 +31,17 @@
 <EditForm Model="kho" OnValidSubmit="HandleValidSubmit">
     <DataAnnotationsValidator />
     <ValidationSummary />
-    <div class="form-group">
-        <label for="Code" class="form-label">Mã lô nhập</label>
-        <p></p>
-        <InputText class="form-control" @bind-Value="kho.Code" />
-    </div>
-    <p></p>
-     <div class="form-group">
-        <label for="Note" class="form-label">Mô tả</label>
-        <p></p>
-        <InputText class="form-control" @bind-Value="kho.Note" />
+    <div class="row">
+        <div class="col">
+            <label for="Code" class="form-label">Mã lô nhập</label>
+            <p></p>
+            <InputText class="form-control" @bind-Value="kho.Code" />
+        </div>
+        <div class="col">
+            <label for="Note" class="form-label">Mô tả</label>
+            <p></p>
+            <InputText class="form-control" @bind-Value="kho.Note" />
+        </div>
     </div>
     <p></p>  
     <h5 class="mt-4">Danh sách sản phẩm</h5>
@@ -50,6 +52,7 @@
                     <th>Tên sản phẩm</th>
                     <th>Giá nhập</th>
                     <th>Số lượng</th>
+                    <th>Size</th>
                     <th>Thao tác</th>
                 </tr>
             </thead>
@@ -63,6 +66,15 @@
                         </td>
                         <td>
                             <AntDesign.InputNumber TValue="int" class="form-control" @bind-Value="sp.Quantity" />
+                        </td>
+                        <td>
+                            <select class="form-select" @bind="sp.SizeId">
+                                <option value="">-- Chọn size --</option>
+                                @foreach (var s in sizes)
+                                {
+                                    <option value="@s.Id">@s.Value</option>
+                                }
+                            </select>
                         </td>
                         <td>
                             <button type="button" class="btn btn-danger btn-sm" @onclick="() => RemoveProduct(sp.ProductDetailId)">Xóa</button>
@@ -113,6 +125,7 @@
     public class SelectedProductItem
     {
         public Guid ProductDetailId { get; set; }
+        public Guid SizeId { get; set; }
         public string ProductName { get; set; }
         public float OriginalPrice { get; set; }
         public int Quantity { get; set; }
@@ -120,6 +133,8 @@
     private List<SelectedProductItem> selectedProducts = new();
     private bool isProductDialogVisible = false;
     private List<ProductItem> productItems = new();
+    [Inject] private ISizeClientService SizeClientService { get; set; } = default!;
+    private List<SizeDTO> sizes = new();
     private InventoryBatchDTO kho = new()
     {
         Id = Guid.NewGuid(),
@@ -142,7 +157,9 @@
             var detailRequest = new GetListProductDetailRequestDTO(); // lấy tất cả
             var productDetailsPagedResult = await ProductDetailClientService.GetAllProductDetailAsync(detailRequest);
             var productDetailsResult = productDetailsPagedResult.Items;
-
+            var sizeRequest = new GetListSizeRequestDTO(); // nếu có phân trang thì thêm
+            var sizeResult = await SizeClientService.GetAllSizeAsync(sizeRequest);
+            sizes = sizeResult.Items;
             productItems = productDetailsResult.Select(detail => new ProductItem
             {
                 Id = detail.Id,
@@ -163,6 +180,7 @@
             Code = kho.Code,
             Note = kho.Note,
             Status = EInventoryBatchStatus.Draft,
+            SizeId = p.SizeId,
             ProductDetailId = p.ProductDetailId,
             OriginalPrice = p.OriginalPrice,
             Quantity = p.Quantity

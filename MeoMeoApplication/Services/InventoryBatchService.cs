@@ -34,6 +34,7 @@ namespace MeoMeo.Application.Services
                 {
                     Id = Guid.NewGuid(),
                     ProductDetailId = dtos.ProductDetailId,
+                    SizeId = dtos.SizeId,
                     OriginalPrice = dtos.OriginalPrice,
                     Code = dtos.Code,
                     Quantity = dtos.Quantity,
@@ -119,6 +120,7 @@ namespace MeoMeo.Application.Services
             {
                 Id = inventoryBatch.Id,
                 ProductDetailId = inventoryBatch.ProductDetailId,
+                SizeId = inventoryBatch.SizeId,
                 OriginalPrice = inventoryBatch.OriginalPrice,
                 Code = inventoryBatch.Code,
                 Quantity = inventoryBatch.Quantity,
