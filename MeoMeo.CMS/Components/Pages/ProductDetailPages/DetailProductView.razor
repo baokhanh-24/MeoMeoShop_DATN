@@ -1,0 +1,719 @@
+@page "/product-detail/{id:guid}"
+@using MeoMeo.Contract.DTOs.Product
+@using MeoMeo.Contract.DTOs.ProductDetail
+@using MeoMeo.Contract.Commons
+@using MeoMeo.Shared.IServices
+@using MeoMeo.Shared.Utilities
+@inject IProductClientService ProductService
+@inject NavigationManager Navigation
+@inject MessageModalService MessageModalService
+@inject IJSRuntime JSRuntime
+@rendermode InteractiveServer
+
+<div class="content-background">
+    <!-- Breadcrumb -->
+    <Breadcrumb Class="bread-crumb">
+        <BreadcrumbItem>
+            <a href="/product">Quản lý sản phẩm</a>
+        </BreadcrumbItem>
+        <BreadcrumbItem>
+            <a class="current">Chi tiết sản phẩm</a>
+        </BreadcrumbItem>
+    </Breadcrumb>
+
+    <!-- Action Buttons -->
+    <div class="group-breadcumb d-flex justify-content-end">
+        @foreach (var button in GetActionButtons())
+        {
+            <Button Class="@($"{button.ClassName} ms-2")" OnClick="button.Action">
+                <Icon Type="@button.Icon" />
+                @((MarkupString)button.Label)
+            </Button>
+        }
+    </div>
+    <!-- Main Content -->
+    <Row Gutter="(16, 24)">
+        <Col Span="17">
+        <Row Gutter="(16, 24)" Class="cover-space-left ms-0">
+            <Col Span="24">
+            <!-- Title and Status -->
+            <Row Gutter="(16, 16)">
+                <Col Span="18" Class="gutter-row">
+                <div class="title">
+                    Thông tin chung <span class="nameCode">@model?.SKU</span>
+                </div>
+                </Col>
+                <Col Span="6" Class="gutter-row">
+                @GetStatusBadge(model?.Status ?? 0)
+                </Col>
+            </Row>
+
+            <!-- Product Images -->
+            <Row Gutter="(16, 16)">
+                <Col Span="24" Class="list-img gutter-row">
+                <div class="d-flex">
+                    <!-- Thumbnail Images -->
+                    <div class="img-item me-5">
+                        <div class="mb-3">Hình ảnh thumbnail</div>
+                        <div class="">
+                            @if (fileThumbnailList?.Any() == true)
+                            {
+                                @foreach (var file in fileThumbnailList)
+                                {
+                                    <div class="card-img me-2">
+                                        <img style="max-height: 80px" src="@file.Url" alt="@file.Name" />
+                                    </div>
+                                }
+                            }
+                        </div>
+                    </div>
+
+                    <!-- Product Images -->
+                    <div class="img-item">
+                        <div class="mb-3">Hình ảnh sản phẩm</div>
+                        <div class="d-flex flex-wrap">
+                            @if (fileList?.Any() == true)
+                            {
+                                @foreach (var file in fileList.OrderBy(f => f.IsVideo ? 0 : 1))
+                                {
+                                    <div class="card-img me-2 mb-2 cursor-pointer" @onclick="() => HandlePreview(file)">
+                                        @if (file.IsVideo)
+                                        {
+                                            <div class="position-relative pointer">
+                                                <video style="max-height: 80px">
+                                                    <source src="@file.Url" type="video/mp4" />
+                                                </video>
+                                                <div class="video-overlay">
+                                                    <img src="/images/actions/play-video.svg" alt="Play"
+                                                        style="width: 24px; height: 24px" />
+                                                </div>
+                                            </div>
+                                        }
+                                        else
+                                        {
+                                            <img class="pointer" style="max-height: 80px; border-radius: 8px" src="@file.Url"
+                                                alt="@file.Name" />
+                                        }
+                                    </div>
+                                }
+                            }
+                        </div>
+                    </div>
+                </div>
+                </Col>
+            </Row>
+
+            <!-- Product Information -->
+            <Row Gutter="(16, 16)" Class="mt-3">
+                <Col Span="8" Class="info-item gutter-row">
+                <span class="info-label">Tên sản phẩm: </span>
+                <span class="info-value">@model?.Name</span>
+                </Col>
+                <Col Span="8" Class="info-item gutter-row">
+                <span class="info-label">Cấp danh mục: </span>
+                <span class="info-value">@model?.CategoryName</span>
+                </Col>
+                <Col Span="8" Class="info-item gutter-row">
+                <span class="info-label">Phân loại: </span>
+                <span class="info-value">@model?.TypeName</span>
+                </Col>
+                <Col Span="8" Class="info-item gutter-row">
+                <span class="info-label">Thương hiệu: </span>
+                <span class="info-value">@model?.BrandName</span>
+                </Col>
+                <Col Span="8" Class="info-item gutter-row">
+                <span class="info-label">Barcode: </span>
+                <span class="info-value">@model?.Barcode</span>
+                </Col>
+                <Col Span="8" Class="info-item gutter-row">
+                </Col>
+                <Col Span="8" Class="info-item gutter-row">
+                <span class="info-label">Dung tích: </span>
+                <span class="info-value">@model?.UnitName</span>
+                </Col>
+                <Col Span="8" Class="info-item gutter-row">
+                <span class="info-label">Giá bán: </span>
+                <span class="info-value">
+                    @if (model?.Price.HasValue == true)
+                    {
+                        @($"{model.Price.Value:N0}đ")
+                    }
+                </span>
+                </Col>
+                <Col Span="8" Class="info-item gutter-row">
+                </Col>
+                <Col Span="8" Class="info-item gutter-row">
+                <span class="info-label">Cảnh báo hết hàng: </span>
+                <span class="info-value">@model?.OutOfStockQuantity</span>
+                </Col>
+                <Col Span="8" Class="info-item gutter-row">
+                <span class="info-label">Cảnh báo hết hạn: </span>
+                <span class="info-value">
+                    @if (model?.NumberExpires.HasValue == true)
+                    {
+                        @($"{model.NumberExpires} ngày")
+                    }
+                </span>
+                </Col>
+                <Col Span="8" Class="info-item gutter-row">
+                <span class="info-label">Được phép trả hàng: </span>
+                <span class="info-value">@(model?.AllowReturn == true ? "Có" : "Không")</span>
+                </Col>
+                <Col Span="24" Class="info-item gutter-row">
+                <span class="info-label">Mô tả: </span>
+                <div class="info-value">
+                    @if (!string.IsNullOrEmpty(model?.Description))
+                    {
+                        @((MarkupString)model.Description)
+                    }
+                </div>
+                </Col>
+            </Row>
+            </Col>
+        </Row>
+        </Col>
+
+        <Col Span="7">
+        <!-- Product Reviews -->
+        <Row Gutter="(16, 24)" Class="cover-space-left ms-0">
+            <Col Span="24">
+            <Row Gutter="(16, 16)">
+                <Col Span="18" Class="gutter-row">
+                <div class="title">Đánh giá sản phẩm</div>
+                <div class="no-data">Chưa có đánh giá sản phẩm</div>
+                </Col>
+            </Row>
+            <!-- Star Ratings -->
+            <Row Gutter="(16, 16)">
+                <Col Span="24" Class="gutter-row">
+                @for (int i = 5; i >= 1; i--)
+                {
+                    <div class="d-flex justify-content-between">
+                        <div class="star-rating">
+                            @for (int j = 1; j <= i; j++)
+                            {
+                                <Icon Type="star" Style="color: #FFC214;" />
+                            }
+                            @for (int j = i + 1; j <= 5; j++)
+                            {
+                                <Icon Type="star" Style="color: #22313F; opacity: 0.1;" />
+                            }
+                        </div>
+                        <div>0</div>
+                    </div>
+                    @if (i > 1)
+                    {
+                        <hr class="line-dashed" />
+                    }
+                }
+                </Col>
+            </Row>
+            </Col>
+        </Row>
+
+        <!-- Shipping Information -->
+        <Row Gutter="(16, 24)" Class="cover-space-left ms-0">
+            <Col Span="24">
+            <Row Gutter="(16, 16)">
+                <Col Span="18" Class="gutter-row">
+                <div class="title">Thông tin vận chuyển</div>
+                </Col>
+            </Row>
+            <Row Gutter="(16, 16)">
+                <Col Span="24" Class="info-item gutter-row">
+                <span class="info-label-ship">Dài: </span>
+                <span class="info-value">
+                    @if (model?.Length.HasValue == true)
+                    {
+                        @($"{model.Length} cm")
+                    }
+                </span>
+                </Col>
+                <Col Span="24" Class="info-item gutter-row">
+                <span class="info-label-ship">Rộng: </span>
+                <span class="info-value">
+                    @if (model?.Width.HasValue == true)
+                    {
+                        @($"{model.Width} cm")
+                    }
+                </span>
+                </Col>
+                <Col Span="24" Class="info-item gutter-row">
+                <span class="info-label-ship">Cao: </span>
+                <span class="info-value">
+                    @if (model?.Height.HasValue == true)
+                    {
+                        @($"{model.Height} cm")
+                    }
+                </span>
+                </Col>
+                <Col Span="24" Class="info-item gutter-row">
+                <span class="info-label-ship">Trọng lượng (kg): </span>
+                <span class="info-value">
+                    @if (model?.Weight.HasValue == true)
+                    {
+                        @($"{model.Weight} kg")
+                    }
+                </span>
+                </Col>
+            </Row>
+            </Col>
+        </Row>
+
+        <!-- SEO Information -->
+        <Row Gutter="(16, 24)" Class="cover-space-left ms-0">
+            <Col Span="24">
+            <Row Gutter="(16, 16)">
+                <Col Span="18" Class="gutter-row">
+                <div class="title">Thông tin SEO</div>
+                </Col>
+            </Row>
+            <Row Gutter="(16, 16)">
+                <Col Span="24" Class="info-item gutter-row">
+                <span class="info-label-seo">Tiêu đề: </span>
+                <span class="info-value">@model?.SeoTitle</span>
+                </Col>
+                <Col Span="24" Class="info-item gutter-row">
+                <span class="info-label-seo">Từ khóa: </span>
+                <span class="info-value">@model?.SeoKeyword</span>
+                </Col>
+                <Col Span="24" Class="info-item gutter-row">
+                <span class="info-label-seo">Mô tả: </span>
+                <span class="info-value">@model?.SeoDescription</span>
+                </Col>
+            </Row>
+            </Col>
+        </Row>
+        </Col>
+    </Row>
+</div>
+
+<!-- Preview Modals -->
+@if (previewType == "image")
+{
+    <Modal Title="@previewTitle" Visible="previewOpen" OnCancel="() => previewOpen = false" Footer="null" Centered="true">
+        <img src="@previewImage" style="width: 100%" alt="@previewTitle" />
+    </Modal>
+}
+else if (previewType == "video")
+{
+    <Modal Title="Xem trước video" Visible="previewOpen" OnCancel="HandleVideoModalClose" Footer="null" Centered="true"
+        Class="modelPreviewVideo">
+        <video controls src="@previewImage" style="width: 100%" />
+    </Modal>
+}
+
+<!-- Confirmation Modal -->
+@* <Modal Title="@dialogConfirmTitle" Visible="isOpenConfirm" OnOk="HandleConfirmClick" *@
+@*     OnCancel="() => isOpenConfirm = false" Width="480" Centered="true"> *@
+@*     <ChildContent> *@
+@*         @dialogConfirmContent *@
+@*     </ChildContent> *@
+@*     <Footer> *@
+@*         <Button Class="btn-cancel" OnClick="() => isOpenConfirm = false"> *@
+@*             <Icon Type="close" /> *@
+@*             Hủy *@
+@*         </Button> *@
+@*         <Button Class="btn-confirm" Type="ButtonType.Primary" OnClick="HandleConfirmClick"> *@
+@*             <Icon Type="check-circle" /> *@
+@*             Xác nhận *@
+@*         </Button> *@
+@*     </Footer> *@
+@* </Modal> *@
+
+<!-- History Drawer -->
+<Drawer Visible="openHistory" OnClose="() => openHistory = false" Width="400">
+    <ChildContent>
+        @if (historyList?.Any() == true)
+        {
+            <Timeline>
+                @foreach (var history in historyList)
+                {
+                    <TimelineItem>
+                        <div class="history-item">
+                            <div class="history-action">@history.Action</div>
+                            <div class="history-description">@history.Description</div>
+                            <div class="history-user">@history.UserName</div>
+                            <div class="history-date">@history.CreatedDate.ToString("dd/MM/yyyy HH:mm")</div>
+                        </div>
+                    </TimelineItem>
+                }
+            </Timeline>
+        }
+        else
+        {
+            <div class="no-data">Chưa có lịch sử thay đổi</div>
+        }
+    </ChildContent>
+</Drawer>
+
+@code {
+    [Parameter] public Guid Id { get; set; }
+
+    // State variables
+    private DetailProductViewDto? model;
+    private List<FileViewDto>? fileList;
+    private List<FileViewDto>? fileThumbnailList;
+    private List<ProductHistoryDto>? historyList;
+    private bool openHistory = false;
+    private bool previewOpen = false;
+    private string previewImage = "";
+    private string previewTitle = "";
+    private string previewType = "image";
+    private bool isOpenConfirm = false;
+    private string dialogConfirmTitle = "";
+    private RenderFragment? dialogConfirmContent;
+    private int currentAction = 0;
+    private bool isLoading = true;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadProductData();
+    }
+
+    private async Task LoadProductData()
+    {
+        try
+        {
+            isLoading = true;
+            StateHasChanged();
+
+            // Call actual API service
+            var response = await ProductService.GetProductDetailAsync(Id);
+            if (response.IsSuccess && response.Data != null)
+            {
+                model = response.Data;
+
+                // Sample file data - replace with actual API call
+                fileList = new List<FileViewDto>
+{
+new() { Url = "/images/sample1.jpg", Name = "Image 1", Type = "image/jpeg" },
+new() { Url = "/images/sample2.jpg", Name = "Image 2", Type = "image/jpeg" },
+new() { Url = "/videos/sample.mp4", Name = "Video 1", Type = "video/mp4" }
+};
+
+                fileThumbnailList = new List<FileViewDto>
+{
+new() { Url = "/images/thumbnail.jpg", Name = "Thumbnail", Type = "image/jpeg" }
+};
+            }
+            else
+            {
+                await MessageModalService.Error(response.Message ?? "Không thể tải dữ liệu sản phẩm");
+            }
+        }
+        catch (Exception ex)
+        {
+            await MessageModalService.Error($"Lỗi khi tải dữ liệu: {ex.Message}");
+        }
+        finally
+        {
+            isLoading = false;
+            StateHasChanged();
+        }
+    }
+
+    private void HandlePreview(FileViewDto file)
+    {
+        previewType = file.IsVideo ? "video" : "image";
+        previewImage = file.Url;
+        previewTitle = file.Name;
+        previewOpen = true;
+        StateHasChanged();
+    }
+
+    private async Task HandleVideoModalClose()
+    {
+        // Pause video when modal closes
+        await JSRuntime.InvokeVoidAsync("eval", "document.querySelector('.modelPreviewVideo video')?.pause()");
+        previewOpen = false;
+        StateHasChanged();
+    }
+
+    private List<ActionButton> GetActionButtons()
+    {
+        var buttons = new List<ActionButton>();
+
+        if (model == null) return buttons;
+
+        switch (model.Status)
+        {
+            case 0: // Lưu tạm
+                buttons.Add(new ActionButton("Sửa", "edit", "btn-edit w-100px", HandleEdit));
+                buttons.Add(new ActionButton("Xóa", "delete", "btn-deny-outline w-100px", HandleDelete));
+                buttons.Add(new ActionButton("Gửi duyệt", "send", "btn-send", HandleSendApproval));
+                buttons.Add(new ActionButton("Lịch sử", "history", "btn-back", HandleViewHistory));
+                buttons.Add(new ActionButton("Quay lại", "arrow-left", "btn-back", HandleGoBack));
+                break;
+
+            case 1: // Đang bán
+                buttons.Add(new ActionButton("Ngừng bán", "stop", "btn-reset", HandleStopSelling));
+                buttons.Add(new ActionButton("Lịch sử", "history", "btn-back", HandleViewHistory));
+                buttons.Add(new ActionButton("Quay lại", "arrow-left", "btn-back", HandleGoBack));
+                break;
+
+            case 2: // Ngừng bán
+                buttons.Add(new ActionButton("Sửa", "edit", "btn-edit w-100px", HandleEdit));
+                buttons.Add(new ActionButton("Xóa", "delete", "btn-deny-outline w-100px", HandleDelete));
+                buttons.Add(new ActionButton("Công bố", "notification", "btn-send", HandleAnnounce));
+                buttons.Add(new ActionButton("Lịch sử", "history", "btn-back", HandleViewHistory));
+                buttons.Add(new ActionButton("Quay lại", "arrow-left", "btn-back", HandleGoBack));
+                break;
+
+            case 3: // Chờ duyệt
+                buttons.Add(new ActionButton("Xóa", "delete", "btn-deny-outline w-100px", HandleDelete));
+                buttons.Add(new ActionButton("Phê duyệt", "check-circle", "btn-save-outline", HandleApprove));
+                buttons.Add(new ActionButton("Từ chối", "close-circle", "btn-deny-outline", HandleReject));
+                buttons.Add(new ActionButton("Thu hồi", "rollback", "btn-reset", HandleRecall));
+                buttons.Add(new ActionButton("Lịch sử", "history", "btn-back", HandleViewHistory));
+                buttons.Add(new ActionButton("Quay lại", "arrow-left", "btn-back", HandleGoBack));
+                break;
+
+            case 4: // Đã duyệt
+                buttons.Add(new ActionButton("Sửa", "edit", "btn-edit w-100px", HandleEdit));
+                buttons.Add(new ActionButton("Xóa", "delete", "btn-delete w-100px", HandleDelete));
+                buttons.Add(new ActionButton("Công bố", "notification", "btn-send", HandleAnnounce));
+                buttons.Add(new ActionButton("Lịch sử", "history", "btn-back", HandleViewHistory));
+                buttons.Add(new ActionButton("Quay lại", "arrow-left", "btn-back", HandleGoBack));
+                break;
+
+            case 5: // Bị từ chối
+                buttons.Add(new ActionButton("Sửa", "edit", "btn-edit w-100px", HandleEdit));
+                buttons.Add(new ActionButton("Xóa", "delete", "btn-deny-outline w-100px", HandleDelete));
+                buttons.Add(new ActionButton("Gửi duyệt", "send", "btn-send", HandleSendApproval));
+                buttons.Add(new ActionButton("Lịch sử", "history", "btn-back", HandleViewHistory));
+                buttons.Add(new ActionButton("Quay lại", "arrow-left", "btn-back", HandleGoBack));
+                break;
+        }
+
+        return buttons;
+    }
+
+    private RenderFragment GetStatusBadge(int status)
+    {
+        return status switch
+        {
+            0 => @<div class="status-temp">
+    <span>
+        <Icon Type="dot-chart" Style="margin-right: 8px;" />
+        Lưu tạm
+    </span>
+</div>,
+1 => @<div class="status-announced">
+    <span>
+        <Icon Type="dot-chart" Style="margin-right: 8px;" />
+        Đang bán
+    </span>
+</div>,
+2 => @<div class="status-retracted">
+    <span>
+        <Icon Type="dot-chart" Style="margin-right: 8px;" />
+        Ngừng bán
+    </span>
+</div>,
+3 => @<div class="status-pending">
+    <span>
+        <Icon Type="dot-chart" Style="margin-right: 8px;" />
+        Chờ duyệt
+    </span>
+</div>,
+4 => @<div class="status-approved">
+    <span>
+        <Icon Type="dot-chart" Style="margin-right: 8px;" />
+        Đã duyệt
+    </span>
+</div>,
+5 => @<div class="status-rejected">
+    <span>
+        <Icon Type="dot-chart" Style="margin-right: 8px;" />
+        Bị từ chối
+    </span>
+</div>,
+_ => @<div></div>
+};
+    }
+
+    // Action handlers
+    private async Task HandleEdit()
+    {
+        Navigation.NavigateTo($"/product/update/{Id}");
+    }
+
+    private async Task HandleDelete()
+    {
+        dialogConfirmTitle = "Xóa sản phẩm";
+        dialogConfirmContent = @<div class="txt-content-dialog">
+            Bạn có chắc chắn muốn xoá sản phẩm <span class="txt-param">@model?.Name</span> không?
+        </div>;
+        currentAction = 5;
+        isOpenConfirm = true;
+        StateHasChanged();
+    }
+
+    private async Task HandleSendApproval()
+    {
+        dialogConfirmTitle = "Gửi duyệt sản phẩm";
+        dialogConfirmContent = @<div class="txt-content-dialog">
+            Bạn có chắc chắn muốn gửi duyệt sản phẩm <span class="txt-param">@model?.Name</span> không?
+        </div>;
+        currentAction = 6;
+        isOpenConfirm = true;
+        StateHasChanged();
+    }
+
+    private async Task HandleApprove()
+    {
+        dialogConfirmTitle = "Duyệt sản phẩm";
+        dialogConfirmContent = @<div class="txt-content-dialog">
+            Bạn có chắc chắn muốn duyệt sản phẩm <span class="txt-param">@model?.Name</span> không?
+        </div>;
+        currentAction = 1;
+        isOpenConfirm = true;
+        StateHasChanged();
+    }
+
+    private async Task HandleReject()
+    {
+        dialogConfirmTitle = "Từ chối duyệt sản phẩm";
+        dialogConfirmContent = @<div class="txt-content-dialog">
+            Bạn có chắc chắn muốn từ chối duyệt sản phẩm <span class="txt-param">@model?.Name</span> không?
+        </div>;
+        currentAction = 2;
+        isOpenConfirm = true;
+        StateHasChanged();
+    }
+
+    private async Task HandleAnnounce()
+    {
+        dialogConfirmTitle = "Công bố sản phẩm";
+        dialogConfirmContent = @<div class="txt-content-dialog">
+            Bạn có chắc chắn muốn công bố sản phẩm <span class="txt-param">@model?.Name</span> không?
+        </div>;
+        currentAction = 4;
+        isOpenConfirm = true;
+        StateHasChanged();
+    }
+
+    private async Task HandleStopSelling()
+    {
+        dialogConfirmTitle = "Ngừng bán sản phẩm";
+        dialogConfirmContent = @<div class="txt-content-dialog">
+            Bạn có chắc chắn muốn ngừng bán sản phẩm <span class="txt-param">@model?.Name</span> không?
+        </div>;
+        currentAction = 8;
+        isOpenConfirm = true;
+        StateHasChanged();
+    }
+
+    private async Task HandleRecall()
+    {
+        dialogConfirmTitle = "Thu hồi sản phẩm";
+        dialogConfirmContent = @<div class="txt-content-dialog">
+            Bạn có chắc chắn muốn thu hồi sản phẩm <span class="txt-param">@model?.Name</span> không?
+        </div>;
+        currentAction = 7;
+        isOpenConfirm = true;
+        StateHasChanged();
+    }
+
+    private async Task HandleViewHistory()
+    {
+        // Load history data - replace with actual API call
+        historyList = new List<ProductHistoryDto>
+{
+new() { Action = "Tạo mới", Description = "Tạo sản phẩm mới", UserName = "Admin", CreatedDate = DateTime.Now.AddDays(-5)
+},
+new() { Action = "Cập nhật", Description = "Cập nhật thông tin sản phẩm", UserName = "User1", CreatedDate =
+DateTime.Now.AddDays(-3) },
+new() { Action = "Gửi duyệt", Description = "Gửi sản phẩm để duyệt", UserName = "User1", CreatedDate =
+DateTime.Now.AddDays(-1) }
+};
+
+        openHistory = true;
+        StateHasChanged();
+    }
+
+    private async Task HandleGoBack()
+    {
+        Navigation.NavigateTo("/product");
+    }
+
+    private async Task HandleConfirmClick()
+    {
+        try
+        {
+            switch (currentAction)
+            {
+                case 1: // Approve
+                    await UpdateStatus(4);
+                    await MessageModalService.Success("Phê duyệt sản phẩm thành công");
+                    break;
+                case 2: // Reject
+                    await UpdateStatus(5);
+                    await MessageModalService.Success("Từ chối phê duyệt sản phẩm thành công");
+                    break;
+                case 4: // Announce
+                    await UpdateStatus(1);
+                    await MessageModalService.Success("Công bố sản phẩm thành công");
+                    break;
+                case 5: // Delete
+                    await DeleteProduct();
+                    break;
+                case 6: // Send approval
+                    await UpdateStatus(3);
+                    await MessageModalService.Success("Gửi duyệt sản phẩm thành công");
+                    break;
+                case 7: // Recall
+                    await UpdateStatus(0);
+                    await MessageModalService.Success("Thu hồi sản phẩm thành công");
+                    break;
+                case 8: // Stop selling
+                    await UpdateStatus(2);
+                    await MessageModalService.Success("Ngừng bán sản phẩm thành công");
+                    break;
+            }
+        }
+        catch (Exception ex)
+        {
+            await MessageModalService.Error($"Có lỗi xảy ra: {ex.Message}");
+        }
+        finally
+        {
+            isOpenConfirm = false;
+            StateHasChanged();
+        }
+    }
+
+    private async Task UpdateStatus(int status)
+    {
+        // Replace with actual API call
+        if (model != null)
+        {
+            model.Status = status;
+            StateHasChanged();
+        }
+    }
+
+    private async Task DeleteProduct()
+    {
+        // Replace with actual API call
+        await MessageModalService.Success("Xóa sản phẩm thành công");
+        Navigation.NavigateTo("/product");
+    }
+
+    public class ActionButton
+    {
+        public string Label { get; set; } = string.Empty;
+        public string Icon { get; set; } = string.Empty;
+        public string ClassName { get; set; } = string.Empty;
+        public Func<Task> Action { get; set; } = () => Task.CompletedTask;
+
+        public ActionButton(string label, string icon, string className, Func<Task> action)
+        {
+            Label = label;
+            Icon = icon;
+            ClassName = className;
+            Action = action;
+        }
+    }
+}

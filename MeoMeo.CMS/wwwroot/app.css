@@ -113,3 +113,11 @@ h1:focus {
     width: calc(70% - 14px);
     text-align: left;
 }
+.ant-select-selection-overflow {
+    position: relative;
+    display: flex;
+    flex: auto;
+    flex-wrap: nowrap !important;
+    max-width: 100%;
+    overflow: hidden !important;
+}

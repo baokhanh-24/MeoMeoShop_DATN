@@ -29,10 +29,7 @@ namespace MeoMeo.Application.Services
                     ResponseStatus = BaseStatus.Error,
                     Message = "Tài khỏan không tồn tại."
                 };
-            }
-
-            //user.PasswordHash = BCrypt.Net.BCrypt.HashPassword(request.NewPassword);
-            await _repository.UpdateUserAsync(user);
+            } await _repository.UpdateUserAsync(user);
 
             return new CreateOrUpdateUserResponseDTO
             {
@@ -86,7 +83,7 @@ namespace MeoMeo.Application.Services
 
         public async Task<CreateOrUpdateUserResponseDTO> UpdateUserAsync(CreateOrUpdateUserDTO user)
         {
-            var existingMaterial = await _repository.GetUserByIdAsync(user.Id);
+            var existingMaterial = await _repository.GetUserByIdAsync(user.Id.Value);
             if (existingMaterial == null)
             {
                 return new CreateOrUpdateUserResponseDTO

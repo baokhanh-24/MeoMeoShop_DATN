@@ -6,7 +6,7 @@ namespace MeoMeo.Contract.DTOs.ProductDetail
 {
     public class CreateOrUpdateProductDetailDTO
     {
-        public Guid Id { get; set; }
+        public Guid? Id { get; set; }
         public Guid? ProductId { get; set; }
         public string? ProductName { get; set; }
         public float Price { get; set; }
@@ -22,6 +22,7 @@ namespace MeoMeo.Contract.DTOs.ProductDetail
         public List<Guid>  ColourIds { get; set; }
         public List<Guid>  SeasonIds { get; set; }
         public List<Guid>  MaterialIds { get; set; }
+        public List<Guid>  CategoryIds { get; set; }
         public List<ProductMediaUpload>  Images { get; set; }
         
     }

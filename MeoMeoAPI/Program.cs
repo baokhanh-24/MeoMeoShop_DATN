@@ -7,8 +7,10 @@ using MeoMeo.EntityFrameworkCore.Configurations.Contexts;
 using MeoMeo.EntityFrameworkCore.Repositories;
 using Microsoft.EntityFrameworkCore;
 using System.Text.Json.Serialization;
+using MeoMeo.API.Extensions;
 using MeoMeo.Domain.Commons;
 using MeoMeo.EntityFrameworkCore.Commons;
+using MeoMeo.Shared.Middlewares;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -23,7 +25,9 @@ CultureInfo.DefaultThreadCurrentCulture = culture;
 CultureInfo.DefaultThreadCurrentUICulture = culture;
 builder.Services.AddDbContext<MeoMeoDbContext>(options =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection"), b => b.MigrationsAssembly("MeoMeo.API")));
-
+builder.Services.AddConfigurationSettings(builder.Configuration);
+builder.Services.AddInfrastructure();
+builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();
 builder.Services.AddScoped<IProductRepository, ProductRepository>();
 builder.Services.AddScoped<IProductServices, ProductService>();
 builder.Services.AddScoped<IProductsDetailRepository, ProductsDetailRepository>();
@@ -84,28 +88,28 @@ builder.Services.AddScoped<ICustomersBankRepository, CustomersBankRepository>();
 builder.Services.AddScoped<ICustomersBankServices, CustomersBankServices>();
 builder.Services.AddScoped<IDistrictRepository, DistrictRepository>();
 builder.Services.AddScoped<IDistrictService, DistrictService>();
-builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();
 builder.Services.AddScoped<IMaterialRepository, MaterialRepository>();
 builder.Services.AddScoped<IMaterialServices, MaterialServices>();
 builder.Services.AddScoped<ISystemConfigRepository, SystemConfigRepository>();
 builder.Services.AddScoped<ISystemConfigService, SystemConfigService>();
+builder.Services.AddScoped<ICategoryRepository, CategoryRepository>();
+builder.Services.AddScoped<ICategoryService, CategoryService>();
+builder.Services.AddScoped<IProductCategoryRepository, ProductCategoryRepository>();
+
+// Auth Service Dependencies
+builder.Services.AddScoped<IRefreshTokenRepository, RefreshTokenRepository>();
+builder.Services.AddScoped<IUserTokenRepository, UserTokenRepository>();
+builder.Services.AddScoped<IPermissionRepository, PermissionRepository>();
+builder.Services.AddScoped<IPermissionGroupRepository, PermissionGroupRepository>();
+builder.Services.AddScoped<IRoleRepository, RoleRepository>();
+builder.Services.AddScoped<IUserRoleRepository, UserRoleRepository>();
+
+// Auth Service
+builder.Services.AddScoped<IAuthService, AuthService>();
 
 
 builder.Services.AddAutoMapper(typeof(MeoMeoAutoMapperProfile));
 
 var app = builder.Build();
-
-// Configure the HTTP request pipeline.
-if (app.Environment.IsDevelopment())
-{
-    app.UseSwagger();
-    app.UseSwaggerUI();
-}
-app.UseRouting();
-app.UseHttpsRedirection();
-
-app.UseAuthorization();
-
-app.MapControllers();
-
+app.UseInfrastructure();
 app.Run();

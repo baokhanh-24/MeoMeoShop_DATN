@@ -1,4 +1,5 @@
-﻿using MeoMeo.Contract.DTOs.Product;
+﻿using MeoMeo.Contract.Commons;
+using MeoMeo.Contract.DTOs.Product;
 using MeoMeo.Domain.Commons;
 using MeoMeo.Shared.IServices;
 using MeoMeo.Shared.Utilities;
@@ -32,6 +33,26 @@ namespace MeoMeo.Shared.Services
                 _logger.LogError(ex, "Có lỗi khi xảy ra khi lấy danh sách sản phẩm: {Message}", ex.Message);
                 return new PagingExtensions.PagedResult<ProductDTO>();
             }
+        }
+
+        public async Task<ApiResponse<DetailProductViewDto>> GetProductDetailAsync(Guid id)
+        {
+            throw new NotImplementedException();
+        }
+
+        public async Task<ApiResponse<bool>> UpdateProductStatusAsync(Guid id, int status)
+        {
+            throw new NotImplementedException();
+        }
+
+        public async Task<ApiResponse<bool>> DeleteProductAsync(Guid id)
+        {
+            throw new NotImplementedException();
+        }
+
+        public async Task<ApiResponse<List<ProductHistoryDto>>> GetProductHistoryAsync(Guid id)
+        {
+            throw new NotImplementedException();
         }
     }
 }

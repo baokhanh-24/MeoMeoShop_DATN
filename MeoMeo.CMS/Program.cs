@@ -27,6 +27,8 @@ builder.Services.AddScoped<IMaterialClientService, MaterialClientService>();
 builder.Services.AddScoped<IVoucherClientService, VoucherClientService>();
 builder.Services.AddScoped<IBrandClientService, BrandClientService>();
 builder.Services.AddScoped<ISeasonClientService, SeasonClientService>();
+builder.Services.AddScoped<IColourClientService, ColourClientService>();
+builder.Services.AddScoped<ICategoryClientService, CategoryClientService>();
 builder.Services.AddScoped<IEmployeesClientService, EmployeesClientService>();
 builder.Services.AddScoped<IOrderClientService,OrderClientService>();
 builder.Services.AddScoped<IPromotionClientService, PromotionClientService>();

@@ -46,6 +46,12 @@ namespace MeoMeo.EntityFrameworkCore.Configurations.Contexts
         public DbSet<OrderHistory> orderHistories { get; set; }
         public DbSet<Category> categories { get; set; }
         public DbSet<ProductCategory> productCategories { get; set; }
+        public DbSet<Permission> permissions { get; set; }
+        public DbSet<PermissionGroup> permissionGroups { get; set; }
+        public DbSet<Role> roles { get; set; }
+        public DbSet<RolePermission> rolePermissions { get; set; }
+        public DbSet<UserRole> userRoles { get; set; }
+        public DbSet<UserToken> userTokens { get; set; }
 
         protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
         {
@@ -91,6 +97,11 @@ namespace MeoMeo.EntityFrameworkCore.Configurations.Contexts
             modelBuilder.ApplyConfiguration(new OrderHistoryConfiguration());
             modelBuilder.ApplyConfiguration(new CategoryConfiguration());
             modelBuilder.ApplyConfiguration(new ProductCategoryConfiguration());
+            modelBuilder.ApplyConfiguration(new PermissionGroupConfiguration());
+            modelBuilder.ApplyConfiguration(new RoleConfiguration());
+            modelBuilder.ApplyConfiguration(new RolePermissionConfiguration());
+            modelBuilder.ApplyConfiguration(new UserRoleConfiguration());
+            modelBuilder.ApplyConfiguration(new UserTokenConfiguration());
 
         }
     }

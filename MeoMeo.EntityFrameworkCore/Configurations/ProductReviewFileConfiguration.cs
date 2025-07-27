@@ -12,6 +12,7 @@ namespace MeoMeo.EntityFrameworkCore.Configurations
             builder.Property(x => x.FileName).IsRequired();
             builder.Property(x => x.FileUrl).IsRequired();
             builder.Property(x => x.FileType).IsRequired();
+
             builder.HasOne(x => x.ProductReview)
                 .WithMany(x => x.ProductReviewFiles)
                 .HasForeignKey(x => x.ProductReviewId)

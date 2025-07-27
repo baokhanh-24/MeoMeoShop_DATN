@@ -26,6 +26,7 @@ namespace MeoMeo.Contract.DTOs.ProductDetail
         public string Sizes { get; set; }
         public string Colours { get; set; }
         public string Materials { get; set; }
+        public string Categories { get; set; }
         public int? InventoryQuantity { get; set; }
         public int? ViewNumber { get; set; }
         public int? SellNumber { get; set; }
