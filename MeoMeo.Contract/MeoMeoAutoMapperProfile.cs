@@ -98,6 +98,11 @@ namespace MeoMeo.Contract
             CreateMap<SystemConfigDTO, CreateOrUpdateSystemConfigDTO>();
             CreateMap<SystemConfigDTO, SystemConfig>();
             CreateMap<User,UserDTO>();
+            
+            // Category mappings
+            CreateMap<CategoryDTO, Category>();
+            CreateMap<Category, CategoryResponseDTO>();
+            CreateMap<Category, CategoryDTO>();
         }
 
     }

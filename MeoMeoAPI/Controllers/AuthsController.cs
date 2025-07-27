@@ -24,4 +24,10 @@ public class AuthsController: ControllerBase
 
     [HttpPost("refresh-token")]
     public Task<AuthenResponse> RefreshTokenAsync(RefreshTokenRequest input) => _authService.RefreshTokenAsync(input);
+
+    [HttpGet("test-token")]
+    public IActionResult TestToken()
+    {
+        return Ok(new { message = "Token test endpoint is working" });
+    }
 }

@@ -8,6 +8,7 @@ using System.Security.Claims;
 using System.Text;
 using MeoMeo.EntityFrameworkCore.Configurations.Contexts;
 using MeoMeo.Shared.Utilities;
+using MeoMeo.Shared.Constants;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.IdentityModel.Tokens;
 
@@ -16,6 +17,12 @@ namespace MeoMeo.API.Extensions;
 
 public static class ServiceExtensions
 {
+    internal static IServiceCollection AddConfigurationSettings(this IServiceCollection services,
+        IConfiguration configuration)
+    {
+        services.AddPolicyMiddleWare(configuration);
+        return services;
+    }
     public static IServiceCollection AddInfrastructure(this IServiceCollection services)
     {
         services.AddControllers();
@@ -52,17 +59,18 @@ public static class ServiceExtensions
                     ValidateAudience = true,
                     ValidateLifetime = true,
                     ValidateIssuerSigningKey = true,
-                    // Use the correct signing key here
                     IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(configuration.GetSection("Jwt:key").Value)),
                     ValidIssuer = configuration.GetSection("Jwt:Issuer").Value,
                     ValidAudience = configuration.GetSection("Jwt:Audience").Value
                 };
+                o.UseSecurityTokenValidators = true;
                 o.Events = new JwtBearerEvents
                 {
                     OnTokenValidated = async context =>
                     {
                         var dbContext = context.HttpContext.RequestServices.GetRequiredService<MeoMeoDbContext>();
-                        var userId = context.Principal?.FindFirst(ClaimTypes.NameIdentifier)
+                        var userId = context.Principal?.FindFirst(ClaimTypeConst.UserId)
+                                     ?? context.Principal?.FindFirst(ClaimTypes.NameIdentifier)
                                      ?? context.Principal?.FindFirst("id");
                         var token = context.SecurityToken as JwtSecurityToken;
                         if (userId == null || token == null)
@@ -71,17 +79,32 @@ public static class ServiceExtensions
                             return;
                         }
                         var userToken = await dbContext.userTokens.FirstOrDefaultAsync(ut =>
-                            ut.AccessToken == token.RawData  && ut.ExpiryDate > DateTime.Now );
-                        if (userToken == null || !userToken.IsUpdateToken && userToken.IsRevoked)
+                            ut.AccessToken == token.RawData && ut.ExpiryDate > DateTime.Now);
+                        if (userToken == null || userToken.IsRevoked)
                         {
                             context.Fail("Unauthorized");
                         }   
                        
                     }
                  };
+              
+
 
             });
-        services.AddAuthorization();
+       services.AddAuthorization(options =>
+        {
+            options.AddPolicy("Admin", policy =>
+                policy.Requirements.Add(new PermissionRequirement(new[] { "ADMIN.ADMIN" }, requiresAll: false)));
+            options.AddPolicy("Customer", policy =>
+                policy.Requirements.Add(new PermissionRequirement(new[] { "CUSTOMER.CUSTOMER" }, requiresAll: false))); 
+           
+            options.AddPolicy("AdminOrCustomer", policy =>
+            {
+                policy.Requirements.Add(new PermissionRequirement(new[] { "ADMIN.ADMIN", "CUSTOMER.CUSTOMER" }, requiresAll: false));
+                
+            });
+            
+        });
         return services;
     }
     private static void ConfigureSwagger(this IServiceCollection services)

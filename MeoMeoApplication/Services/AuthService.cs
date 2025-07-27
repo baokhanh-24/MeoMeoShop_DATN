@@ -14,6 +14,7 @@ using MeoMeo.Shared.Constants;
 using MeoMeo.Shared.Utilities;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Configuration;
 using Microsoft.IdentityModel.Tokens;
 
 namespace MeoMeo.Application.Services;
@@ -30,8 +31,9 @@ public class AuthService:IAuthService
     private ICustomerRepository _customerRepository { get; }
     private IEmployeeRepository _employeeRepository { get; }
     private IMapper _mapper { get; }
+    private IConfiguration _configuration { get; }
 
-    public AuthService(IRefreshTokenRepository refreshTokenRepository, IRoleRepository roleRepository, IUserRoleRepository userRoleRepository, IPermissionRepository permissionRepository, IPermissionGroupRepository permissionGroupRepository, IUserTokenRepository userTokenRepository, IUserRepository userRepository, IMapper mapper, ICustomerRepository customerRepository, IEmployeeRepository employeeRepository)
+    public AuthService(IRefreshTokenRepository refreshTokenRepository, IRoleRepository roleRepository, IUserRoleRepository userRoleRepository, IPermissionRepository permissionRepository, IPermissionGroupRepository permissionGroupRepository, IUserTokenRepository userTokenRepository, IUserRepository userRepository, IMapper mapper, ICustomerRepository customerRepository, IEmployeeRepository employeeRepository, IConfiguration configuration)
     {
         _refreshTokenRepository = refreshTokenRepository;
         _roleRepository = roleRepository;
@@ -43,6 +45,7 @@ public class AuthService:IAuthService
         _mapper = mapper;
         _customerRepository = customerRepository;
         _employeeRepository = employeeRepository;
+        _configuration = configuration;
     }
     
 
@@ -75,7 +78,7 @@ public async Task<AuthenResponse> LoginAsync(AuthenRequest input)
             }
             var userRoles = await _userRoleRepository.GetRolesByUserId(existedUser.Id);
             var roles = await _roleRepository.GetNameByRoleIds(userRoles.Select(c=>c.RoleId));
-            var permissionQuery = await GetListPermissionGroupByArrRoleId(userRoles.Select(c=>c.RoleId.GetHashCode()).ToList());
+            var permissionQuery = await GetListPermissionGroupByArrRoleId(existedUser.Id);
             var userMapped= _mapper.Map<UserDTO>(existedUser);
             if (roles.Count > 0 && roles.Contains("Customer"))
             {
@@ -213,7 +216,7 @@ public async Task<AuthenResponse> LoginAsync(AuthenRequest input)
             // Get user roles and permissions
             var userRoles = await _userRoleRepository.GetRolesByUserId(user.Id);
             var roles = await _roleRepository.GetNameByRoleIds(userRoles.Select(c => c.RoleId));
-            var permissionQuery = await GetListPermissionGroupByArrRoleId(userRoles.Select(c => c.RoleId.GetHashCode()).ToList());
+            var permissionQuery = await GetListPermissionGroupByArrRoleId(user.Id);
             var userMapped= _mapper.Map<UserDTO>(user);
             if (roles.Count > 0 && roles.Contains("Customer"))
             {
@@ -277,57 +280,55 @@ public async Task<AuthenResponse> LoginAsync(AuthenRequest input)
     private string GenerateToken(UserDTO user, List<string> roles, IEnumerable<PermissionGroupDTO> permissionQuery)
     {
         List<string> listPermission = new List<string>();
-        int permissionCount = 0;
-        Claim[] claims= [];
-        foreach (var x in permissionQuery)
+        
+        // Process permissions if any
+        if (permissionQuery != null && permissionQuery.Any())
         {
-            ++permissionCount;
-            foreach (var per in x.SubPermissionGroups)
+            foreach (var x in permissionQuery)
             {
-                foreach (var subPer in per.Permissions.Where(c=>c.IsGranted==true))
+                foreach (var per in x.SubPermissionGroups)
                 {
-                    var permission= FunctionHelper.PermissionHelper
-                        .GetPermission(subPer.Function, subPer.Command);
-                    listPermission.Add(permission);
+                    foreach (var subPer in per.Permissions.Where(c=>c.IsGranted==true))
+                    {
+                        var permission= FunctionHelper.PermissionHelper
+                            .GetPermission(subPer.Function, subPer.Command);
+                        listPermission.Add(permission);
+                    }
                 }
             }
-
-            if (permissionCount == permissionQuery.Count())
-            {
-                 claims = new[]
-                {
-                    new Claim(ClaimTypeConst.UserName, user.UserName),
-                    new Claim(ClaimTypeConst.UserId, user.Id.ToString()),
-                    new Claim(ClaimTypeConst.AdminOrUser,roles.Contains("Admin")?"Admin":"User"),
-                    new Claim(ClaimTypeConst.Roles, string.Join(";", roles)),
-                    new Claim(ClaimTypeConst.Email, user.Email),
-                    new Claim(ClaimTypeConst.Avatar, user.Avatar),
-                    new Claim(ClaimTypeConst.FullName, user.FullName),
-                    new Claim(ClaimTypeConst.Permissions, string.Join(";",listPermission))
-                };
-                return GenerateTokenByClaim(claims);
-            }
         }
+
+        // Always create basic claims
+        var claims = new[]
+        {
+            new Claim(ClaimTypeConst.UserName, user.UserName ?? ""),
+            new Claim(ClaimTypeConst.UserId, user.Id.ToString()),
+            new Claim(ClaimTypeConst.AdminOrUser, roles.Contains("Admin") ? "Admin" : "User"),
+            new Claim(ClaimTypeConst.Roles, string.Join(";", roles ?? new List<string>())),
+            new Claim(ClaimTypeConst.Email, user.Email ?? ""),
+            new Claim(ClaimTypeConst.Avatar, user.Avatar ?? ""),
+            new Claim(ClaimTypeConst.FullName, user.FullName ?? ""),
+            new Claim(ClaimTypeConst.Permissions, string.Join(";", listPermission))
+        };
+        
         return GenerateTokenByClaim(claims);
     }
 
-    private async Task<IEnumerable<PermissionGroupDTO>> GetListPermissionGroupByArrRoleId(List<int> RoleIds)
+    private async Task<IEnumerable<PermissionGroupDTO>> GetListPermissionGroupByArrRoleId(Guid userId)
     {
         try
-    {
-        IEnumerable<RolePermissionDTO> userPermissionDtos = new List<RolePermissionDTO>();
+        {
+            IEnumerable<RolePermissionDTO> userPermissionDtos = new List<RolePermissionDTO>();
             var permissionGroups = await _permissionGroupRepository.GetAllAsync();
             
-        if (RoleIds.Count > 0)
-        {
-                var rolePermissions = await _permissionRepository.GetPermissionByUserId(Guid.Empty);
-              
-                userPermissionDtos = rolePermissions.Select(rp => new RolePermissionDTO
-                {
-                    RoleId = rp.RoleId.GetHashCode(),
-                    PermissionId = rp.PermissionId.GetHashCode()
-                });
-            }
+            // Get permissions by user ID
+            var rolePermissions = await _permissionRepository.GetPermissionByUserId(userId);
+          
+            userPermissionDtos = rolePermissions.Select(rp => new RolePermissionDTO
+            {
+                RoleId = rp.RoleId.GetHashCode(),
+                PermissionId = rp.PermissionId.GetHashCode()
+            });
             var response = permissionGroups.Select(pg => new PermissionGroupDTO
             {
                 Id = pg.Id.GetHashCode(),
@@ -585,10 +586,14 @@ public async Task<AuthenResponse> LoginAsync(AuthenRequest input)
     
     private string GenerateTokenByClaim(IEnumerable<Claim> claims)
     {
-        var securityKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes("MeoMeoShopSuperSecretKeyMaiYeuJack97"));
+        var jwtKey = _configuration.GetSection("Jwt:Key").Value ?? throw new InvalidOperationException("JWT Key is not configured");
+        var jwtIssuer = _configuration.GetSection("Jwt:Issuer").Value ?? throw new InvalidOperationException("JWT Issuer is not configured");
+        var jwtAudience = _configuration.GetSection("Jwt:Audience").Value ?? throw new InvalidOperationException("JWT Audience is not configured");
+        
+        var securityKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtKey));
         var credentials = new SigningCredentials(securityKey, SecurityAlgorithms.HmacSha256);
-        var token = new JwtSecurityToken("http://localhost:5092",
-            "http://localhost:5092/",
+        var token = new JwtSecurityToken(jwtIssuer,
+            jwtAudience,
             claims,
             expires: DateTime.Now.AddSeconds(ExpriesIn),
             signingCredentials: credentials);

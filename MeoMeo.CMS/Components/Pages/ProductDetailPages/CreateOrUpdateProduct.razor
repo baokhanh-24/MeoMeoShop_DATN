@@ -1,0 +1,327 @@
+@page "/product/create"
+@using AntDesign
+@using MeoMeo.Shared.Utilities
+@using MeoMeo.Contract.DTOs.ProductDetail
+@using MeoMeo.Domain.Commons.Enums
+@using Microsoft.AspNetCore.Http
+@using System.Net.Http.Headers
+@using MeoMeo.Shared.IServices
+@using MeoMeo.Contract.DTOs
+@using MeoMeo.Contract.DTOs.Size
+@using MeoMeo.Contract.DTOs.Material
+@inject IJSRuntime JSRuntime
+@inject NavigationManager Navigation
+@inject MessageModalService MessageModalService
+@inject IBrandClientService BrandClientService
+@inject ISizeClientService SizeClientService
+@inject IMaterialClientService MaterialClientService
+@inject ISeasonClientService SeasonClientService
+@inject IColourClientService ColourClientService
+@inject ICategoryClientService CategoryClientService
+
+<div class="d-flex justify-content-between mb-3">
+    <Breadcrumb>
+        <BreadcrumbItem Href="/">Trang chủ</BreadcrumbItem>
+        <BreadcrumbItem Href="/manage-customer">Quản lý sản phẩm</BreadcrumbItem>
+        <BreadcrumbItem Href="/manage-customer">Thêm mới sản phẩm</BreadcrumbItem>
+    </Breadcrumb>
+    <div>
+        <Button Icon="@IconType.Outline.Close" OnClick="ResetData">Hủy</Button>
+        <Button Type="@ButtonType.Primary" Icon="@IconType.Outline.Check" OnClick="@(() => HandleSave(0))"
+            Loading="@isLoading">Lưu</Button>
+        <Button Icon="@IconType.Outline.Send" OnClick="@(() => HandleSave(3))" Loading="@isLoading">Gửi duyệt</Button>
+        <Button Icon="@IconType.Outline.ArrowLeft" OnClick="GoBack">Quay lại</Button>
+    </div>
+</div>
+
+<Card Title="Thông tin chung" Style="margin-bottom: 24px;">
+    <Form Model="productModel" Layout="@FormLayout.Vertical">
+        <Row Gutter="16">
+            <Col Span="6">
+            <FormItem Label="Tên sản phẩm" Required="true">
+                <Input @bind-Value="@productModel.ProductName" Placeholder="Nhập tên sản phẩm..." />
+            </FormItem>
+            </Col>
+            <Col Span="6">
+            <FormItem Label="Thương hiệu" Required="true">
+                <Select TItem="SelectOption" TItemValue="Guid" DataSource="@brandOptions"
+                    @bind-Value="@productModel.BrandId" Placeholder="Chọn thương hiệu" ShowSearch="true"
+                    AllowClear="true" ItemValue="x => x.Value" ItemLabel="x => x.Label" />
+            </FormItem>
+            </Col>
+            <Col Span="6">
+            <FormItem Label="Giá bán (đ)" Required="true">
+                <AntDesign.InputNumber TValue="float" @bind-Value="@productModel.Price" Placeholder="Nhập giá..."
+                    Min="1" Style="width: 100%;" />
+            </FormItem>
+            </Col>
+            <Col Span="6">
+            <FormItem Label="Size" Required="true">
+                <Select TItem="SelectOption" TItemValue="Guid" DataSource="@sizeOptions"
+                    @bind-SelectedValues="@productModel.SizeIds" Mode="SelectMode.Multiple" Placeholder="Chọn size"
+                    ShowSearch="true" AllowClear="true" ItemValue="x => x.Value" ItemLabel="x => x.Label" />
+            </FormItem>
+            </Col>
+        </Row>
+        <Row Gutter="16">
+            <Upload Multiple="true" ListType="UploadListType.PictureCard" Action="http://localhost:5092" Name="avatar"
+                ShowUploadList="true" ShowDownloadIcon="true" ShowPreviewIcon="true" ShowRemoveIcon="true"
+                @bind-FileList="imageFileList" ShowButton="imageFileList?.Count < 10" OnPreview="(file)=> {
+                                                                                                                                                                                                       Console.WriteLine(file.FileName);
+                                                                                      Console.WriteLine(file.Url);
+                                                                                                                                                                                                   }"
+                OnChange="@OnImageUploadChange" Accept="image/*">
+                <div>
+                    <Icon Type="@IconType.Outline.Upload" Style="font-size: 24px; color: #999;" />
+                    <div style="margin-top: 8px; color: #666;">Tải ảnh</div>
+                </div>
+            </Upload>
+        </Row>
+        <Row Gutter="16">
+            <Col Span="24">
+            <FormItem Label="Mô tả">
+                <TextArea @bind-Value="@productModel.Description" Placeholder="Nhập mô tả sản phẩm..." Rows="3" />
+            </FormItem>
+            </Col>
+        </Row>
+    </Form>
+</Card>
+<Card Title="Thông tin cơ bản" Style="margin-bottom: 24px;">
+    <Form Model="productModel" Layout="@FormLayout.Vertical">
+        <Row Gutter="16">
+            <Col Span="6">
+            <FormItem Label="Giới tính" Required="true">
+                <Select TItem="IntSelectOption" TItemValue="int" DataSource="@genderOptions"
+                    Value="@((int)productModel.Gender)"
+                    OnChange="@((int value) => productModel.Gender = (EProductDetailGender)value)"
+                    Placeholder="Chọn giới tính" AllowClear="true" ItemValue="x => x.Value" ItemLabel="x => x.Label" />
+            </FormItem>
+            </Col>
+            <Col Span="6">
+            <FormItem Label="Chiều cao đế (cm)" Required="true">
+                <AntDesign.InputNumber TValue="float" @bind-Value="@productModel.StockHeight"
+                    Placeholder="Nhập chiều cao đế..." Min="0" Step="0.1f" Style="width: 100%;" />
+            </FormItem>
+            </Col>
+            <Col Span="6">
+            <FormItem Label="Chiều dài giày (cm)" Required="true">
+                <AntDesign.InputNumber TValue="float" @bind-Value="@productModel.ShoeLength"
+                    Placeholder="Nhập chiều dài giày..." Min="0" Step="0.1f" Style="width: 100%;" />
+            </FormItem>
+            </Col>
+            <Col Span="6">
+            <FormItem Label="Cảnh báo hết hàng" Required="true">
+                <AntDesign.InputNumber TValue="int" @bind-Value="@productModel.OutOfStock"
+                    Placeholder="Nhập số lượng cảnh báo..." Min="0" Style="width: 100%;" />
+            </FormItem>
+            </Col>
+        </Row>
+        <Row Gutter="16">
+            <Col Span="6">
+            <FormItem Label="Cho phép trả hàng">
+                <Checkbox @bind-Value="@productModel.AllowReturn">Được phép trả hàng</Checkbox>
+            </FormItem>
+            </Col>
+        </Row>
+        <Row Gutter="16">
+            <Col Span="6">
+            <FormItem Label="Danh mục" Required="true">
+                <Select TItem="SelectOption" TItemValue="Guid" DataSource="@categoryOptions"
+                    @bind-SelectedValues="@productModel.CategoryIds" Mode="SelectMode.Multiple"
+                    Placeholder="Chọn danh mục" ShowSearch="true" AllowClear="true" ItemValue="x => x.Value"
+                    ItemLabel="x => x.Label" />
+            </FormItem>
+            </Col>
+            <Col Span="6">
+            <FormItem Label="Màu sắc" Required="true">
+                <Select TItem="SelectOption" TItemValue="Guid" DataSource="@colorOptions"
+                    @bind-SelectedValues="@productModel.ColourIds" Mode="SelectMode.Multiple" Placeholder="Chọn màu sắc"
+                    ShowSearch="true" AllowClear="true" ItemValue="x => x.Value" ItemLabel="x => x.Label" />
+            </FormItem>
+            </Col>
+            <Col Span="6">
+            <FormItem Label="Mùa" Required="true">
+                <Select TItem="SelectOption" TItemValue="Guid" DataSource="@seasonOptions"
+                    @bind-SelectedValues="@productModel.SeasonIds" Mode="SelectMode.Multiple" Placeholder="Chọn mùa"
+                    ShowSearch="true" AllowClear="true" ItemValue="x => x.Value" ItemLabel="x => x.Label" />
+            </FormItem>
+            </Col>
+            <Col Span="6">
+            <FormItem Label="Chất liệu" Required="true">
+                <Select TItem="SelectOption" TItemValue="Guid" DataSource="@materialOptions"
+                    @bind-SelectedValues="@productModel.MaterialIds" Mode="SelectMode.Multiple"
+                    Placeholder="Chọn chất liệu" ShowSearch="true" AllowClear="true" ItemValue="x => x.Value"
+                    ItemLabel="x => x.Label" />
+            </FormItem>
+            </Col>
+        </Row>
+    </Form>
+</Card>
+
+
+@code {
+    private CreateOrUpdateProductDetailDTO productModel = new();
+    private List<UploadFileItem> imageFileList = new();
+    private List<ProductMediaUpload> uploadedImages = new();
+
+    // Dropdown options
+    private List<SelectOption> brandOptions = new();
+    private List<SelectOption> sizeOptions = new();
+    private List<SelectOption> colorOptions = new();
+    private List<SelectOption> seasonOptions = new();
+    private List<SelectOption> materialOptions = new();
+    private List<SelectOption> categoryOptions = new();
+    private List<IntSelectOption> genderOptions = new();
+    private List<IntSelectOption> statusOptions = new();
+
+    private bool isLoading = false;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadDropdownData();
+    }
+
+    private async Task LoadDropdownData()
+    {
+        try
+        {
+            // Load Brands
+            var brandRequest = new GetListBrandRequestDTO { PageSize = Int32.MaxValue, PageIndex = 1 };
+            var brandResponse = await BrandClientService.GetAllBrandAsync(brandRequest);
+            brandOptions = brandResponse.Items?.Select(x => new SelectOption
+            {
+                Value = x.Id,
+                Label = x.Name
+            }).ToList() ?? new List<SelectOption>();
+
+            // Load Sizes
+            var sizeRequest = new GetListSizeRequestDTO { PageSize = Int32.MaxValue, PageIndex = 1 };
+            var sizeResponse = await SizeClientService.GetAllSizeAsync(sizeRequest);
+            sizeOptions = sizeResponse.Items?.Select(x => new SelectOption
+            {
+                Value = x.Id,
+                Label = x.Value
+            }).ToList() ?? new List<SelectOption>();
+
+            // Load Materials
+            var materialRequest = new GetListMaterialRequest { PageSize = Int32.MaxValue, PageIndex = 1 };
+            var materialResponse = await MaterialClientService.GetAllMaterialsAsync(materialRequest);
+            materialOptions = materialResponse.Items?.Select(x => new SelectOption
+            {
+                Value = x.Id,
+                Label = x.Name
+            }).ToList() ?? new List<SelectOption>();
+
+            // Load Seasons
+            var seasonRequest = new GetListSeasonRequestDTO { PageSize = Int32.MaxValue, PageIndex = 1 };
+            var seasonResponse = await SeasonClientService.GetAllSeasonsAsync(seasonRequest);
+            seasonOptions = seasonResponse.Items?.Select(x => new SelectOption
+            {
+                Value = x.Id,
+                Label = x.Name
+            }).ToList() ?? new List<SelectOption>();
+
+            // Load Colours
+            var colours = await ColourClientService.GetAllColoursAsync();
+            colorOptions = colours?.Select(x => new SelectOption
+            {
+                Value = x.Id,
+                Label = x.Name
+            }).ToList() ?? new List<SelectOption>();
+
+            // Load Categories
+            var categories = await CategoryClientService.GetAllCategoriesAsync();
+            categoryOptions = categories?.Select(x => new SelectOption
+            {
+                Value = x.Id,
+                Label = x.Name
+            }).ToList() ?? new List<SelectOption>();
+
+            // Gender options (static)
+            genderOptions = new List<IntSelectOption>
+{
+new IntSelectOption { Value = 0, Label = "Nam" },
+new IntSelectOption { Value = 1, Label = "Nữ" },
+new IntSelectOption { Value = 2, Label = "Unisex" }
+};
+
+            // Status options (static)
+            statusOptions = new List<IntSelectOption>
+{
+new IntSelectOption { Value = 1, Label = "Đang bán" },
+new IntSelectOption { Value = 2, Label = "Ngừng bán" }
+};
+        }
+        catch (Exception ex)
+        {
+            await MessageModalService.Error($"Lỗi khi tải dữ liệu: {ex.Message}");
+
+        }
+    }
+
+
+
+    private void OnImageUploadChange(UploadInfo info)
+    {
+        Console.WriteLine(info);
+        imageFileList = info.FileList;
+    }
+
+    private async Task HandleSave(int status)
+    {
+        if (string.IsNullOrEmpty(productModel.ProductName))
+        {
+            await MessageModalService.Error("Tên sản phẩm không được để trống!");
+            return;
+        }
+        if (productModel.Price <= 0)
+        {
+            await MessageModalService.Error("Giá bán không được để trống và phải lớn hơn 0!");
+            return;
+        }
+        isLoading = true;
+        try
+        {
+            productModel.Images = new List<ProductMediaUpload>();
+            productModel.Status = status;
+
+            await MessageModalService.Success("Lưu sản phẩm thành công");
+
+            Navigation.NavigateTo("/product");
+        }
+        catch (Exception ex)
+        {
+            await MessageModalService.Error("Có lỗi xảy ra trong quá trình xử lý!");
+            Console.WriteLine($"Error saving product: {ex.Message}");
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    private async void ResetData()
+    {
+        productModel = new CreateOrUpdateProductDetailDTO();
+        imageFileList.Clear();
+        uploadedImages.Clear();
+        await MessageModalService.Success("Đã reset form thành công!");
+    }
+
+    private void GoBack()
+    {
+        Navigation.NavigateTo("/product");
+    }
+
+    public class SelectOption
+    {
+        public Guid Value { get; set; }
+        public string Label { get; set; } = string.Empty;
+    }
+
+    public class IntSelectOption
+    {
+        public int Value { get; set; }
+        public string Label { get; set; } = string.Empty;
+    }
+}
