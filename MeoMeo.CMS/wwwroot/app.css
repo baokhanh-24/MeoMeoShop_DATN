@@ -121,3 +121,17 @@ h1:focus {
     max-width: 100%;
     overflow: hidden !important;
 }
+.image-preview-container .image-preview,
+.ant-image-img {
+    height: 100% !important;
+}
+.validation-error {
+    color: #ff4d4f;
+    font-size: 12px;
+    margin-top: 4px;
+    line-height: 1.4;
+}
+.validation-error::before {
+    content: '⚠ ';
+    margin-right: 2px;
+}

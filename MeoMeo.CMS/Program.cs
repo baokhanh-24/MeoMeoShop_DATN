@@ -3,6 +3,7 @@ using MeoMeo.Shared.IServices;
 using System.Globalization;
 using MeoMeo.Shared.Services;
 using MeoMeo.Shared.Utilities;
+using Radzen;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -11,6 +12,8 @@ var apiBaseUrl = builder.Configuration["ApiSettings:BaseUrl"];
 builder.Services.AddRazorComponents()
     .AddInteractiveServerComponents();
 builder.Services.AddAntDesign();
+builder.Services.AddRadzenComponents();
+
 builder.Services.AddScoped<MessageModalService>();
 builder.Services.AddSingleton<LoadingService>();
 builder.Services.AddHttpClient<IApiCaller, ApiCaller>();

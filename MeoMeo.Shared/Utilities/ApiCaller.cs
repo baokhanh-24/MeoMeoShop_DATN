@@ -53,6 +53,22 @@ namespace MeoMeo.Shared.Utilities
             }
         }
 
+        public async Task<T?> PostFormAsync<T>(string url, MultipartFormDataContent formData)
+        {
+            await _loading.StartAsync();
+            try
+            {
+                var response = await _http.PostAsync(url, formData);
+                response.EnsureSuccessStatusCode();
+                var resultJson = await response.Content.ReadAsStringAsync();
+                return JsonSerializer.Deserialize<T>(resultJson, new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+            }
+            finally
+            {
+                 await _loading.StopAsync();
+            }
+        }
+
         public async Task<T?> PutAsync<TInput, T>(string url, TInput data)
         {
             await _loading.StartAsync();
@@ -61,6 +77,22 @@ namespace MeoMeo.Shared.Utilities
                 var json = JsonSerializer.Serialize(data);
                 var content = new StringContent(json, Encoding.UTF8, "application/json");
                 var response = await _http.PutAsync(url, content);
+                response.EnsureSuccessStatusCode();
+                var resultJson = await response.Content.ReadAsStringAsync();
+                return JsonSerializer.Deserialize<T>(resultJson, new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+            }
+            finally
+            {
+                 await _loading.StopAsync();
+            }
+        }
+
+        public async Task<T?> PutFormAsync<T>(string url, MultipartFormDataContent formData)
+        {
+            await _loading.StartAsync();
+            try
+            {
+                var response = await _http.PutAsync(url, formData);
                 response.EnsureSuccessStatusCode();
                 var resultJson = await response.Content.ReadAsStringAsync();
                 return JsonSerializer.Deserialize<T>(resultJson, new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
