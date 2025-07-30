@@ -957,10 +957,8 @@ namespace MeoMeo.EntityFrameworkCore.Migrations
                     b.Property<bool>("AllowReturn")
                         .HasColumnType("bit");
 
-                    b.Property<string>("Barcode")
-                        .IsRequired()
-                        .HasMaxLength(50)
-                        .HasColumnType("varchar(50)");
+                    b.Property<int>("ClosureType")
+                        .HasColumnType("int");
 
                     b.Property<DateTime>("CreationTime")
                         .HasColumnType("datetime2");
@@ -986,9 +984,6 @@ namespace MeoMeo.EntityFrameworkCore.Migrations
 
                     b.Property<int?>("SellNumber")
                         .HasColumnType("int");
-
-                    b.Property<float>("ShoeLength")
-                        .HasColumnType("real");
 
                     b.Property<string>("Sku")
                         .IsRequired()

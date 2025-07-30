@@ -9,7 +9,11 @@ namespace MeoMeo.EntityFrameworkCore.Configurations
         public void Configure(EntityTypeBuilder<ProductDetailColour> builder)
         {
             builder.ToTable("ProductDetailColours");
-            builder.HasKey(x => x.ProductDetailId);
+            builder.HasKey(x => new
+            {
+                x.ProductDetailId,
+                x.ColourId
+            });
             builder.HasKey(x => x.ColourId);
             builder.HasOne(x => x.ProductDetail).WithMany(x => x.ProductDetailColours).HasForeignKey(x => x.ProductDetailId);
             builder.HasOne(x => x.Colour).WithMany(x => x.ProductDetailColours).HasForeignKey(x => x.ColourId);

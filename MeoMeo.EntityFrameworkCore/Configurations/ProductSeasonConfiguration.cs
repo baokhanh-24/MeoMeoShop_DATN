@@ -9,7 +9,7 @@ namespace MeoMeo.EntityFrameworkCore.Configurations
         public void Configure(EntityTypeBuilder<ProductSeason> builder)
         {
             builder.ToTable("ProductSeasons");
-            builder.HasKey(x => x.SeasonId);
+            builder.HasKey(x => new { x.SeasonId, x.ProductId });
             builder.HasKey(x => x.ProductId);
             builder.HasOne(x => x.Season).WithMany(x => x.ProductSeasons).HasForeignKey(x => x.SeasonId);
             builder.HasOne(x => x.Product).WithMany(x => x.ProductSeasons).HasForeignKey(x => x.ProductId);

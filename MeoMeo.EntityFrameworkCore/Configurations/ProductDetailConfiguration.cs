@@ -10,7 +10,6 @@ namespace MeoMeo.EntityFrameworkCore.Configurations
         {
             builder.ToTable("ProductDetails");
             builder.HasKey(x => x.Id);
-            builder.Property(x => x.Barcode).HasMaxLength(50).HasColumnType("varchar(50)");
             builder.Property(x => x.Sku).HasMaxLength(20).HasColumnType("varchar(20)");
             builder.Property(x => x.Description).HasColumnType("nvarchar(max)");
             builder.HasOne(x => x.Product).WithMany(c => c.ProductDetails).HasForeignKey(x => x.ProductId);

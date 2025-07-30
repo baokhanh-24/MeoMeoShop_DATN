@@ -29,6 +29,11 @@ namespace MeoMeo.Shared.Utilities
                 return JsonSerializer.Deserialize<T>(json,
                     new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
             }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, ex.Message);
+                return default(T);
+            }
             finally
             {
                  await _loading.StopAsync();
@@ -46,6 +51,40 @@ namespace MeoMeo.Shared.Utilities
                 response.EnsureSuccessStatusCode();
                 var resultJson = await response.Content.ReadAsStringAsync();
                 return JsonSerializer.Deserialize<T>(resultJson, new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, ex.Message);
+                return default(T);
+            }
+            finally
+            {
+                 await _loading.StopAsync();
+            }
+        }
+
+        public async Task<T?> PostFormAsync<T>(string url, MultipartFormDataContent formData)
+        {
+            await _loading.StartAsync();
+            try
+            {
+                var response = await _http.PostAsync(url, formData);
+                response.EnsureSuccessStatusCode();
+                string content = await response.Content.ReadAsStringAsync();
+                if (!response.IsSuccessStatusCode)
+                {
+                    Console.WriteLine($"[ERROR] Status: {(int)response.StatusCode} - {response.ReasonPhrase}");
+                    Console.WriteLine($"[ERROR] Response body: {content}");
+                    throw new HttpRequestException($"Response status code does not indicate success: {(int)response.StatusCode} ({response.ReasonPhrase}). Body: {content}");
+                }
+                var resultJson = await response.Content.ReadAsStringAsync();
+                return JsonSerializer.Deserialize<T>(resultJson,
+                    new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, ex.Message);
+                return default(T);
             }
             finally
             {
@@ -65,6 +104,32 @@ namespace MeoMeo.Shared.Utilities
                 var resultJson = await response.Content.ReadAsStringAsync();
                 return JsonSerializer.Deserialize<T>(resultJson, new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
             }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, ex.Message);
+                return default(T);
+            }
+            finally
+            {
+                 await _loading.StopAsync();
+            }
+        }
+
+        public async Task<T?> PutFormAsync<T>(string url, MultipartFormDataContent formData)
+        {
+            await _loading.StartAsync();
+            try
+            {
+                var response = await _http.PutAsync(url, formData);
+                response.EnsureSuccessStatusCode();
+                var resultJson = await response.Content.ReadAsStringAsync();
+                return JsonSerializer.Deserialize<T>(resultJson, new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, ex.Message);
+                return default(T);
+            }
             finally
             {
                  await _loading.StopAsync();
@@ -78,6 +143,11 @@ namespace MeoMeo.Shared.Utilities
             {
                 var response = await _http.DeleteAsync(url);
                 return response.IsSuccessStatusCode;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, ex.Message);
+                return false;
             }
             finally
             {
@@ -94,6 +164,11 @@ namespace MeoMeo.Shared.Utilities
                 response.EnsureSuccessStatusCode();
                 return await response.Content.ReadAsStringAsync();
             }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, ex.Message);
+                return string.Empty;
+            }
             finally
             {
                  await _loading.StopAsync();
@@ -107,6 +182,11 @@ namespace MeoMeo.Shared.Utilities
             {
                 var response = await _http.SendAsync(request);
                 return response;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, ex.Message);
+                return new HttpResponseMessage(System.Net.HttpStatusCode.InternalServerError);
             }
             finally
             {

@@ -1,0 +1,268 @@
+@* @page "/product-detail-demo/{Id:guid}" *@
+@* @using MeoMeo.Contract.DTOs.ProductDetail *@
+@* @using MeoMeo.Domain.Commons.Enums *@
+@* @using MeoMeo.Shared.IServices *@
+@* @using MeoMeo.Shared.Utilities *@
+@* @using System.ComponentModel.DataAnnotations *@
+@* @using System.Reflection *@
+@* @inject IProductDetailClientService ProductDetailClientService *@
+@* @inject NavigationManager Navigation *@
+@* @inject MessageModalService MessageModalService *@
+@* *@
+@* <div class="d-flex justify-content-between mb-3"> *@
+@*     <Breadcrumb> *@
+@*         <BreadcrumbItem Href="/">Trang chủ</BreadcrumbItem> *@
+@*         <BreadcrumbItem Href="/manage-product-detail">Quản lý sản phẩm</BreadcrumbItem> *@
+@*         <BreadcrumbItem Href="/manage-product-detail">Demo Chi tiết sản phẩm</BreadcrumbItem> *@
+@*     </Breadcrumb> *@
+@*     <div> *@
+@*         <Button Icon="@IconType.Outline.Edit" OnClick="() => EditProduct()">Sửa sản phẩm</Button> *@
+@*         <Button Icon="@IconType.Outline.ArrowLeft" OnClick="GoBack">Quay lại</Button> *@
+@*     </div> *@
+@* </div> *@
+@* *@
+@* @if (isLoading) *@
+@* { *@
+@*     <div class="text-center mt-5"> *@
+@*         <Spin Size="SpinSize.Large" /> *@
+@*         <div style="margin-top: 8px;">Đang tải dữ liệu sản phẩm...</div> *@
+@*     </div> *@
+@* } *@
+@* else if (productDetail == null) *@
+@* { *@
+@*     <div class="alert alert-danger mt-4" role="alert"> *@
+@*         Không tìm thấy sản phẩm. *@
+@*     </div> *@
+@* } *@
+@* else *@
+@* { *@
+@*     <div class="row"> *@
+@*         <div class="col-md-8"> *@
+@*             <Card Title="Thông tin cơ bản" Style="margin-bottom: 24px;"> *@
+@*                 <Descriptions Bordered> *@
+@*                     <DescriptionsItem Title="ID" Span="1">@productDetail.Id</DescriptionsItem> *@
+@*                     <DescriptionsItem Title="Tên sản phẩm" Span="3">@productDetail.ProductName</DescriptionsItem> *@
+@*                     <DescriptionsItem Title="SKU" Span="1">@productDetail.Sku</DescriptionsItem> *@
+@*                     <DescriptionsItem Title="Barcode" Span="1">@productDetail.Barcode</DescriptionsItem> *@
+@*                     <DescriptionsItem Title="Giá bán" Span="1">@productDetail.Price.ToString("N0") đ</DescriptionsItem> *@
+@*                     <DescriptionsItem Title="Mô tả" Span="4">@productDetail.Description</DescriptionsItem> *@
+@*                     <DescriptionsItem Title="Giới tính" Span="1">@GetGenderDisplayName(productDetail.Gender) *@
+@*                     </DescriptionsItem> *@
+@*                     <DescriptionsItem Title="Chiều cao đế" Span="1">@productDetail.StockHeight cm</DescriptionsItem> *@
+@*                     <DescriptionsItem Title="Loại giày" Span="1">@GetClosureTypeDisplayName(productDetail.ClosureType) *@
+@*                     </DescriptionsItem> *@
+@*                     <DescriptionsItem Title="Cảnh báo hết hàng" Span="1">@productDetail.OutOfStock</DescriptionsItem> *@
+@*                     <DescriptionsItem Title="Cho phép trả hàng" Span="1">@(productDetail.AllowReturn ? "Có" : "Không") *@
+@*                     </DescriptionsItem> *@
+@*                     <DescriptionsItem Title="Số lượng tồn kho" Span="1">@productDetail.InventoryQuantity</DescriptionsItem> *@
+@*                     <DescriptionsItem Title="Lượt xem" Span="1">@productDetail.ViewNumber</DescriptionsItem> *@
+@*                     <DescriptionsItem Title="Lượt bán" Span="1">@productDetail.SellNumber</DescriptionsItem> *@
+@*                     <DescriptionsItem Title="Ngày tạo" Span="2">@productDetail.CreationTime.ToString("dd/MM/yyyy HH:mm") *@
+@*                     </DescriptionsItem> *@
+@*                     <DescriptionsItem Title="Ngày cập nhật" Span="2"> *@
+@*                         @(productDetail.LastModificationTime?.ToString("dd/MM/yyyy HH:mm") ?? "Chưa cập nhật") *@
+@*                     </DescriptionsItem> *@
+@*                 </Descriptions> *@
+@*             </Card> *@
+@* *@
+@*             <Card Title="Thông tin liên quan" Style="margin-bottom: 24px;"> *@
+@*                 <Row Gutter="16"> *@
+@*                     <Col Span="12"> *@
+@*                     <Card Title="Thương hiệu" Size="CardSize.Small"> *@
+@*                         <p><strong>ID:</strong> @productDetail.BrandId</p> *@
+@*                         <p><strong>Tên:</strong> @productDetail.BrandName</p> *@
+@*                     </Card> *@
+@*     </Col> *@
+@*                     <Col Span="12"> *@
+@*                     <Card Title="Size" Size="CardSize.Small"> *@
+@*                         @if (productDetail.SizeValues.Any()) *@
+@*                         { *@
+@*                             <Tag Color="Color.Blue">@string.Join(", ", productDetail.SizeValues)</Tag> *@
+@*                         } *@
+@*                         else *@
+@*                         { *@
+@*                             <span class="text-muted">Chưa có size</span> *@
+@*                         } *@
+@*                     </Card> *@
+@*     </Col> *@
+@*     </Row> *@
+@*                 <Row Gutter="16" Style="margin-top: 16px;"> *@
+@*                     <Col Span="12"> *@
+@*                     <Card Title="Màu sắc" Size="CardSize.Small"> *@
+@*                         @if (productDetail.ColourNames.Any()) *@
+@*                         { *@
+@*                             @foreach (var colour in productDetail.ColourNames) *@
+@*                             { *@
+@*                                 <Tag Color="Color.Green" Style="margin: 2px;">@colour</Tag> *@
+@*                             } *@
+@*                         } *@
+@*                         else *@
+@*                         { *@
+@*                             <span class="text-muted">Chưa có màu sắc</span> *@
+@*                         } *@
+@*                     </Card> *@
+@*     </Col> *@
+@*                     <Col Span="12"> *@
+@*                     <Card Title="Chất liệu" Size="CardSize.Small"> *@
+@*                         @if (productDetail.MaterialNames.Any()) *@
+@*                         { *@
+@*                             @foreach (var material in productDetail.MaterialNames) *@
+@*                             { *@
+@*                                 <Tag Color="Color.Orange" Style="margin: 2px;">@material</Tag> *@
+@*                             } *@
+@*                         } *@
+@*                         else *@
+@*                         { *@
+@*                             <span class="text-muted">Chưa có chất liệu</span> *@
+@*                         } *@
+@*                     </Card> *@
+@*     </Col> *@
+@*     </Row> *@
+@*                 <Row Gutter="16" Style="margin-top: 16px;"> *@
+@*                     <Col Span="12"> *@
+@*                     <Card Title="Mùa" Size="CardSize.Small"> *@
+@*                         @if (productDetail.SeasonNames.Any()) *@
+@*                         { *@
+@*                             @foreach (var season in productDetail.SeasonNames) *@
+@*                             { *@
+@*                                 <Tag Color="Color.Purple" Style="margin: 2px;">@season</Tag> *@
+@*                             } *@
+@*                         } *@
+@*                         else *@
+@*                         { *@
+@*                             <span class="text-muted">Chưa có mùa</span> *@
+@*                         } *@
+@*                     </Card> *@
+@*     </Col> *@
+@*                     <Col Span="12"> *@
+@*                     <Card Title="Danh mục" Size="CardSize.Small"> *@
+@*                         @if (productDetail.CategoryNames.Any()) *@
+@*                         { *@
+@*                             @foreach (var category in productDetail.CategoryNames) *@
+@*                             { *@
+@*                                 <Tag Color="Color.Red" Style="margin: 2px;">@category</Tag> *@
+@*                             } *@
+@*                         } *@
+@*                         else *@
+@*                         { *@
+@*                             <span class="text-muted">Chưa có danh mục</span> *@
+@*                         } *@
+@*                     </Card> *@
+@*     </Col> *@
+@*     </Row> *@
+@*     </Card> *@
+@*     </div> *@
+@* *@
+@*         <div class="col-md-4"> *@
+@*             <Card Title="Hình ảnh sản phẩm" Style="margin-bottom: 24px;"> *@
+@*                 @if (productDetail.Images.Any()) *@
+@*                 { *@
+@*                     <div class="image-gallery"> *@
+@*                         @foreach (var image in productDetail.Images) *@
+@*                         { *@
+@*                             <div class="image-item" style="margin-bottom: 10px;"> *@
+@*                                 @if (image.IsVideo) *@
+@*                                 { *@
+@*                                     <video controls style="width: 100%; max-width: 200px; height: auto;"> *@
+@*                                         <source src="@image.URL" type="@image.ContentType" /> *@
+@*                                         Trình duyệt của bạn không hỗ trợ video. *@
+@*                                     </video> *@
+@*                                 } *@
+@*                                 else *@
+@*                                 { *@
+@*                                     <img src="@image.URL" alt="@image.Name" style="width: 100%; max-width: 200px; height: auto;" /> *@
+@*                                 } *@
+@*                                 <div style="font-size: 12px; color: #666; margin-top: 5px;">@image.Name</div> *@
+@*                             </div> *@
+@*                         } *@
+@*                     </div> *@
+@*                 } *@
+@*                 else *@
+@*                 { *@
+@*                     <div class="text-center text-muted"> *@
+@*                         <Icon Type="@IconType.Outline.Picture" Style="font-size: 48px; color: #ccc;" /> *@
+@*                         <p>Chưa có hình ảnh</p> *@
+@*                     </div> *@
+@*                 } *@
+@*             </Card> *@
+@* *@
+@*             <Card Title="Thống kê" Size="CardSize.Small"> *@
+@*                 <Statistic Title="Lượt xem" Value="@productDetail.ViewNumber" /> *@
+@*                 <Statistic Title="Lượt bán" Value="@productDetail.SellNumber" /> *@
+@*                 <Statistic Title="Tồn kho" Value="@productDetail.InventoryQuantity" /> *@
+@*             </Card> *@
+@*         </div> *@
+@*     </div> *@
+@* } *@
+@* *@
+@* @code { *@
+@*     [Parameter] public Guid Id { get; set; } *@
+@* *@
+@*     private ProductDetailDetailDTO? productDetail; *@
+@*     private bool isLoading = true; *@
+@* *@
+@*     protected override async Task OnInitializedAsync() *@
+@*     { *@
+@*         await LoadProductDetail(); *@
+@*     } *@
+@* *@
+@*     private async Task LoadProductDetail() *@
+@*     { *@
+@*         try *@
+@*         { *@
+@*             isLoading = true; *@
+@*             StateHasChanged(); *@
+@* *@
+@*             // Sử dụng hàm GetByIdDetail mới *@
+@*             productDetail = await ProductDetailClientService.GetByIdDetail(Id); *@
+@* *@
+@*             if (productDetail == null) *@
+@*             { *@
+@*                 await MessageModalService.Error("Không tìm thấy sản phẩm"); *@
+@*             } *@
+@*         } *@
+@*         catch (Exception ex) *@
+@*         { *@
+@*             await MessageModalService.Error($"Lỗi khi tải dữ liệu sản phẩm: {ex.Message}"); *@
+@*         } *@
+@*         finally *@
+@*         { *@
+@*             isLoading = false; *@
+@*             StateHasChanged(); *@
+@*         } *@
+@*     } *@
+@* *@
+@*     private void EditProduct() *@
+@*     { *@
+@*         if (productDetail != null) *@
+@*         { *@
+@*             Navigation.NavigateTo($"/product/edit/{productDetail.Id}"); *@
+@*         } *@
+@*     } *@
+@* *@
+@*     private void GoBack() *@
+@*     { *@
+@*         Navigation.NavigateTo("/manage-product-detail"); *@
+@*     } *@
+@* *@
+@*     private string GetGenderDisplayName(EProductDetailGender gender) *@
+@*     { *@
+@*         return gender switch *@
+@*         { *@
+@*             EProductDetailGender.Men => "Nam", *@
+@*             EProductDetailGender.Women => "Nữ", *@
+@*             EProductDetailGender.Unisex => "Unisex", *@
+@*             _ => gender.ToString() *@
+@*         }; *@
+@*     } *@
+@* *@
+@*     private string GetClosureTypeDisplayName(EClosureType closureType) *@
+@*     { *@
+@*         var displayAttribute = closureType.GetType() *@
+@*         .GetMember(closureType.ToString()) *@
+@*         .First() *@
+@*         .GetCustomAttribute<DisplayAttribute>(); *@
+@* *@
+@*         return displayAttribute?.Name ?? closureType.ToString(); *@
+@*     } *@
+@* } *@

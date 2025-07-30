@@ -9,6 +9,7 @@ using MeoMeo.Domain.IRepositories;
 using Microsoft.EntityFrameworkCore;
 using MeoMeo.EntityFrameworkCore.Commons;
 using MeoMeo.Domain.IRepositories;
+using MeoMeo.Shared.Utilities;
 
 namespace MeoMeo.Application.Services
 {
@@ -32,7 +33,7 @@ namespace MeoMeo.Application.Services
         private readonly IUnitOfWork _unitOfWork;
         private readonly IMapper _mapper;
         private readonly IIventoryBatchReposiory _inventoryRepository;
-     
+
 
         public ProductDetailService(IProductsDetailRepository productDetailRepository,
             IProductRepository productRepository, IBrandRepository brandRepository, ISizeRepository sizeRepository,
@@ -42,7 +43,8 @@ namespace MeoMeo.Application.Services
             IProductDetaillColourRepository productDetaillColourRepository, IMaterialRepository materialRepository,
             IImageRepository imageRepository, IProductDetailMaterialRepository productDetailMaterialRepository,
             ICategoryRepository categoryRepository, IProductCategoryRepository productCategoryRepository,
-           IUnitOfWork unitOfWork, IMapper mapper, IColourRepository colourRepository, IIventoryBatchReposiory inventoryRepository)
+            IUnitOfWork unitOfWork, IMapper mapper, IColourRepository colourRepository,
+            IIventoryBatchReposiory inventoryRepository)
         {
             _productDetailRepository = productDetailRepository;
             _productRepository = productRepository;
@@ -97,9 +99,9 @@ namespace MeoMeo.Application.Services
                     detailQuery = detailQuery.Where(p => p.StockHeight == request.StockHeightFilter);
                 }
 
-                if (request.ShoeLengthFilter != null)
+                if (request.ClosureTypeFilter != null)
                 {
-                    detailQuery = detailQuery.Where(p => p.ShoeLength == request.ShoeLengthFilter);
+                    detailQuery = detailQuery.Where(p => p.ClosureType == request.ClosureTypeFilter);
                 }
 
                 if (request.OutOfStockFilter != null)
@@ -115,12 +117,12 @@ namespace MeoMeo.Application.Services
                         MaxDiscount = g.Any() ? g.Max(x => x.Discount) : 0
                     });
                 var inventorySubQuery = _inventoryRepository.Query()
-                    .Where(c=>c.Status== EInventoryBatchStatus.Aprroved)
+                    .Where(c => c.Status == EInventoryBatchStatus.Aprroved)
                     .GroupBy(p => p.ProductDetailId)
                     .Select(g => new
                     {
                         ProductDetailId = g.Key,
-                        InventoryQuantity = g.Any() ? g.Sum(c=>c.Quantity) : 0
+                        InventoryQuantity = g.Any() ? g.Sum(c => c.Quantity) : 0
                     });
                 var mainQuery = from detail in detailQuery
                     join product in productQuery on detail.ProductId equals product.Id
@@ -133,7 +135,6 @@ namespace MeoMeo.Application.Services
                         detail.Id,
                         detail.ProductId,
                         ProductName = product.Name + "-" + detail.Sku,
-                        detail.Barcode,
                         detail.Price,
                         detail.Sku,
                         detail.Description,
@@ -141,14 +142,13 @@ namespace MeoMeo.Application.Services
                         detail.StockHeight,
                         detail.ViewNumber,
                         detail.SellNumber,
-                        detail.ShoeLength,
+                        detail.ClosureType,
                         detail.OutOfStock,
                         detail.AllowReturn,
                         detail.Status,
                         detail.CreationTime,
                         Discount = (float?)promo.MaxDiscount,
-                        InventoryQuantity= (int?) ib.InventoryQuantity
-                        
+                        InventoryQuantity = (int?)ib.InventoryQuantity
                     };
                 switch (request.SortField)
                 {
@@ -195,9 +195,10 @@ namespace MeoMeo.Application.Services
                         break;
 
                     default:
-                        mainQuery = mainQuery.OrderByDescending(x => x.Id); 
+                        mainQuery = mainQuery.OrderByDescending(x => x.Id);
                         break;
                 }
+
                 var totalRecords = await mainQuery.CountAsync();
                 var mainResults = await mainQuery
                     .Skip((request.PageIndex - 1) * request.PageSize)
@@ -247,7 +248,7 @@ namespace MeoMeo.Application.Services
                         Description = main.Description,
                         Gender = main.Gender,
                         StockHeight = main.StockHeight,
-                        ShoeLength = main.ShoeLength,
+                        ClosureType = main.ClosureType,
                         OutOfStock = main.OutOfStock,
                         AllowReturn = main.AllowReturn,
                         Status = main.Status,
@@ -260,7 +261,8 @@ namespace MeoMeo.Application.Services
                         Sizes = sizesDict.TryGetValue(main.Id, out var sizes) ? sizes : string.Empty,
                         Colours = coloursDict.TryGetValue(main.Id, out var colours) ? colours : string.Empty,
                         Materials = materialsDict.TryGetValue(main.Id, out var materials) ? materials : string.Empty,
-                        Categories = categoriesDict.TryGetValue(main.Id, out var categories) ? categories : string.Empty,
+                        Categories =
+                            categoriesDict.TryGetValue(main.Id, out var categories) ? categories : string.Empty,
                         PromotionDetailId = null
                     };
                 }).ToList();
@@ -279,32 +281,122 @@ namespace MeoMeo.Application.Services
             }
         }
 
-        public async Task<ProductDetailDTO> GetProductDetailByIdAsync(Guid id)
-        {
-            var productDetail = await _productDetailRepository.GetProductDetailByIdAsync(id);
-            return _mapper.Map<ProductDetailDTO>(productDetail);
-        }
-
-        public async Task<BaseResponse> CreateProductDetailAsync(
-            CreateOrUpdateProductDetailDTO productDetail,List<FileUploadResult> lstFileMedia)
+        public async Task<CreateOrUpdateProductDetailDTO> GetProductDetailByIdAsync(Guid id)
         {
             try
             {
+                var productDetail = await (from pd in _productDetailRepository.Query()
+                    join p in _productRepository.Query() on pd.ProductId equals p.Id
+                    where pd.Id == id
+                    select new
+                    {
+                        ProductDetail = pd,
+                        Product = p
+                    }).FirstOrDefaultAsync();
+
+                if (productDetail == null)
+                {
+                    return new CreateOrUpdateProductDetailDTO();
+                }
+
+                var sizeIds = _productDetaillSizeRepository.Query()
+                    .Where(x => x.ProductDetailId == id)
+                    .Select(x => x.SizeId)
+                    .ToList();
+
+                var colourIds = _productDetaillColourRepository.Query()
+                    .Where(x => x.ProductDetailId == id)
+                    .Select(x => x.ColourId)
+                    .ToList();
+
+                var seasonIds = _productSeasonRepository.Query()
+                    .Where(x => x.ProductId == productDetail.Product.Id)
+                    .Select(x => x.SeasonId)
+                    .ToList();
+
+                var materialIds = _productDetailMaterialRepository.Query()
+                    .Where(x => x.ProductDetailId == id)
+                    .Select(x => x.MaterialId)
+                    .ToList();
+
+                var categoryIds = _productCategoryRepository.Query()
+                    .Where(x => x.ProductId == productDetail.Product.Id)
+                    .Select(x => x.CategoryId)
+                    .ToList();
+
+                var images = _imageRepository.Query()
+                    .Where(x => x.ProductDetailId == id)
+                    .Select(i => new ProductMediaUpload
+                    {
+                        Id = i.Id,
+                        ImageUrl = i.URL,
+                        FileName = i.Name,
+                        ContentType = "image/jpeg",
+                        Base64Data = string.Empty,
+                        UploadFile = null
+                    })
+                    .ToList();
+
+                return new CreateOrUpdateProductDetailDTO
+                {
+                    Id = productDetail.ProductDetail.Id,
+                    ProductId = productDetail.ProductDetail.ProductId,
+                    ProductName = productDetail.Product.Name,
+                    Price = productDetail.ProductDetail.Price,
+                    Description = productDetail.ProductDetail.Description,
+                    Gender = productDetail.ProductDetail.Gender,
+                    StockHeight = productDetail.ProductDetail.StockHeight,
+                    ClosureType = productDetail.ProductDetail.ClosureType,
+                    OutOfStock = productDetail.ProductDetail.OutOfStock,
+                    AllowReturn = productDetail.ProductDetail.AllowReturn,
+                    Status = productDetail.ProductDetail.Status,
+                    BrandId = productDetail.Product.BrandId,
+                    SizeIds = sizeIds,
+                    ColourIds = colourIds,
+                    SeasonIds = seasonIds,
+                    MaterialIds = materialIds,
+                    CategoryIds = categoryIds,
+                    MediaUploads = images
+                };
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error in GetProductDetailByIdAsync: {ex.Message}");
+                throw;
+            }
+        }
+
+        public async Task<BaseResponse> CreateProductDetailAsync(
+            CreateOrUpdateProductDetailDTO productDetail, List<FileUploadResult> lstFileMedia)
+        {
+            try
+            {
+                var checkExistedName =
+                    await _productRepository.AnyAsync(c => c.Name.ToLower() == productDetail.ProductName.ToLower());
+                if (checkExistedName)
+                {
+                    return new BaseResponse { Message = $"Tên sản phẩm đã tồn tại", ResponseStatus = BaseStatus.Error };
+                }
+
                 await _unitOfWork.BeginTransactionAsync();
                 var thumbNail = lstFileMedia.First().FileName;
-                var productId = Guid.NewGuid();
                 var productToAdd = new Product()
                 {
-                    Id = productId,
+                    Id = productDetail.ProductId.Value,
                     BrandId = productDetail.BrandId,
                     Name = productDetail.ProductName,
-                    Thumbnail = thumbNail, 
-                    CreationTime =  DateTime.Now,
+                    Thumbnail = thumbNail,
+                    CreationTime = DateTime.Now,
                 };
                 await _productRepository.AddAsync(productToAdd);
                 var mappedProductDetail = _mapper.Map<ProductDetail>(productDetail);
                 mappedProductDetail.Id = Guid.NewGuid();
-                mappedProductDetail.ProductId = productDetail.Id.Value;
+                mappedProductDetail.ProductId = productToAdd.Id;
+                mappedProductDetail.ViewNumber = 0;
+                mappedProductDetail.SellNumber = 0;
+                var latestSKU = await _productDetailRepository.Query().OrderByDescending(p => p.Sku).Select(p => p.Sku)
+                    .FirstOrDefaultAsync();
+                mappedProductDetail.Sku = SkuGenerator.GenerateNextSku(latestSKU);
                 var response = await _productDetailRepository.CreateProductDetailAsync(mappedProductDetail);
 
                 if (productDetail.SizeIds.Any())
@@ -316,6 +408,7 @@ namespace MeoMeo.Application.Services
                     });
                     await _productDetaillSizeRepository.AddRangeAsync(sizeEntities);
                 }
+
                 if (productDetail.ColourIds.Any())
                 {
                     var colourEntities = productDetail.ColourIds.Select(colourId => new ProductDetailColour
@@ -325,15 +418,17 @@ namespace MeoMeo.Application.Services
                     });
                     await _productDetaillColourRepository.AddRangeAsync(colourEntities);
                 }
+
                 if (productDetail.SeasonIds.Any())
                 {
                     var seasonEntities = productDetail.SeasonIds.Select(seasonId => new ProductSeason
                     {
-                        ProductId = productId,
+                        ProductId = productToAdd.Id,
                         SeasonId = seasonId
                     });
                     await _productSeasonRepository.AddRangeAsync(seasonEntities);
                 }
+
                 if (productDetail.MaterialIds.Any())
                 {
                     var materialEntities = productDetail.MaterialIds.Select(materialId => new ProductDetailMaterial
@@ -368,8 +463,10 @@ namespace MeoMeo.Application.Services
                         };
                         images.Add(newFile);
                     }
+
                     await _imageRepository.AddRangeAsync(images);
                 }
+
                 await _unitOfWork.SaveChangesAsync();
                 await _unitOfWork.CommitAsync();
                 return _mapper.Map<CreateOrUpdateProductDetailResponseDTO>(response);
@@ -386,31 +483,40 @@ namespace MeoMeo.Application.Services
             }
         }
 
-        public async Task<BaseResponse> UpdateProductDetailAsync(CreateOrUpdateProductDetailDTO productDetail, List<FileUploadResult> lstFileMedia)
+        public async Task<BaseResponse> UpdateProductDetailAsync(CreateOrUpdateProductDetailDTO productDetail,
+            List<FileUploadResult> lstFileMedia)
         {
             try
             {
                 await _unitOfWork.BeginTransactionAsync();
-                var productDetailToUpdate = await _productDetailRepository.GetProductDetailByIdAsync(productDetail.Id.Value);
+                var productDetailToUpdate =
+                    await _productDetailRepository.GetProductDetailByIdAsync(productDetail.Id.Value);
                 if (productDetailToUpdate == null)
                 {
-                    return new BaseResponse { Message = "Không tìm thấy chi tiết sản phẩm", ResponseStatus = BaseStatus.Error };
+                    return new BaseResponse
+                        { Message = "Không tìm thấy chi tiết sản phẩm", ResponseStatus = BaseStatus.Error };
                 }
+
                 _mapper.Map(productDetail, productDetailToUpdate);
                 var product = await _productRepository.GetByIdAsync(productDetailToUpdate.ProductId);
                 if (product != null && !string.IsNullOrWhiteSpace(productDetail.ProductName))
                 {
                     product.Name = productDetail.ProductName;
                 }
+
                 // Xử lý ảnh: xóa ảnh cũ không còn, thêm ảnh mới
-                var oldImages = (await _imageRepository.GetAllImage()).Where(x => x.ProductDetailId == productDetail.Id).ToList();
-                var newImageIds = productDetail.Images?.Where(i => i.Id != null).Select(i => i.Id.Value).ToList() ?? new List<Guid>();
+                var oldImages = (await _imageRepository.GetAllImage()).Where(x => x.ProductDetailId == productDetail.Id)
+                    .ToList();
+                var newImageIds =
+                    productDetail.MediaUploads?.Where(i => i.Id != null).Select(i => i.Id.Value).ToList() ??
+                    new List<Guid>();
                 var imagesToDelete = oldImages.Where(img => !newImageIds.Contains(img.Id)).ToList();
                 // Xóa file vật lý và record DB
                 foreach (var img in imagesToDelete)
                 {
                     await _imageRepository.DeleteImage(img.Id);
                 }
+
                 // Thêm ảnh mới
                 if (lstFileMedia != null && lstFileMedia.Count > 0)
                 {
@@ -427,6 +533,7 @@ namespace MeoMeo.Application.Services
                         await _imageRepository.CreateImage(image);
                     }
                 }
+
                 // Thêm lại dữ liệu mới
                 if (productDetail.SizeIds.Any())
                 {
@@ -438,7 +545,7 @@ namespace MeoMeo.Application.Services
                     {
                         await _productDetaillSizeRepository.DeleteAsync(size);
                     }
-                    
+
                     // Thêm sizes mới
                     var sizeEntities = productDetail.SizeIds.Select(sizeId => new ProductDetailSize
                     {
@@ -447,6 +554,7 @@ namespace MeoMeo.Application.Services
                     });
                     await _productDetaillSizeRepository.AddRangeAsync(sizeEntities);
                 }
+
                 if (productDetail.ColourIds.Any())
                 {
                     // Xóa colours cũ
@@ -457,7 +565,7 @@ namespace MeoMeo.Application.Services
                     {
                         await _productDetaillColourRepository.DeleteAsync(colour);
                     }
-                    
+
                     // Thêm colours mới
                     var colourEntities = productDetail.ColourIds.Select(colourId => new ProductDetailColour
                     {
@@ -466,9 +574,9 @@ namespace MeoMeo.Application.Services
                     });
                     await _productDetaillColourRepository.AddRangeAsync(colourEntities);
                 }
+
                 if (productDetail.SeasonIds.Any())
                 {
-                    // Xóa seasons cũ
                     var oldSeasons = await _productSeasonRepository.Query()
                         .Where(x => x.ProductId == productDetailToUpdate.ProductId)
                         .ToListAsync();
@@ -476,7 +584,7 @@ namespace MeoMeo.Application.Services
                     {
                         await _productSeasonRepository.DeleteAsync(season);
                     }
-                    
+
                     // Thêm seasons mới
                     var seasonEntities = productDetail.SeasonIds.Select(seasonId => new ProductSeason
                     {
@@ -485,6 +593,7 @@ namespace MeoMeo.Application.Services
                     });
                     await _productSeasonRepository.AddRangeAsync(seasonEntities);
                 }
+
                 if (productDetail.MaterialIds.Any())
                 {
                     // Xóa materials cũ
@@ -495,7 +604,7 @@ namespace MeoMeo.Application.Services
                     {
                         await _productDetailMaterialRepository.DeleteAsync(material);
                     }
-                    
+
                     // Thêm materials mới
                     var materialEntities = productDetail.MaterialIds.Select(materialId => new ProductDetailMaterial
                     {
@@ -508,7 +617,7 @@ namespace MeoMeo.Application.Services
                 if (productDetail.CategoryIds.Any())
                 {
                     await _productCategoryRepository.DeleteByProductIdAsync(productDetail.Id.Value);
-                    
+
                     var categoryEntities = productDetail.CategoryIds.Select(categoryId => new ProductCategory()
                     {
                         ProductId = productDetail.Id.Value,
@@ -549,5 +658,4 @@ namespace MeoMeo.Application.Services
             return allImages.Where(x => x.ProductDetailId == productDetailId).ToList();
         }
     }
-
 }

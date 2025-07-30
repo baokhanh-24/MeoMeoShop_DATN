@@ -9,7 +9,7 @@ namespace MeoMeo.Application.IServices
     {
 
         public Task<PagingExtensions.PagedResult<ProductDetailDTO>> GetAllProductDetailAsync(GetListProductDetailRequestDTO request);
-        public Task<ProductDetailDTO> GetProductDetailByIdAsync(Guid id);
+        public Task<CreateOrUpdateProductDetailDTO> GetProductDetailByIdAsync(Guid id);
         public Task<BaseResponse> CreateProductDetailAsync(CreateOrUpdateProductDetailDTO productDetail, List<FileUploadResult> lstFileMedia );
         public Task<BaseResponse> UpdateProductDetailAsync(CreateOrUpdateProductDetailDTO productDetail, List<FileUploadResult> lstFileMedia);
         public Task<bool> DeleteProductDetailAsync(Guid id);
