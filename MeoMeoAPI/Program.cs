@@ -109,7 +109,10 @@ builder.Services.AddScoped<IAuthService, AuthService>();
 
 
 builder.Services.AddAutoMapper(typeof(MeoMeoAutoMapperProfile));
-
+builder.Services.AddControllers(options =>
+{
+    options.Filters.Add<TrimStringsFilter>();
+});
 var app = builder.Build();
 app.UseInfrastructure();
 app.Run();

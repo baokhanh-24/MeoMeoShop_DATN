@@ -10,7 +10,7 @@
 @using ButtonType = AntDesign.ButtonType
 @inject MeoMeo.Shared.Utilities.MessageModalService MessageModalService
 @rendermode InteractiveServer
-
+@inject NavigationManager Navigation
 <div class="d-flex justify-content-between">
     <Breadcrumb>
         <BreadcrumbItem Href="/">Trang chủ</BreadcrumbItem>
@@ -38,7 +38,15 @@
         <Input AllowClear="true" OnClear="OnFilterChanged" @bind-Value="filter.StockHeightFilter" Placeholder="Nhập chiều cao cổ" />
     </div>
     <div style="width: 120px">
-        <Input AllowClear="true" OnClear="OnFilterChanged" @bind-Value="filter.ShoeLengthFilter" Placeholder="Nhập độ dài" />
+        <Select TItem="(EClosureType Value, string Name)"
+                TItemValue="EClosureType?"
+                AllowClear
+                DataSource="closureTypeList"
+                @bind-Value="filter.ClosureTypeFilter"
+                Placeholder="Chọn kiểu đóng"
+                ItemValue="c => (EClosureType?)c.Value"
+                ItemLabel="c => c.Name">
+        </Select>
     </div>
     <div style="width: 120px">
         <Input AllowClear="true" OnClear="OnFilterChanged" @bind-Value="filter.OutOfStockFilter" Placeholder="Nhập số lượng tồn" />
@@ -114,14 +122,20 @@
             }
         </Column>
 
-        <Column TData="float" Title="Chiều dài">
+        <Column TData="EClosureType" Title="Kiểu đóng">
             @if (editCache.ContainsKey(data.Id) && !editCache[data.Id].edit)
             {
-                @data.ShoeLength
+                @closureTypeList.FirstOrDefault(x => x.Value == data.ClosureType).Name
             }
             else if (editCache.ContainsKey(data.Id))
             {
-                <Input @bind-Value="editCache[data.Id].data.ShoeLength" />
+                <Select TItem="(EClosureType Value, string Name)"
+                        TItemValue="EClosureType"
+                        DataSource="closureTypeList"
+                        @bind-Value="editCache[data.Id].data.ClosureType"
+                        ItemValue="c => c.Value"
+                        ItemLabel="c => c.Name">
+                </Select>
             }
         </Column>
 
@@ -157,7 +171,7 @@
             @if (editCache.ContainsKey(data.Id) && !editCache[data.Id].edit)
             {
                 <Tooltip Title="Sửa">
-                    <Button Size="ButtonSize.Small" @onclick="() => StartEdit(data.Id)" Shape="ButtonShape.Circle">
+                    <Button Size="ButtonSize.Small" @onclick="() => EditProduct(data.Id)" Shape="ButtonShape.Circle">
                         <i class="fas fa-pen"></i>
                     </Button>
                 </Tooltip>
@@ -201,6 +215,7 @@
     IDictionary<Guid, (bool edit, ProductDetailDTO data)> editCache = new Dictionary<Guid, (bool, ProductDetailDTO)>();
     List<ProductDetailDTO> listOfData = new();
     List<(EProductDetailGender Value, string Name)> productGenderList = new();
+    List<(EClosureType Value, string Name)> closureTypeList = new();
     GetListProductDetailRequestDTO filter = new GetListProductDetailRequestDTO()
     {
        ProductNameFilter = "",
@@ -209,7 +224,7 @@
        SKUFilter = "",
        GenderFilter = null,
        StockHeightFilter = null,
-       ShoeLengthFilter = null,
+       ClosureTypeFilter = null,
        OutOfStockFilter = null,
        PageIndex = 1,
        PageSize = 20
@@ -220,6 +235,15 @@
     {
         productGenderList = Enum.GetValues(typeof(EProductDetailGender))
               .Cast<EProductDetailGender>()
+              .Select(x => (
+                x,
+                x.GetType().GetMember(x.ToString())
+                    .First()
+                    .GetCustomAttribute<DisplayAttribute>()?.Name ?? x.ToString()
+            ))
+            .ToList();
+        closureTypeList = Enum.GetValues(typeof(EClosureType))
+              .Cast<EClosureType>()
               .Select(x => (
                 x,
                 x.GetType().GetMember(x.ToString())
@@ -252,26 +276,14 @@
     }
     async Task AddNewProductDetail()
     {
-        var newProductDetail = new ProductDetailDTO
-        {
-            Id = Guid.NewGuid(),
-            ProductId = Guid.Empty,
-            ProductName = "",
-            Barcode = "",
-            Sku = "",
-            Price = 0,
-            Description = "",
-            Gender = EProductDetailGender.Unisex,
-            StockHeight = 0,
-            ShoeLength = 0,
-            OutOfStock = 0,
-            AllowReturn = true,
-            Status = 0,
-        };
-        listOfData.Insert(0, newProductDetail);
-        editCache[newProductDetail.Id] = (true, CloneProductDetail(newProductDetail));
-        await InvokeAsync(StateHasChanged);
+        Navigation.NavigateTo("/product/create");
     }
+
+    async Task EditProduct(Guid id)
+    {
+        Navigation.NavigateTo($"/product/edit/{id}");
+    }
+
     async Task StartEdit(Guid id)
     {
         var data = editCache[id];
@@ -358,7 +370,7 @@
             Description = dto.Description,
             Gender = dto.Gender,
             StockHeight = dto.StockHeight,
-            ShoeLength = dto.ShoeLength,
+            ClosureType = dto.ClosureType,
             OutOfStock = dto.OutOfStock,
             AllowReturn = dto.AllowReturn,
             Status = dto.Status,

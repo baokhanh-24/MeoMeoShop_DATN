@@ -4,6 +4,7 @@ using MeoMeo.EntityFrameworkCore.Configurations.Contexts;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace MeoMeo.EntityFrameworkCore.Migrations
 {
     [DbContext(typeof(MeoMeoDbContext))]
-    partial class MeoMeoDbContextModelSnapshot : ModelSnapshot
+    [Migration("20250729161703_Remove_BarCode_ProductDetail")]
+    partial class Remove_BarCode_ProductDetail
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -957,9 +960,6 @@ namespace MeoMeo.EntityFrameworkCore.Migrations
                     b.Property<bool>("AllowReturn")
                         .HasColumnType("bit");
 
-                    b.Property<int>("ClosureType")
-                        .HasColumnType("int");
-
                     b.Property<DateTime>("CreationTime")
                         .HasColumnType("datetime2");
 
@@ -984,6 +984,9 @@ namespace MeoMeo.EntityFrameworkCore.Migrations
 
                     b.Property<int?>("SellNumber")
                         .HasColumnType("int");
+
+                    b.Property<float>("ShoeLength")
+                        .HasColumnType("real");
 
                     b.Property<string>("Sku")
                         .IsRequired()

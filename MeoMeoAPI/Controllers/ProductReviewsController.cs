@@ -28,7 +28,6 @@ namespace MeoMeo.API.Controllers
         [HttpPost]
         public async Task<IActionResult> Create([FromForm]  ProductReviewCreateOrUpdateDTO request)
         {
-            var fileDtos = new List<ProductReviewFileDTO>();
             var reviewId= Guid.NewGuid();
             var lstMediaToUpload = request.Files.Select(c => c.UploadFile).ToList();
             var listFileUploaded=  await FileUploadHelper.UploadFilesAsync(_env,lstMediaToUpload,"Reviews",reviewId);

@@ -11,7 +11,7 @@ namespace MeoMeo.Contract.DTOs.ProductDetail
         public string? SKUFilter { get; set; }
         public EProductDetailGender? GenderFilter { get; set; }
         public float? StockHeightFilter { get; set; }
-        public float? ShoeLengthFilter { get; set; }
+        public EClosureType? ClosureTypeFilter { get; set; }
         public int? OutOfStockFilter { get; set; }
         
         public EProductDetailSortField? SortField { get; set; }

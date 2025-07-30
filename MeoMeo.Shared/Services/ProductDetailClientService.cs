@@ -21,7 +21,8 @@ namespace MeoMeo.Shared.Services
             _logger = logger;
         }
 
-        public async Task<PagingExtensions.PagedResult<ProductDetailDTO>> GetAllProductDetailAsync(GetListProductDetailRequestDTO request)
+        public async Task<PagingExtensions.PagedResult<ProductDetailDTO>> GetAllProductDetailAsync(
+            GetListProductDetailRequestDTO request)
         {
             try
             {
@@ -32,7 +33,6 @@ namespace MeoMeo.Shared.Services
             }
             catch (Exception ex)
             {
-
                 _logger.LogError(ex, "Có lỗi xảy ra khi lấy danh sách sản phẩm: {Message}", ex.Message);
                 return new PagingExtensions.PagedResult<ProductDetailDTO>();
             }
@@ -45,17 +45,31 @@ namespace MeoMeo.Shared.Services
                 var url = $"/api/ProductDetails/find-product-detail-by-id-async/{id}";
                 var response = await _httpClient.GetAsync<ProductDetailDTO>(url);
                 return response ?? new ProductDetailDTO();
-
             }
             catch (Exception ex)
             {
-
                 _logger.LogError(ex, "Có lỗi xảy ra khi lấy sản phẩm");
                 return new ProductDetailDTO();
             }
         }
 
-        public async Task<CreateOrUpdateProductDetailResponseDTO> CreateProductDetailAsync(CreateOrUpdateProductDetailDTO productDetail)
+        public async Task<ProductDetailDetailDTO> GetByIdDetail(Guid id)
+        {
+            try
+            {
+                var url = $"/api/ProductDetails/get-by-id-detail/{id}";
+                var response = await _httpClient.GetAsync<ProductDetailDetailDTO>(url);
+                return response ?? new ProductDetailDetailDTO();
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Có lỗi xảy ra khi lấy chi tiết sản phẩm");
+                return new ProductDetailDetailDTO();
+            }
+        }
+
+        public async Task<CreateOrUpdateProductDetailResponseDTO> CreateProductDetailAsync(
+            CreateOrUpdateProductDetailDTO productDetail)
         {
             try
             {
@@ -71,11 +85,13 @@ namespace MeoMeo.Shared.Services
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Có lỗi xảy ra khi tạo sản phẩm: {Message}", ex.Message);
-                return new CreateOrUpdateProductDetailResponseDTO { ResponseStatus = BaseStatus.Error, Message = ex.Message };
+                return new CreateOrUpdateProductDetailResponseDTO
+                    { ResponseStatus = BaseStatus.Error, Message = ex.Message };
             }
         }
 
-        public async Task<CreateOrUpdateProductDetailResponseDTO> UpdateProductDetailAsync(CreateOrUpdateProductDetailDTO productDetail)
+        public async Task<CreateOrUpdateProductDetailResponseDTO> UpdateProductDetailAsync(
+            CreateOrUpdateProductDetailDTO productDetail)
         {
             try
             {
@@ -90,8 +106,10 @@ namespace MeoMeo.Shared.Services
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Có lỗi xảy ra khi cập nhật sản phẩm {Id}: {Message}", productDetail.Id, ex.Message);
-                return new CreateOrUpdateProductDetailResponseDTO { ResponseStatus = BaseStatus.Error, Message = ex.Message };
+                _logger.LogError(ex, "Có lỗi xảy ra khi cập nhật sản phẩm {Id}: {Message}", productDetail.Id,
+                    ex.Message);
+                return new CreateOrUpdateProductDetailResponseDTO
+                    { ResponseStatus = BaseStatus.Error, Message = ex.Message };
             }
         }
 
@@ -105,6 +123,7 @@ namespace MeoMeo.Shared.Services
                 {
                     _logger.LogWarning("Xóa sản phẩm thất bại với Id {Id}", id);
                 }
+
                 return success;
             }
             catch (Exception ex)
@@ -118,72 +137,65 @@ namespace MeoMeo.Shared.Services
         {
             var formData = new MultipartFormDataContent();
 
-            // Add basic properties
+            // Basic fields
             if (productDetail.Id.HasValue)
                 formData.Add(new StringContent(productDetail.Id.Value.ToString()), "Id");
-            
+
             if (productDetail.ProductId.HasValue)
                 formData.Add(new StringContent(productDetail.ProductId.Value.ToString()), "ProductId");
-            
+
             if (!string.IsNullOrEmpty(productDetail.ProductName))
                 formData.Add(new StringContent(productDetail.ProductName), "ProductName");
-            
+
             formData.Add(new StringContent(productDetail.Price.ToString()), "Price");
-            
-            if (!string.IsNullOrEmpty(productDetail.Description))
-                formData.Add(new StringContent(productDetail.Description), "Description");
-            
+            formData.Add(new StringContent(productDetail.Description ?? ""), "Description");
             formData.Add(new StringContent(((int)productDetail.Gender).ToString()), "Gender");
             formData.Add(new StringContent(productDetail.StockHeight.ToString()), "StockHeight");
-            formData.Add(new StringContent(productDetail.ShoeLength.ToString()), "ShoeLength");
+            formData.Add(new StringContent(((int)productDetail.ClosureType).ToString()), "ClosureType");
             formData.Add(new StringContent(productDetail.OutOfStock.ToString()), "OutOfStock");
             formData.Add(new StringContent(productDetail.AllowReturn.ToString()), "AllowReturn");
             formData.Add(new StringContent(productDetail.Status.ToString()), "Status");
             formData.Add(new StringContent(productDetail.BrandId.ToString()), "BrandId");
 
-            // Add collections as JSON strings
-            if (productDetail.SizeIds != null && productDetail.SizeIds.Any())
-                formData.Add(new StringContent(JsonSerializer.Serialize(productDetail.SizeIds)), "SizeIds");
-            
-            if (productDetail.ColourIds != null && productDetail.ColourIds.Any())
-                formData.Add(new StringContent(JsonSerializer.Serialize(productDetail.ColourIds)), "ColourIds");
-            
-            if (productDetail.SeasonIds != null && productDetail.SeasonIds.Any())
-                formData.Add(new StringContent(JsonSerializer.Serialize(productDetail.SeasonIds)), "SeasonIds");
-            
-            if (productDetail.MaterialIds != null && productDetail.MaterialIds.Any())
-                formData.Add(new StringContent(JsonSerializer.Serialize(productDetail.MaterialIds)), "MaterialIds");
-            
-            if (productDetail.CategoryIds != null && productDetail.CategoryIds.Any())
-                formData.Add(new StringContent(JsonSerializer.Serialize(productDetail.CategoryIds)), "CategoryIds");
+            // Lists (split to multiple keys)
+            foreach (var id in productDetail.SizeIds)
+                formData.Add(new StringContent(id.ToString()), "SizeIds");
 
-            // Add images
-            if (productDetail.Images != null && productDetail.Images.Any())
+            foreach (var id in productDetail.ColourIds)
+                formData.Add(new StringContent(id.ToString()), "ColourIds");
+
+            foreach (var id in productDetail.SeasonIds)
+                formData.Add(new StringContent(id.ToString()), "SeasonIds");
+
+            foreach (var id in productDetail.MaterialIds)
+                formData.Add(new StringContent(id.ToString()), "MaterialIds");
+
+            foreach (var id in productDetail.CategoryIds)
+                formData.Add(new StringContent(id.ToString()), "CategoryIds");
+
+            // Images
+            if (productDetail.MediaUploads != null && productDetail.MediaUploads.Any())
             {
-                for (int i = 0; i < productDetail.Images.Count; i++)
+                for (int i = 0; i < productDetail.MediaUploads.Count; i++)
                 {
-                    var image = productDetail.Images[i];
-                    
+                    var image = productDetail.MediaUploads[i];
+
                     if (image.Id.HasValue)
-                        formData.Add(new StringContent(image.Id.Value.ToString()), $"Images[{i}].Id");
-                    
+                        formData.Add(new StringContent(image.Id.Value.ToString()), $"MediaUploads[{i}].Id");
+
                     if (image.UploadFile != null)
                     {
                         var streamContent = new StreamContent(image.UploadFile.OpenReadStream());
-                        formData.Add(streamContent, $"Images[{i}].UploadFile", image.UploadFile.FileName);
+                        streamContent.Headers.ContentType =
+                            new System.Net.Http.Headers.MediaTypeHeaderValue(image.UploadFile.ContentType);
+                        formData.Add(streamContent, $"MediaUploads[{i}].UploadFile", image.UploadFile.FileName);
                     }
-                    
-                    // if (!string.IsNullOrEmpty(image.ImageUrl))
-                    //     formData.Add(new StringContent(image.ImageUrl), $"Images[{i}].ImageUrl");
-                    
-                    // if (!string.IsNullOrEmpty(image.Base64Data))
-                    //     formData.Add(new StringContent(image.Base64Data), $"Images[{i}].Base64Data");
-                    
-                    // if (!string.IsNullOrEmpty(image.FileName))
-                    //     formData.Add(new StringContent(image.FileName), $"Images[{i}].FileName");
-                    
-                    // if (!string.IsNullOrEmpty(image.ContentType))
-                    //     formData.Add(new StringContent(image.ContentType), $"Images[{i}].ContentType");
+
+
+                    formData.Add(new StringContent(""), $"MediaUploads[{i}].ImageUrl");
+                    formData.Add(new StringContent(""), $"MediaUploads[{i}].Base64Data");
+                    formData.Add(new StringContent(""), $"MediaUploads[{i}].FileName");
+                    formData.Add(new StringContent(""), $"MediaUploads[{i}].ContentType");
                 }
             }
 

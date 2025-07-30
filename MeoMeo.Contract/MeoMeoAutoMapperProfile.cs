@@ -11,6 +11,7 @@ using MeoMeo.Contract.DTOs.Promotion;
 using MeoMeo.Contract.DTOs.PromotionDetail;
 using MeoMeo.Contract.DTOs.Size;
 using MeoMeo.Contract.DTOs.SystemConfig;
+using MeoMeo.Contract.Extensions;
 using MeoMeo.Domain.Entities;
 
 namespace MeoMeo.Contract
@@ -21,10 +22,10 @@ namespace MeoMeo.Contract
         {
             CreateMap<CreateOrUpdateProductDTO, Product>();
             CreateMap<CreateOrUpdateProductDetailDTO, ProductDetail>();
+            
             CreateMap<Product, ProductReponseDTO>();
             CreateMap<ProductDetail, CreateOrUpdateProductDetailResponseDTO>();
             CreateMap<ProductDetail, ProductDetailDTO>();
-            CreateMap<CreateOrUpdateProductDetailDTO, ProductDetail>();
             CreateMap<CartDTO, Cart>();
             CreateMap<CartDetailDTO, CartDetail>();
             CreateMap<ImageDTO, Image>();

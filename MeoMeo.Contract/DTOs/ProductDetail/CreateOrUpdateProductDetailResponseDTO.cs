@@ -14,7 +14,7 @@ namespace MeoMeo.Contract.DTOs.ProductDetail
         public string Description { get; set; }
         public EProductDetailGender Gender { get; set; }
         public float StockHeight { get; set; }
-        public float ShoeLength { get; set; }
+        public EClosureType ClosureType { get; set; }
         public int OutOfStock { get; set; }
         public bool AllowReturn { get; set; }
         public DateTime CreationTime { get; set; }
