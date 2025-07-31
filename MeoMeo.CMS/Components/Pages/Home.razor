@@ -1,7 +1,126 @@
 ﻿@page "/"
+@using System.Globalization
 
-<PageTitle>Home</PageTitle>
+<h3>📈 Dashboard Thống kê bán giày</h3>
 
-<h1>Hello, world!</h1>
+<RadzenStack class="rz-p-4 rz-gap-6" Direction="Direction.Column">
 
-Welcome to your new app.
+    <!-- Doanh thu theo năm -->
+    <RadzenChart>
+        <RadzenStackedAreaSeries Smooth="true" Data="@revenue2023" CategoryProperty="Month" Title="2023" ValueProperty="Revenue">
+            <RadzenSeriesDataLabels Visible="true" />
+        </RadzenStackedAreaSeries>
+        <RadzenStackedAreaSeries Smooth="true" Data="@revenue2024" CategoryProperty="Month" Title="2024" ValueProperty="Revenue">
+            <RadzenSeriesDataLabels Visible="true" />
+        </RadzenStackedAreaSeries>
+        <RadzenCategoryAxis Padding="20" />
+        <RadzenValueAxis Formatter="@FormatAsVNĐ" Min="0" Max="8000000" Step="1000000">
+            <RadzenAxisTitle Text="Doanh thu (VNĐ)" />
+        </RadzenValueAxis>
+    </RadzenChart>
+
+    <!-- Top sản phẩm bán chạy -->
+    <RadzenChart>
+        <RadzenColumnSeries Data="@topProducts" CategoryProperty="Name" ValueProperty="Sold" Title="Sản phẩm bán chạy">
+            <RadzenSeriesDataLabels Visible="true" />
+        </RadzenColumnSeries>
+        <RadzenCategoryAxis />
+        <RadzenValueAxis />
+    </RadzenChart>
+
+    <!-- Tồn kho -->
+    <RadzenChart>
+        <RadzenPieSeries Data="@stockData" CategoryProperty="Name" ValueProperty="Quantity" Title="Tồn kho">
+            <RadzenSeriesDataLabels Visible="true" />
+        </RadzenPieSeries>
+    </RadzenChart>
+
+    <!-- Đơn hàng theo giờ -->
+    <RadzenChart>
+        <RadzenLineSeries Data="@ordersByHour" CategoryProperty="Hour" ValueProperty="Count" LineType="LineType.Dashed" Title="Đơn hàng theo giờ">
+            <RadzenSeriesDataLabels Visible="true" />
+        </RadzenLineSeries>
+        <RadzenCategoryAxis />
+        <RadzenValueAxis />
+    </RadzenChart>
+
+    <!-- Khách hàng mới theo tháng -->
+    <RadzenChart>
+        <RadzenColumnSeries Data="@newCustomers" CategoryProperty="Month" ValueProperty="Count" Title="Khách hàng mới">
+            <RadzenSeriesDataLabels Visible="true" />
+        </RadzenColumnSeries>
+        <RadzenCategoryAxis />
+        <RadzenValueAxis />
+    </RadzenChart>
+
+</RadzenStack>
+
+@code {
+    string FormatAsVNĐ(object value)
+    {
+        return ((double)value).ToString("c0", CultureInfo.GetCultureInfo("vi-VN"));
+    }
+
+    class RevenueItem { public string Month { get; set; } public double Revenue { get; set; } }
+    class Product { public string Name { get; set; } public int Sold { get; set; } }
+    class StockItem { public string Name { get; set; } public int Quantity { get; set; } }
+    class OrderByHour { public string Hour { get; set; } public int Count { get; set; } }
+    class CustomerByMonth { public string Month { get; set; } public int Count { get; set; } }
+
+    List<RevenueItem> revenue2023 = new()
+    {
+        new() { Month = "Jan", Revenue = 2000000 },
+        new() { Month = "Feb", Revenue = 2500000 },
+        new() { Month = "Mar", Revenue = 3000000 },
+        new() { Month = "Apr", Revenue = 2800000 },
+        new() { Month = "May", Revenue = 3200000 },
+        new() { Month = "Jun", Revenue = 3500000 }
+    };
+
+    List<RevenueItem> revenue2024 = new()
+    {
+        new() { Month = "Jan", Revenue = 3000000 },
+        new() { Month = "Feb", Revenue = 3400000 },
+        new() { Month = "Mar", Revenue = 3900000 },
+        new() { Month = "Apr", Revenue = 3700000 },
+        new() { Month = "May", Revenue = 4200000 },
+        new() { Month = "Jun", Revenue = 4800000 }
+    };
+
+    List<Product> topProducts = new()
+    {
+        new() { Name = "Nike Air Max", Sold = 150 },
+        new() { Name = "Adidas Ultraboost", Sold = 120 },
+        new() { Name = "Puma RS-X", Sold = 100 },
+        new() { Name = "Jordan Retro", Sold = 80 }
+    };
+
+    List<StockItem> stockData = new()
+    {
+        new() { Name = "Nike Air Max", Quantity = 35 },
+        new() { Name = "Adidas Ultraboost", Quantity = 22 },
+        new() { Name = "Puma RS-X", Quantity = 17 },
+        new() { Name = "Jordan Retro", Quantity = 9 }
+    };
+
+    List<OrderByHour> ordersByHour = new()
+    {
+        new() { Hour = "08h", Count = 4 },
+        new() { Hour = "10h", Count = 8 },
+        new() { Hour = "12h", Count = 11 },
+        new() { Hour = "14h", Count = 9 },
+        new() { Hour = "16h", Count = 13 },
+        new() { Hour = "18h", Count = 15 },
+        new() { Hour = "20h", Count = 12 }
+    };
+
+    List<CustomerByMonth> newCustomers = new()
+    {
+        new() { Month = "Jan", Count = 20 },
+        new() { Month = "Feb", Count = 25 },
+        new() { Month = "Mar", Count = 30 },
+        new() { Month = "Apr", Count = 22 },
+        new() { Month = "May", Count = 35 },
+        new() { Month = "Jun", Count = 40 }
+    };
+}

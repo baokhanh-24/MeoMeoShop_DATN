@@ -378,7 +378,12 @@
 
         var validationResult = form.Validate();
 
-        Console.WriteLine($"form.Validate() result: {form.Model}");
+        var hasImage = productModel.MediaUploads?.Any(x => x.ContentType.StartsWith("image/")) ?? false;
+        if (!hasImage)
+        {
+            await MessageModalService.Warning("Vui lòng tải lên ít nhất 1 ảnh!");
+            return;
+        }
 
         if (!validationResult)
         {
@@ -390,7 +395,7 @@
         try
         {
             productModel.Status = status;
-
+           
             if (productModel.MediaUploads != null && productModel.MediaUploads.Any())
             {
                 var convertedImages = new List<ProductMediaUpload>();
@@ -504,9 +509,9 @@
 
                     if (file.ContentType.StartsWith("image/"))
                     {
-                        if (currentImages >= 9)
+                        if (currentImages >= 8)
                         {
-                            await MessageModalService.Warning("Bạn chỉ có thể tải tối đa 9 ảnh!");
+                            await MessageModalService.Warning("Bạn chỉ có thể tải tối đa 8 ảnh!");
                             continue;
                         }
 
@@ -516,15 +521,15 @@
 
                         if (totalImageSize + file.Size > 10 * 1024 * 1024)
                         {
-                            await MessageModalService.Error($"Tổng dung lượng 9 ảnh không được vượt quá 10MB!");
+                            await MessageModalService.Error($"Tổng dung lượng 8 ảnh không được vượt quá 10MB!");
                             continue;
                         }
                     }
                     else if (file.ContentType.StartsWith("video/"))
                     {
-                        if (currentVideos >= 1)
+                        if (currentVideos >= 2)
                         {
-                            await MessageModalService.Warning("Bạn chỉ có thể tải tối đa 1 video!");
+                            await MessageModalService.Warning("Bạn chỉ có thể tải tối đa 2 video!");
                             continue;
                         }
 
@@ -622,7 +627,7 @@
 
         var imageSizeMB = Math.Round(totalImageSize / (1024.0 * 1024.0), 2);
 
-        return $"Đã chọn: {imageCount}/9 ảnh ({imageSizeMB}MB/10MB), {videoCount}/1 video";
+        return $"Đã chọn: {imageCount}/8 ảnh ({imageSizeMB}MB/10MB), {videoCount}/2 video";
     }
 
     public class SelectOption

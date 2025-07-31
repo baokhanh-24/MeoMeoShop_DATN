@@ -2,6 +2,7 @@
 @using MeoMeo.Contract.DTOs.ProductDetail
 @using MeoMeo.Contract.DTOs;
 @using System.ComponentModel.DataAnnotations
+@using System.Globalization
 @using System.Reflection
 @using MeoMeo.Shared.IServices;
 @using MeoMeo.Contract.Commons
@@ -70,56 +71,42 @@
 <Table DataSource="listOfData" TItem="ProductDetailDTO" RowClassName="@(_ => "editable-row")" Bordered TableLayout="fixed">
     <ChildContent Context="data">
         <Column TData="string" Title="Tên sản phẩm">
-            @if (editCache.ContainsKey(data.Id) && !editCache[data.Id].edit)
-            {
+           
                 @data.ProductName
-            }
-            else if (editCache.ContainsKey(data.Id))
-            {
-                <Input MaxLength="100" @bind-Value="editCache[data.Id].data.ProductName" />
-            }
         </Column>
         <Column TData="string" Title="Ảnh thumbnail">
-            @if (editCache.ContainsKey(data.Id) && !editCache[data.Id].edit)
-            {
+          
                 <Image Fallback="@(backendUrl+"/Images/fallback.webp")" Src="@(backendUrl+"/" +data.Thumbnail)" Class="image-preview" />
-            }
             
         </Column>
-
         <Column TData="string" Title="Sku">
-            @if (editCache.ContainsKey(data.Id) && !editCache[data.Id].edit)
-            {
-                @data.Sku
-            }
-            else if (editCache.ContainsKey(data.Id))
-            {
-                <Input MaxLength="20" @bind-Value="editCache[data.Id].data.Sku" />
-            }
+            @data.Sku
+        </Column>
+        <Column TData="int" Title="Giá gốc (VNĐ)">
+            @string.Format(new CultureInfo("vi-VN"), "{0:C0}", data.Price)
+        </Column>   
+        <Column TData="int" Title="Giảm giá">
+            @(data.Discount>0 ?data.Discount +" %" :"")
+        </Column>
+        <Column TData="int" Title="Số lượng tồn kho">
+            @data.InventoryQuantity
+        </Column>      
+        <Column TData="string" Title="Size">
+            @String.Join(",", data.Sizes)
+        </Column>
+        <Column TData="string" Title="Danh mục">
+            @String.Join(",", data.Categories)
+        </Column>     
+        <Column TData="string" Title="Màu sắc">
+            @String.Join(",", data.Colours)
+        </Column>       
+        <Column TData="string" Title="Chất liệu">
+            @String.Join(",", data.Materials)
         </Column>
 
-        <Column TData="int" Title="Giá">
-            @if (editCache.ContainsKey(data.Id) && !editCache[data.Id].edit)
-            {
-                @data.Price
-            }
-            else if (editCache.ContainsKey(data.Id))
-            {
-                <Input @bind-Value="editCache[data.Id].data.Price" />
-            }
+        <Column TData="float" Title="Chiều cao đế (cm)">
+            @string.Format(new CultureInfo("vi-VN"), "{0:C2}", @data.StockHeight) 
         </Column>
-
-        <Column TData="float" Title="Chiều cao">
-            @if (editCache.ContainsKey(data.Id) && !editCache[data.Id].edit)
-            {
-                @data.StockHeight
-            }
-            else if (editCache.ContainsKey(data.Id))
-            {
-                <Input @bind-Value="editCache[data.Id].data.StockHeight" />
-            }
-        </Column>
-
         <Column TData="EClosureType" Title="Kiểu đóng">
             @if (editCache.ContainsKey(data.Id) && !editCache[data.Id].edit)
             {
@@ -136,74 +123,27 @@
                 </Select>
             }
         </Column>
-
-        <Column TData="int" Title="Số lượng tồn">
-            @if (editCache.ContainsKey(data.Id) && !editCache[data.Id].edit)
-            {
-                @data.OutOfStock
-            }
-            else if (editCache.ContainsKey(data.Id))
-            {
-                <Input @bind-Value="editCache[data.Id].data.OutOfStock" />
-            }
-        </Column>
-
-        <Column TData="EProductDetailGender" Title="Nam/Nữ">
-            @if (editCache.ContainsKey(data.Id) && !editCache[data.Id].edit)
-            {
-                @productGenderList.FirstOrDefault(x => x.Value == data.Gender).Name
-            }
-            else if (editCache.ContainsKey(data.Id))
-            {
-
-                <Select TItem="(EProductDetailGender Value, string Name)"
-                        TItemValue="EProductDetailGender"
-                        DataSource="productGenderList"
-                        @bind-Value="editCache[data.Id].data.Gender"
-                        ItemValue="c => c.Value"
-                        ItemLabel="c => c.Name">
-                </Select>
-            }
+        <Column TData="int" Title="Số lượng cảnh báo hết hàng">
+            @data.OutOfStock
         </Column>
         <ActionColumn Title="Thao tác" Class="text-end gap-2">
-            @if (editCache.ContainsKey(data.Id) && !editCache[data.Id].edit)
-            {
-                <Tooltip Title="Sửa">
-                    <Button Size="ButtonSize.Small" @onclick="() => EditProduct(data.Id)" Shape="ButtonShape.Circle">
-                        <i class="fas fa-pen"></i>
+            <Tooltip Title="Sửa">
+                <Button Size="ButtonSize.Small" @onclick="() => EditProduct(data.Id)" Shape="ButtonShape.Circle">
+                    <i class="fas fa-pen"></i>
+                </Button>
+            </Tooltip>
+
+            <Popconfirm Title=@($"Bạn có chắc muốn xóa sản phẩm {data.ProductName}?")
+                        OnConfirm="() => DeleteProductDetail(data.Id)"
+                        OkText="Đồng ý"
+                        CancelText="Hủy">
+
+                <Tooltip Title="Xóa">
+                    <Button Size="ButtonSize.Small" Danger Shape="ButtonShape.Circle">
+                        <i class="fas fa-minus"></i>
                     </Button>
                 </Tooltip>
-
-                <Popconfirm Title=@($"Bạn có chắc muốn xóa sản phẩm {data.ProductName}?")
-                            OnConfirm="() => DeleteProductDetail(data.Id)"
-                            OkText="Đồng ý"
-                            CancelText="Hủy">
-
-                    <Tooltip Title="Xóa">
-                        <Button Size="ButtonSize.Small" Danger Shape="ButtonShape.Circle">
-                            <i class="fas fa-minus"></i>
-                        </Button>
-                    </Tooltip>
-                </Popconfirm>
-            }
-            else if (editCache.ContainsKey(data.Id))
-            {
-                <Tooltip Title="Lưu">
-                    <Button Size="ButtonSize.Small" @onclick="() => SaveEdit(data.Id)" Shape="ButtonShape.Circle">
-                        <i class="fas fa-check"></i>
-                    </Button>
-                </Tooltip>
-                <Popconfirm Title=@($"Bạn có chắc muốn hủy {(data.ProductId==Guid.Empty ?"thêm mới":"chỉnh sửa")} sản phẩm {data.ProductName}?")
-                            OnConfirm="() => CancelEdit(data.Id)"
-                            OkText="Đồng ý"
-                            CancelText="Hủy">
-
-                    <Button Size="ButtonSize.Small" Shape="ButtonShape.Circle">
-                        <i class="fa-solid fa-xmark"></i>
-                    </Button>
-                </Popconfirm>
-            }
-
+            </Popconfirm>
         </ActionColumn>
 
     </ChildContent>
@@ -264,10 +204,6 @@
     {
         var response = await ProductDetailClientService.GetAllProductDetailAsync(filter);
         listOfData = response.Items;
-        editCache = listOfData.ToDictionary(
-            item => item.Id,
-            item => (false, CloneProductDetail(item))
-        );
         await InvokeAsync(StateHasChanged);
     }
     async void OnFilterChanged()
@@ -283,64 +219,7 @@
     {
         Navigation.NavigateTo($"/product/edit/{id}");
     }
-
-    async Task StartEdit(Guid id)
-    {
-        var data = editCache[id];
-        editCache[id] = (true, data.data);
-        await InvokeAsync(StateHasChanged);
-    }
-    async Task CancelEdit(Guid id)
-    {
-        var isNew = listOfData.FirstOrDefault(p => p.Id == id)?.ProductId == Guid.Empty;
-        if (isNew)
-        {
-            listOfData.RemoveAll(p => p.Id == id);
-            editCache.Remove(id);
-        }else
-        {
-            var original = listOfData.First(p => p.Id == id);
-            editCache[id] = (false, CloneProductDetail(original));
-        }
-        await InvokeAsync(StateHasChanged);
-    }
-    async Task SaveEdit(Guid id)
-    {
-        var dto = editCache[id].data;
-        var createOrUpdateDto = new CreateOrUpdateProductDetailDTO
-            {
-                // Id = dto.Id,
-                // ProductId = dto.ProductId,
-                // ProductName = dto.ProductName,
-                // Barcode = dto.Barcode,
-                // Sku = dto.Sku,
-                // Price = dto.Price,
-                // Description = dto.Description,
-                // Gender = dto.Gender,
-                // StockHeight = dto.StockHeight,
-                // ShoeLength = dto.ShoeLength,
-                // OutOfStock = dto.OutOfStock,
-                // AllowReturn = dto.AllowReturn,
-                // Status = dto.Status
-            };
-        BaseResponse result;
-        if (dto.ProductId == Guid.Empty)
-        {
-            result = await ProductDetailClientService.CreateProductDetailAsync(createOrUpdateDto); 
-        }else
-        {
-            result = await ProductDetailClientService.UpdateProductDetailAsync(createOrUpdateDto);
-        }
-        if (result.ResponseStatus == BaseStatus.Success)
-        {
-            await MessageModalService.Success("Lưu sản phẩm thành công");
-            await LoadDataAsync();
-        }else
-        {
-            await MessageModalService.Error(result.Message);
-        }
-    }
-
+    
     async Task DeleteProductDetail(Guid id)
     {
         var success = await ProductDetailClientService.DeleteProductDetailAsync(id);
@@ -357,23 +236,5 @@
         }
     }
 
-    ProductDetailDTO CloneProductDetail(ProductDetailDTO dto)
-    {
-        return new ProductDetailDTO
-        {
-            Id = dto.Id,
-            ProductId = dto.ProductId,
-            ProductName = dto.ProductName,
-            Barcode = dto.Barcode,
-            Sku = dto.Sku,
-            Price = dto.Price,
-            Description = dto.Description,
-            Gender = dto.Gender,
-            StockHeight = dto.StockHeight,
-            ClosureType = dto.ClosureType,
-            OutOfStock = dto.OutOfStock,
-            AllowReturn = dto.AllowReturn,
-            Status = dto.Status,
-        };
-    }
+   
 }

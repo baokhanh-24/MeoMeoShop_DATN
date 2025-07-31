@@ -134,7 +134,7 @@ namespace MeoMeo.Application.Services
                     {
                         detail.Id,
                         detail.ProductId,
-                        ProductName = product.Name + "-" + detail.Sku,
+                        ProductName = product.Name,
                         detail.Price,
                         detail.Sku,
                         detail.Description,
@@ -195,7 +195,7 @@ namespace MeoMeo.Application.Services
                         break;
 
                     default:
-                        mainQuery = mainQuery.OrderByDescending(x => x.Id);
+                        mainQuery = mainQuery.OrderByDescending(x => x.CreationTime);
                         break;
                 }
 
@@ -206,6 +206,7 @@ namespace MeoMeo.Application.Services
                     .ToListAsync();
 
                 var productDetailIds = mainResults.Select(x => x.Id);
+                var productIds = mainResults.Select(x => x.ProductId);
                 var imagesDict = await _imageRepository.Query()
                     .Where(i => productDetailIds.Contains(i.ProductDetailId))
                     .GroupBy(i => i.ProductDetailId)
@@ -231,7 +232,7 @@ namespace MeoMeo.Application.Services
 
                 var categoriesDict = await (from pdc in _productCategoryRepository.Query()
                         join c in _categoryRepository.Query() on pdc.CategoryId equals c.Id
-                        where productDetailIds.Contains(pdc.ProductId)
+                        where productIds.Contains(pdc.ProductId)
                         group c.Name by pdc.ProductId)
                     .ToDictionaryAsync(g => g.Key, g => string.Join(", ", g));
 
@@ -262,7 +263,7 @@ namespace MeoMeo.Application.Services
                         Colours = coloursDict.TryGetValue(main.Id, out var colours) ? colours : string.Empty,
                         Materials = materialsDict.TryGetValue(main.Id, out var materials) ? materials : string.Empty,
                         Categories =
-                            categoriesDict.TryGetValue(main.Id, out var categories) ? categories : string.Empty,
+                            categoriesDict.TryGetValue(main.ProductId, out var categories) ? categories : string.Empty,
                         PromotionDetailId = null
                     };
                 }).ToList();
@@ -379,7 +380,7 @@ namespace MeoMeo.Application.Services
                 }
 
                 await _unitOfWork.BeginTransactionAsync();
-                var thumbNail = lstFileMedia.First().FileName;
+                var thumbNail = lstFileMedia.FirstOrDefault(c=>c.FileType==0).FileName;
                 var productToAdd = new Product()
                 {
                     Id = productDetail.ProductId.Value,
