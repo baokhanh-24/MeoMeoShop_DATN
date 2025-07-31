@@ -1,4 +1,4 @@
-﻿@page "/manage-product-detail"
+﻿@page "/manage-product"
 @using MeoMeo.Contract.DTOs.ProductDetail
 @using MeoMeo.Contract.DTOs;
 @using System.ComponentModel.DataAnnotations
@@ -11,10 +11,11 @@
 @inject MeoMeo.Shared.Utilities.MessageModalService MessageModalService
 @rendermode InteractiveServer
 @inject NavigationManager Navigation
+@inject IConfiguration Configuration
 <div class="d-flex justify-content-between">
     <Breadcrumb>
         <BreadcrumbItem Href="/">Trang chủ</BreadcrumbItem>
-        <BreadcrumbItem Href="/manage-product-detail">Quản lý sản phẩm</BreadcrumbItem>
+        <BreadcrumbItem Href="/manage-product">Quản lý sản phẩm</BreadcrumbItem>
     </Breadcrumb>
     <Button OnClick="AddNewProductDetail" Type="ButtonType.Primary" Class="mb-2">
         <i class="fas fa-plus"></i> Thêm mới
@@ -78,15 +79,12 @@
                 <Input MaxLength="100" @bind-Value="editCache[data.Id].data.ProductName" />
             }
         </Column>
-        <Column TData="string" Title="Barcode">
+        <Column TData="string" Title="Ảnh thumbnail">
             @if (editCache.ContainsKey(data.Id) && !editCache[data.Id].edit)
             {
-                @data.Barcode
+                <Image Fallback="@(backendUrl+"/Images/fallback.webp")" Src="@(backendUrl+"/" +data.Thumbnail)" Class="image-preview" />
             }
-            else if (editCache.ContainsKey(data.Id))
-            {
-                <Input MaxLength="50" @bind-Value="editCache[data.Id].data.Barcode" />
-            }
+            
         </Column>
 
         <Column TData="string" Title="Sku">
@@ -211,6 +209,7 @@
     </ChildContent>
 </Table>
 @code {
+    private string backendUrl = "";
     [Inject] private IProductDetailClientService ProductDetailClientService { get; set; } = default! ;
     IDictionary<Guid, (bool edit, ProductDetailDTO data)> editCache = new Dictionary<Guid, (bool, ProductDetailDTO)>();
     List<ProductDetailDTO> listOfData = new();
@@ -233,6 +232,7 @@
 
     protected override async Task OnInitializedAsync()
     {
+        backendUrl = Configuration["ApiSettings:BaseUrl"] ?? "";
         productGenderList = Enum.GetValues(typeof(EProductDetailGender))
               .Cast<EProductDetailGender>()
               .Select(x => (

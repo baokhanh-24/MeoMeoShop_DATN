@@ -135,3 +135,16 @@ h1:focus {
     content: '⚠ ';
     margin-right: 2px;
 }
+.rz-html-editor-content {
+    width: 100% !important;
+    img {
+        width: 100% !important;
+    }
+}
+.components-reconnect-show, .components-reconnect-failed, .components-reconnect-rejected {
+    display: none;
+}  
+.rz-body-expanded {
+    margin: 0 !important;
+    padding: 12px  !important;
+}

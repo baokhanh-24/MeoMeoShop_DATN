@@ -34,7 +34,7 @@ namespace MeoMeo.API.Controllers
             var result = await _service.CreateProductReviewAsync(request,listFileUploaded );
             if (result.ResponseStatus == BaseStatus.Error)
             {
-                FileUploadHelper.DeleteUploadedFiles(listFileUploaded);
+                FileUploadHelper.DeleteUploadedFiles(_env,listFileUploaded);
             }
             return Ok(result);
         }
@@ -52,7 +52,7 @@ namespace MeoMeo.API.Controllers
             var filesToDelete = oldFiles.Where(f => !keepFileIds.Contains(f.Id)).ToList();
             foreach (var img in filesToDelete)
             {
-                FileUploadHelper.DeleteUploadedFiles(new List<FileUploadResult> { new FileUploadResult { FullPath = img.FileUrl } });
+                FileUploadHelper.DeleteUploadedFiles(_env,new List<FileUploadResult> { new FileUploadResult { RelativePath = img.FileUrl } });
             }
             var result = await _service.UpdateProductReviewAsync(request, uploadedFiles);
             return Ok(result);

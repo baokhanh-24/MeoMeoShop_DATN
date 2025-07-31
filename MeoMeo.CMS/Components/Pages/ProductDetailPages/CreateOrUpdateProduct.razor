@@ -1,4 +1,5 @@
 @page "/product/create"
+@page "/product/update/{id:guid?}"
 @using AntDesign
 @using MeoMeo.Shared.Utilities
 @using MeoMeo.Contract.DTOs.ProductDetail
@@ -21,44 +22,49 @@
 @inject ISeasonClientService SeasonClientService
 @inject IColourClientService ColourClientService
 @inject ICategoryClientService CategoryClientService
+@inject IConfiguration Configuration
 
 <div class="d-flex justify-content-between mb-3">
     <Breadcrumb>
         <BreadcrumbItem Href="/">Trang chủ</BreadcrumbItem>
         <BreadcrumbItem Href="/manage-customer">Quản lý sản phẩm</BreadcrumbItem>
-        <BreadcrumbItem Href="/manage-customer">Thêm mới sản phẩm</BreadcrumbItem>
+        <BreadcrumbItem
+            Href="/manage-customer">@(Id.HasValue ? "Cập nhật sản phẩm" : "Thêm mới sản phẩm")</BreadcrumbItem>
     </Breadcrumb>
     <div>
         <Button Icon="@IconType.Outline.Close" OnClick="ResetData">Hủy</Button>
-        <Button Type="@ButtonType.Primary" Icon="@IconType.Outline.Check" HtmlType="submit" OnClick="@(() => HandleSave(0))"
-            Loading="@isLoading">Lưu</Button>
+        <Button Type="@ButtonType.Primary" Icon="@IconType.Outline.Check" HtmlType="submit"
+                OnClick="@(() => HandleSave(0))"
+                Loading="@isLoading">Lưu
+        </Button>
         <Button Icon="@IconType.Outline.Send" OnClick="@(() => HandleSave(3))" Loading="@isLoading">Gửi duyệt</Button>
         <Button Icon="@IconType.Outline.ArrowLeft" OnClick="GoBack">Quay lại</Button>
     </div>
 </div>
 
-<Form Model="@productModel" Layout="@FormLayout.Vertical" ValidateOnChange="true"  ValidateMode="FormValidateMode.Rules"  @ref="form">
+<Form Model="@productModel" Layout="@FormLayout.Vertical" ValidateOnChange="true" ValidateMode="FormValidateMode.Rules"
+      @ref="form">
     <Card Title="Thông tin chung" Style="margin-bottom: 24px;">
         <Row Gutter="16">
             <Col Span="6">
             <FormItem Label="Tên sản phẩm" Required="true"
                       Rules="@(new[] { new FormValidationRule { Required = true, Message = "Tên sản phẩm không được phép để trống" } })">
-                <Input @bind-Value="@context.ProductName" Placeholder="Nhập tên sản phẩm..." />
+                <Input @bind-Value="@context.ProductName" Placeholder="Nhập tên sản phẩm..."/>
             </FormItem>
             </Col>
             <Col Span="6">
             <FormItem Label="Thương hiệu" Required="true"
                       Rules="@(new[] { new FormValidationRule { Required = true, Message = "Thương hiệu không được phép để trống" } })">
                 <Select TItem="SelectOption" TItemValue="Guid" DataSource="@brandOptions"
-                    @bind-Value="@context.BrandId" Placeholder="Chọn thương hiệu" ShowSearch="true"
-                    AllowClear="true" ItemValue="x => x.Value" ItemLabel="x => x.Label" />
+                        @bind-Value="@context.BrandId" Placeholder="Chọn thương hiệu" ShowSearch="true"
+                        AllowClear="true" ItemValue="x => x.Value" ItemLabel="x => x.Label"/>
             </FormItem>
             </Col>
             <Col Span="6">
             <FormItem Label="Giá bán (đ)" Required="true"
                       Rules="@(new[] { new FormValidationRule { Required = true, Type = FormFieldType.Number, Min = 1, Message = "Giá bán không được phép để trống và phải lớn hơn 0" } })">
                 <AntDesign.InputNumber TValue="float" @bind-Value="@context.Price" Placeholder="Nhập giá..."
-                    Min="1" Style="width: 100%;" />
+                                       Min="1" Style="width: 100%;"/>
             </FormItem>
             </Col>
             <Col Span="6">
@@ -66,7 +72,7 @@
                       Rules="@(new[] { new FormValidationRule { Required = true, Type = FormFieldType.Array, Message = "Size không được phép để trống" } })">
                 <Select TItem="SelectOption" TItemValue="Guid" DataSource="@sizeOptions"
                         @bind-Values="@context.SizeIds" Mode="SelectMode.Multiple" Placeholder="Chọn size"
-                    ShowSearch="true" AllowClear="true" ItemValue="x => x.Value" ItemLabel="x => x.Label" />
+                        ShowSearch="true" AllowClear="true" ItemValue="x => x.Value" ItemLabel="x => x.Label"/>
             </FormItem>
             </Col>
         </Row>
@@ -78,20 +84,20 @@
                         @if (isProcessingImages)
                         {
                             <div style="display: flex; flex-direction: column; align-items: center;">
-                                <Spin Size="SpinSize.Large" />
+                                <Spin Size="SpinSize.Large"/>
                                 <div style="margin-top: 8px; color: #666;">Đang xử lý file...</div>
                             </div>
                         }
                         else
                         {
-                            <Icon Type="@IconType.Outline.Upload" Style="font-size: 24px; color: #999;" />
+                            <Icon Type="@IconType.Outline.Upload" Style="font-size: 24px; color: #999;"/>
                             <div style="margin-top: 8px; color: #666;">Tải ảnh và video (Tối đa 9 ảnh + 1 video)</div>
                             <div style="font-size: 12px; color: #999;">Click để chọn file</div>
                         }
                     </div>
 
                     <InputFile @ref="fileInput" OnChange="OnFileSelected" multiple accept="image/*,video/*"
-                        disabled="@isProcessingImages" style="
+                               disabled="@isProcessingImages" style="
                    position: absolute;
                    top: 0;
                    left: 0;
@@ -99,7 +105,7 @@
                    height: 100%;
                    opacity: 0;
                    cursor: pointer;
-               " />
+               "/>
                 </div>
 
                 <div style="margin-top: 8px; font-size: 12px; color: #666;">
@@ -117,18 +123,18 @@
                                 @if (media.ContentType.StartsWith("video/"))
                                 {
                                     <video controls class="image-preview">
-                                        <source src="@GetImagePreviewUrl(media)" type="@media.ContentType" />
+                                        <source src="@GetImagePreviewUrl(media)" type="video/mp4"/>
                                         Trình duyệt của bạn không hỗ trợ video.
                                     </video>
                                 }
                                 else
                                 {
-                                    <Image Src=@GetImagePreviewUrl(media) Class="image-preview" />
-                                    
+                                    <Image Src=@GetImagePreviewUrl(media) Class="image-preview"/>
                                 }
                                 <div class="image-actions">
-                                    <Button Type="@ButtonType.Dashed" Color="Color.Red6" Size="@ButtonSize.Small" Icon="@IconType.Outline.Delete"
-                                        OnClick="@(() => RemoveImage(index))" />
+                                    <Button Type="@ButtonType.Dashed" Color="Color.Red6" Size="@ButtonSize.Small"
+                                            Icon="@IconType.Outline.Delete"
+                                            OnClick="@(() => RemoveImage(index))"/>
                                 </div>
                             </div>
                         }
@@ -139,91 +145,96 @@
         </Row>
         <Row Gutter="16">
             <Col Span="24">
-            <FormItem Label="Mô tả">
-                <TextArea @bind-Value="@context.Description" Placeholder="Nhập mô tả sản phẩm..." Rows="3" />
-            </FormItem>
+                <FormItem Label="Mô tả" Required="true">
+     
+                    <RadzenHtmlEditor Input=@OnInput Change=@OnChange
+                                      Paste=@OnPaste Execute=@OnExecute                     
+                                       @bind-Value=@context.Description
+                                      style="height: 450px; max-width: 100%" UploadUrl="upload/image"/>
+                </FormItem>
             </Col>
         </Row>
     </Card>
     <Card Title="Thông tin cơ bản" Style="margin-bottom: 200px;">
-               <Row Gutter="16">
+        <Row Gutter="16">
             <Col Span="6">
-            <FormItem Label="Danh mục" Required="true" 
+            <FormItem Label="Danh mục" Required="true"
                       Rules="@(new[] { new FormValidationRule { Required = true, Type = FormFieldType.Array, Message = "Danh mục không được phép để trống" } })">
                 <Select TItem="SelectOption" TItemValue="Guid" DataSource="@categoryOptions"
                         @bind-Values="@context.CategoryIds" Mode="SelectMode.Multiple"
-                    Placeholder="Chọn danh mục" ShowSearch="true" AllowClear="true" ItemValue="x => x.Value"
-                    ItemLabel="x => x.Label" />
+                        Placeholder="Chọn danh mục" ShowSearch="true" AllowClear="true" ItemValue="x => x.Value"
+                        ItemLabel="x => x.Label"/>
             </FormItem>
             </Col>
             <Col Span="6">
-            <FormItem Label="Màu sắc" Required="true" 
+            <FormItem Label="Màu sắc" Required="true"
                       Rules="@(new[] { new FormValidationRule { Required = true, Type = FormFieldType.Array, Message = "Màu sắc không được phép để trống" } })">
                 <Select TItem="SelectOption" TItemValue="Guid" DataSource="@colorOptions"
                         @bind-Values="@context.ColourIds" Mode="SelectMode.Multiple" Placeholder="Chọn màu sắc"
-                    ShowSearch="true" AllowClear="true" ItemValue="x => x.Value" ItemLabel="x => x.Label" />
+                        ShowSearch="true" AllowClear="true" ItemValue="x => x.Value" ItemLabel="x => x.Label"/>
             </FormItem>
             </Col>
             <Col Span="6">
-            <FormItem Label="Mùa" Required="true" 
+            <FormItem Label="Mùa" Required="true"
                       Rules="@(new[] { new FormValidationRule { Required = true, Type = FormFieldType.Array, Message = "Mùa không được phép để trống" } })">
                 <Select TItem="SelectOption" TItemValue="Guid" DataSource="@seasonOptions"
                         @bind-Values="@context.SeasonIds" Mode="SelectMode.Multiple" Placeholder="Chọn mùa"
-                    ShowSearch="true" AllowClear="true" ItemValue="x => x.Value" ItemLabel="x => x.Label" />
+                        ShowSearch="true" AllowClear="true" ItemValue="x => x.Value" ItemLabel="x => x.Label"/>
             </FormItem>
             </Col>
             <Col Span="6">
-            <FormItem Label="Chất liệu" Required="true" 
+            <FormItem Label="Chất liệu" Required="true"
                       Rules="@(new[] { new FormValidationRule { Required = true, Type = FormFieldType.Array, Message = "Chất liệu không được phép để trống" } })">
                 <Select TItem="SelectOption" TItemValue="Guid" DataSource="@materialOptions"
                         @bind-Values="@context.MaterialIds" Mode="SelectMode.Multiple"
-                    Placeholder="Chọn chất liệu" ShowSearch="true" AllowClear="true" ItemValue="x => x.Value"
-                    ItemLabel="x => x.Label" />
+                        Placeholder="Chọn chất liệu" ShowSearch="true" AllowClear="true" ItemValue="x => x.Value"
+                        ItemLabel="x => x.Label"/>
             </FormItem>
             </Col>
         </Row>
         <Row Gutter="16">
             <Col Span="6">
-                <FormItem Label="Giới tính" Required="true">
-                    <Select TItem="IntSelectOption" TItemValue="int" DataSource="@genderOptions"
-                            Value="@((int)productModel.Gender)"
-                            OnChange="@((int value) => productModel.Gender = (EProductDetailGender)value)"
-                            Placeholder="Chọn giới tính" AllowClear="true" ItemValue="x => x.Value" ItemLabel="x => x.Label"/>
-                </FormItem>
+            <FormItem Label="Giới tính" Required="true">
+                <Select TItem="IntSelectOption" TItemValue="int" DataSource="@genderOptions"
+                        Value="@((int)productModel.Gender)"
+                        OnChange="@((int value) => productModel.Gender = (EProductDetailGender)value)"
+                        Placeholder="Chọn giới tính" AllowClear="true" ItemValue="x => x.Value"
+                        ItemLabel="x => x.Label"/>
+            </FormItem>
             </Col>
             <Col Span="6">
-                <FormItem Label="Chiều cao đế (cm)" Required="true"
-                          Rules="@(new[] { new FormValidationRule { Required = true, Type = FormFieldType.Number, Min = (decimal)0.1, Message = "Chiều cao đế không được phép để trống và phải lớn hơn 0" } })">
-                    <AntDesign.InputNumber TValue="float" @bind-Value="@context.StockHeight"
-                                           Placeholder="Nhập chiều cao đế..." Min="0" Step="0.1f" Style="width: 100%;"/>
-                </FormItem>
+            <FormItem Label="Chiều cao đế (cm)" Required="true"
+                      Rules="@(new[] { new FormValidationRule { Required = true, Type = FormFieldType.Number, Min = (decimal)0.1, Message = "Chiều cao đế không được phép để trống và phải lớn hơn 0" } })">
+                <AntDesign.InputNumber TValue="float" @bind-Value="@context.StockHeight"
+                                       Placeholder="Nhập chiều cao đế..." Min="0" Step="0.1f" Style="width: 100%;"/>
+            </FormItem>
             </Col>
             <Col Span="6">
-                <FormItem Label="Loại giày" Required="true"
-                          Rules="@(new[] { new FormValidationRule { Required = true, Message = "Kiểu đóng không được phép để trống" } })">
-                    <Select TItem="(EClosureType Value, string Name)"
-                            TItemValue="EClosureType"
-                            DataSource="closureTypeOptions"
-                            @bind-Value="@context.ClosureType"
-                            Placeholder="Chọn loại giày"
-                            ItemValue="c => c.Value"
-                            ItemLabel="c => c.Name">
-                    </Select>
-                </FormItem>
+            <FormItem Label="Loại giày" Required="true"
+                      Rules="@(new[] { new FormValidationRule { Required = true, Message = "Kiểu đóng không được phép để trống" } })">
+                <Select TItem="(EClosureType Value, string Name)"
+                        TItemValue="EClosureType"
+                        DataSource="closureTypeOptions"
+                        @bind-Value="@context.ClosureType"
+                        Placeholder="Chọn loại giày"
+                        ItemValue="c => c.Value"
+                        ItemLabel="c => c.Name">
+                </Select>
+            </FormItem>
             </Col>
             <Col Span="6">
-                <FormItem Label="Cảnh báo hết hàng" Required="true"
-                          Rules="@(new[] { new FormValidationRule { Required = true, Type = FormFieldType.Number, Min = 0, Message = "Cảnh báo hết hàng không được phép để trống và phải lớn hơn hoặc bằng 0" } })">
-                    <AntDesign.InputNumber TValue="int" @bind-Value="@context.OutOfStock"
-                                           Placeholder="Nhập số lượng cảnh báo..." Min="0" Style="width: 100%;"/>
-                </FormItem>
+            <FormItem Label="Cảnh báo hết hàng" Required="true"
+                      Rules="@(new[] { new FormValidationRule { Required = true, Type = FormFieldType.Number, Min = 0, Message = "Cảnh báo hết hàng không được phép để trống và phải lớn hơn hoặc bằng 0" } })">
+                <AntDesign.InputNumber TValue="int" @bind-Value="@context.OutOfStock"
+                                       Placeholder="Nhập số lượng cảnh báo..." Min="0" Style="width: 100%;"/>
+            </FormItem>
             </Col>
         </Row>
         <Row Gutter="16">
             <Col Span="6">
-                <FormItem Label="Cho phép trả hàng">
-                    <Checkbox @bind-Value="@context.AllowReturn">Được phép trả hàng</Checkbox>
-                </FormItem>
+            <FormItem Label="Cho phép trả hàng">
+                <Checkbox @bind-Value="@context.AllowReturn">Được phép trả hàng</Checkbox>
+            </FormItem>
             </Col>
         </Row>
 
@@ -235,6 +246,8 @@
     private CreateOrUpdateProductDetailDTO productModel = new();
     private InputFile fileInput;
     private Form<CreateOrUpdateProductDetailDTO> form;
+
+    private string backendUrl = "";
 
     // Dropdown options
     private List<SelectOption> brandOptions = new();
@@ -248,90 +261,114 @@
 
     private bool isLoading = false;
     private bool isProcessingImages = false;
+    [Parameter] public Guid? Id { get; set; }
 
     protected override async Task OnInitializedAsync()
     {
+        backendUrl = Configuration["ApiSettings:BaseUrl"] ?? "";
         await LoadDropdownData();
-        
-        // Initialize productModel with default values
-        productModel = new CreateOrUpdateProductDetailDTO
+
+        if (Id.HasValue)
         {
-            MediaUploads = new List<ProductMediaUpload>(),
-            SizeIds = new List<Guid>(),
-            ColourIds = new List<Guid>(),
-            SeasonIds = new List<Guid>(),
-            MaterialIds = new List<Guid>(),
-            CategoryIds = new List<Guid>(),
-            Price = 100000,
-            StockHeight = 5,
-            ClosureType = EClosureType.LaceUp,
-            OutOfStock = 5,
-            AllowReturn = false,
-            Status = 0,
-            Gender = EProductDetailGender.Men
-        };
-    }
-
-    private async Task LoadDropdownData()
-{
-    try
-    {
-        var brandTask = BrandClientService.GetAllBrandAsync(new GetListBrandRequestDTO { PageSize = Int32.MaxValue, PageIndex = 1 });
-        var sizeTask = SizeClientService.GetAllSizeAsync(new GetListSizeRequestDTO { PageSize = Int32.MaxValue, PageIndex = 1 });
-        var materialTask = MaterialClientService.GetAllMaterialsAsync(new GetListMaterialRequest { PageSize = Int32.MaxValue, PageIndex = 1 });
-        var seasonTask = SeasonClientService.GetAllSeasonsAsync(new GetListSeasonRequestDTO { PageSize = Int32.MaxValue, PageIndex = 1 });
-        var colourTask = ColourClientService.GetAllColoursAsync();
-        var categoryTask = CategoryClientService.GetAllCategoriesAsync();
-
-        await Task.WhenAll(brandTask, sizeTask, materialTask, seasonTask, colourTask, categoryTask);
-
-        var brandResponse = await brandTask;
-        brandOptions = brandResponse.Items?.Select(x => new SelectOption { Value = x.Id, Label = x.Name }).ToList() ?? new List<SelectOption>();
-
-        var sizeResponse = await sizeTask;
-        sizeOptions = sizeResponse.Items?.Select(x => new SelectOption { Value = x.Id, Label = x.Value }).ToList() ?? new List<SelectOption>();
-
-        var materialResponse = await materialTask;
-        materialOptions = materialResponse.Items?.Select(x => new SelectOption { Value = x.Id, Label = x.Name }).ToList() ?? new List<SelectOption>();
-
-        var seasonResponse = await seasonTask;
-        seasonOptions = seasonResponse.Items?.Select(x => new SelectOption { Value = x.Id, Label = x.Name }).ToList() ?? new List<SelectOption>();
-
-        var colours = await colourTask;
-        colorOptions = colours?.Select(x => new SelectOption { Value = x.Id, Label = x.Name }).ToList() ?? new List<SelectOption>();
-
-        var categories = await categoryTask;
-        categoryOptions = categories?.Select(x => new SelectOption { Value = x.Id, Label = x.Name }).ToList() ?? new List<SelectOption>();
-
-        closureTypeOptions = Enum.GetValues(typeof(EClosureType))
-            .Cast<EClosureType>()
-            .Select(x => (
-                x,
-                x.GetType().GetMember(x.ToString())
-                    .First()
-                    .GetCustomAttribute<DisplayAttribute>()?.Name ?? x.ToString()
-            ))
-            .ToList();
-
-        // Static
-        genderOptions = new List<IntSelectOption>
+            var detail = await ProductDetailClientService.GetProductDetailByIdAsync(Id.Value);
+            productModel = detail;
+        }
+        else
         {
-            new IntSelectOption { Value = (int)EProductDetailGender.Men, Label = "Nam" },
-            new IntSelectOption { Value = (int)EProductDetailGender.Women, Label = "Nữ" },
-            new IntSelectOption { Value = (int)EProductDetailGender.Unisex, Label = "Unisex" }
-        };
+            productModel = new CreateOrUpdateProductDetailDTO
+            {
+                MediaUploads = new List<ProductMediaUpload>(),
+                SizeIds = new List<Guid>(),
+                ColourIds = new List<Guid>(),
+                SeasonIds = new List<Guid>(),
+                MaterialIds = new List<Guid>(),
+                CategoryIds = new List<Guid>(),
+                Price = 100000,
+                StockHeight = 5,
+                ClosureType = EClosureType.LaceUp,
+                OutOfStock = 5,
+                AllowReturn = false,
+                Status = 0,
+                Gender = EProductDetailGender.Men
+            };
+        }
 
         await InvokeAsync(StateHasChanged);
     }
-    catch (Exception ex)
+    void OnPaste(HtmlEditorPasteEventArgs args)
     {
-        await MessageModalService.Error($"Lỗi khi tải dữ liệu: {ex.Message}");
     }
-}
+
+    void OnChange(string html)
+    {
+    }
+
+    void OnInput(string html)
+    {
+    }
+
+    void OnExecute(HtmlEditorExecuteEventArgs args)
+    {
+    }
+
+
+    private async Task LoadDropdownData()
+    {
+        try
+        {
+            var brandTask = BrandClientService.GetAllBrandAsync(new GetListBrandRequestDTO { PageSize = Int32.MaxValue, PageIndex = 1 });
+            var sizeTask = SizeClientService.GetAllSizeAsync(new GetListSizeRequestDTO { PageSize = Int32.MaxValue, PageIndex = 1 });
+            var materialTask = MaterialClientService.GetAllMaterialsAsync(new GetListMaterialRequest { PageSize = Int32.MaxValue, PageIndex = 1 });
+            var seasonTask = SeasonClientService.GetAllSeasonsAsync(new GetListSeasonRequestDTO { PageSize = Int32.MaxValue, PageIndex = 1 });
+            var colourTask = ColourClientService.GetAllColoursAsync();
+            var categoryTask = CategoryClientService.GetAllCategoriesAsync();
+
+            await Task.WhenAll(brandTask, sizeTask, materialTask, seasonTask, colourTask, categoryTask);
+
+            var brandResponse = await brandTask;
+            brandOptions = brandResponse.Items?.Select(x => new SelectOption { Value = x.Id, Label = x.Name }).ToList() ?? new List<SelectOption>();
+
+            var sizeResponse = await sizeTask;
+            sizeOptions = sizeResponse.Items?.Select(x => new SelectOption { Value = x.Id, Label = x.Value }).ToList() ?? new List<SelectOption>();
+
+            var materialResponse = await materialTask;
+            materialOptions = materialResponse.Items?.Select(x => new SelectOption { Value = x.Id, Label = x.Name }).ToList() ?? new List<SelectOption>();
+
+            var seasonResponse = await seasonTask;
+            seasonOptions = seasonResponse.Items?.Select(x => new SelectOption { Value = x.Id, Label = x.Name }).ToList() ?? new List<SelectOption>();
+
+            var colours = await colourTask;
+            colorOptions = colours?.Select(x => new SelectOption { Value = x.Id, Label = x.Name }).ToList() ?? new List<SelectOption>();
+
+            var categories = await categoryTask;
+            categoryOptions = categories?.Select(x => new SelectOption { Value = x.Id, Label = x.Name }).ToList() ?? new List<SelectOption>();
+
+            closureTypeOptions = Enum.GetValues(typeof(EClosureType))
+                .Cast<EClosureType>()
+                .Select(x => (
+                    x,
+                    x.GetType().GetMember(x.ToString())
+                        .First()
+                        .GetCustomAttribute<DisplayAttribute>()?.Name ?? x.ToString()
+                ))
+                .ToList();
+
+            // Static
+            genderOptions = new List<IntSelectOption>
+            {
+                new IntSelectOption { Value = (int)EProductDetailGender.Men, Label = "Nam" },
+                new IntSelectOption { Value = (int)EProductDetailGender.Women, Label = "Nữ" },
+                new IntSelectOption { Value = (int)EProductDetailGender.Unisex, Label = "Unisex" }
+            };
+        }
+        catch (Exception ex)
+        {
+            await MessageModalService.Error($"Lỗi khi tải dữ liệu: {ex.Message}");
+        }
+    }
 
     private async Task HandleSave(int status)
     {
-        
         if (form == null)
         {
             Console.WriteLine("Form is null!");
@@ -340,17 +377,15 @@
         }
 
         var validationResult = form.Validate();
-        
+
         Console.WriteLine($"form.Validate() result: {form.Model}");
-        
+
         if (!validationResult)
         {
-            Console.WriteLine("Validation failed, returning early");
             await MessageModalService.Warning("Vui lòng kiểm tra lại thông tin form!");
             return;
         }
 
-        Console.WriteLine("Validation passed, proceeding with save");
         isLoading = true;
         try
         {
@@ -375,20 +410,34 @@
                         });
                     }
                 }
-                productModel.MediaUploads = convertedImages;
+
+                // thêm mới
+                if (!Id.HasValue)
+                {
+                    productModel.MediaUploads = convertedImages;
+                }
+                else
+                {
+                    // xóa nếu trùng ảnh 
+                    productModel.MediaUploads.RemoveAll(x => convertedImages.Any(y => y.Id == x.Id));
+                    productModel.MediaUploads.AddRange(convertedImages);
+                }
+            }
+
+            CreateOrUpdateProductDetailResponseDTO response;
+            if (Id.HasValue)
+            {
+                response = await ProductDetailClientService.UpdateProductDetailAsync(productModel);
             }
             else
             {
-                productModel.MediaUploads = new List<ProductMediaUpload>();
+                response = await ProductDetailClientService.CreateProductDetailAsync(productModel);
             }
-
-            Console.WriteLine("Calling API to create product");
-            var response = await ProductDetailClientService.CreateProductDetailAsync(productModel);
 
             if (response.ResponseStatus == BaseStatus.Success)
             {
                 await MessageModalService.Success("Lưu sản phẩm thành công");
-                Navigation.NavigateTo("/product");
+                Navigation.NavigateTo("/manage-product");
             }
             else
             {
@@ -397,7 +446,6 @@
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"Exception in HandleSave: {ex.Message}");
             await MessageModalService.Error("Có lỗi xảy ra trong quá trình xử lý!");
         }
         finally
@@ -432,7 +480,7 @@
         Navigation.NavigateTo("/product");
     }
 
-   
+
     private void OnFileSelected(InputFileChangeEventArgs e)
     {
         InvokeAsync(async () =>
@@ -454,7 +502,6 @@
                     var currentImages = productModel.MediaUploads?.Count(x => x.ContentType.StartsWith("image/")) ?? 0;
                     var currentVideos = productModel.MediaUploads?.Count(x => x.ContentType.StartsWith("video/")) ?? 0;
 
-                    // Validate file limits
                     if (file.ContentType.StartsWith("image/"))
                     {
                         if (currentImages >= 9)
@@ -463,10 +510,9 @@
                             continue;
                         }
 
-                        // Check total image size limit (10MB)
                         var totalImageSize = productModel.MediaUploads?
-                .Where(x => x.ContentType.StartsWith("image/"))
-                .Sum(x => x.Base64Data != null ? Convert.FromBase64String(x.Base64Data).Length : 0) ?? 0;
+                            .Where(x => x.ContentType.StartsWith("image/"))
+                            .Sum(x => x.Base64Data != null ? Convert.FromBase64String(x.Base64Data).Length : 0) ?? 0;
 
                         if (totalImageSize + file.Size > 10 * 1024 * 1024)
                         {
@@ -549,7 +595,8 @@
         {
             return $"data:{image.ContentType};base64,{image.Base64Data}";
         }
-        return image.ImageUrl;
+
+        return backendUrl + "/" + image.ImageUrl;
     }
 
     private void RemoveImage(int index)
@@ -557,7 +604,7 @@
         if (productModel.MediaUploads != null && index >= 0 && index < productModel.MediaUploads.Count)
         {
             productModel.MediaUploads.RemoveAt(index);
-            StateHasChanged(); // Force UI update to reflect the removal
+            StateHasChanged();
         }
     }
 
@@ -570,8 +617,8 @@
         var videoCount = productModel.MediaUploads.Count(x => x.ContentType.StartsWith("video/"));
 
         var totalImageSize = productModel.MediaUploads
-        .Where(x => x.ContentType.StartsWith("image/"))
-        .Sum(x => x.Base64Data != null ? Convert.FromBase64String(x.Base64Data).Length : 0);
+            .Where(x => x.ContentType.StartsWith("image/"))
+            .Sum(x => x.Base64Data != null ? Convert.FromBase64String(x.Base64Data).Length : 0);
 
         var imageSizeMB = Math.Round(totalImageSize / (1024.0 * 1024.0), 2);
 
@@ -589,4 +636,5 @@
         public int Value { get; set; }
         public string Label { get; set; } = string.Empty;
     }
+
 }

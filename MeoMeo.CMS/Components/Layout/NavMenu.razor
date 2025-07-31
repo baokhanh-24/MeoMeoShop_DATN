@@ -1,59 +1,14 @@
-﻿<div class="top-row ps-3 navbar navbar-dark">
-    <div class="container-fluid">
-        <a class="navbar-brand" href="">MeoMeo.Shop</a>
-    </div>
-</div>
-<input type="checkbox" title="Navigation menu" class="navbar-toggler" />
-<div class="nav-scrollable" onclick="document.querySelector('.navbar-toggler').click()">
-    <nav class="flex-column">
-        <div class="nav-item px-1">
-            <NavLink class="nav-link" href="manage-order">
-                <span class="bi bi-list-nested-nav-menu" aria-hidden="true"></span> Quản lý đơn hàng
-            </NavLink>
-            <NavLink class="nav-link" href="order-at-counter">
-                <span class="bi bi-list-nested-nav-menu" aria-hidden="true"></span> Đơn hàng tại quầy
-            </NavLink>
-        </div>
-        <div class="nav-item px-1">
-            <NavLink class="nav-link" href="manage-product-detail">
-                <span class="bi bi-list-nested-nav-menu" aria-hidden="true"></span> Quản lý sản phẩm
-            </NavLink>
-        </div>
-        <div class="nav-item px-1">
-            <NavLink class="nav-link" href="manage-customer">
-                <span class="bi bi-list-nested-nav-menu" aria-hidden="true"></span> Quản lý khách hàng
-            </NavLink>
-        </div>
+﻿
+<RadzenPanelMenu Style="width: 100%;">
+    <RadzenPanelMenuItem Text="Quản lý đơn hàng" Path="manage-order" Icon="list" />
+    <RadzenPanelMenuItem Text="Đơn hàng tại quầy" Path="order-at-counter" Icon="list" />
+    <RadzenPanelMenuItem Text="Quản lý sản phẩm" Path="manage-product" Icon="list" />
+    <RadzenPanelMenuItem Text="Quản lý khách hàng" Path="manage-customer" Icon="list" />
+    <RadzenPanelMenuItem Text="Quản lý ngân hàng" Path="manage-bank" Icon="list" />
+    <RadzenPanelMenuItem Text="Quản lý lô nhập" Path="manage-inventoryBatch" Icon="list" />
+    <RadzenPanelMenuItem Text="Quản lý kích thước" Path="manage-sizes" Icon="list" />
+    <RadzenPanelMenuItem Text="Quản lý chất liệu" Path="manage-materials" Icon="list" />
+    <RadzenPanelMenuItem Text="Quản lý nhân viên" Path="employees-pages" Icon="list" />
+    <RadzenPanelMenuItem Text="Cấu hình hệ thống" Path="manage-systemconfig" Icon="list" />
 
-        <div class="nav-item px-1">
-            <NavLink class="nav-link" href="manage-bank">
-                <span class="bi bi-list-nested-nav-menu" aria-hidden="true"></span> Quản lý ngân hàng
-            </NavLink>
-        </div>
-        <div class="nav-item px-3">
-            <NavLink class="nav-link" href="manage-inventoryBatch">
-                <span class="bi bi-list-nested-nav-menu" aria-hidden="true"></span> Quản lý lô nhập
-            </NavLink>
-        </div>
-        <div class="nav-item px-3">
-            <NavLink class="nav-link" href="manage-sizes">
-                <span class="bi bi-list-nested-nav-menu" aria-hidden="true"></span> Quản lý kích thước
-            </NavLink>
-        </div>
-        <div class="nav-item px-3">
-            <NavLink class="nav-link" href="manage-materials">
-                <span class="bi bi-list-nested-nav-menu" aria-hidden="true"></span> Quản lý chất liệu
-            </NavLink>
-        </div>
-        <div class="nav-item px-3">
-            <NavLink class="nav-link" href="employees-pages">
-                <span class="bi bi-list-nested-nav-menu" aria-hidden="true"></span> Quản lý nhân viên
-            </NavLink>
-        </div>
-        <div class="nav-item px-3">
-            <NavLink class="nav-link" href="manage-systemconfig">
-                <span class="bi bi-list-nested-nav-menu" aria-hidden="true"></span> Cấu hình hệ thống
-            </NavLink>
-        </div>
-    </nav>
-</div>
+</RadzenPanelMenu>

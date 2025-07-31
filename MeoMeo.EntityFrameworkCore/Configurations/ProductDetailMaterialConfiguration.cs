@@ -14,7 +14,6 @@ namespace MeoMeo.EntityFrameworkCore.Configurations
                 x.ProductDetailId,
                 x.MaterialId
             });
-            builder.HasKey(x => x.MaterialId);
             builder.HasOne(x => x.ProductDetail).WithMany(x => x.ProductDetailMaterials).HasForeignKey(x => x.ProductDetailId);
             builder.HasOne(x => x.Material).WithMany(x => x.ProductDetailMaterials).HasForeignKey(x => x.MaterialId);
         }

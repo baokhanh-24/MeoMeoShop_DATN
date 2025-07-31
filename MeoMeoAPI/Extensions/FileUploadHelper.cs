@@ -26,7 +26,7 @@ namespace MeoMeo.API.Extensions
                 : Path.Combine(webRootPath, folderName);
 
             var relativeFolderPath = createSubFolderPerObject
-                ?Path.Combine("Uploads", folderName).Replace("\\", "/")
+                ?Path.Combine(folderName, objectId.ToString())
                 : folderName.Replace("\\", "/");
 
             if (!Directory.Exists(folderPath))
@@ -80,27 +80,55 @@ namespace MeoMeo.API.Extensions
                 throw;
             }
         }
-        public static void DeleteUploadedFiles(List<FileUploadResult> uploadedFiles)
+        public static void DeleteUploadedFiles(IWebHostEnvironment env, List<FileUploadResult> uploadedFiles)
         {
+            var webRootPath = env.WebRootPath ?? Path.Combine(Directory.GetCurrentDirectory(), "wwwroot");
+
             foreach (var file in uploadedFiles)
             {
-                if (File.Exists(file.FullPath))
+                // Tạo đường dẫn tuyệt đối từ relative path
+                var absolutePath = Path.Combine(webRootPath, file.RelativePath.TrimStart('/').Replace("/", Path.DirectorySeparatorChar.ToString()));
+
+                if (File.Exists(absolutePath))
                 {
-                    try { File.Delete(file.FullPath); } catch { }
+                    try
+                    {
+                        File.Delete(absolutePath);
+                    }
+                    catch
+                    {
+                        // Có thể log lại nếu cần
+                    }
                 }
             }
         }
         private static readonly Dictionary<string, int> ExtensionToFileType = new(StringComparer.OrdinalIgnoreCase)
         {
-            // 1 = Image
-            [".jpg"] = 1, [".jpeg"] = 1, [".png"] = 1, [".gif"] = 1, [".webp"] = 1, [".bmp"] = 1, [".svg"] = 1,
+            // 0 = Image
+            [".jpg"] = 0,
+            [".jpeg"] = 0,
+            [".png"] = 0,
+            [".gif"] = 0,
+            [".webp"] = 0,
+            [".bmp"] = 0,
+            [".svg"] = 0,
 
-            // 2 = Video
-            [".mp4"] = 2, [".mov"] = 2, [".avi"] = 2, [".mkv"] = 2, [".webm"] = 2,
+            // 1 = Video
+            [".mp4"] = 1,
+            [".mov"] = 1,
+            [".avi"] = 1,
+            [".mkv"] = 1,
+            [".webm"] = 1,
 
-            // 3 = Document
-            [".pdf"] = 3, [".doc"] = 3, [".docx"] = 3, [".xls"] = 3, [".xlsx"] = 3, [".csv"] = 3
+            // 2 = Document
+            [".pdf"] = 2,
+            [".doc"] = 2,
+            [".docx"] = 2,
+            [".xls"] = 2,
+            [".xlsx"] = 2,
+            [".csv"] = 2
         };
+
 
         private static int? GetFileType(string extension)
         {
