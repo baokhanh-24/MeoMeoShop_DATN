@@ -137,9 +137,6 @@ namespace MeoMeo.EntityFrameworkCore.Migrations
                     b.Property<int>("Quantity")
                         .HasColumnType("int");
 
-                    b.Property<Guid>("SizeId")
-                        .HasColumnType("uniqueidentifier");
-
                     b.Property<int>("Status")
                         .HasColumnType("int");
 
@@ -150,8 +147,6 @@ namespace MeoMeo.EntityFrameworkCore.Migrations
                     b.HasIndex("ProductDetailId");
 
                     b.HasIndex("PromotionDetailId");
-
-                    b.HasIndex("SizeId");
 
                     b.ToTable("CartDetails", (string)null);
                 });
@@ -465,7 +460,10 @@ namespace MeoMeo.EntityFrameworkCore.Migrations
                         .HasMaxLength(100)
                         .HasColumnType("nvarchar(100)");
 
-                    b.Property<Guid>("ProductDetailId")
+                    b.Property<Guid?>("ProductDetailId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("ProductId")
                         .HasColumnType("uniqueidentifier");
 
                     b.Property<int>("Type")
@@ -479,6 +477,8 @@ namespace MeoMeo.EntityFrameworkCore.Migrations
                     b.HasKey("Id");
 
                     b.HasIndex("ProductDetailId");
+
+                    b.HasIndex("ProductId");
 
                     b.ToTable("Images", (string)null);
                 });
@@ -517,9 +517,6 @@ namespace MeoMeo.EntityFrameworkCore.Migrations
                     b.Property<int>("Quantity")
                         .HasColumnType("int");
 
-                    b.Property<Guid>("SizeId")
-                        .HasColumnType("uniqueidentifier");
-
                     b.Property<int>("Status")
                         .HasColumnType("int");
 
@@ -529,8 +526,6 @@ namespace MeoMeo.EntityFrameworkCore.Migrations
                     b.HasKey("Id");
 
                     b.HasIndex("ProductDetailId");
-
-                    b.HasIndex("SizeId");
 
                     b.ToTable("InventoryBatches", (string)null);
                 });
@@ -757,9 +752,6 @@ namespace MeoMeo.EntityFrameworkCore.Migrations
                     b.Property<int>("Quantity")
                         .HasColumnType("int");
 
-                    b.Property<Guid>("SizeId")
-                        .HasColumnType("uniqueidentifier");
-
                     b.Property<string>("Sku")
                         .IsRequired()
                         .HasMaxLength(100)
@@ -772,8 +764,6 @@ namespace MeoMeo.EntityFrameworkCore.Migrations
                     b.HasIndex("ProductDetailId");
 
                     b.HasIndex("PromotionDetailId");
-
-                    b.HasIndex("SizeId");
 
                     b.ToTable("OrderDetails", (string)null);
                 });
@@ -845,19 +835,23 @@ namespace MeoMeo.EntityFrameworkCore.Migrations
 
                     b.Property<string>("Command")
                         .IsRequired()
-                        .HasColumnType("nvarchar(max)");
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
 
                     b.Property<string>("Description")
                         .IsRequired()
-                        .HasColumnType("nvarchar(max)");
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
 
                     b.Property<string>("Function")
                         .IsRequired()
-                        .HasColumnType("nvarchar(max)");
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
 
                     b.Property<string>("Name")
                         .IsRequired()
-                        .HasColumnType("nvarchar(max)");
+                        .HasMaxLength(255)
+                        .HasColumnType("nvarchar(255)");
 
                     b.Property<Guid>("PermissionGroupId")
                         .HasColumnType("uniqueidentifier");
@@ -866,7 +860,7 @@ namespace MeoMeo.EntityFrameworkCore.Migrations
 
                     b.HasIndex("PermissionGroupId");
 
-                    b.ToTable("permissions");
+                    b.ToTable("Permissions", (string)null);
                 });
 
             modelBuilder.Entity("MeoMeo.Domain.Entities.PermissionGroup", b =>
@@ -909,6 +903,9 @@ namespace MeoMeo.EntityFrameworkCore.Migrations
 
                     b.Property<DateTime>("CreationTime")
                         .HasColumnType("datetime2");
+
+                    b.Property<string>("Description")
+                        .HasColumnType("nvarchar(max)");
 
                     b.Property<DateTime?>("LastModificationTime")
                         .HasColumnType("datetime2");
@@ -960,15 +957,11 @@ namespace MeoMeo.EntityFrameworkCore.Migrations
                     b.Property<int>("ClosureType")
                         .HasColumnType("int");
 
+                    b.Property<Guid>("ColourId")
+                        .HasColumnType("uniqueidentifier");
+
                     b.Property<DateTime>("CreationTime")
                         .HasColumnType("datetime2");
-
-                    b.Property<string>("Description")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<int>("Gender")
-                        .HasColumnType("int");
 
                     b.Property<DateTime?>("LastModificationTime")
                         .HasColumnType("datetime2");
@@ -985,10 +978,13 @@ namespace MeoMeo.EntityFrameworkCore.Migrations
                     b.Property<int?>("SellNumber")
                         .HasColumnType("int");
 
+                    b.Property<Guid>("SizeId")
+                        .HasColumnType("uniqueidentifier");
+
                     b.Property<string>("Sku")
                         .IsRequired()
-                        .HasMaxLength(20)
-                        .HasColumnType("varchar(20)");
+                        .HasMaxLength(50)
+                        .HasColumnType("varchar(50)");
 
                     b.Property<int>("Status")
                         .HasColumnType("int");
@@ -1001,67 +997,42 @@ namespace MeoMeo.EntityFrameworkCore.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("ProductId");
+                    b.HasIndex("ColourId");
+
+                    b.HasIndex("SizeId");
+
+                    b.HasIndex("ProductId", "SizeId", "ColourId")
+                        .IsUnique();
 
                     b.ToTable("ProductDetails", (string)null);
                 });
 
-            modelBuilder.Entity("MeoMeo.Domain.Entities.ProductDetailColour", b =>
-                {
-                    b.Property<Guid>("ColourId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<Guid>("ProductDetailId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.HasKey("ColourId");
-
-                    b.HasIndex("ProductDetailId");
-
-                    b.ToTable("ProductDetailColours", (string)null);
-                });
-
-            modelBuilder.Entity("MeoMeo.Domain.Entities.ProductDetailMaterial", b =>
-                {
-                    b.Property<Guid>("MaterialId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<Guid>("ProductDetailId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.HasKey("MaterialId");
-
-                    b.HasIndex("ProductDetailId");
-
-                    b.ToTable("ProductDetailMaterials", (string)null);
-                });
-
-            modelBuilder.Entity("MeoMeo.Domain.Entities.ProductDetailSize", b =>
-                {
-                    b.Property<Guid>("SizeId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<Guid>("ProductDetailId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.HasKey("SizeId");
-
-                    b.HasIndex("ProductDetailId");
-
-                    b.ToTable("ProductDetailSizes", (string)null);
-                });
-
-            modelBuilder.Entity("MeoMeo.Domain.Entities.ProductSeason", b =>
+            modelBuilder.Entity("MeoMeo.Domain.Entities.ProductMaterial", b =>
                 {
                     b.Property<Guid>("ProductId")
                         .HasColumnType("uniqueidentifier");
 
+                    b.Property<Guid>("MaterialId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.HasKey("ProductId", "MaterialId");
+
+                    b.HasIndex("MaterialId");
+
+                    b.ToTable("ProductMaterials", (string)null);
+                });
+
+            modelBuilder.Entity("MeoMeo.Domain.Entities.ProductSeason", b =>
+                {
                     b.Property<Guid>("SeasonId")
                         .HasColumnType("uniqueidentifier");
 
-                    b.HasKey("ProductId");
+                    b.Property<Guid>("ProductId")
+                        .HasColumnType("uniqueidentifier");
 
-                    b.HasIndex("SeasonId");
+                    b.HasKey("SeasonId", "ProductId");
+
+                    b.HasIndex("ProductId");
 
                     b.ToTable("ProductSeasons", (string)null);
                 });
@@ -1134,16 +1105,11 @@ namespace MeoMeo.EntityFrameworkCore.Migrations
                     b.Property<Guid>("PromotionId")
                         .HasColumnType("uniqueidentifier");
 
-                    b.Property<Guid?>("SizeId")
-                        .HasColumnType("uniqueidentifier");
-
                     b.HasKey("Id");
 
                     b.HasIndex("ProductDetailId");
 
                     b.HasIndex("PromotionId");
-
-                    b.HasIndex("SizeId");
 
                     b.ToTable("PromotionDetails", (string)null);
                 });
@@ -1519,7 +1485,7 @@ namespace MeoMeo.EntityFrameworkCore.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.HasOne("MeoMeo.Domain.Entities.ProductDetail", "ProductDetails")
+                    b.HasOne("MeoMeo.Domain.Entities.ProductDetail", "ProductDetail")
                         .WithMany("CartDetails")
                         .HasForeignKey("ProductDetailId")
                         .OnDelete(DeleteBehavior.Cascade)
@@ -1531,19 +1497,11 @@ namespace MeoMeo.EntityFrameworkCore.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.HasOne("MeoMeo.Domain.Entities.Size", "Size")
-                        .WithMany("CartDetails")
-                        .HasForeignKey("SizeId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
                     b.Navigation("Cart");
 
-                    b.Navigation("ProductDetails");
+                    b.Navigation("ProductDetail");
 
                     b.Navigation("PromotionDetails");
-
-                    b.Navigation("Size");
                 });
 
             modelBuilder.Entity("MeoMeo.Domain.Entities.Commune", b =>
@@ -1646,13 +1604,17 @@ namespace MeoMeo.EntityFrameworkCore.Migrations
 
             modelBuilder.Entity("MeoMeo.Domain.Entities.Image", b =>
                 {
-                    b.HasOne("MeoMeo.Domain.Entities.ProductDetail", "ProductDetail")
+                    b.HasOne("MeoMeo.Domain.Entities.ProductDetail", null)
                         .WithMany("Images")
-                        .HasForeignKey("ProductDetailId")
+                        .HasForeignKey("ProductDetailId");
+
+                    b.HasOne("MeoMeo.Domain.Entities.Product", "Product")
+                        .WithMany("Images")
+                        .HasForeignKey("ProductId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.Navigation("ProductDetail");
+                    b.Navigation("Product");
                 });
 
             modelBuilder.Entity("MeoMeo.Domain.Entities.InventoryBatch", b =>
@@ -1663,15 +1625,7 @@ namespace MeoMeo.EntityFrameworkCore.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.HasOne("MeoMeo.Domain.Entities.Size", "Size")
-                        .WithMany("InventoryBatches")
-                        .HasForeignKey("SizeId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
                     b.Navigation("ProductDetail");
-
-                    b.Navigation("Size");
                 });
 
             modelBuilder.Entity("MeoMeo.Domain.Entities.InventoryTransaction", b =>
@@ -1732,19 +1686,11 @@ namespace MeoMeo.EntityFrameworkCore.Migrations
                         .WithMany("OrderDetails")
                         .HasForeignKey("PromotionDetailId");
 
-                    b.HasOne("MeoMeo.Domain.Entities.Size", "Size")
-                        .WithMany("OrderDetails")
-                        .HasForeignKey("SizeId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
                     b.Navigation("Order");
 
                     b.Navigation("ProductDetail");
 
                     b.Navigation("PromotionDetail");
-
-                    b.Navigation("Size");
                 });
 
             modelBuilder.Entity("MeoMeo.Domain.Entities.OrderDetailInventoryBatch", b =>
@@ -1830,70 +1776,48 @@ namespace MeoMeo.EntityFrameworkCore.Migrations
 
             modelBuilder.Entity("MeoMeo.Domain.Entities.ProductDetail", b =>
                 {
+                    b.HasOne("MeoMeo.Domain.Entities.Colour", "Colour")
+                        .WithMany("ProductDetails")
+                        .HasForeignKey("ColourId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
                     b.HasOne("MeoMeo.Domain.Entities.Product", "Product")
                         .WithMany("ProductDetails")
                         .HasForeignKey("ProductId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.Navigation("Product");
-                });
-
-            modelBuilder.Entity("MeoMeo.Domain.Entities.ProductDetailColour", b =>
-                {
-                    b.HasOne("MeoMeo.Domain.Entities.Colour", "Colour")
-                        .WithMany("ProductDetailColours")
-                        .HasForeignKey("ColourId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.HasOne("MeoMeo.Domain.Entities.ProductDetail", "ProductDetail")
-                        .WithMany("ProductDetailColours")
-                        .HasForeignKey("ProductDetailId")
+                    b.HasOne("MeoMeo.Domain.Entities.Size", "Size")
+                        .WithMany("ProductDetails")
+                        .HasForeignKey("SizeId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
                     b.Navigation("Colour");
 
-                    b.Navigation("ProductDetail");
+                    b.Navigation("Product");
+
+                    b.Navigation("Size");
                 });
 
-            modelBuilder.Entity("MeoMeo.Domain.Entities.ProductDetailMaterial", b =>
+            modelBuilder.Entity("MeoMeo.Domain.Entities.ProductMaterial", b =>
                 {
                     b.HasOne("MeoMeo.Domain.Entities.Material", "Material")
-                        .WithMany("ProductDetailMaterials")
+                        .WithMany("ProductMaterials")
                         .HasForeignKey("MaterialId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.HasOne("MeoMeo.Domain.Entities.ProductDetail", "ProductDetail")
-                        .WithMany("ProductDetailMaterials")
-                        .HasForeignKey("ProductDetailId")
+                    b.HasOne("MeoMeo.Domain.Entities.Product", "Product")
+                        .WithMany("ProductMaterials")
+                        .HasForeignKey("ProductId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
                     b.Navigation("Material");
 
-                    b.Navigation("ProductDetail");
-                });
-
-            modelBuilder.Entity("MeoMeo.Domain.Entities.ProductDetailSize", b =>
-                {
-                    b.HasOne("MeoMeo.Domain.Entities.ProductDetail", "ProductDetail")
-                        .WithMany("ProductDetailSizes")
-                        .HasForeignKey("ProductDetailId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.HasOne("MeoMeo.Domain.Entities.Size", "Size")
-                        .WithMany("ProductDetailSizes")
-                        .HasForeignKey("SizeId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("ProductDetail");
-
-                    b.Navigation("Size");
+                    b.Navigation("Product");
                 });
 
             modelBuilder.Entity("MeoMeo.Domain.Entities.ProductSeason", b =>
@@ -1929,15 +1853,9 @@ namespace MeoMeo.EntityFrameworkCore.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.HasOne("MeoMeo.Domain.Entities.Size", "Size")
-                        .WithMany("PromotionDetails")
-                        .HasForeignKey("SizeId");
-
                     b.Navigation("ProductDetail");
 
                     b.Navigation("Promotion");
-
-                    b.Navigation("Size");
                 });
 
             modelBuilder.Entity("MeoMeo.Domain.Entities.ResetPasswordHistory", b =>
@@ -2018,7 +1936,7 @@ namespace MeoMeo.EntityFrameworkCore.Migrations
 
             modelBuilder.Entity("MeoMeo.Domain.Entities.Colour", b =>
                 {
-                    b.Navigation("ProductDetailColours");
+                    b.Navigation("ProductDetails");
                 });
 
             modelBuilder.Entity("MeoMeo.Domain.Entities.Commune", b =>
@@ -2064,7 +1982,7 @@ namespace MeoMeo.EntityFrameworkCore.Migrations
 
             modelBuilder.Entity("MeoMeo.Domain.Entities.Material", b =>
                 {
-                    b.Navigation("ProductDetailMaterials");
+                    b.Navigation("ProductMaterials");
                 });
 
             modelBuilder.Entity("MeoMeo.Domain.Entities.Order", b =>
@@ -2091,9 +2009,13 @@ namespace MeoMeo.EntityFrameworkCore.Migrations
 
             modelBuilder.Entity("MeoMeo.Domain.Entities.Product", b =>
                 {
+                    b.Navigation("Images");
+
                     b.Navigation("ProductCategories");
 
                     b.Navigation("ProductDetails");
+
+                    b.Navigation("ProductMaterials");
 
                     b.Navigation("ProductSeasons");
                 });
@@ -2107,12 +2029,6 @@ namespace MeoMeo.EntityFrameworkCore.Migrations
                     b.Navigation("InventoryBatches");
 
                     b.Navigation("OrderDetails");
-
-                    b.Navigation("ProductDetailColours");
-
-                    b.Navigation("ProductDetailMaterials");
-
-                    b.Navigation("ProductDetailSizes");
 
                     b.Navigation("PromotionDetails");
                 });
@@ -2150,15 +2066,7 @@ namespace MeoMeo.EntityFrameworkCore.Migrations
 
             modelBuilder.Entity("MeoMeo.Domain.Entities.Size", b =>
                 {
-                    b.Navigation("CartDetails");
-
-                    b.Navigation("InventoryBatches");
-
-                    b.Navigation("OrderDetails");
-
-                    b.Navigation("ProductDetailSizes");
-
-                    b.Navigation("PromotionDetails");
+                    b.Navigation("ProductDetails");
                 });
 
             modelBuilder.Entity("MeoMeo.Domain.Entities.User", b =>

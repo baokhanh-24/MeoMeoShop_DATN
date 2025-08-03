@@ -20,19 +20,20 @@ namespace MeoMeo.Contract
     {
         public MeoMeoAutoMapperProfile()
         {
-            CreateMap<CreateOrUpdateProductDTO, Product>();
+            // Product mappings
+            CreateMap<CreateOrUpdateProductDTO, Product>().IgnoreAllNonExisting();
+            // ProductDetail mappings
             CreateMap<CreateOrUpdateProductDetailDTO, ProductDetail>();
-            
-            CreateMap<Product, ProductReponseDTO>();
             CreateMap<ProductDetail, CreateOrUpdateProductDetailResponseDTO>();
             CreateMap<ProductDetail, ProductDetailDTO>();
+            CreateMap<ProductDetailGrid,ProductDetail>();
+            CreateMap<Product,CreateOrUpdateProductDTO>();
+            // Legacy mappings for backward compatibility
             CreateMap<CartDTO, Cart>();
             CreateMap<CartDetailDTO, CartDetail>();
             CreateMap<ImageDTO, Image>();
             CreateMap<ColourDTO, Colour>();
-            CreateMap<ProductDetaillColourDTO, ProductDetailColour>();
             CreateMap<SizeDTO, Size>();
-            CreateMap<ProductDetaillSizeDTO, ProductDetailSize>();
             CreateMap<CreateOrUpdatePromotionDTO, Promotion>();
             CreateMap<Promotion, CreateOrUpdatePromotionDTO>();
             CreateMap<CreateOrUpdatePromotionDetailDTO, PromotionDetail>();
@@ -47,9 +48,7 @@ namespace MeoMeo.Contract
             CreateMap<CartDetailDTO, CartDetail>();
             CreateMap<ImageDTO, Image>();
             CreateMap<ColourDTO, Colour>();
-            CreateMap<ProductDetaillColourDTO, ProductDetailColour>();
             CreateMap<SizeDTO, Size>();
-            CreateMap<ProductDetaillSizeDTO, ProductDetailSize>();
             CreateMap<CreateOrUpdateOrderDetailDTO, OrderDetail>();
             CreateMap<CreateOrUpdateDeliveryAddressDTO, DeliveryAddress>();
             CreateMap<CreateOrUpdateProvinceDTO, Province>();
@@ -99,12 +98,16 @@ namespace MeoMeo.Contract
             CreateMap<SystemConfigDTO, CreateOrUpdateSystemConfigDTO>();
             CreateMap<SystemConfigDTO, SystemConfig>();
             CreateMap<User,UserDTO>();
-            
+            CreateMap<ProductDetail,ProductDetailGrid>().IgnoreAllNonExisting();
+            CreateMap<Image, ProductMediaUpload>()
+                .ForMember(dest => dest.ImageUrl, opt => opt.MapFrom(src => src.URL))
+                .ForMember(dest => dest.FileName, opt => opt.MapFrom(src => src.Name))
+                .ForMember(dest => dest.ContentType,
+                    opt => opt.MapFrom(src => src.Type == 0 ? "image/jpeg" : "video/mp4"));
             // Category mappings
             CreateMap<CategoryDTO, Category>();
             CreateMap<Category, CategoryResponseDTO>();
             CreateMap<Category, CategoryDTO>();
         }
-
     }
 }

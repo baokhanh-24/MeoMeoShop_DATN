@@ -11,6 +11,6 @@ namespace MeoMeo.Domain.Entities
         public EMaterialWeight Weight { get; set; }
         public string Description { get; set; }
         public int Status { get; set; }
-        public virtual ICollection<ProductDetailMaterial> ProductDetailMaterials { get; set; }
+        public virtual ICollection<ProductMaterial> ProductMaterials { get; set; }
     }
 }

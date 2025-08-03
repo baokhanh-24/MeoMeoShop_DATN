@@ -12,7 +12,7 @@ namespace MeoMeo.EntityFrameworkCore.Configurations
             builder.HasKey(x => x.Id);
             builder.Property(x => x.Name).HasMaxLength(100).HasColumnType("nvarchar(100)");
             builder.Property(x => x.URL).HasMaxLength(1000).HasColumnType("varchar(1000)");
-            builder.HasOne(x => x.ProductDetail).WithMany(x => x.Images).HasForeignKey(x => x.ProductDetailId);
+            builder.HasOne(x => x.Product).WithMany(x => x.Images).HasForeignKey(x => x.ProductId);
         }
     }
 }

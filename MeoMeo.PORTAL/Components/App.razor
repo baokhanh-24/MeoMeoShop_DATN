@@ -1,4 +1,6 @@
-﻿<!DOCTYPE html>
+﻿@using Microsoft.AspNetCore.Components.Authorization
+
+<!DOCTYPE html>
 <html lang="en">
 
 <head>
@@ -25,7 +27,8 @@
     tabindex="0">
     <div class="page-wrapper">
         <main>
-            <Routes @rendermode="RenderMode.InteractiveServer" />
+           
+                <Routes @rendermode="RenderMode.InteractiveServer" />
         </main>
     </div>
     <script src="_framework/blazor.web.js"></script>

@@ -148,3 +148,7 @@ h1:focus {
     margin: 0 !important;
     padding: 12px  !important;
 }
+[class^=rz-] img,
+[class^=rz-] svg {
+    vertical-align: unset !important;
+}

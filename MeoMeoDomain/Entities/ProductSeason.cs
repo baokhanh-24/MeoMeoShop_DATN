@@ -1,6 +1,8 @@
-﻿namespace MeoMeo.Domain.Entities
+﻿using MeoMeo.Domain.Commons;
+
+namespace MeoMeo.Domain.Entities
 {
-    public class ProductSeason
+    public class ProductSeason 
     {
         public Guid SeasonId { get; set; }
         public Guid ProductId { get; set; }

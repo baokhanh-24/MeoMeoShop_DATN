@@ -7,7 +7,6 @@ namespace MeoMeo.Domain.Entities
     {
         public Guid OrderId { get; set; }
         public Guid ProductDetailId { get; set; }
-        public Guid SizeId { get; set; }
         public Guid? PromotionDetailId { get; set; }
         public string Sku { get; set; }
         public float Price { get; set; }
@@ -20,7 +19,6 @@ namespace MeoMeo.Domain.Entities
         public string Image { get; set; }
         public virtual Order Order { get; set; }
         public virtual ProductDetail ProductDetail { get; set; }
-        public virtual Size Size { get; set; }
         public virtual PromotionDetail PromotionDetail { get; set; }
         public virtual ICollection<OrderDetailInventoryBatch> OrderDetailInventoryBatches { get; set; } = new List<OrderDetailInventoryBatch>();
 

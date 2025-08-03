@@ -1,19 +1,21 @@
 ﻿using MeoMeo.Contract.DTOs.Product;
 using MeoMeo.Domain.Entities;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+using MeoMeo.Contract.Commons;
+using MeoMeo.Domain.Commons;
 
 namespace MeoMeo.Application.IServices
 {
     public interface IProductServices
     {
-       public Task<Product> GetProductByIdAsync(Guid id);
-       public Task<IEnumerable<Product>> GetAllAsync();
-        public Task<Product> CreateProductAsync(CreateOrUpdateProductDTO product);
-        public Task<ProductReponseDTO> UpdateAsync(CreateOrUpdateProductDTO model);
-        public Task<ProductReponseDTO> DeleteAsync(Guid id);
+        Task<CreateOrUpdateProductDTO> GetProductByIdAsync(Guid id);
+        Task<IEnumerable<ProductResponseDTO>> GetAllAsync();
+        Task<BaseResponse> CreateProductAsync(CreateOrUpdateProductDTO product, List<FileUploadResult> uploadedFiles);
+        Task<BaseResponse> UpdateAsync(CreateOrUpdateProductDTO model, List<FileUploadResult> uploadedFiles);
+        Task<ProductResponseDTO> DeleteAsync(Guid id);
+
+        Task<PagingExtensions.PagedResult<ProductResponseDTO, GetListProductResponseDTO>> GetPagedProductsAsync(GetListProductRequestDTO request);
+        Task<ProductResponseDTO> GetProductWithDetailsAsync(Guid id);
+        Task<BaseResponse> UpdateVariantStatusAsync(UpdateProductStatusDTO input);
+        Task<List<Image>> GetOldImagesAsync(Guid productId);
     }
 }

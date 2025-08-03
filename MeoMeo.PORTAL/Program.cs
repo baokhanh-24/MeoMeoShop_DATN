@@ -1,8 +1,10 @@
 using System.Globalization;
 using MeoMeo.PORTAL.Components;
 using MeoMeo.Shared.IServices;
+using MeoMeo.Shared.Middlewares;
 using MeoMeo.Shared.Services;
 using MeoMeo.Shared.Utilities;
+using Microsoft.AspNetCore.Components.Authorization;
 
 var builder = WebApplication.CreateBuilder(args);
 // Add services to the container.
@@ -13,15 +15,26 @@ builder.Services.AddRazorComponents()
 builder.Services.AddAntDesign();
 builder.Services.AddScoped<MessageModalService>();
 builder.Services.AddSingleton<LoadingService>();
-builder.Services.AddHttpClient<IApiCaller, ApiCaller>();
+
+// Authentication Services
+builder.Services.AddScoped<IAuthClientService, AuthClientService>();
+builder.Services.AddScoped<CustomAuthStateProvider>();
+builder.Services.AddScoped<AuthenticationStateProvider, CustomAuthStateProvider>();
+
+builder.Services.AddAuthorizationCore();
+
+// HTTP Client with Authentication Handler
+builder.Services.AddScoped<AuthenticationHttpMessageHandler>();
+builder.Services.AddHttpClient<IApiCaller, ApiCaller>(client =>
+{
+    client.BaseAddress = new Uri(apiBaseUrl!);
+}).AddHttpMessageHandler<AuthenticationHttpMessageHandler>();
+
 CultureInfo culture = new CultureInfo("vi-VN");
 CultureInfo.DefaultThreadCurrentCulture = culture;
 CultureInfo.DefaultThreadCurrentUICulture = culture;
 builder.Services.AddInteractiveStringLocalizer();
-builder.Services.AddHttpClient<IApiCaller, ApiCaller>(client =>
-{
-    client.BaseAddress = new Uri(apiBaseUrl!);
-});
+
 // đăng kí 
 builder.Services.AddScoped<ICustomerClientService, CustomerClientService>();
 //builder.WebHost.ConfigureKestrel(options =>

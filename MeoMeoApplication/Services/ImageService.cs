@@ -42,7 +42,7 @@ namespace MeoMeo.Application.Services
             return new ImageResponseDTO 
             {
                 Id = image.Id,
-                ProductDetailId = image.ProductDetailId,
+                ProductDetailId = image.ProductId,
                 Name = image.Name,
                 Url = image.URL,
                 Type = image.Type,
@@ -58,7 +58,7 @@ namespace MeoMeo.Application.Services
                 Id = Guid.NewGuid(), 
                 URL = imageDto.Url,
                 Name = imageDto.Name,
-                ProductDetailId = imageDto.ProductDetailId,
+                ProductId = imageDto.ProductId,
             };
             //var image = _mapper.Map<Image>(imageDto);
             var updated =  await _imageRepository.CreateImage(image);

@@ -14,10 +14,9 @@ namespace MeoMeo.Contract.DTOs.ProductDetail
         public float? Discount { get; set; }
         public Guid? PromotionDetailId { get; set; }
         public string? Description { get; set; }
-        public EProductDetailGender Gender { get; set; }
         public float StockHeight { get; set; }
         public EClosureType ClosureType { get; set; }
-        public int OutOfStock { get; set; }
+        public int OutOfStock { get; set; }  // Thay thế OutOfStock
         public bool AllowReturn { get; set; }
         public int Status { get; set; }
         public int? InventoryQuantity { get; set; }
@@ -40,6 +39,12 @@ namespace MeoMeo.Contract.DTOs.ProductDetail
         public List<Guid> CategoryIds { get; set; } = new List<Guid>();
         public List<string> CategoryNames { get; set; } = new List<string>();
         public List<ProductDetailImageDTO> Images { get; set; } = new List<ProductDetailImageDTO>();
+        
+        // Thêm Size và Colour info
+        public Guid SizeId { get; set; }
+        public string SizeValue { get; set; }
+        public Guid ColourId { get; set; }
+        public string ColourName { get; set; }
     }
 
     public class ProductDetailImageDTO

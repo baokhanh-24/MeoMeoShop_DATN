@@ -149,20 +149,12 @@ namespace MeoMeo.Shared.Services
 
             formData.Add(new StringContent(productDetail.Price.ToString()), "Price");
             formData.Add(new StringContent(productDetail.Description ?? ""), "Description");
-            formData.Add(new StringContent(((int)productDetail.Gender).ToString()), "Gender");
             formData.Add(new StringContent(productDetail.StockHeight.ToString()), "StockHeight");
             formData.Add(new StringContent(((int)productDetail.ClosureType).ToString()), "ClosureType");
             formData.Add(new StringContent(productDetail.OutOfStock.ToString()), "OutOfStock");
             formData.Add(new StringContent(productDetail.AllowReturn.ToString()), "AllowReturn");
             formData.Add(new StringContent(productDetail.Status.ToString()), "Status");
             formData.Add(new StringContent(productDetail.BrandId.ToString()), "BrandId");
-
-            // Lists (split to multiple keys)
-            foreach (var id in productDetail.SizeIds)
-                formData.Add(new StringContent(id.ToString()), "SizeIds");
-
-            foreach (var id in productDetail.ColourIds)
-                formData.Add(new StringContent(id.ToString()), "ColourIds");
 
             foreach (var id in productDetail.SeasonIds)
                 formData.Add(new StringContent(id.ToString()), "SeasonIds");

@@ -40,10 +40,6 @@ builder.Services.AddScoped<IImageRepository, ImageRepository>();
 builder.Services.AddScoped<IImageService, ImageService>();
 builder.Services.AddScoped<IColourRepository, ColourRepository>();
 builder.Services.AddScoped<IColourService, ColourService>();
-builder.Services.AddScoped<IProductDetaillColourRepository, ProductDetaillColourRepository>();
-builder.Services.AddScoped<IProductDetaillColourService, ProductDetaillColourService>();
-builder.Services.AddScoped<IProductDetaillSizeRepository, ProductDetaillSizeRepository>();
-builder.Services.AddScoped<IProductDetaillSizeService, ProductDetaillSizeService>();
 builder.Services.AddScoped<ISizeRepository, SizeRepository>();
 builder.Services.AddScoped<ISizeService, SizeService>();
 builder.Services.AddScoped<IOrderRepository, OrderRepository>();
@@ -74,7 +70,7 @@ builder.Services.AddScoped<IUserRepository, UserRepository>();
 builder.Services.AddScoped<IUserService, UserService>();
 builder.Services.AddScoped<IOrderDetailInventoryBatchRepository, OrderDetailInventoryBatchRepository>();
 builder.Services.AddScoped<IOrderHistoryRepository, OrderHistoryRepository>();
-builder.Services.AddScoped<IProductDetailMaterialRepository, ProductDetailMaterialRepository>();
+builder.Services.AddScoped<IProductMaterialRepository, ProductMaterialRepository>();
 // builder.Services.AddScoped<IUserServices, UserServices>();
 builder.Services.AddScoped<IEmployeeRepository, EmployeeRepository>();
 builder.Services.AddScoped<IEmployeeServices, EmployeeServices>();
@@ -95,6 +91,7 @@ builder.Services.AddScoped<ISystemConfigService, SystemConfigService>();
 builder.Services.AddScoped<ICategoryRepository, CategoryRepository>();
 builder.Services.AddScoped<ICategoryService, CategoryService>();
 builder.Services.AddScoped<IProductCategoryRepository, ProductCategoryRepository>();
+builder.Services.AddScoped<IProductReviewRepository, ProductReviewRepository>();
 
 // Auth Service Dependencies
 builder.Services.AddScoped<IRefreshTokenRepository, RefreshTokenRepository>();
