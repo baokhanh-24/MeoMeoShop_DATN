@@ -25,10 +25,7 @@ namespace MeoMeo.EntityFrameworkCore.Repositories
         public async Task DeleteByProductIdAsync(Guid productId)
         {
             var existingCategories = await GetByProductIdAsync(productId);
-            foreach (var category in existingCategories)
-            {
-                await DeleteAsync(category);
-            }
+            await DeleteRangeAsync(existingCategories);
         }
     }
 } 

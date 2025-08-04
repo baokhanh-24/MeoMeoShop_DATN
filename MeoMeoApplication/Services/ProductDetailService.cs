@@ -134,7 +134,7 @@ namespace MeoMeo.Application.Services
                     {
                         detail.Id,
                         detail.ProductId,
-                        ProductName = product.Name + "-" + detail.Sku,
+                        ProductName = product.Name,
                         detail.Price,
                         detail.Sku,
                         detail.Description,
@@ -195,7 +195,7 @@ namespace MeoMeo.Application.Services
                         break;
 
                     default:
-                        mainQuery = mainQuery.OrderByDescending(x => x.Id);
+                        mainQuery = mainQuery.OrderByDescending(x => x.CreationTime);
                         break;
                 }
 
@@ -206,6 +206,7 @@ namespace MeoMeo.Application.Services
                     .ToListAsync();
 
                 var productDetailIds = mainResults.Select(x => x.Id);
+                var productIds = mainResults.Select(x => x.ProductId);
                 var imagesDict = await _imageRepository.Query()
                     .Where(i => productDetailIds.Contains(i.ProductDetailId))
                     .GroupBy(i => i.ProductDetailId)
@@ -231,7 +232,7 @@ namespace MeoMeo.Application.Services
 
                 var categoriesDict = await (from pdc in _productCategoryRepository.Query()
                         join c in _categoryRepository.Query() on pdc.CategoryId equals c.Id
-                        where productDetailIds.Contains(pdc.ProductId)
+                        where productIds.Contains(pdc.ProductId)
                         group c.Name by pdc.ProductId)
                     .ToDictionaryAsync(g => g.Key, g => string.Join(", ", g));
 
@@ -262,7 +263,7 @@ namespace MeoMeo.Application.Services
                         Colours = coloursDict.TryGetValue(main.Id, out var colours) ? colours : string.Empty,
                         Materials = materialsDict.TryGetValue(main.Id, out var materials) ? materials : string.Empty,
                         Categories =
-                            categoriesDict.TryGetValue(main.Id, out var categories) ? categories : string.Empty,
+                            categoriesDict.TryGetValue(main.ProductId, out var categories) ? categories : string.Empty,
                         PromotionDetailId = null
                     };
                 }).ToList();
@@ -331,7 +332,7 @@ namespace MeoMeo.Application.Services
                         Id = i.Id,
                         ImageUrl = i.URL,
                         FileName = i.Name,
-                        ContentType = "image/jpeg",
+                        ContentType = i.Type == 0 ? "image/jpeg" : "video/mp4" ,
                         Base64Data = string.Empty,
                         UploadFile = null
                     })
@@ -379,7 +380,7 @@ namespace MeoMeo.Application.Services
                 }
 
                 await _unitOfWork.BeginTransactionAsync();
-                var thumbNail = lstFileMedia.First().FileName;
+                var thumbNail = lstFileMedia.FirstOrDefault(c=>c.FileType==0).FileName;
                 var productToAdd = new Product()
                 {
                     Id = productDetail.ProductId.Value,
@@ -391,6 +392,7 @@ namespace MeoMeo.Application.Services
                 await _productRepository.AddAsync(productToAdd);
                 var mappedProductDetail = _mapper.Map<ProductDetail>(productDetail);
                 mappedProductDetail.Id = Guid.NewGuid();
+                mappedProductDetail.CreationTime = DateTime.Now;
                 mappedProductDetail.ProductId = productToAdd.Id;
                 mappedProductDetail.ViewNumber = 0;
                 mappedProductDetail.SellNumber = 0;
@@ -443,7 +445,7 @@ namespace MeoMeo.Application.Services
                 {
                     var categoryEntities = productDetail.CategoryIds.Select(categoryId => new ProductCategory
                     {
-                        ProductId = mappedProductDetail.Id,
+                        ProductId = productToAdd.Id,
                         CategoryId = categoryId
                     });
                     await _productCategoryRepository.AddRangeAsync(categoryEntities);
@@ -458,6 +460,7 @@ namespace MeoMeo.Application.Services
                         {
                             Id = Guid.NewGuid(),
                             Name = file.FileName,
+                            ProductDetailId = mappedProductDetail.Id,
                             Type = Convert.ToInt32(file.FileType),
                             URL = file.RelativePath
                         };
@@ -527,8 +530,8 @@ namespace MeoMeo.Application.Services
                             Id = Guid.NewGuid(),
                             ProductDetailId = productDetail.Id.Value,
                             Name = file.FileName,
-                            Type = file.FileType ?? 1,
-                            URL = file.FullPath
+                            Type = file.FileType ?? 0,
+                            URL = file.RelativePath
                         };
                         await _imageRepository.CreateImage(image);
                     }
@@ -541,10 +544,7 @@ namespace MeoMeo.Application.Services
                     var oldSizes = await _productDetaillSizeRepository.Query()
                         .Where(x => x.ProductDetailId == productDetail.Id.Value)
                         .ToListAsync();
-                    foreach (var size in oldSizes)
-                    {
-                        await _productDetaillSizeRepository.DeleteAsync(size);
-                    }
+                    await _productDetaillSizeRepository.DeleteRangeAsync(oldSizes);
 
                     // Thêm sizes mới
                     var sizeEntities = productDetail.SizeIds.Select(sizeId => new ProductDetailSize
@@ -561,11 +561,7 @@ namespace MeoMeo.Application.Services
                     var oldColours = await _productDetaillColourRepository.Query()
                         .Where(x => x.ProductDetailId == productDetail.Id.Value)
                         .ToListAsync();
-                    foreach (var colour in oldColours)
-                    {
-                        await _productDetaillColourRepository.DeleteAsync(colour);
-                    }
-
+                    await _productDetaillColourRepository.DeleteRangeAsync(oldColours);
                     // Thêm colours mới
                     var colourEntities = productDetail.ColourIds.Select(colourId => new ProductDetailColour
                     {
@@ -580,11 +576,7 @@ namespace MeoMeo.Application.Services
                     var oldSeasons = await _productSeasonRepository.Query()
                         .Where(x => x.ProductId == productDetailToUpdate.ProductId)
                         .ToListAsync();
-                    foreach (var season in oldSeasons)
-                    {
-                        await _productSeasonRepository.DeleteAsync(season);
-                    }
-
+                    await _productSeasonRepository.DeleteRangeAsync(oldSeasons);
                     // Thêm seasons mới
                     var seasonEntities = productDetail.SeasonIds.Select(seasonId => new ProductSeason
                     {
@@ -600,11 +592,7 @@ namespace MeoMeo.Application.Services
                     var oldMaterials = await _productDetailMaterialRepository.Query()
                         .Where(x => x.ProductDetailId == productDetail.Id.Value)
                         .ToListAsync();
-                    foreach (var material in oldMaterials)
-                    {
-                        await _productDetailMaterialRepository.DeleteAsync(material);
-                    }
-
+                    await _productDetailMaterialRepository.DeleteRangeAsync(oldMaterials);
                     // Thêm materials mới
                     var materialEntities = productDetail.MaterialIds.Select(materialId => new ProductDetailMaterial
                     {
@@ -616,18 +604,17 @@ namespace MeoMeo.Application.Services
 
                 if (productDetail.CategoryIds.Any())
                 {
-                    await _productCategoryRepository.DeleteByProductIdAsync(productDetail.Id.Value);
+                    await _productCategoryRepository.DeleteByProductIdAsync(productDetail.ProductId.Value);
 
                     var categoryEntities = productDetail.CategoryIds.Select(categoryId => new ProductCategory()
                     {
-                        ProductId = productDetail.Id.Value,
+                        ProductId = productDetail.ProductId.Value,
                         CategoryId = categoryId
                     });
                     await _productCategoryRepository.AddRangeAsync(categoryEntities);
                 }
 
                 await _productDetailRepository.UpdateProductDetailAsync(productDetailToUpdate);
-                await _unitOfWork.SaveChangesAsync();
                 await _unitOfWork.CommitAsync();
                 return new BaseResponse { Message = "Cập nhật thành công", ResponseStatus = BaseStatus.Success };
             }

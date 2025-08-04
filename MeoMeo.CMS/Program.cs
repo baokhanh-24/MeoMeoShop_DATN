@@ -13,7 +13,15 @@ builder.Services.AddRazorComponents()
     .AddInteractiveServerComponents();
 builder.Services.AddAntDesign();
 builder.Services.AddRadzenComponents();
-
+builder.Services.AddControllersWithViews();
+builder.Services.AddRazorPages();
+builder.Services.AddSignalR(e => {
+    e.MaximumReceiveMessageSize = 102400000;
+});
+builder.Services.Configure<Microsoft.AspNetCore.Http.Features.FormOptions>(options =>
+{
+    options.MultipartBodyLengthLimit = long.MaxValue;
+});
 builder.Services.AddScoped<MessageModalService>();
 builder.Services.AddSingleton<LoadingService>();
 builder.Services.AddHttpClient<IApiCaller, ApiCaller>();
@@ -33,7 +41,7 @@ builder.Services.AddScoped<ISeasonClientService, SeasonClientService>();
 builder.Services.AddScoped<IColourClientService, ColourClientService>();
 builder.Services.AddScoped<ICategoryClientService, CategoryClientService>();
 builder.Services.AddScoped<IEmployeesClientService, EmployeesClientService>();
-builder.Services.AddScoped<IOrderClientService,OrderClientService>();
+builder.Services.AddScoped<IOrderClientService, OrderClientService>();
 builder.Services.AddScoped<IPromotionClientService, PromotionClientService>();
 builder.Services.AddScoped<IPromotionDetailClientService, PromotionDetailClientService>();
 builder.Services.AddScoped<ISystemConfigClientService, SystenConfigClientService>();
@@ -53,7 +61,7 @@ if (!app.Environment.IsDevelopment())
 app.UseHttpsRedirection();
 app.UseStaticFiles();
 app.UseAntiforgery();
-
+app.MapControllers();
 app.MapRazorComponents<App>()
     .AddInteractiveServerRenderMode();
 

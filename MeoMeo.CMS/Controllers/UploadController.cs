@@ -1,23 +1,23 @@
 using Microsoft.AspNetCore.Mvc;
-using MeoMeo.Contract.Commons;
 
-namespace MeoMeo.API.Controllers;
+namespace MeoMeo.CMS.Controllers;
 
-[Route("api/[controller]")]
-[ApiController]
 [DisableRequestSizeLimit]
-public class UploadsController : ControllerBase
+public partial class UploadController : Controller
 {
     private readonly IWebHostEnvironment environment;
-    public UploadsController(IWebHostEnvironment environment)
+
+    public UploadController(IWebHostEnvironment environment)
     {
         this.environment = environment;
     }
+
     [HttpPost("upload/single")]
     public IActionResult Single(IFormFile file)
     {
         try
         {
+            // Put your code here
             return Ok(new { Completed = true });
         }
         catch (Exception ex)
@@ -31,13 +31,20 @@ public class UploadsController : ControllerBase
     {
         try
         {
+            // Used for demo purposes only
             DeleteOldFiles();
+
             var fileName =
                 $"upload-{DateTime.Today.ToString("yyyy-MM-dd")}-{Guid.NewGuid()}{Path.GetExtension(file.FileName)}";
+
             using (var stream = new FileStream(Path.Combine(environment.WebRootPath, fileName), FileMode.Create))
             {
+                // Save the file
                 file.CopyTo(stream);
+
+                // Return the URL of the file
                 var url = Url.Content($"~/{fileName}");
+
                 return Ok(new { Url = url });
             }
         }
@@ -72,6 +79,7 @@ public class UploadsController : ControllerBase
     {
         try
         {
+            // Put your code here
             return StatusCode(200);
         }
         catch (Exception ex)
@@ -114,6 +122,7 @@ public class UploadsController : ControllerBase
     {
         try
         {
+            // Put your code here
             return Ok(new { Completed = true });
         }
         catch (Exception ex)

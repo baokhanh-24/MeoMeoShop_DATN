@@ -1,15 +1,54 @@
 ﻿@using MeoMeo.CMS.Components.Loading
 @inherits LayoutComponentBase
+<RadzenDialog />
+<RadzenNotification />
+<RadzenTooltip />
+<RadzenContextMenu />
 
-<div class="page">
-    <div class="sidebar">
+<RadzenLayout style="grid-template-areas: 'rz-sidebar rz-header' 'rz-sidebar rz-body'; background: #fff;">
+    <RadzenHeader style="background: #fff;" >
+        <RadzenRow JustifyContent="JustifyContent.Start" AlignItems="AlignItems.Center" Gap="0">
+            <RadzenColumn Size="5">
+                <RadzenSidebarToggle Click="@SidebarToggleClick"></RadzenSidebarToggle>
+            </RadzenColumn>
+            <RadzenColumn Size="7">
+                <RadzenStack AlignItems="AlignItems.Center" Orientation="Orientation.Horizontal" JustifyContent="JustifyContent.End"></RadzenStack>
+            </RadzenColumn>
+        </RadzenRow>
+    </RadzenHeader>
+    <RadzenBody Expanded="@sidebarExpanded" Style="padding: 12px 0; margin: 0;">
+        <RadzenRow class="rz-mx-auto" Style="max-width: 100%;">
+            <RadzenColumn Size="12">
+                <GlobalSpin>
+                    @Body
+                </GlobalSpin>
+            </RadzenColumn>
+        </RadzenRow>
+    </RadzenBody>
+    <RadzenSidebar Expanded="@sidebarExpanded" style="z-index: 2;">
+        <RadzenStack AlignItems="Radzen.AlignItems.Center" class="rz-py-4 rz-py-lg-6" >
+
+            @* <RadzenImage Path="images/logo.png"  style="width: 48px; height: 48px;"></RadzenImage>
+            *@
+            <RadzenText Text="MeoMeoShop " style="color: var(--rz-text-disabled-color);" TextStyle="Radzen.Blazor.TextStyle.Subtitle1" class="rz-mb-0"  />
+        </RadzenStack>
+
         <NavMenu/>
-    </div>
-    <main style="width: 100% !important">
-        <article class="content">
-            <GlobalSpin>
-            @Body
-            </GlobalSpin>
-        </article>
-    </main>
-</div>
+
+        <RadzenStack AlignItems="Radzen.AlignItems.Center" Gap="0" class="rz-py-4 rz-py-lg-6" >
+           
+        </RadzenStack>
+
+    </RadzenSidebar>
+</RadzenLayout>
+
+
+@code {
+    bool sidebarExpanded = true;
+
+    void SidebarToggleClick()
+    {
+        sidebarExpanded = !sidebarExpanded;
+    }
+}
+

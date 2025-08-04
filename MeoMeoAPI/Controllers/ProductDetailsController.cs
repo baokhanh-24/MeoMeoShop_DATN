@@ -51,7 +51,7 @@
                 var result = await _productdetailservices.CreateProductDetailAsync(productDetail, listFileUploaded);
                 if (result.ResponseStatus == BaseStatus.Error)
                 { 
-                    FileUploadHelper.DeleteUploadedFiles(listFileUploaded);
+                    FileUploadHelper.DeleteUploadedFiles(_env,listFileUploaded);
                 }
                 return Ok(result);
             }
@@ -72,13 +72,16 @@
                 var oldImages = await _productdetailservices.GetOldImagesAsync(id);
                 var newImageIds = productDetail.MediaUploads?.Where(i => i.Id != null).Select(i => i.Id.Value).ToList() ?? new List<Guid>();
                 var imagesToDelete = oldImages.Where(img => !newImageIds.Contains(img.Id)).ToList();
-                // Xóa file vật lý các ảnh không còn
-                foreach (var img in imagesToDelete)
-                {
-                    FileUploadHelper.DeleteUploadedFiles(new List<FileUploadResult> { new FileUploadResult { FullPath = img.URL } });
-                }
                 // Gọi service cập nhật, truyền cả danh sách ảnh mới đã upload
                 var result = await _productdetailservices.UpdateProductDetailAsync(productDetail, listFileUploaded);
+                if (result.ResponseStatus == BaseStatus.Success)
+                {
+                    // Xóa file vật lý các ảnh không còn
+                    foreach (var img in imagesToDelete)
+                    {
+                        FileUploadHelper.DeleteUploadedFiles(_env,new List<FileUploadResult> { new FileUploadResult { RelativePath = img.URL } });
+                    }
+                }
                 return Ok(result);
             }
 

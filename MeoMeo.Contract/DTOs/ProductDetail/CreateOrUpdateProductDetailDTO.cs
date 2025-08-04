@@ -38,7 +38,7 @@ namespace MeoMeo.Contract.DTOs.ProductDetail
        
         public IEnumerable<Guid> CategoryIds { get; set; }
       
-        public List<ProductMediaUpload> MediaUploads { get; set; }
+        public List<ProductMediaUpload>? MediaUploads { get; set; }
 
     }
 
