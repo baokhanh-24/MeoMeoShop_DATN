@@ -10,5 +10,6 @@ namespace MeoMeo.Application.IServices
         Task<DeliveryAddress> CreateDeliveryAddressAsync(CreateOrUpdateDeliveryAddressDTO deliveryAddress);
         Task<DeliveryAddress> UpdateDeliveryAddressAsync(CreateOrUpdateDeliveryAddressDTO deliveryAddress);
         Task<bool> DeleteDeliveryAddressAsync(Guid id);
+        Task<IEnumerable<DeliveryAddress>> GetByCustomerIdAsync(Guid customerId);
     }
 }

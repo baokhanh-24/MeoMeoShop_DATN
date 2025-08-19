@@ -9,16 +9,27 @@ namespace MeoMeo.API.Controllers
     public class DeliveryAddressesController : ControllerBase
     {
         private readonly IDeliveryAddressService _deliveryAddressService;
+        private readonly IHttpContextAccessor _httpContextAccessor;
 
-        public DeliveryAddressesController(IDeliveryAddressService deliveryAddressService)
+        public DeliveryAddressesController(IDeliveryAddressService deliveryAddressService, IHttpContextAccessor httpContextAccessor)
         {
             _deliveryAddressService = deliveryAddressService;
+            _httpContextAccessor = httpContextAccessor;
         }
 
         [HttpGet()]
         public async Task<IActionResult> GetDeliveryAddress()
         {
             var result = await _deliveryAddressService.GetAllDeliveryAddressAsync();
+            return Ok(result);
+        }
+
+        [HttpGet("mine")]
+        public async Task<IActionResult> GetMyDeliveryAddresses()
+        {
+            var customerId = MeoMeo.API.Extensions.HttpContextExtensions.GetCurrentCustomerId(_httpContextAccessor.HttpContext);
+            if (customerId == Guid.Empty) return Unauthorized();
+            var result = await _deliveryAddressService.GetByCustomerIdAsync(customerId);
             return Ok(result);
         }
 

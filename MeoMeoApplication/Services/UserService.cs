@@ -2,6 +2,7 @@
 using MeoMeo.Application.IServices;
 using MeoMeo.Contract.Commons;
 using MeoMeo.Contract.DTOs;
+using MeoMeo.Contract.DTOs.Auth;
 using MeoMeo.Contract.DTOs.Employees;
 using MeoMeo.Domain.Entities;
 using MeoMeo.Domain.IRepositories;
@@ -63,21 +64,11 @@ namespace MeoMeo.Application.Services
             return await _repository.GetAllUserAsync();
         }
 
-        public async Task<CreateOrUpdateUserResponseDTO> GetUserByIdAsync(Guid id)
+        public async Task<UserDTO> GetUserByIdAsync(Guid id)
         {
-            CreateOrUpdateUserResponseDTO responseDTO = new CreateOrUpdateUserResponseDTO();
-
+            UserDTO responseDTO = new UserDTO();
             var check = await _repository.GetUserByIdAsync(id);
-            if (check == null)
-            {
-                responseDTO.ResponseStatus = BaseStatus.Error;
-                responseDTO.Message = "Không tìm thấy User";
-                return responseDTO;
-            }
-
-            responseDTO = _mapper.Map<CreateOrUpdateUserResponseDTO>(check);
-            responseDTO.ResponseStatus = BaseStatus.Success;
-            responseDTO.Message = "";
+            responseDTO = _mapper.Map<UserDTO>(check);
             return responseDTO;
         }
 

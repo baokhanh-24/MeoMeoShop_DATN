@@ -98,7 +98,7 @@
             AuthStateProvider.NotifyUserLogout();
 
             MessageService.Success("Đăng xuất thành công!");
-            NavigationManager.NavigateTo("/");
+            NavigationManager.NavigateTo("/",forceLoad:true);
         }
         catch (Exception ex)
         {

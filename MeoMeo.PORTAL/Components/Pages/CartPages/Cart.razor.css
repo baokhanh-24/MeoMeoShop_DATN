@@ -1,0 +1,131 @@
+.name-elipsis {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+.product-img {
+    .ant-image {
+        width: 100% !important;
+    }
+}
+
+.image-holder {
+    height: 301px !important;
+    .ant-image-img {
+        height: 301px !important;
+        object-fit: contain;
+    }
+}
+.product-container .size,
+.product-container .color {
+    font-size: 13px;
+    color: #6c757d; /* Màu chữ phụ (xám) */
+}
+
+/* Ảnh sản phẩm */
+.product-img {
+    border-radius: 8px;
+    border: 1px solid #dee2e6; /* Màu viền */
+    object-fit: cover;
+    width: 90px !important;
+    height: 90px !important;
+}
+
+/* Giá sản phẩm */
+.discount-price {
+    font-size: 16px;
+    font-weight: 600;
+    color: #007bff; /* Xanh dương hiện đại */
+}
+.price {
+    font-size: 13px;
+    color: #6c757d; /* Màu chữ phụ (xám) */
+    text-decoration: line-through;
+}
+
+/* Nút tăng giảm số lượng */
+.btn-change-quantity {
+    border: 1px solid #dee2e6; /* Màu viền */
+    border-radius: 20px;
+    padding: 2px;
+    display: inline-flex;
+    align-items: center;
+}
+.btn-change-quantity .ant-btn {
+    border-radius: 50%;
+    width: 30px;
+    height: 30px;
+    border: none;
+    font-size: 18px;
+    color: #212529; /* Màu chữ chính */
+}
+.btn-change-quantity .ant-input-number {
+    border: none;
+    box-shadow: none;
+    text-align: center;
+    font-weight: 600;
+}
+.btn-change-quantity .ant-input-number-input {
+    text-align: center !important;
+}
+.btn-change-quantity .ant-input-number-handler-wrap {
+    display: none;
+}
+
+/* Nút xóa */
+.delete-action.ant-btn {
+    color: #6c757d; /* Màu chữ phụ (xám) */
+    font-size: 18px;
+    transition: all 0.3s ease;
+}
+.delete-action.ant-btn:hover {
+    color: #ff4d4f; /* Màu đỏ cho hành động xóa */
+    transform: scale(1.2);
+}
+
+/* ----- KHUNG TÓM TẮT ĐƠN HÀNG (BÊN PHẢI) ----- */
+.col-lg-3 .space-coverage {
+    position: sticky;
+    top: 20px;
+}
+.col-lg-3 .d-flex.justify-content-between {
+    font-size: 16px;
+    color: #6c757d; /* Màu chữ phụ (xám) */
+}
+.col-lg-3 .d-flex.justify-content-between .text-end {
+    font-weight: 600;
+    color: #212529; /* Màu chữ chính */
+}
+.text-grand-total {
+    font-size: 24px;
+    font-weight: 700;
+    color: #007bff; /* Xanh dương hiện đại */
+}
+
+/* Nút Mua Hàng (CTA) */
+.btn-order.ant-btn-primary {
+    background: #007bff; /* Xanh dương hiện đại */
+    border-color: #007bff;
+    height: 50px;
+    font-size: 18px;
+    font-weight: 600;
+    border-radius: 8px;
+    text-transform: uppercase;
+    box-shadow: 0 4px 10px rgba(0, 123, 255, 0.3);
+    transition: all 0.3s ease;
+}
+.btn-order.ant-btn-primary:hover {
+    background: #0056b3; /* Màu đậm hơn khi hover */
+    border-color: #0056b3;
+    transform: translateY(-3px);
+    box-shadow: 0 6px 15px rgba(0, 123, 255, 0.4);
+}
+.discount-badge {
+     background-color: #ff4d4f; /* Màu đỏ cho giảm giá */
+     color: #ffffff;
+     padding: 4px 10px;
+     border-radius: 16px; /* Bo tròn để tạo hình con nhộng */
+     font-size: 13px;
+     font-weight: 600;
+     display: inline-block; /* Để padding và background hoạt động */
+ }

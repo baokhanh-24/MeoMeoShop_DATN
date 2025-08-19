@@ -31,7 +31,7 @@ body {
     margin: 0 auto;
 }
 .site-header {
-    background: white;
+    background: #ffff;
     border-bottom: 1px solid #eee;
     z-index: 1030;
 }
@@ -749,9 +749,9 @@ h3.cart-title {
 /* 4. Product
 /*----------------------------------------------*/
 .product-store .product-card .cart-concern {
-    bottom: 75px;
     width: 100%;
     display: flex;
+    margin-bottom: 100px;
     justify-content: center;
     cursor: pointer;
     text-transform: uppercase;
@@ -1093,4 +1093,27 @@ figure.instagram-item img.insta-image {
 }
 .ant-anchor-link-title {
     cursor: pointer !important;
+}
+.content-background {
+    margin-top: 55.5px;
+    background: rgb(237 240 243);
+    height: 100vh;
+}
+.space-coverage {
+    padding: 16px;
+    border-radius: 16px;
+    background:  #fff;
+    transition: all 0.3s ease-in-out;
+}
+.bread-crumb {
+    margin-bottom: 16px;
+}
+
+.bread-crumb .current {
+    color: #1890ff;
+    font-weight: 500;
+}
+
+.group-breadcumb {
+    margin-bottom: 24px;
 }

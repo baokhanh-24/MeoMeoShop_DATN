@@ -32,8 +32,7 @@ namespace MeoMeo.Application.Services
                 PromotionDetailId = cartDetailDTO.PonmotionId,
                 Discount = cartDetailDTO.Discount,
                 Price = cartDetailDTO.Price,
-                Quantity = cartDetailDTO.Quantity,
-                Status = cartDetailDTO.Status,
+                Quantity = cartDetailDTO.Quantity
             };
 
             await _cartDetaillRepository.Create(entity);
@@ -79,11 +78,10 @@ namespace MeoMeo.Application.Services
                 Id = cartDetaill.Id,
                 CartId = cartDetaill.CartId,
                 ProductId = cartDetaill.ProductDetailId,
-                PonmotionId = cartDetaill.PromotionDetailId,
+                PromotionId = cartDetaill.PromotionDetailId,
                 Discount = cartDetaill.Discount,
                 Price = cartDetaill.Price,
                 Quantity = cartDetaill.Quantity,
-                Status = cartDetaill.Status,
                 ResponseStatus = BaseStatus.Success,
                 Message = $""
             };

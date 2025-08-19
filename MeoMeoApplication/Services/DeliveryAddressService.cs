@@ -44,6 +44,12 @@ namespace MeoMeo.Application.Services
             return _deliveryAddressRepository.GetAllAsync();
         }
 
+        public async Task<IEnumerable<DeliveryAddress>> GetByCustomerIdAsync(Guid customerId)
+        {
+            var query = _deliveryAddressRepository.Query().Where(a => a.CustomerId == customerId);
+            return await Task.FromResult(query.AsEnumerable());
+        }
+
         public async Task<DeliveryAddress> GetDeliveryAddressByIdAsync(Guid id)
         {
             var result = await _deliveryAddressRepository.GetByIdAsync(id);

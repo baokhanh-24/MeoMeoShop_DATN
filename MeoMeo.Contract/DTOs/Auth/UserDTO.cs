@@ -6,10 +6,13 @@ public class UserDTO
     public string UserName { get; set; }
     public string FullName { get; set; }
     public string PasswordHash { get; set; }
+    public Guid? CustomerId { get; set; }
+    public Guid? EmployeeId { get; set; }
     public string Avatar { get; set; }
     public DateTime LastLogin { get; set; }
     public string Email { get; set; }
     public bool IsLocked { get; set; }
     public DateTime? LockedEndDate { get; set; }
     public int Status { get; set; }
+
 }

@@ -9,6 +9,9 @@ namespace MeoMeo.Contract.DTOs.Product
         public string Name { get; set; }
         public Guid BrandId { get; set; }
         public string BrandName { get; set; }
+        public float? MaxDiscount { get; set; }
+        public float? MinPrice { get; set; }
+        public float? MaxPrice { get; set; }
         public string Thumbnail { get; set; }
         public DateTime CreationTime { get; set; } = DateTime.Now;
         public DateTime? LastModificationTime { get; set; }

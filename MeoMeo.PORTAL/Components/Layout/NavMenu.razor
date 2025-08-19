@@ -59,13 +59,13 @@
                         </div>
                     </div>
                     <div class="user-items d-flex">
-                        <Button Type="@ButtonType.Link" Class="search-button ">
+                        <Button Type="@ButtonType.Text" Class="search-button ">
                             <svg class="search w-24 h-24">
                                 <use xlink:href="#search"></use>
                             </svg>
                         </Button>
 
-                        <Button Type="@ButtonType.Link">
+                        <Button Type="@ButtonType.Link" @onclick="() => NaViToCart()">
                             <svg class="cart w-24 h-24">
                                 <use xlink:href="#cart"></use>
                             </svg>
@@ -144,6 +144,11 @@
                 Console.WriteLine(exception.Message);
             }
         }
+    }
+
+    private void NaViToCart()
+    {
+        Navigation.NavigateTo("/cart");
     }
     private void NavigateToPage(int page)
     {

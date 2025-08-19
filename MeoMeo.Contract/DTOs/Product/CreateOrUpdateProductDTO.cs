@@ -27,8 +27,11 @@ namespace MeoMeo.Contract.DTOs.Product
         public Guid? ProductId { get; set; }
         public string? Sku { get; set; }
         public Guid SizeId { get; set; }
+        public string SizeName { get; set; }
         public Guid ColourId { get; set; }
+        public string ColourName { get; set; }
         public float Price { get; set; }
+        public float? Discount { get; set; }
         public int OutOfStock { get; set; }  
         public float StockHeight { get; set; }
         public EClosureType ClosureType { get; set; }
@@ -36,6 +39,7 @@ namespace MeoMeo.Contract.DTOs.Product
         public int? ViewNumber { get; set; }
         public bool AllowReturn { get; set; }
         public EProductStatus Status { get; set; }
+        public int InventoryQuantity { get; set; }
     }
     public class ProductMediaUpload
     {

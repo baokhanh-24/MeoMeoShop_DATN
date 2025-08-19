@@ -19,7 +19,7 @@
         rel="stylesheet">
     <link rel="stylesheet" href="app.css" />
     <link rel="stylesheet" href="MeoMeo.PORTAL.styles.css" />
-    <HeadOutlet @rendermode="new InteractiveServerRenderMode(prerender: true)" />
+    <HeadOutlet @rendermode="new InteractiveServerRenderMode(prerender: false)" />
 </head>
 
 
@@ -27,8 +27,8 @@
     tabindex="0">
     <div class="page-wrapper">
         <main>
-           
-                <Routes @rendermode="RenderMode.InteractiveServer" />
+
+            <Routes @rendermode="new InteractiveServerRenderMode(prerender: false)" />
         </main>
     </div>
     <script src="_framework/blazor.web.js"></script>

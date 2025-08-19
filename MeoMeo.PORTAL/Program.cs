@@ -21,15 +21,12 @@ builder.Services.AddScoped<IAuthClientService, AuthClientService>();
 builder.Services.AddScoped<CustomAuthStateProvider>();
 builder.Services.AddScoped<AuthenticationStateProvider, CustomAuthStateProvider>();
 
-builder.Services.AddAuthorizationCore();
-
-// HTTP Client with Authentication Handler
-builder.Services.AddScoped<AuthenticationHttpMessageHandler>();
+builder.Services.AddScoped<ITokenProvider, TokenProvider>();
 builder.Services.AddHttpClient<IApiCaller, ApiCaller>(client =>
 {
     client.BaseAddress = new Uri(apiBaseUrl!);
-}).AddHttpMessageHandler<AuthenticationHttpMessageHandler>();
-
+});
+builder.Services.AddAuthorizationCore();
 CultureInfo culture = new CultureInfo("vi-VN");
 CultureInfo.DefaultThreadCurrentCulture = culture;
 CultureInfo.DefaultThreadCurrentUICulture = culture;
@@ -37,6 +34,12 @@ builder.Services.AddInteractiveStringLocalizer();
 
 // đăng kí 
 builder.Services.AddScoped<ICustomerClientService, CustomerClientService>();
+builder.Services.AddScoped<IProductClientService, ProductClientService>();
+builder.Services.AddScoped<ICartClientService, CartClientService>();
+builder.Services.AddScoped<ISizeClientService, SizeClientService>();
+builder.Services.AddScoped<IColourClientService, ColourClientService>();
+builder.Services.AddScoped<IDeliveryAddressClientService, DeliveryAddressClientService>();
+builder.Services.AddScoped<IOrderClientService, OrderClientService>();
 //builder.WebHost.ConfigureKestrel(options =>
 //{
 //    options.ListenAnyIP(80); 

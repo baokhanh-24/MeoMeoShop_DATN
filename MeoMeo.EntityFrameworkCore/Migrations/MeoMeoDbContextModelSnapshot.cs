@@ -131,13 +131,10 @@ namespace MeoMeo.EntityFrameworkCore.Migrations
                     b.Property<Guid>("ProductDetailId")
                         .HasColumnType("uniqueidentifier");
 
-                    b.Property<Guid>("PromotionDetailId")
+                    b.Property<Guid?>("PromotionDetailId")
                         .HasColumnType("uniqueidentifier");
 
                     b.Property<int>("Quantity")
-                        .HasColumnType("int");
-
-                    b.Property<int>("Status")
                         .HasColumnType("int");
 
                     b.HasKey("Id");
@@ -1022,6 +1019,81 @@ namespace MeoMeo.EntityFrameworkCore.Migrations
                     b.ToTable("ProductMaterials", (string)null);
                 });
 
+            modelBuilder.Entity("MeoMeo.Domain.Entities.ProductReview", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("Content")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<Guid>("CreatedBy")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime>("CreationTime")
+                        .HasColumnType("datetime2");
+
+                    b.Property<Guid>("CustomerId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<bool>("IsHidden")
+                        .HasColumnType("bit");
+
+                    b.Property<DateTime?>("LastModificationTime")
+                        .HasColumnType("datetime2");
+
+                    b.Property<Guid>("OrderId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("ProductDetailId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<float>("Rating")
+                        .HasColumnType("real");
+
+                    b.Property<Guid?>("UpdatedBy")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CustomerId");
+
+                    b.HasIndex("OrderId");
+
+                    b.HasIndex("ProductDetailId");
+
+                    b.ToTable("productReviews");
+                });
+
+            modelBuilder.Entity("MeoMeo.Domain.Entities.ProductReviewFile", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("FileName")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<int>("FileType")
+                        .HasColumnType("int");
+
+                    b.Property<string>("FileUrl")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<Guid>("ProductReviewId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ProductReviewId");
+
+                    b.ToTable("ProductReviewFile");
+                });
+
             modelBuilder.Entity("MeoMeo.Domain.Entities.ProductSeason", b =>
                 {
                     b.Property<Guid>("SeasonId")
@@ -1493,9 +1565,7 @@ namespace MeoMeo.EntityFrameworkCore.Migrations
 
                     b.HasOne("MeoMeo.Domain.Entities.PromotionDetail", "PromotionDetails")
                         .WithMany("CartDetails")
-                        .HasForeignKey("PromotionDetailId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
+                        .HasForeignKey("PromotionDetailId");
 
                     b.Navigation("Cart");
 
@@ -1820,6 +1890,44 @@ namespace MeoMeo.EntityFrameworkCore.Migrations
                     b.Navigation("Product");
                 });
 
+            modelBuilder.Entity("MeoMeo.Domain.Entities.ProductReview", b =>
+                {
+                    b.HasOne("MeoMeo.Domain.Entities.Customers", "Customer")
+                        .WithMany()
+                        .HasForeignKey("CustomerId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("MeoMeo.Domain.Entities.Order", "Order")
+                        .WithMany()
+                        .HasForeignKey("OrderId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("MeoMeo.Domain.Entities.ProductDetail", "ProductDetail")
+                        .WithMany()
+                        .HasForeignKey("ProductDetailId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Customer");
+
+                    b.Navigation("Order");
+
+                    b.Navigation("ProductDetail");
+                });
+
+            modelBuilder.Entity("MeoMeo.Domain.Entities.ProductReviewFile", b =>
+                {
+                    b.HasOne("MeoMeo.Domain.Entities.ProductReview", "ProductReview")
+                        .WithMany("ProductReviewFiles")
+                        .HasForeignKey("ProductReviewId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("ProductReview");
+                });
+
             modelBuilder.Entity("MeoMeo.Domain.Entities.ProductSeason", b =>
                 {
                     b.HasOne("MeoMeo.Domain.Entities.Product", "Product")
@@ -2031,6 +2139,11 @@ namespace MeoMeo.EntityFrameworkCore.Migrations
                     b.Navigation("OrderDetails");
 
                     b.Navigation("PromotionDetails");
+                });
+
+            modelBuilder.Entity("MeoMeo.Domain.Entities.ProductReview", b =>
+                {
+                    b.Navigation("ProductReviewFiles");
                 });
 
             modelBuilder.Entity("MeoMeo.Domain.Entities.Promotion", b =>

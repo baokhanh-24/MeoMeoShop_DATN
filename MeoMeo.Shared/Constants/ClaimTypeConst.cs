@@ -10,4 +10,6 @@ public static class ClaimTypeConst
     public const string UserId = "id";
     public const string UserName = "userName";
     public const string FullName = "fullName";
+    public const string CustomerId = "customerId";
+    public const string EmployeeId = "employeeId";
 }

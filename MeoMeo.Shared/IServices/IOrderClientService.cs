@@ -11,4 +11,5 @@ public interface IOrderClientService
     Task<BaseResponse> UpdateStatusOrderAsync(UpdateStatusOrderRequestDTO request);
     
     Task<GetListOrderHistoryResponseDTO> GetListOrderHistoryAsync(Guid orderId);
+    Task<string> CreateVnpayPaymentUrlAsync(CreatePaymentUrlDTO request);
 }

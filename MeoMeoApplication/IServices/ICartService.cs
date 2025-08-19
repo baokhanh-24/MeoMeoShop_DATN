@@ -11,9 +11,13 @@ namespace MeoMeo.Application.IServices
     public interface ICartService
     {
         Task<IEnumerable<Cart>> GetAllCartsAsync();
-        Task<CartResponseDTO> GetCartByIdAsync(Guid id);
+        Task<CartResponseDTO> GetCartByUserIdAsync(Guid userId);
         Task<CartResponseDTO> CreateCartAsync(CartDTO cartDto);
         Task<CartResponseDTO> UpdateCartAsync(CartDTO cartDto);
         Task SaveChangesAsync();
+        Task<CartResponseDTO> AddProductToCartAsync(AddToCartDTO cartDto);
+        Task<CartWithDetailsResponseDTO> GetCurrentCartAsync(Guid customerId);
+        Task<CartResponseDTO> UpdateCartQuantityAsync(UpdateCartQuantityDTO dto);
+        Task<CartResponseDTO> RemoveCartItemAsync(Guid cartDetailId, Guid customerId);
     }
 }

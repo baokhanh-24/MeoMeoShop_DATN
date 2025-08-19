@@ -2,6 +2,16 @@
 @using System.ComponentModel.DataAnnotations
 @inject MessageService MessageService
 @inject NavigationManager NavigationManager
+@using MeoMeo.Shared.IServices
+@using System.Linq
+@using MeoMeo.Contract.DTOs.Product
+@using MeoMeo.Contract.DTOs
+@using MeoMeo.Contract.DTOs.Size
+@using MeoMeo.Domain.Commons
+@using MeoMeo.PORTAL.Components.Pages.ProductCard
+@inject IProductClientService ProductClientService
+@inject ISizeClientService SizeClientService
+@inject IColourClientService ColourClientService
 
 <video autoplay muted loop playsinline >
                 <source src="videos/background.mp4" type="video/mp4">
@@ -104,52 +114,57 @@
     </GridCol>
 </GridRow>
 
-<GridRow Class="product-store position-relative padding-large no-padding-top swiper product-swiper"Id="product" Gutter="16">
-    <GridCol Span="24">
-        <div class="display-header d-flex justify-content-between pb-3"></div>
-        <Title Level="2" Class="display-7 text-dark text-uppercase">Nike Air Force 1</Title>
-        <div class="btn-right">
-            <span class="btn-medium btn-normal text-uppercase cursor"
-                    OnClick="@(() => NavigateToShop())">
-                Đi tới shop
-            </span>
+<GridRow Class="product-store position-relative padding-large no-padding-top" Id="product" Gutter="16">
+    <GridCol Span="4" Md="4" Sm="24">
+        <div class="space-coverage">
+            <Title Level="4">Bộ lọc</Title>
+            <Divider />
+            <Form TModel="GetListProductRequestDTO" Model="filter">
+                <FormItem Label="Từ khóa">
+                    <Search Placeholder="Tìm theo tên" @bind-Value="filter.NameFilter" OnSearch="_ => ApplyFilter()" />
+                </FormItem>
+                <FormItem Label="Màu sắc">
+                    <Select TItem="ColourDTO" TItemValue="Guid?" 
+                            @bind-Value="filter.ColourFilter"
+                            DataSource="colours"
+                            ValueName="Id" 
+                            LabelName="Name"
+                            AllowClear
+                            Placeholder="Chọn màu">
+                    </Select>
+                </FormItem>
+                <FormItem Label="Size">
+                    <Select TItem="SizeDTO" TItemValue="Guid?" 
+                            @bind-Value="filter.SizeFilter"
+                            DataSource="sizes"
+                            ValueName="Id" 
+                            LabelName="Value"
+                            AllowClear
+                            Placeholder="Chọn size">
+                    </Select>
+                </FormItem>
+                <FormItem Label="Khoảng giá">
+                    <Select TItem="PriceRangeOption" TItemValue="int?" 
+                            @bind-Value="selectedPriceRange"
+                            OnChange="OnPriceRangeChanged"
+                            AllowClear Placeholder="Chọn mức giá"
+                            ValueName="Id" LabelName="Label"
+                            DataSource="priceRanges">
+                    </Select>
+                </FormItem>
+                <FormItem>
+                    <Button Type="@ButtonType.Primary" OnClick="ApplyFilter">Áp dụng</Button>
+                    <Button Class="ms-2" OnClick="ResetFilter">Xóa lọc</Button>
+                </FormItem>
+            </Form>
         </div>
     </GridCol>
-    <div class="swiper-wrapper">
-        @foreach (var product in Products)
-        {
-            <GridCol Span="6" Class="mb-3">
-                    <Card Bordered="false" class="swiper-slide" Hoverable="true">
-                        <div class="product-card position-relative">
-                            <div class="image-holder">
-                                <Image Src="@(@product.ImageUrl)">
-                                    <Placeholder>
-                                        <Image Preview="false" Src="@(@product.ImageUrl)"/>
-                                    </Placeholder>
-                                </Image>
-                            </div>
-                            <div class="cart-concern position-absolute">
-                                <div class="cart-button d-flex">
-                                </div>
-                                <div class="cart-button d-flex">
-                                    <CardAction Class="btn btn-medium btn-black">Thêm vào giỏ hàng<Icon Type="shopping-cart" Class="cart-outline" OnClick="@(() => AddToCart(product))"/></CardAction>
-                                </div>
-                            </div>
-                            <div class="card-detail d-flex justify-content-between align-items-baseline pt-3">
-                                <h3 class="card-title text-uppercase">
-                                    <a href="#">@product.Name</a>
-                                    
-                                </h3>
-                                @* <Rate AllowHalf="true" DefaultValue="GetRandomRating()" /> *@
-                                <span class="item-price text-primary">$@(product.Price)</span>
-                            </div>
-                        </div>
-                    </Card>
-              
-            </GridCol>
-            }
-    </div>
-    <div class="swiper-pagination position-absolute text-center"></div>
+    <GridCol Span="20" Md="20" Sm="24">
+        <ProductCard LstProduct="@products" IsGridSelected="true" />
+        <div class="mt-4 d-flex justify-content-center">
+            <Pagination Total="@totalRecords" PageSize="@filter.PageSize" Current="@filter.PageIndex" OnChange="OnPageChanged" />
+        </div>
+    </GridCol>
 </GridRow>
     </GridCol>
 </GridRow>
@@ -210,22 +225,42 @@
         </div>
         </GridCol>
         <GridCol Md="11" Sm="24">
-        <Form Model="@subscriptionModel" OnFinish="HandleSubscribe" Class="subscription-form validate">
-               <GridRow Gutter="16">
-<GridCol Span="16">
-<Search Class="btn-rounded"  Size="InputSize.Default" EnterButton="@("Đăng ký")"@bind-Value="@subscriptionModel.Email" Placeholder="Địa chỉ email của bạn" />
-</GridCol>
-
-               </GridRow>
-        </Form>
+            @* <Form TModel="SubscriptionModel"  *@
+            @*       Model="subscriptionModel"  *@
+            @*       OnFinish="@HandleSubscribe"  *@
+            @*       Class="subscription-form validate"> *@
+            @*     <FormItem Label="Email" Name="@nameof(SubscriptionModel.Email)"> *@
+            @*         <Input @bind-Value="subscriptionModel.Email" /> *@
+            @*     </FormItem> *@
+            @* </Form> *@
         </GridCol>
     </div>
     </GridCol>
 </GridRow>
 @code {
-    private List<Product> Products { get; set; } = new();
+    private List<ProductResponseDTO> products { get; set; } = new();
     private List<Testimonial> Testimonials { get; set; } = new();
     private SubscriptionModel subscriptionModel = new();
+    private GetListProductRequestDTO filter = new() { PageIndex = 1, PageSize = 12 };
+    private List<SizeDTO> sizes = new();
+    private List<ColourDTO> colours = new();
+    public class PriceRangeOption
+    {
+        public int Id { get; set; }   // dùng cho bind
+        public string Label { get; set; }
+    }
+    private int? selectedPriceRange;
+    private List<PriceRangeOption> priceRanges = new()
+    {
+        new PriceRangeOption { Id = 1, Label = "Dưới 500.000đ" },
+        new PriceRangeOption { Id = 2, Label = "500.000đ - 1.000.000đ" },
+        new PriceRangeOption { Id = 3, Label = "1.000.000đ - 2.000.000đ" },
+        new PriceRangeOption { Id = 4, Label = "2.000.000đ - 3.000.000đ" },
+        new PriceRangeOption { Id = 5, Label = "3.000.000đ - 4.000.000đ" },
+        new PriceRangeOption { Id = 6, Label = "4.000.000đ - 5.000.000đ" },
+        new PriceRangeOption { Id = 7, Label = "Trên 5.000.000đ" },
+    };
+    private int totalRecords { get; set; }
     private decimal GetRandomRating()
     {
     var random = new Random();
@@ -234,26 +269,8 @@
 
     protected override async Task OnInitializedAsync()
     {
-        // Initialize products
-        Products = new List<Product>
-        {
-            new Product { Id = 1, Name = "Nike Air 107", Price = 1980, ImageUrl = "images/nikeair107.png" },
-            new Product { Id = 2, Name = "Nike Air EVO", Price = 1500, ImageUrl = "images/nikeairevo.png" },
-            new Product { Id = 3, Name = "Nike Air LV8", Price = 1900, ImageUrl = "images/nikeairlv8.png" },
-            new Product { Id = 4, Name = "Nike Air Shadow", Price = 2200, ImageUrl = "images/nikeairshadow.png" }, 
-            new Product { Id = 5, Name = "Nike Air 107", Price = 1980, ImageUrl = "images/nikeair107.png" },
-            new Product { Id = 6, Name = "Nike Air EVO", Price = 1500, ImageUrl = "images/nikeairevo.png" },
-            new Product { Id = 7, Name = "Nike Air LV8", Price = 1900, ImageUrl = "images/nikeairlv8.png" },
-            new Product { Id = 8, Name = "Nike Air Shadow", Price = 2200, ImageUrl = "images/nikeairshadow.png" }, 
-            new Product { Id = 9, Name = "Nike Air 107", Price = 1980, ImageUrl = "images/nikeair107.png" },
-            new Product { Id = 10, Name = "Nike Air EVO", Price = 1500, ImageUrl = "images/nikeairevo.png" },
-            new Product { Id = 11, Name = "Nike Air LV8", Price = 1900, ImageUrl = "images/nikeairlv8.png" },
-            new Product { Id = 12, Name = "Nike Air Shadow", Price = 2200, ImageUrl = "images/nikeairshadow.png" },    
-            new Product { Id = 13, Name = "Nike Air 107", Price = 1980, ImageUrl = "images/nikeair107.png" },
-            new Product { Id = 14, Name = "Nike Air EVO", Price = 1500, ImageUrl = "images/nikeairevo.png" },
-            new Product { Id = 15, Name = "Nike Air LV8", Price = 1900, ImageUrl = "images/nikeairlv8.png" },
-            new Product { Id = 16, Name = "Nike Air Shadow", Price = 2200, ImageUrl = "images/nikeairshadow.png" },
-        };
+        await LoadFilterOptions();
+        await LoadProductsAsync();
 
         // Initialize testimonials
         Testimonials = new List<Testimonial>
@@ -267,7 +284,7 @@
         };
     }
 
-    private async Task AddToCart(Product product)
+    private async Task AddToCart(ProductResponseDTO product)
     {
         MessageService.Success($"Đã thêm {product.Name} vào giỏ hàng");
     }
@@ -283,12 +300,60 @@
         NavigationManager.NavigateTo("/Shop");
     }
 
-    public class Product
+    private async Task LoadFilterOptions()
     {
-        public int Id { get; set; }
-        public string Name { get; set; }
-        public decimal Price { get; set; }
-        public string ImageUrl { get; set; }
+        // sizes
+        var sizeResp = await SizeClientService.GetAllSizeAsync(new GetListSizeRequestDTO { PageIndex = 1, PageSize = 100 });
+        sizes = sizeResp.Items ?? new List<SizeDTO>();
+        // colours
+        var colourResp = await ColourClientService.GetAllColoursAsync();
+        colours = (colourResp ?? Enumerable.Empty<MeoMeo.Domain.Entities.Colour>())
+            .Select(c => new ColourDTO { Id = c.Id, Name = c.Name, Code = c.Code, Status = c.Status })
+            .ToList();
+    }
+
+    private async Task LoadProductsAsync()
+    {
+        var response = await ProductClientService.GetAllProductAsync(filter);
+        products = response.Items ?? new List<ProductResponseDTO>();
+        totalRecords = response.TotalRecords;
+        StateHasChanged();
+    }
+
+    private async Task OnPageChanged(PaginationEventArgs args)
+    {
+        filter.PageIndex = args.Page;
+        filter.PageSize = args.PageSize;
+        await LoadProductsAsync();
+    }
+
+    private async Task ApplyFilter()
+    {
+        filter.PageIndex = 1;
+        await LoadProductsAsync();
+    }
+
+    private void ResetFilter()
+    {
+        filter = new GetListProductRequestDTO { PageIndex = 1, PageSize = 12 };
+        selectedPriceRange = null;
+        _ = LoadProductsAsync();
+    }
+
+    private void OnPriceRangeChanged(int? value)
+    {
+        selectedPriceRange = value;
+        switch (value)
+        {
+            case 1: filter.MinPriceFilter = 0; filter.MaxPriceFilter = 500_000; break;
+            case 2: filter.MinPriceFilter = 500_000; filter.MaxPriceFilter = 1_000_000; break;
+            case 3: filter.MinPriceFilter = 1_000_000; filter.MaxPriceFilter = 2_000_000; break;
+            case 4: filter.MinPriceFilter = 2_000_000; filter.MaxPriceFilter = 3_000_000; break;
+            case 5: filter.MinPriceFilter = 3_000_000; filter.MaxPriceFilter = 4_000_000; break;
+            case 6: filter.MinPriceFilter = 4_000_000; filter.MaxPriceFilter = 5_000_000; break;
+            case 7: filter.MinPriceFilter = 5_000_000; filter.MaxPriceFilter = null; break;
+            default: filter.MinPriceFilter = null; filter.MaxPriceFilter = null; break;
+        }
     }
 
     public class Testimonial

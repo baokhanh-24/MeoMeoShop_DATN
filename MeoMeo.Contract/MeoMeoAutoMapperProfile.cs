@@ -37,8 +37,8 @@ namespace MeoMeo.Contract
             CreateMap<CreateOrUpdatePromotionDTO, Promotion>();
             CreateMap<Promotion, CreateOrUpdatePromotionDTO>();
             CreateMap<CreateOrUpdatePromotionDetailDTO, PromotionDetail>();
-            CreateMap<DTOs.CreateOrUpdateVoucherDTO, Voucher>();
-            CreateMap<DTOs.CreateOrUpdateUserDTO, User>();
+            CreateMap<CreateOrUpdateVoucherDTO, Voucher>();
+            CreateMap<CreateOrUpdateUserDTO, User>();
             CreateMap<CreateOrUpdateEmployeeDTO, Employee>();
             CreateMap<CreateOrUpdateCustomerDTO, Customers>();
             CreateMap<CreateOrUpdateResetPasswordHistoryDTO, ResetPasswordHistory>();
@@ -57,13 +57,14 @@ namespace MeoMeo.Contract
             CreateMap<InventoryBatch, InventoryBatchResponseDTO>();
             CreateMap<InventoryBatchResponseDTO, InventoryBatch>();
             CreateMap<CreateOrUpdateMaterialDTO, Material>();
-            CreateMap<Voucher, DTOs.CreateOrUpdateVoucherResponseDTO>();
+            CreateMap<Voucher, CreateOrUpdateVoucherResponseDTO>();
             CreateMap<Promotion, CreateOrUpdatePromotionResponseDTO>();
             CreateMap<PromotionDetail, CreateOrUpdatePromotionDetailResponseDTO>();
             CreateMap<PromotionDetail, CreateOrUpdatePromotionDetailDTO>();
             CreateMap<CreateOrUpdatePromotionDetailDTO, PromotionDetail>();
             CreateMap<Bank, CreateOrUpdateBankResponseDTO>();
-            CreateMap<User, DTOs.CreateOrUpdateUserResponseDTO>();
+            CreateMap<User, CreateOrUpdateUserResponseDTO>();
+            CreateMap<User, UserDTO>();
             CreateMap<Employee, CreateOrUpdateEmployeeResponseDTO>();
             CreateMap<CreateOrUpdateDistrictDTO, District>();
             CreateMap<Order, CreateOrUpdateOrderResponse>();

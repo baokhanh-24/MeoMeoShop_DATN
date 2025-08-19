@@ -88,7 +88,7 @@ new FormValidationRule { Min = 6, Message = "Mật khẩu phải có ít nhất 
         var isAuthenticated = await AuthService.IsAuthenticatedAsync();
         if (isAuthenticated)
         {
-            NavigationManager.NavigateTo("/");
+            NavigationManager.NavigateTo("/",forceLoad:true);
         }
     }
 
@@ -112,7 +112,7 @@ new FormValidationRule { Min = 6, Message = "Mật khẩu phải có ít nhất 
                 StateHasChanged();
 
                 // Chuyển hướng về trang chủ
-                NavigationManager.NavigateTo("/");
+                NavigationManager.NavigateTo("/",forceLoad:true);
             }
             else
             {

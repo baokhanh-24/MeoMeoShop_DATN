@@ -11,6 +11,8 @@ using MeoMeo.API.Extensions;
 using MeoMeo.Domain.Commons;
 using MeoMeo.EntityFrameworkCore.Commons;
 using MeoMeo.Shared.Middlewares;
+using MeoMeo.Shared.VnPay;
+using MeoMeo.Shared.VnPay.Models;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -100,11 +102,11 @@ builder.Services.AddScoped<IPermissionRepository, PermissionRepository>();
 builder.Services.AddScoped<IPermissionGroupRepository, PermissionGroupRepository>();
 builder.Services.AddScoped<IRoleRepository, RoleRepository>();
 builder.Services.AddScoped<IUserRoleRepository, UserRoleRepository>();
-
+builder.Services.Configure<PaymentOptions>(builder.Configuration.GetSection(PaymentOptions.SectionName));
+builder.Services.AddSingleton<IVnpay, Vnpay>();
 // Auth Service
 builder.Services.AddScoped<IAuthService, AuthService>();
-
-
+builder.Services.AddHttpContextAccessor();
 builder.Services.AddAutoMapper(typeof(MeoMeoAutoMapperProfile));
 builder.Services.AddControllers(options =>
 {

@@ -30,6 +30,7 @@ namespace MeoMeo.Application.Services
         private readonly IOrderDetailRepository _orderDetailRepository;
         private readonly IPromotionDetailRepository _promotionDetailRepository;
         private readonly IProductReviewRepository _reviewRepository;
+        private readonly IIventoryBatchReposiory _inventoryBatchRepository;
         private readonly IUnitOfWork _unitOfWork;
         private readonly IMapper _mapper;
 
@@ -48,6 +49,7 @@ namespace MeoMeo.Application.Services
             IOrderDetailRepository orderDetailRepository,
             IPromotionDetailRepository promotionDetailRepository,
             IProductReviewRepository reviewRepository,
+            IIventoryBatchReposiory inventoryBatchRepository,
             IUnitOfWork unitOfWork,
             IMapper mapper)
         {
@@ -65,6 +67,7 @@ namespace MeoMeo.Application.Services
             _orderDetailRepository = orderDetailRepository;
             _promotionDetailRepository = promotionDetailRepository;
             _reviewRepository = reviewRepository;
+            _inventoryBatchRepository = inventoryBatchRepository;
             _unitOfWork = unitOfWork;
             _mapper = mapper;
         }
@@ -769,6 +772,18 @@ namespace MeoMeo.Application.Services
                     .GroupBy(pd => pd.ProductId)
                     .ToDictionaryAsync(g => g.Key, g => g.ToList());
 
+                // Compute inventory quantity per variant (ProductDetail)
+                var allVariantIds = variantsDict.Values
+                    .SelectMany(v => v)
+                    .Select(v => v.Id)
+                    .Distinct()
+                    .ToList();
+
+                var inventoryQuantityByVariantId = await _inventoryBatchRepository.Query()
+                    .Where(b => allVariantIds.Contains(b.ProductDetailId) && b.Status == EInventoryBatchStatus.Aprroved)
+                    .GroupBy(b => b.ProductDetailId)
+                    .ToDictionaryAsync(g => g.Key, g => g.Sum(x => x.Quantity));
+
                 var materialIdsDict = await _productMaterialRepository.Query()
                     .Where(pm => productIds.Contains(pm.ProductId))
                     .GroupBy(pm => pm.ProductId)
@@ -837,8 +852,13 @@ namespace MeoMeo.Application.Services
                         CategoryNames = categoryIds.Select(id => categoriesDict.GetValueOrDefault(id, string.Empty)).ToList(),
                         SeasonIds = seasonIds,
                         SeasonNames = seasonIds.Select(id => seasonsDict.GetValueOrDefault(id, string.Empty)).ToList(),
-                        // Set variants and media using AutoMapper
-                        ProductVariants = _mapper.Map<List<ProductDetailGrid>>(variants),
+                        // Set variants with inventory quantity
+                        ProductVariants = variants.Select(v =>
+                        {
+                            var dto = _mapper.Map<ProductDetailGrid>(v);
+                            dto.InventoryQuantity = inventoryQuantityByVariantId.TryGetValue(v.Id, out var qty) ? qty : 0;
+                            return dto;
+                        }).ToList(),
                         Media = _mapper.Map<List<ProductMediaUpload>>(images)
                     };
                 }).ToList();

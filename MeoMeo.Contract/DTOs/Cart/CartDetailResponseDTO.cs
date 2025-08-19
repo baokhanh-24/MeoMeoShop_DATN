@@ -12,7 +12,7 @@ namespace MeoMeo.Contract.DTOs
         public Guid? Id { get; set; }
         public Guid CartId { get; set; }
         public Guid ProductId { get; set; }
-        public Guid PonmotionId { get; set; }
+        public Guid? PromotionId { get; set; }
         public float Discount { get; set; }
         public float Price { get; set; }
         public int Quantity { get; set; }

@@ -2,6 +2,7 @@ using System.IdentityModel.Tokens.Jwt;
 using MeoMeo.Contract.DTOs.Auth;
 using MeoMeo.Shared.IServices;
 using MeoMeo.Shared.Utilities;
+using Microsoft.AspNetCore.Components.Server.ProtectedBrowserStorage;
 using Microsoft.Extensions.Logging;
 using Microsoft.JSInterop;
 
@@ -10,14 +11,15 @@ namespace MeoMeo.Shared.Services;
 public class AuthClientService : IAuthClientService
 {
     private readonly IApiCaller _apiCaller;
-    private readonly IJSRuntime _jsRuntime;
     private readonly ILogger<AuthClientService> _logger;
-
-    public AuthClientService(IApiCaller apiCaller, IJSRuntime jsRuntime, ILogger<AuthClientService> logger)
+    private readonly ProtectedLocalStorage _localStorage;
+    private const string StorageKey = "accessToken";
+    private const string RefreshStorageKey = "refreshToken";
+    public AuthClientService(IApiCaller apiCaller, ILogger<AuthClientService> logger, ProtectedLocalStorage localStorage)
     {
         _apiCaller = apiCaller;
-        _jsRuntime = jsRuntime;
         _logger = logger;
+        _localStorage = localStorage;
     }
 
     public async Task<AuthenResponse?> LoginAsync(AuthenRequest request)
@@ -100,7 +102,7 @@ public class AuthClientService : IAuthClientService
     {
         try
         {
-            return await _jsRuntime.InvokeAsync<string>("localStorage.getItem", "accessToken");
+            return (await _localStorage.GetAsync<string>(StorageKey)).Value;
         }
         catch
         {
@@ -112,7 +114,7 @@ public class AuthClientService : IAuthClientService
     {
         try
         {
-            return await _jsRuntime.InvokeAsync<string>("localStorage.getItem", "refreshToken");
+            return (await _localStorage.GetAsync<string>(RefreshStorageKey)).Value;
         }
         catch
         {
@@ -124,8 +126,8 @@ public class AuthClientService : IAuthClientService
     {
         try
         {
-            await _jsRuntime.InvokeVoidAsync("localStorage.setItem", "accessToken", accessToken);
-            await _jsRuntime.InvokeVoidAsync("localStorage.setItem", "refreshToken", refreshToken);
+            await _localStorage.SetAsync(StorageKey, accessToken);
+            await _localStorage.SetAsync(RefreshStorageKey, refreshToken);
         }
         catch (Exception ex)
         {
@@ -137,8 +139,8 @@ public class AuthClientService : IAuthClientService
     {
         try
         {
-            await _jsRuntime.InvokeVoidAsync("localStorage.removeItem", "accessToken");
-            await _jsRuntime.InvokeVoidAsync("localStorage.removeItem", "refreshToken");
+            await _localStorage.DeleteAsync(StorageKey);
+            await _localStorage.DeleteAsync(RefreshStorageKey);
         }
         catch (Exception ex)
         {

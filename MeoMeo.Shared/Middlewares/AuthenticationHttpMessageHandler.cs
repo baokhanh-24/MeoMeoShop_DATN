@@ -1,4 +1,6 @@
 
+using MeoMeo.Shared.Utilities;
+using Microsoft.AspNetCore.Components.Server.ProtectedBrowserStorage;
 using Microsoft.Extensions.Logging;
 using Microsoft.JSInterop;
 
@@ -6,21 +8,25 @@ namespace MeoMeo.Shared.Middlewares;
 
 public class AuthenticationHttpMessageHandler : DelegatingHandler
 {
-    private readonly IJSRuntime _jsRuntime;
     private readonly ILogger<AuthenticationHttpMessageHandler> _logger;
-
-    public AuthenticationHttpMessageHandler(IJSRuntime jsRuntime, ILogger<AuthenticationHttpMessageHandler> logger)
+    private const string StorageKey = "accessToken";
+    private const string RefreshStorageKey = "refreshToken";
+    private readonly ProtectedLocalStorage _localStorage;
+    public AuthenticationHttpMessageHandler(ILogger<AuthenticationHttpMessageHandler> logger, ProtectedLocalStorage localStorage)
     {
-        _jsRuntime = jsRuntime;
         _logger = logger;
+        _localStorage = localStorage;
     }
 
     protected override async Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
     {
         try
         {
-            // Lấy token từ localStorage
-            var token = await _jsRuntime.InvokeAsync<string>("localStorage.getItem", "accessToken");
+            var token =(await _localStorage.GetAsync<string>(StorageKey)).Value;
+            if (!string.IsNullOrEmpty(token))
+            {
+                request.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
+            }
             
             if (!string.IsNullOrEmpty(token))
             {
@@ -41,7 +47,7 @@ public class AuthenticationHttpMessageHandler : DelegatingHandler
             try
             {
                 // Thử refresh token
-                var refreshToken = await _jsRuntime.InvokeAsync<string>("localStorage.getItem", "refreshToken");
+                var refreshToken =  (await _localStorage.GetAsync<string>(RefreshStorageKey)).Value;
                 if (!string.IsNullOrEmpty(refreshToken))
                 {
                     // TODO: Implement token refresh logic
@@ -58,10 +64,7 @@ public class AuthenticationHttpMessageHandler : DelegatingHandler
                     //     }
                     // }
                 }
-
-                // Nếu refresh token cũng thất bại, xóa tokens và redirect về login
-                await _jsRuntime.InvokeVoidAsync("localStorage.removeItem", "accessToken");
-                await _jsRuntime.InvokeVoidAsync("localStorage.removeItem", "refreshToken");
+                
             }
             catch (Exception ex)
             {
