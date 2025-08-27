@@ -43,13 +43,22 @@ namespace MeoMeo.API.Controllers
         [HttpPost("create-delivery-address")]
         public async Task<IActionResult> CreateDeliveryAddress([FromBody] CreateOrUpdateDeliveryAddressDTO addressDTO)
         {
+            var customerId = MeoMeo.API.Extensions.HttpContextExtensions.GetCurrentCustomerId(_httpContextAccessor.HttpContext);
+            if (customerId == Guid.Empty) return Unauthorized();
+            
+            addressDTO.CustomerId = customerId;
             var result = await _deliveryAddressService.CreateDeliveryAddressAsync(addressDTO);
             return Ok(result);
         }
 
         [HttpPut("update-delivery-address/{id}")]
-        public async Task<IActionResult> CreateDeliveryAddress(Guid id, [FromBody] CreateOrUpdateDeliveryAddressDTO addressDTO)
+        public async Task<IActionResult> UpdateDeliveryAddress(Guid id, [FromBody] CreateOrUpdateDeliveryAddressDTO addressDTO)
         {
+            var customerId = MeoMeo.API.Extensions.HttpContextExtensions.GetCurrentCustomerId(_httpContextAccessor.HttpContext);
+            if (customerId == Guid.Empty) return Unauthorized();
+            
+            addressDTO.Id = id;
+            addressDTO.CustomerId = customerId;
             var result = await _deliveryAddressService.UpdateDeliveryAddressAsync(addressDTO);
             return Ok(result);
         }

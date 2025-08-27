@@ -277,3 +277,7 @@
 .product-img {
     width: 100%;
 }
+.image-preview {
+    width: 100% !important;
+    height: 200px !important;
+}

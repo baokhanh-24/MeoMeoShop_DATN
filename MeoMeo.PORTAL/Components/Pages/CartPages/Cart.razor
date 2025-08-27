@@ -1,41 +1,47 @@
 @page "/cart"
 @using System.ComponentModel.DataAnnotations
 @using AntDesign
+@using MeoMeo.Shared.Utilities
 @using Microsoft.AspNetCore.Components
 @using MeoMeo.Shared.IServices
 @using MeoMeo.Contract.DTOs
 @using MeoMeo.Contract.Commons
 @using MeoMeo.Contract.DTOs.Order
 @using MeoMeo.PORTAL.Components.Pages.PaymentPages
+@using MeoMeo.Domain.Commons.Enums
 @inject ICartClientService CartClient
 @inject MessageService MessageService
 @inject NavigationManager Navigation
 @inject IConfiguration Configuration
 @inject IOrderClientService OrderClient
+@inject IVoucherClientService VoucherClient
+@inject IDeliveryAddressClientService AddressClient
+@inject IProvinceClientService ProvinceClient
+@inject IDistrictClientService DistrictClient
+@inject ICommuneClientService CommuneClient
+@inject IApiCaller ApiCaller
 <div class="content-background">
     <GridRow Gutter="16">
         <GridCol Span="22" Offset="1">
-
             <Breadcrumb Class="mb-3">
                 <BreadcrumbItem>
                     <a @onclick="HandleRedirectToHomepage" class="current">
-                        <Icon Type="left"/>
+                        <Icon Type="left" />
                         Tiếp tục mua sắm
                     </a>
                 </BreadcrumbItem>
             </Breadcrumb>
-
             @if (cart == null || cart.Items.Count == 0)
             {
                 <div class="row">
                     <div class="col-12">
                         <div class="space-coverage text-center">
-                            <img class="empty-cart" src="/images/products/Cart.svg" alt=""/>
+                            <img class="empty-cart" src="/images/products/Cart.svg" alt="" />
                             <div class="empty-text mt-4">Giỏ hàng của bạn đang trống.</div>
                             <div class="empty-text mt-1">Hãy chọn thêm sản phẩm để mua sắm nhé</div>
                             <div class="d-flex justify-content-center">
                                 <Button Type="@ButtonType.Primary" Class="shopping-now mt-1"
-                                        OnClick="@(() => Navigation.NavigateTo("/"))">
+                                    OnClick="@(() => Navigation.NavigateTo("/"))">
                                     Mua sắm ngay
                                 </Button>
                             </div>
@@ -49,10 +55,9 @@
                     <div class="col-12 col-lg-9">
                         <div class="space-coverage">
                             <Table DataSource="@cart.Items" TItem="CartDetailItemDTO" HidePagination="true"
-                                   RowKey="x => x.Id"
-                                   @bind-SelectedRows="selectedRows">
+                                RowKey="x => x.Id" @bind-SelectedRows="selectedRows">
                                 <ChildContent Context="item">
-                                    <Selection Type="SelectionType.Checkbox"/>
+                                    <Selection Type="SelectionType.Checkbox" />
                                     <Column TData="string" Title="Sản phẩm">
                                         <div class="d-flex align-items-center justify-content-between">
                                             <div class="d-flex align-items-center gap-3">
@@ -67,27 +72,27 @@
                                         </div>
                                     </Column>
                                     <Column TData="string" Title="Ảnh" Width="15%" Align="ColumnAlign.Center">
-                                        <Image Width="100%" Height="80px" PreviewVisible="false"
-                                               Class="product-img" Fallback="@(backendUrl + "/Images/fallback.jpeg")"
-                                               Src="@(backendUrl + "/" + item.Thumbnail)"/>
+                                        <Image Width="100%" Height="80px" PreviewVisible="false" Class="product-img"
+                                            Fallback="@(backendUrl + "/Images/fallback.jpeg")"
+                                            Src="@(backendUrl + "/" + item.Thumbnail)" />
                                     </Column>
                                     <Column TData="int" Title="Số lượng" Align="ColumnAlign.Center" Width="20%">
                                         <div class="btn-change-quantity d-flex gap-2 align-items-center">
                                             <Button Type="@ButtonType.Text" OnClick="@(() => Decrement(item))">-
                                             </Button>
-                                            <AntDesign.InputNumber TValue="int" @bind-Value="item.Quantity" Min="1"
-                                                                   Max="10"
-                                                                   OnChange="@((value) => OnQuantityChange(item, value))"
-                                                                   Style="width: 80px; text-align: center;"/>
+                                            <AntDesign.InputNumber TValue="int" @bind-Value="item.Quantity" Min="1" Max="10"
+                                                OnChange="@((value) => OnQuantityChange(item, value))"
+                                                Style="width: 80px; text-align: center;" />
                                             <Button Type="@ButtonType.Text" OnClick="@(() => Increment(item))">+
                                             </Button>
                                         </div>
                                     </Column>
                                     <Column TData="float" Title="Đơn giá" Align="ColumnAlign.Center" Width="15%">
                                         <div class="text-center d-flex flex-column align-items-center">
-                                            <div
-                                                class="discount-price">@FormatCurrency(CalcPriceAfterDiscount(item.Price, item.Discount))</div>
-                                            @if (item.Discount > 0)
+                                            <div class="discount-price">@FormatCurrency(CalcPriceAfterDiscount(item.Price,
+                                                                                            item.Discount))
+                                        </div>
+                                        @if (item.Discount > 0)
                                             {
                                                 <div class="price">@FormatCurrency(item.Price)</div>
                                             }
@@ -100,22 +105,121 @@
                                         }
                                         else
                                         {
+                                            <span>-</span>
                                         }
                                     </Column>
                                     <Column TData="decimal" Title="Thành tiền" Width="15%">
                                         @FormatCurrency(item.Quantity * CalcPriceAfterDiscount(item.Price, item.Discount))
                                     </Column>
                                     <Column TData="string" Title="Thao tác" Width="15%" Align="ColumnAlign.Right">
-                                        <Button Type="@ButtonType.Text" Icon="delete"
-                                                OnClick="@(() => RemoveItem(item.Id))"
-                                                Class="delete-action"/>
+                                        <Button Type="@ButtonType.Text" Icon="delete" OnClick="@(() => RemoveItem(item.Id))"
+                                            Class="delete-action" />
                                     </Column>
                                 </ChildContent>
                             </Table>
                         </div>
+                        <div class="space-coverage mt-3">
+                            <div class="title">Chọn hình thức thanh toán</div>
+                            <div class="d-flex justify-content-between gap-3">
+                                <RadioGroup @bind-Value="PaymentMethod" TValue="int" OnChange="OnPaymentMethodChanged">
+                                    <Radio Value="0" Style="@style">
+                                        <div class="d-flex gap-1 justify-content-center align-items-center">
+                                            <i class="fas fa-receipt"></i>
+                                            <span> Thanh toán khi nhận hàng</span>
+                                        </div>
+                                    </Radio>
+                                    <br />
+                                    <Radio Value="1" Style="@style">
+                                        <div class="d-flex gap-1 justify-content-center align-items-center">
+                                            <i class="fas fa-qrcode"></i>
+                                            <span>Qr Code</span>
+                                        </div>
+                                    </Radio>
+                                    <br />
+                                    <Radio Value="2" Style="@style">
+                                        <div class="d-flex gap-1 justify-content-center align-items-center">
+                                            <i class="fab fa-amazon-pay"></i>
+                                            <span>VN Pay</span>
+                                        </div>
+                                    </Radio>
+                                </RadioGroup>
+                                <div class="flex-1">
+                                    @if (PaymentMethod == 1)
+                                    {
+                                        <div class="d-flex gap-3">
+                                            <img src=@QrBase64Image class='qr-image' />
+                                            <div class="flex-1">
+                                                <div class="info-bank row mb-3">
+                                                    <div class="col-5">
+                                                        <span class="left-qr-info">Số tài khoản:</span>
+                                                    </div>
+                                                    <div class="col-7">
+                                                        <span class="right-qr-info">@AccountNumber</span>
+                                                    </div>
+                                                </div>
+                                                <div class="info-bank row mb-3">
+                                                    <div class="col-5">
+                                                        <span class="left-qr-info">Ngân hàng:</span>
+                                                    </div>
+                                                    <div class="col-7">
+                                                        <span class="right-qr-info">Vietcombank - VCB </span>
+                                                    </div>
+                                                </div>
+
+                                                <div class="info-bank row mb-3">
+                                                    <div class="col-5">
+                                                        <span class="left-qr-info">Chủ tài khoản:</span>
+                                                    </div>
+                                                    <div class="col-7">
+                                                        <span class="right-qr-info">BACH HONG LIEN</span>
+                                                    </div>
+                                                </div>
+                                                <div class="info-bank row mb-3">
+                                                    <div class="col-5">
+                                                        <span class="left-qr-info">Nội dung chuyển khoản:</span>
+                                                    </div>
+                                                    <div class="col-7">
+                                                        <span class="right-qr-info">@AddInfo</span>
+                                                    </div>
+                                                </div>
+                                                <div class="info-bank row mb-3">
+                                                    <div class="col-5">
+                                                        <span class="left-qr-info">Số tiền:</span>
+                                                    </div>
+                                                    <div class="col-7">
+                                                        <span class="right-qr-info total-bill">
+                                                            @FormatCurrency(FinalTotalAmount)
+                                                        </span>
+                                                    </div>
+                                                </div>
+                                                <div class="info-bank row mb-3">
+                                                    <div class="col-5">
+                                                        <span class="left-qr-info">Lưu ý:</span>
+                                                    </div>
+                                                    <div class="col-7">
+                                                        <span class="right-qr-info note-italic">Đơn hàng sẽ được xử lý sau khi
+                                                            quản
+                                                            trị viên xác nhận thanh toán. Vui lòng chuyển đúng nội dung và số
+                                                            tiền
+                                                            để đơn hàng được xác nhận nhanh chóng Giá trên đơn hàng chưa bao gồm
+                                                            các
+                                                            chi phí vận chuyển...</span>
+                                                    </div>
+                                                </div>
+                                                <div class="info-bank row mb-3">
+                                                    <div class="col-12">
+                                                        @* <Checkbox checked={isPaidConfirmed} onChange={(e) => setIsPaidConfirmed(e.target.checked)}>
+               <span class="txt-chk">Đã thanh toán đơn hàng</span>
+               </Checkbox> *@
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    }
+                                </div>
+                            </div>
+                        </div>
                     </div>
-
-
                     <div class="col-12 col-lg-3">
                         <div class="space-coverage mt-3 mt-lg-0">
                             <div class="d-flex justify-content-between">
@@ -124,57 +228,64 @@
                                     Thay đổi
                                 </div>
                             </div>
-                            <div class="d-flex justify-content-between m4">
+                            <div class="d-flex justify-content-between mb-2">
                                 <div class="fullname">@DefaultDeliveryAddress?.Name</div>
-                                <div class="phonenumber text-end">@DefaultDeliveryAddress?.Phone</div>
+                                <div class="phonenumber text-end">@DefaultDeliveryAddress?.PhoneNumber</div>
                             </div>
-                            <div class="type m4">
-                                @(DefaultDeliveryAddress?.AddressType == true ? "Văn phòng" : "Nhà riêng")
-                            </div>
-                            <div class="address">@DefaultDeliveryAddress?.FullAddress</div>
-
+                            <div class="address">@DefaultDeliveryAddress?.Address</div>
                             <div class="note-space mt-3">
                                 <div class="d-flex justify-content-between mt-1 mb-1">
-                                    <div class="fullname">Lời nhắn cho shop</div>
+                                    <div class="title">Lời nhắn cho shop</div>
                                 </div>
                                 <div>
-                                    <TextArea @bind-Value="TxtNoteContent" MaxLength="500" Rows="3" Placeholder="Ghi chú..." />
+                                    <TextArea @bind-Value="TxtNoteContent" MaxLength="500" Rows="3"
+                                        Placeholder="Ghi chú..." />
                                 </div>
                             </div>
-                            
-                            
-                            <div class="d-flex justify-content-between mb16">
-                                <div class="text-left">Tổng tiền:</div>
-                                <div class="text-right text-end">@FormatCurrency(cart.TotalPrice)</div>
+                        </div>
+                        <div class="space-coverage mt-3">
+                            <div class="voucher-section">
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <div class="title">Mã giảm giá</div>
+                                    <Button Type="@ButtonType.Text" OnClick="ShowVoucherModal" Class="text-primary">
+                                        @(SelectedVoucher != null ? "Thay đổi" : "Chọn mã")
+                                    </Button>
+                                </div>
+                                @if (SelectedVoucher != null)
+                                {
+                                    <div class="voucher-applied">
+                                        <div class="d-flex justify-content-between">
+                                            <span class="voucher-code">@SelectedVoucher.Code</span>
+                                            <Button Type="@ButtonType.Text" OnClick="RemoveVoucher" Class="text-danger p-0">
+                                                <Icon Type="close" />
+                                            </Button>
+                                        </div>
+                                        <div class="voucher-discount">Giảm @SelectedVoucher.Discount% (tối đa
+                                            @FormatCurrency(SelectedVoucher.MaxDiscount))</div>
+                                    </div>
+                                }
                             </div>
-                            <Divider/>
-                            <div class="d-flex justify-content-between mb16 mt16">
-                                <div class="text-left">Thành tiền:</div>
-                                <div class="text-grand-total text-end">@FormatCurrency(CalcSelectionTotal())</div>
+                        </div>
+                        <div class="space-coverage mt-3">
+                            <div class="d-flex justify-content-between mb-3 mt-3">
+                                <div class="text-left">Tổng tiền:</div>
+                                <div class="text-right text-end text-original-price">@FormatCurrency(cart.TotalPrice)</div>
                             </div>
                             <Divider />
-                            <div class="payment-title">Chọn hình thức thanh toán</div>
-                            <RadioGroup @bind-Value="PaymentMethod">
-                                <Radio  Value="0">
-                                    <div>
-                                        <img class="payment-method" src="/images/cart/cash-method.png" alt=""/>
-                                        <span>Thanh toán khi nhận hàng</span>
-                                    </div>
-                                </Radio>
-                                <Radio  Value="1">
-                                    <div>
-                                        <span>Qr Code</span>
-                                    </div>
-                                </Radio>
-                                <Radio  Value="2">
-                                    <div>
-                                        <span>VN Pay</span>
-                                    </div>
-                                </Radio>
-                            </RadioGroup>
+                            <div class="d-flex justify-content-between mb-3">
+                                <div class="text-left">Giảm giá voucher:
+                                </div>
+                                <div class="text-right text-end text-success">-@FormatCurrency(VoucherDiscountAmount)</div>
+                            </div>
+                            <Divider />
+                            <div class="d-flex justify-content-between mb-3 mt-3">
+                                <div class="text-left">Thành tiền:</div>
+                                <div class="text-grand-total">@FormatCurrency(FinalTotalAmount)</div>
+                            </div>
                             <Divider />
                             <Button Type="@ButtonType.Primary" Block="true" Size="@ButtonSize.Large" OnClick="Checkout"
-                                    Class="btn-order">Mua hàng
+                                Class="btn-order" Disabled="@(selectedRows == null || !selectedRows.Any())">
+                                <i class="fas fa-money-bill"></i> Thanh toán
                             </Button>
                         </div>
                     </div>
@@ -182,75 +293,285 @@
             }
         </GridCol>
     </GridRow>
-    <Modal Title="Chọn địa chỉ giao hàng" Visible="@OpenDeliveryModal" OnOk="HandleOkDelivery" OnCancel="HandleCancelDelivery">
-        <Form Model="@DefaultDeliveryAddress" LabelAlign="AntLabelAlignType.Left" LabelColSpan="6" WrapperColSpan="18">
-            <FormItem Label="Họ tên">
-                <Input @bind-Value="DefaultDeliveryAddress.Name" MaxLength="255" Placeholder="Nhập họ tên..." />
+    <Modal Title="Chọn địa chỉ giao hàng" Visible="@OpenDeliveryModal" OnOk="HandleOkDelivery"
+        OnCancel="HandleCancelDelivery" Width="800">
+        <div class="mb-3">
+            <Button Type="@ButtonType.Primary" OnClick="ShowCreateAddressModal">
+                <Icon Type="plus" />
+                Thêm địa chỉ mới
+            </Button>
+        </div>
+        @if (LstDeliveryAddress.Any())
+        {
+            <div class="address-list">
+                <RadioGroup TValue="Guid" @bind-Value="SelectedAddressId" Style="width: 100%">
+                    @foreach (var address in LstDeliveryAddress)
+                    {
+                        <div class="address-item @(address.Id == SelectedAddressId ? "selected" : "")">
+                            <Radio TValue="Guid" Value="@address.Id" Class="address-radio">
+                                <div class="address-content">
+                                    <div class="address-info">
+                                        <div class="d-flex gap-1 justify-items-center">
+                                            <div class="address-name"> <i class="fas fa-user"></i> @address.Name</div>
+                                            <div class=""> | </div>
+                                            <div class="address-phone"><i class="fas fa-phone"></i> @address.PhoneNumber
+                                            </div>
+                                        </div>
+                                        <div class="d-flex gap-1 justify-items-center">
+                                            <div class="address-type">Văn phòng
+                                            </div>
+                                            <div class=""> | </div>
+                                            <div class="address-detail"><i
+                                                    class="fa-solid fa-location-dot"></i>@address.Address,
+                                                @address.CommuneName,
+                                                @address.DistrictName, @address.ProvinceName
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="address-actions">
+                                    <Button Type="@ButtonType.Text" OnClick="@(() => EditAddress(address))" Class="p-0">
+                                        <Icon Type="edit" />
+                                    </Button>
+                                    <Button Type="@ButtonType.Text" OnClick="@(() => DeleteAddress(address))"
+                                        Class="p-0 text-danger">
+                                        <Icon Type="delete" />
+                                    </Button>
+                                </div>
+                            </Radio>
+                        </div>
+                    }
+                </RadioGroup>
+            </div>
+        }
+        else
+        {
+            <div class="text-center py-4">
+                <p>Bạn chưa có địa chỉ giao hàng nào.</p>
+                <Button Type="@ButtonType.Primary" OnClick="ShowCreateAddressModal">
+                    Thêm địa chỉ đầu tiên
+                </Button>
+            </div>
+        }
+    </Modal>
+    <!-- Modal thêm/sửa địa chỉ -->
+    <Modal Title="@(EditingAddress.Id == Guid.Empty ? "Thêm địa chỉ mới" : "Sửa địa chỉ")"
+        Visible="@OpenCreateOrUpdateAddressModal" OnOk="HandleOkAddress" OnCancel="HandleCancelAddress">
+        <Form Model="@EditingAddress" LabelAlign="AntLabelAlignType.Left" LabelColSpan="6" WrapperColSpan="18">
+            <FormItem Label="Họ tên" Required>
+                <Input @bind-Value="EditingAddress.Name" MaxLength="255" Placeholder="Nhập họ tên..." />
             </FormItem>
-            <FormItem Label="Điện thoại">
-                <Input @bind-Value="DefaultDeliveryAddress.Phone" MaxLength="12" Placeholder="SĐT..." />
+            <FormItem Label="Điện thoại" Required>
+                <Input @bind-Value="EditingAddress.PhoneNumber" MaxLength="12" Placeholder="SĐT..." />
             </FormItem>
-            <FormItem Label="Địa chỉ">
-                <Input @bind-Value="DefaultDeliveryAddress.FullAddress" MaxLength="255" Placeholder="Số nhà, đường, phường/xã, quận/huyện, tỉnh/thành..." />
+            <FormItem Label="Tỉnh/Thành phố" Required>
+                <Select TItem="ProvinceDTO" TItemValue="Guid ?" @bind-Value="SelectedProvinceId"
+                    Placeholder="Chọn tỉnh/thành phố..." OnSelectedItemChanged="OnProvinceChange"
+                    DataSource="LstProvinces" ValueName="Id" LabelName="Name">
+                </Select>
             </FormItem>
- <FormItem Label="Loại địa chỉ">
-  <RadioGroup TValue="bool?" @bind-Value="DefaultDeliveryAddress.AddressType">
-    <Radio TValue="bool?" Value="true">Văn phòng</Radio>
-    <Radio TValue="bool?" Value="false">Nhà riêng</Radio>
-  </RadioGroup>
-</FormItem>
+            <FormItem Label="Quận/Huyện" Required>
+                <Select TItem="DistrictDTO" TItemValue="Guid ?" @bind-Value="SelectedDistrictId"
+                    Placeholder="Chọn quận/huyện..." OnSelectedItemChanged="OnDistrictChange"
+                    Disabled="@(!SelectedProvinceId.HasValue)" DataSource="LstDistricts" ValueName="Id"
+                    LabelName="Name">
+                </Select>
+            </FormItem>
+            <FormItem Label="Phường/Xã" Required>
+                <Select TItem="CommuneDTO" TItemValue="Guid ?" @bind-Value="SelectedCommuneId"
+                    Placeholder="Chọn phường/xã..." Disabled="@(!SelectedDistrictId.HasValue)" DataSource="LstCommunes"
+                    ValueName="Id" LabelName="Name">
+                </Select>
+            </FormItem>
+            <FormItem Label="Địa chỉ chi tiết" Required>
+                <Input @bind-Value="EditingAddress.Address" MaxLength="255" Placeholder="Số nhà, đường..." />
+            </FormItem>
         </Form>
     </Modal>
+    <!-- Modal chọn mã giảm giá -->
+    <Modal Title="Chọn mã giảm giá" Visible="@OpenVoucherModal" OnOk="HandleOkVoucher" OnCancel="HandleCancelVoucher"
+        Width="800">
+        <div class="mb-3">
+            <Input @bind-Value="VoucherSearchCode" Placeholder="Nhập mã voucher..." OnPressEnter="SearchVoucher"
+                AllowClear="true" />
+            <Button Type="@ButtonType.Primary" OnClick="SearchVoucher" Class="ml-2">Tìm kiếm</Button>
+        </div>
+        @if (AvailableVouchers.Any())
+        {
+            <div class="voucher-list">
+                @foreach (var voucher in AvailableVouchers)
+                {
+                    <div class="voucher-item @(SelectedVoucher?.Id == voucher.Id ? "selected" : "")"
+                        @onclick="() => SelectVoucher(voucher)">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div class="voucher-info">
+                                <div class="voucher-code">@voucher.Code</div>
+                                <div class="voucher-desc">Giảm @voucher.Discount% (tối đa @FormatCurrency(voucher.MaxDiscount))
+                                </div>
+                                <div class="voucher-conditions">
+                                    Đơn hàng tối thiểu: @FormatCurrency(voucher.MinOrder) |
+                                    HSD: @voucher.EndDate.ToString("dd/MM/yyyy")
+                                </div>
+                            </div>
+                            <div class="voucher-status">
+                                @if (voucher.Status == EVoucherStatus.Active)
+                                {
+                                    <Tag Color="@("green")">Có thể sử dụng</Tag>
+                                }
+                                else if (voucher.Status == EVoucherStatus.Upcoming)
+                                {
+                                    <Tag Color="@("blue")">Sắp diễn ra</Tag>
+                                }
+                                else
+                                {
+                                    <Tag Color="@("red")">Đã hết hạn</Tag>
+                                }
+                            </div>
+                        </div>
+                    </div>
+                }
+            </div>
+        }
+        else
+        {
+            <div class="text-center py-4">
+                <p>Không tìm thấy voucher phù hợp.</p>
+            </div>
+        }
+    </Modal>
 </div>
-
 @code {
+    string style = "height:30px;line-height:30px";
     private CartWithDetailsResponseDTO? cart;
-    IEnumerable<CartDetailItemDTO> selectedRows;
+    IEnumerable
+    <CartDetailItemDTO>
+    selectedRows = new List
+    <CartDetailItemDTO>
+    ();
     private string backendUrl = "";
-    private bool IsApplyVoucher = false;
-    private int DefaultVoucherForAllProductId = -1;
-    private decimal DiscountPriceOfVoucher = 0;
-    private decimal DiscountValueOfAllProduct = 0;
-    private DeliveryAddress DefaultDeliveryAddress = new();
-    private decimal DiscountPriceOfMembership = 0;
-    private decimal DiscountPriceOfPoint = 0;
-    private decimal FinalTotalAmount = 0;
-    private decimal GrandTotalCount = 0;
-    private bool IsUseCustomerPoint = false;
-    private bool IsBuyNow = false;
+    private string? QrBase64Image { get; set; }
+    public string? AccountNumber { get; set; } = "1014640175";
+    public string? AddInfo { get; set; } = "Thanh Toan Don Hang";
+    public string? BankBin { get; set; } = "970436";
+    // Voucher related
     private bool OpenVoucherModal = false;
+    private VoucherDTO? SelectedVoucher;
+    private List
+    <VoucherDTO>
+    AvailableVouchers = new();
+    private string VoucherSearchCode = "";
+    private decimal VoucherDiscountAmount = 0;
+    // Delivery address related
     private bool OpenDeliveryModal = false;
     private bool OpenCreateOrUpdateAddressModal = false;
-    private bool IsFetched = false;
-    private string CurrentRankInfoImage = "";
-    private int DefaultDeliveryId = -1;
-    private List<DeliveryAddress> LstDeliveryAddress = new();
+    private DeliveryAddressDTO? DefaultDeliveryAddress;
+    private List
+    <DeliveryAddressDTO>
+    LstDeliveryAddress = new();
+    private CreateOrUpdateDeliveryAddressDTO EditingAddress = new();
+    private Guid SelectedAddressId = Guid.Empty;
+    // Location data
+    private List
+    <ProvinceDTO>
+    LstProvinces = new();
+    private List
+    <DistrictDTO>
+    LstDistricts = new();
+    private List
+    <CommuneDTO>
+    LstCommunes = new();
+    private Guid? SelectedProvinceId;
+    private Guid? SelectedDistrictId;
+    private Guid? SelectedCommuneId;
+    // Other properties
     private string TxtNoteContent = "";
     private int PaymentMethod = 0;
-    private bool IsDefaultExportBill = false;
-    private List<Coupon> LstCouponForAllProduct = new();
-    private bool UseDefaultAddress = false;
-
-    // Models
-    private ExportBillModel ExportBill = new();
-    private HiddenDataModel HiddenData = new();
-
+    private decimal FinalTotalAmount = 0;
     protected override async Task OnInitializedAsync()
     {
         backendUrl = Configuration["ApiSettings:BaseUrl"] ?? "";
         await LoadCart();
+        await LoadAvailableVouchers();
+        await LoadDefaultDeliveryAddress();
+        await LoadLocationData();
     }
-
     private async Task LoadCart()
     {
         cart = await CartClient.GetCurrentCartAsync();
+        if (cart?.Items != null)
+        {
+            selectedRows = cart.Items.ToList();
+        }
+        await CalculateFinalTotalAsync();
     }
+    private async Task OnPaymentMethodChanged(int value)
+    {
 
+
+        if (value == 1)
+        {
+            await FetchImageAsync();
+        }
+    }
+    private async Task LoadAvailableVouchers()
+    {
+        try
+        {
+            var request = new GetListVoucherRequestDTO
+            {
+                Status = EVoucherStatus.Active,
+                PageIndex = 1,
+                PageSize = 100
+            };
+            var result = await VoucherClient.GetAllVoucherAsync(request);
+            AvailableVouchers = result?.Items?.ToList() ?? new List
+            <VoucherDTO>
+            ();
+        }
+        catch (Exception ex)
+        {
+            MessageService.Error($"Không thể tải danh sách voucher: {ex.Message}");
+        }
+    }
+    private async Task FetchImageAsync()
+    {
+        if (string.IsNullOrEmpty(AccountNumber) || string.IsNullOrEmpty(BankBin))
+            return;
+        var url =
+        $"https://img.vietqr.io/image/{BankBin}-{AccountNumber}-qr_only.png?amount={(int)FinalTotalAmount}&addInfo=${AddInfo}";
+        try
+        {
+            var imageBytes = await ApiCaller.GetByteArrayAsync(url);
+            QrBase64Image = $"data:image/png;base64,{Convert.ToBase64String(imageBytes)}";
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error fetching QR code: {ex.Message}");
+        }
+    }
+    private async Task LoadDefaultDeliveryAddress()
+    {
+        try
+        {
+            LstDeliveryAddress = await AddressClient.GetMyAddressesAsync();
+            if (LstDeliveryAddress.Any())
+            {
+                DefaultDeliveryAddress = LstDeliveryAddress.First();
+                SelectedAddressId = DefaultDeliveryAddress.Id;
+                SelectedProvinceId = DefaultDeliveryAddress.ProvinceId;
+                SelectedDistrictId = DefaultDeliveryAddress.DistrictId;
+                SelectedCommuneId = DefaultDeliveryAddress.CommuneId;
+            }
+        }
+        catch (Exception ex)
+        {
+            MessageService.Error($"Không thể tải địa chỉ giao hàng: {ex.Message}");
+        }
+    }
     private async Task Increment(CartDetailItemDTO item)
     {
         await UpdateQuantity(item, item.Quantity + 1);
     }
-
     private async Task Decrement(CartDetailItemDTO item)
     {
         if (item.Quantity <= 1)
@@ -262,7 +583,6 @@
             await UpdateQuantity(item, item.Quantity - 1);
         }
     }
-
     private async Task OnQuantityChange(CartDetailItemDTO item, int? newQuantity)
     {
         if (newQuantity.HasValue && newQuantity.Value >= 1 && newQuantity.Value <= 999)
@@ -270,7 +590,6 @@
             await UpdateQuantity(item, newQuantity.Value);
         }
     }
-
     private async Task UpdateQuantity(CartDetailItemDTO item, int newQuantity)
     {
         var dto = new UpdateCartQuantityDTO { CartDetailId = item.Id, Quantity = newQuantity };
@@ -285,13 +604,11 @@
             MessageService.Error(result?.Message ?? "Cập nhật số lượng thất bại");
         }
     }
-
     private async Task RemoveItem(Guid id)
     {
         var result = await CartClient.RemoveItemAsync(id);
         if (result?.ResponseStatus == BaseStatus.Success)
         {
-            cart.Items = cart.Items.Where(x => x.Id != id).ToList();
             await LoadCart();
             MessageService.Success("Đã xóa sản phẩm khỏi giỏ hàng");
         }
@@ -300,18 +617,25 @@
             MessageService.Error(result?.Message ?? "Xoá sản phẩm thất bại");
         }
     }
-
-    private decimal CalcSelectionTotal()
+    private async Task CalculateFinalTotalAsync()
     {
-        decimal total = 0;
-        if (selectedRows != null)
+        decimal subtotal = 0;
+        if (selectedRows != null && selectedRows.Any())
         {
-            total = selectedRows.Sum(i => (decimal)((i.Price - (i.Price * i.Discount / 100f)) * i.Quantity));
+            subtotal = selectedRows.Sum(i => (decimal)(CalcPriceAfterDiscount(i.Price, i.Discount) * i.Quantity));
         }
-
-        return total;
+        VoucherDiscountAmount = 0;
+        if (SelectedVoucher != null && subtotal >= SelectedVoucher.MinOrder)
+        {
+            var discountPercent = (decimal)SelectedVoucher.Discount / 100m;
+            VoucherDiscountAmount = Math.Min(subtotal * discountPercent, (decimal)SelectedVoucher.MaxDiscount);
+        }
+        FinalTotalAmount = subtotal - VoucherDiscountAmount;
+        if (PaymentMethod == 1)
+        {
+            await FetchImageAsync();
+        }
     }
-
     private async Task Checkout()
     {
         var selectedIds = selectedRows.Select(r => r.Id).ToList();
@@ -320,7 +644,11 @@
             MessageService.Warning("Vui lòng chọn sản phẩm để mua");
             return;
         }
-
+        if (SelectedAddressId == Guid.Empty)
+        {
+            MessageService.Warning("Vui lòng chọn địa chỉ giao hàng");
+            return;
+        }
         var resp = await CartClient.CheckoutAsync(selectedIds);
         if (resp?.ResponseStatus == BaseStatus.Success)
         {
@@ -328,7 +656,7 @@
             await LoadCart();
             if (PaymentMethod == 2)
             {
-                var createPayment = new MeoMeo.Contract.DTOs.Order.CreatePaymentUrlDTO
+                var createPayment = new CreatePaymentUrlDTO
                 {
                     OrderId = resp.OrderId,
                     Amount = resp.Amount,
@@ -348,106 +676,260 @@
             MessageService.Error(resp?.Message ?? "Đặt hàng thất bại");
         }
     }
-
-    private void HandleRedirectToHomepage() => Navigation.NavigateTo("/");
-
+    // Voucher methods
+    private void ShowVoucherModal()
+    {
+        OpenVoucherModal = true;
+    }
+    private async Task HandleOkVoucher()
+    {
+        OpenVoucherModal = false;
+        await CalculateFinalTotalAsync();
+    }
+    private void HandleCancelVoucher()
+    {
+        OpenVoucherModal = false;
+    }
+    private async Task SelectVoucher(VoucherDTO voucher)
+    {
+        if (voucher.Status == EVoucherStatus.Active)
+        {
+            SelectedVoucher = voucher;
+            OpenVoucherModal = false;
+            await CalculateFinalTotalAsync();
+            MessageService.Success($"Đã áp dụng voucher {voucher.Code}");
+        }
+        else
+        {
+            MessageService.Warning("Voucher này không thể sử dụng");
+        }
+    }
+    private async Task RemoveVoucher()
+    {
+        SelectedVoucher = null;
+        await CalculateFinalTotalAsync();
+        MessageService.Success("Đã xóa voucher");
+    }
+    private async Task SearchVoucher()
+    {
+        if (!string.IsNullOrWhiteSpace(VoucherSearchCode))
+        {
+            var request = new GetListVoucherRequestDTO
+            {
+                CodeFilter = VoucherSearchCode,
+                Status = EVoucherStatus.Active,
+                PageIndex = 1,
+                PageSize = 10
+            };
+            var result = await VoucherClient.GetAllVoucherAsync(request);
+            AvailableVouchers = result?.Items?.ToList() ?? new List
+            <VoucherDTO>
+            ();
+        }
+        else
+        {
+            await LoadAvailableVouchers();
+        }
+    }
+    // Delivery address methods
     private async Task ShowModalDelivery()
     {
         OpenDeliveryModal = true;
         await LoadMyAddresses();
     }
-
-    [Inject] private IDeliveryAddressClientService AddressClient { get; set; }
-
     private async Task LoadMyAddresses()
     {
-        var items = await AddressClient.GetMyAddressesAsync();
-        // map to local model for display
-        LstDeliveryAddress = items.Select(i => new DeliveryAddress
+        try
         {
-            AddressId = 0,
-            Name = i.Name,
-            Phone = i.PhoneNumber,
-            FullAddress = i.Address,
-        }).ToList();
+            LstDeliveryAddress = await AddressClient.GetMyAddressesAsync();
+        }
+        catch (Exception ex)
+        {
+            MessageService.Error($"Không thể tải danh sách địa chỉ: {ex.Message}");
+        }
     }
-
     private void HandleOkDelivery()
     {
-        // Có thể thêm validate cơ bản ở đây nếu cần
+        if (SelectedAddressId != Guid.Empty)
+        {
+            var selectedAddress = LstDeliveryAddress.FirstOrDefault(a => a.Id == SelectedAddressId);
+            if (selectedAddress != null)
+            {
+                DefaultDeliveryAddress = selectedAddress;
+                MessageService.Success("Đã chọn địa chỉ giao hàng");
+            }
+        }
         OpenDeliveryModal = false;
     }
-
     private void HandleCancelDelivery()
     {
         OpenDeliveryModal = false;
     }
-
-    private static string FormatCurrency(decimal amount) => string.Format(System.Globalization.CultureInfo.GetCultureInfo("vi-VN"), "{0:C0}", amount);
-    private static string FormatCurrency(float amount) => string.Format(System.Globalization.CultureInfo.GetCultureInfo("vi-VN"), "{0:C0}", amount);
-    private static float CalcPriceAfterDiscount(float price, float discount) => discount > 100 ? price - discount : price * (1 - discount / 100f);
-
-    public class DeliveryAddress
+    private void ShowCreateAddressModal()
     {
-        public int AddressId { get; set; }
-        public string Name { get; set; } = string.Empty;
-        public string Phone { get; set; } = string.Empty;
-        public string Address { get; set; } = string.Empty;
-        public string FullAddress { get; set; } = string.Empty;
-        public bool? AddressType { get; set; }
-        public int IsDefault { get; set; }
-        public Province? Province { get; set; }
-        public District? District { get; set; }
-        public Commune? Commune { get; set; }
+        EditingAddress = new CreateOrUpdateDeliveryAddressDTO();
+        OpenCreateOrUpdateAddressModal = true;
+        OpenDeliveryModal = false;
     }
-
-    public class Province
+    private async Task EditAddress(DeliveryAddressDTO address)
     {
-        public string ProvinceName { get; set; } = string.Empty;
+        EditingAddress = new CreateOrUpdateDeliveryAddressDTO
+        {
+            Id = address.Id,
+            Name = address.Name,
+            PhoneNumber = address.PhoneNumber,
+            Address = address.Address,
+            ProvinceId = address.ProvinceId,
+            DistrictId = address.DistrictId,
+            CommuneId = address.CommuneId
+        };
+        // Load location data for editing
+        if (address.ProvinceId != Guid.Empty)
+        {
+            await LoadDistricts(address.ProvinceId);
+            if (address.DistrictId != Guid.Empty)
+            {
+                await LoadCommunes(address.DistrictId);
+            }
+        }
+        OpenCreateOrUpdateAddressModal = true;
+        OpenDeliveryModal = false;
     }
-
-    public class District
+    private async Task DeleteAddress(DeliveryAddressDTO address)
     {
-        public string DistrictName { get; set; } = string.Empty;
+        try
+        {
+            var result = await AddressClient.DeleteAsync(address.Id);
+            if (result)
+            {
+                LstDeliveryAddress.Remove(address);
+                if (DefaultDeliveryAddress?.Id == address.Id)
+                {
+                    DefaultDeliveryAddress = LstDeliveryAddress.FirstOrDefault();
+                }
+                MessageService.Success("Đã xóa địa chỉ");
+            }
+        }
+        catch (Exception ex)
+        {
+            MessageService.Error($"Không thể xóa địa chỉ: {ex.Message}");
+        }
     }
-
-    public class Commune
+    private async Task HandleOkAddress()
     {
-        public string CommuneName { get; set; } = string.Empty;
+        try
+        {
+            if (string.IsNullOrWhiteSpace(EditingAddress.Name) ||
+            string.IsNullOrWhiteSpace(EditingAddress.PhoneNumber) ||
+            !SelectedProvinceId.HasValue ||
+            !SelectedDistrictId.HasValue ||
+            !SelectedCommuneId.HasValue ||
+            string.IsNullOrWhiteSpace(EditingAddress.Address))
+            {
+                MessageService.Warning("Vui lòng điền đầy đủ thông tin");
+                return;
+            }
+            EditingAddress.CommuneId = SelectedCommuneId;
+            var result = await AddressClient.CreateOrUpdateAsync(EditingAddress);
+            if (result.HasValue)
+            {
+                OpenCreateOrUpdateAddressModal = false;
+                OpenDeliveryModal = true;
+                await LoadMyAddresses();
+                MessageService.Success(EditingAddress.Id.HasValue ? "Đã cập nhật địa chỉ" : "Đã thêm địa chỉ mới");
+            }
+        }
+        catch (Exception ex)
+        {
+            MessageService.Error($"Không thể lưu địa chỉ: {ex.Message}");
+        }
     }
-
-   
-
-    public class Coupon
+    private void HandleCancelAddress()
     {
-        public int Id { get; set; }
-        public int Type { get; set; }
-        public decimal Discount { get; set; }
-        public decimal MaxDiscount { get; set; }
-        public decimal MinOrder { get; set; }
-        public DateTime FinishDate { get; set; }
-        public int IsEnabled { get; set; }
-        public int IsEnabledOverTurn { get; set; }
-        public int TotalUse { get; set; }
+        OpenCreateOrUpdateAddressModal = false;
+        OpenDeliveryModal = true;
     }
-
-    public class ExportBillModel
+    // Location data methods
+    private async Task LoadLocationData()
     {
-        [Required] public string TaxCode { get; set; } = "";
-        [Required] public string Name { get; set; } = "";
-        [Required] public string Email { get; set; } = "";
-        [Required] public string Phone { get; set; } = "";
-        [Required] public string Address { get; set; } = "";
-        public string Note { get; set; } = "";
+        try
+        {
+            await LoadProvinces();
+        }
+        catch (Exception ex)
+        {
+            MessageService.Error($"Không thể tải dữ liệu địa chỉ: {ex.Message}");
+        }
     }
-
-    public class HiddenDataModel
+    private async Task LoadProvinces()
     {
-        public bool IsBuyNow { get; set; }
-        public int DefaultVoucherForAllProductId { get; set; } = -1;
-        public decimal DisCountValueOfAllProduct { get; set; }
-        public bool IsUsePoint { get; set; }
-        public int DefaultDeliveryId { get; set; } = -1;
+        try
+        {
+            LstProvinces = await ProvinceClient.GetAllAsync();
+            // prefill from EditingAddress if present
+            if (EditingAddress.ProvinceId.HasValue && EditingAddress.ProvinceId.Value != Guid.Empty)
+            {
+                SelectedProvinceId = EditingAddress.ProvinceId;
+                await LoadDistricts(EditingAddress.ProvinceId.Value);
+            }
+        }
+        catch (Exception ex)
+        {
+            MessageService.Error($"Không thể tải danh sách tỉnh/thành phố: {ex.Message}");
+        }
     }
-
+    private async void OnProvinceChange(ProvinceDTO province)
+    {
+        SelectedProvinceId = province.Id;
+        EditingAddress.ProvinceId = province.Id;
+        // reset
+        SelectedDistrictId = null;
+        SelectedCommuneId = null;
+        EditingAddress.DistrictId = null;
+        EditingAddress.CommuneId = null;
+        LstDistricts.Clear();
+        LstCommunes.Clear();
+        await LoadDistricts(province.Id);
+    }
+    private async Task LoadDistricts(Guid provinceId)
+    {
+        try
+        {
+            LstDistricts = await DistrictClient.GetByProvinceIdAsync(provinceId);
+            await InvokeAsync(StateHasChanged);
+        }
+        catch (Exception ex)
+        {
+            MessageService.Error($"Không thể tải danh sách quận/huyện: {ex.Message}");
+        }
+    }
+    private async void OnDistrictChange(DistrictDTO district)
+    {
+        SelectedDistrictId = district.Id;
+        EditingAddress.DistrictId = district.Id;
+        // reset
+        SelectedCommuneId = null;
+        EditingAddress.CommuneId = null;
+        LstCommunes.Clear();
+        await LoadCommunes(district.Id);
+    }
+    private async Task LoadCommunes(Guid districtId)
+    {
+        try
+        {
+            LstCommunes = await CommuneClient.GetByDistrictIdAsync(districtId);
+            await InvokeAsync(StateHasChanged);
+        }
+        catch (Exception ex)
+        {
+            MessageService.Error($"Không thể tải danh sách phường/xã: {ex.Message}");
+        }
+    }
+    private void HandleRedirectToHomepage() => Navigation.NavigateTo("/");
+    private static string FormatCurrency(decimal amount) =>
+    string.Format(System.Globalization.CultureInfo.GetCultureInfo("vi-VN"), "{0:C0}", amount);
+    private static string FormatCurrency(float amount) =>
+    string.Format(System.Globalization.CultureInfo.GetCultureInfo("vi-VN"), "{0:C0}", amount);
+    private static float CalcPriceAfterDiscount(float price, float discount) =>
+    discount > 100 ? price - discount : price * (1 - discount / 100f);
 }

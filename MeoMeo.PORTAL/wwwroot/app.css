@@ -1102,7 +1102,7 @@ figure.instagram-item img.insta-image {
 .space-coverage {
     padding: 16px;
     border-radius: 16px;
-    background:  #fff;
+    background: #fff;
     transition: all 0.3s ease-in-out;
 }
 .bread-crumb {
@@ -1116,4 +1116,174 @@ figure.instagram-item img.insta-image {
 
 .group-breadcumb {
     margin-bottom: 24px;
+}
+.ant-input-number-input {
+    text-align: center !important;
+}
+.contact-box {
+    position: fixed;
+    bottom: 5px;
+    z-index: 100;
+    right: 0;
+}
+
+@keyframes img-phone {
+    0% {
+        transform: rotate(0) scale(1) skew(1deg);
+    }
+    10% {
+        transform: rotate(-25deg) scale(1) skew(1deg);
+    }
+    20% {
+        transform: rotate(25deg) scale(1) skew(1deg);
+    }
+    30% {
+        transform: rotate(-25deg) scale(1) skew(1deg);
+    }
+    40% {
+        transform: rotate(25deg) scale(1) skew(1deg);
+    }
+    50% {
+        transform: rotate(0) scale(1) skew(1deg);
+    }
+    100% {
+        transform: rotate(0) scale(1) skew(1deg);
+    }
+}
+
+.kh-phone {
+    position: relative;
+    visibility: visible;
+    background-color: transparent;
+    width: 90px;
+    height: 90px;
+    cursor: pointer;
+    z-index: 11;
+    -webkit-backface-visibility: hidden;
+    -webkit-transform: translateZ(0);
+    transition: visibility 0.5s;
+    left: 0;
+    bottom: 0;
+    display: block;
+}
+
+@keyframes zoomEffect {
+    0% {
+        transform: scale(0.9);
+    }
+    70% {
+        transform: scale(1);
+        box-shadow: 0 0 0 15px transparent;
+    }
+    100% {
+        transform: scale(0.9);
+        box-shadow: 0 0 0 0 transparent;
+    }
+}
+
+.phone-box {
+    width: 65px;
+    height: 65px;
+    top: 12px;
+    left: 12px;
+    position: absolute;
+    background-color: var(--Green-green-700, #188a42);
+    border-radius: 50%;
+    border: 2px solid transparent;
+    transition: all 0.5s;
+    -webkit-transform-origin: 50% 50%;
+    -ms-transform-origin: 50% 50%;
+    transform-origin: 50% 50%;
+    -webkit-animation: zoomEffect 1.3s infinite;
+    animation: zoomEffect 1.3s infinite;
+    opacity: 0.7;
+    box-shadow: 0 0 0 0 var(--Green-green-700, #188a42);
+}
+
+.img-phone {
+    background-color: var(--Green-green-700, #188a42);
+    width: 40px;
+    height: 40px;
+    line-height: 40px;
+    top: 25px;
+    left: 25px;
+    position: absolute;
+    border-radius: 50%;
+    display: flex;
+    justify-content: center;
+    -webkit-animation: img-phone 1s infinite ease-in-out;
+    animation: img-phone 1s infinite ease-in-out;
+}
+
+.img-phone a {
+    display: block;
+    line-height: 37px;
+}
+
+.img-phone img {
+    max-height: 25px;
+    max-width: 27px;
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    -moz-transform: translate(-50%, -50%);
+    -webkit-transform: translate(-50%, -50%);
+    -o-transform: translate(-50%, -50%);
+}
+
+.kh-zalo {
+    position: relative;
+    visibility: visible;
+    background-color: transparent;
+    width: 90px;
+    height: 90px;
+    cursor: pointer;
+    z-index: 11;
+    -webkit-backface-visibility: hidden;
+    -webkit-transform: translateZ(0);
+    transition: visibility 0.5s;
+    left: 0;
+    bottom: 0;
+    display: block;
+}
+
+.kh-zalo .phone-box {
+    box-shadow: 0 0 0 0 #0091ff;
+    background-color: rgba(0, 145, 255, 0.9);
+}
+
+.kh-zalo .img-phone {
+    background-color: #0091ff;
+}
+
+/*chat messenger fb*/
+.kh-fbm {
+    position: relative;
+    visibility: visible;
+    background-color: transparent;
+    width: 90px;
+    height: 90px;
+    cursor: pointer;
+    z-index: 11;
+    -webkit-backface-visibility: hidden;
+    -webkit-transform: translateZ(0);
+    transition: visibility 0.5s;
+    left: 0;
+    bottom: 0;
+    display: block;
+}
+
+.kh-fbm .phone-box {
+    box-shadow: 0 0 0 0 #126bd1;
+    background-color: rgba(18, 107, 209, 0.9);
+}
+
+.kh-fbm .img-phone {
+    background-color: #126bd1;
+}
+
+.kh-fbm .img-phone img {
+    max-height: 45px;
+    max-width: 40px;
 }

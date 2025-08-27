@@ -54,6 +54,21 @@ namespace MeoMeo.Shared.Services
             }
         }
 
+        public async Task<ProductResponseDTO> GetProductWithDetailsAsync(Guid id)
+        {
+            try
+            {
+                var url = $"/api/Products/get-product-with-details/{id}";
+                var response = await _httpClient.GetAsync<ProductResponseDTO>(url);
+                return response ?? new ProductResponseDTO();
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Có lỗi khi lấy chi tiết sản phẩm: {Message}", ex.Message);
+                return new ProductResponseDTO();
+            }
+        }
+
         public async Task<BaseResponse> CreateProductAsync(CreateOrUpdateProductDTO product)
         {
             try

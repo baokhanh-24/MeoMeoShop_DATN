@@ -1,3 +1,4 @@
+using MeoMeo.Contract.DTOs;
 using MeoMeo.Shared.IServices;
 using MeoMeo.Shared.Utilities;
 
@@ -12,10 +13,10 @@ public class DeliveryAddressClientService : IDeliveryAddressClientService
         _api = api;
     }
 
-    public async Task<List<DeliveryAddressItem>> GetMyAddressesAsync()
+    public async Task<List<DeliveryAddressDTO>> GetMyAddressesAsync()
     {
-        var data = await _api.GetAsync<List<DeliveryAddressItem>>("/api/DeliveryAddresses/mine");
-        return data ?? new List<DeliveryAddressItem>();
+        var data = await _api.GetAsync<List<DeliveryAddressDTO>>("/api/DeliveryAddresses/mine");
+        return data ?? new List<DeliveryAddressDTO>();
     }
 
     public async Task<bool> DeleteAsync(Guid id)
@@ -27,12 +28,12 @@ public class DeliveryAddressClientService : IDeliveryAddressClientService
     {
         if (dto.Id.HasValue)
         {
-            var resp = await _api.PutAsync<MeoMeo.Contract.DTOs.CreateOrUpdateDeliveryAddressDTO, DeliveryAddressItem>($"/api/DeliveryAddresses/update-delivery-address/{dto.Id.Value}", dto);
+            var resp = await _api.PutAsync<MeoMeo.Contract.DTOs.CreateOrUpdateDeliveryAddressDTO, DeliveryAddressDTO>($"/api/DeliveryAddresses/update-delivery-address/{dto.Id.Value}", dto);
             return resp?.Id;
         }
         else
         {
-            var resp = await _api.PostAsync<MeoMeo.Contract.DTOs.CreateOrUpdateDeliveryAddressDTO, DeliveryAddressItem>("/api/DeliveryAddresses/create-delivery-address", dto);
+            var resp = await _api.PostAsync<MeoMeo.Contract.DTOs.CreateOrUpdateDeliveryAddressDTO, DeliveryAddressDTO>("/api/DeliveryAddresses/create-delivery-address", dto);
             return resp?.Id;
         }
     }

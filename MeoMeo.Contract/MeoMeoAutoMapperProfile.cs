@@ -51,6 +51,8 @@ namespace MeoMeo.Contract
             CreateMap<SizeDTO, Size>();
             CreateMap<CreateOrUpdateOrderDetailDTO, OrderDetail>();
             CreateMap<CreateOrUpdateDeliveryAddressDTO, DeliveryAddress>();
+            CreateMap<DeliveryAddress,DeliveryAddressDTO>();
+            CreateMap<Commune,CommuneDTO>();
             CreateMap<CreateOrUpdateProvinceDTO, Province>();
             CreateMap<InventoryBatch, InventoryBatchDTO>();
             CreateMap<InventoryBatchDTO, InventoryBatch>();

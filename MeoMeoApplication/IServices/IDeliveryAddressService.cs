@@ -1,15 +1,14 @@
 ﻿using MeoMeo.Contract.DTOs;
-using MeoMeo.Domain.Entities;
 
 namespace MeoMeo.Application.IServices
 {
     public interface IDeliveryAddressService
     {
-        Task<IEnumerable<DeliveryAddress>> GetAllDeliveryAddressAsync();
-        Task<DeliveryAddress> GetDeliveryAddressByIdAsync(Guid id);
-        Task<DeliveryAddress> CreateDeliveryAddressAsync(CreateOrUpdateDeliveryAddressDTO deliveryAddress);
-        Task<DeliveryAddress> UpdateDeliveryAddressAsync(CreateOrUpdateDeliveryAddressDTO deliveryAddress);
+        Task<IEnumerable<DeliveryAddressDTO>> GetAllDeliveryAddressAsync();
+        Task<DeliveryAddressDTO> GetDeliveryAddressByIdAsync(Guid id);
+        Task<DeliveryAddressDTO> CreateDeliveryAddressAsync(CreateOrUpdateDeliveryAddressDTO deliveryAddress);
+        Task<DeliveryAddressDTO> UpdateDeliveryAddressAsync(CreateOrUpdateDeliveryAddressDTO deliveryAddress);
         Task<bool> DeleteDeliveryAddressAsync(Guid id);
-        Task<IEnumerable<DeliveryAddress>> GetByCustomerIdAsync(Guid customerId);
+        Task<IEnumerable<DeliveryAddressDTO>> GetByCustomerIdAsync(Guid customerId);
     }
 }

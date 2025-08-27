@@ -7,6 +7,7 @@ namespace MeoMeo.Application.IServices
     {
         Task<IEnumerable<District>> GetAllAsync();
         Task<CreateOrUpdateDistrictRespose> GetDistrictByIdAsync(Guid id);
+        Task<IEnumerable<District>> GetByProvinceIdAsync(Guid provinceId);
         Task<District> CreateDistrictAsync(CreateOrUpdateDistrictDTO district);
         Task<CreateOrUpdateDistrictRespose> UpdateDistrictAsync(CreateOrUpdateDistrictDTO district);
         Task<bool> DeleteDistrictAsync(Guid id);

@@ -17,12 +17,28 @@ namespace MeoMeo.Application.Services
             _mapper = mapper;
         }
 
-        public async Task<DeliveryAddress> CreateDeliveryAddressAsync(CreateOrUpdateDeliveryAddressDTO deliveryAddress)
+        public async Task<DeliveryAddressDTO> CreateDeliveryAddressAsync(CreateOrUpdateDeliveryAddressDTO deliveryAddress)
         {
-            var mappedDeliveryAddress = _mapper.Map<DeliveryAddress>(deliveryAddress);
-            mappedDeliveryAddress.Id = Guid.NewGuid();
-            var result = await _deliveryAddressRepository.CreateDeliveryAddressAsync(mappedDeliveryAddress);
-            return result;
+            try
+            {
+                var mappedDeliveryAddress = _mapper.Map<DeliveryAddress>(deliveryAddress);
+                mappedDeliveryAddress.Id = Guid.NewGuid();
+
+                // Set default values for Province, District, Commune if not provided
+                if (!deliveryAddress.ProvinceId.HasValue || deliveryAddress.ProvinceId == Guid.Empty)
+                    mappedDeliveryAddress.ProvinceId = Guid.Empty;
+                if (!deliveryAddress.DistrictId.HasValue || deliveryAddress.DistrictId == Guid.Empty)
+                    mappedDeliveryAddress.DistrictId = Guid.Empty;
+                if (!deliveryAddress.CommuneId.HasValue || deliveryAddress.CommuneId == Guid.Empty)
+                    mappedDeliveryAddress.CommuneId = Guid.Empty;
+
+                var result = await _deliveryAddressRepository.CreateDeliveryAddressAsync(mappedDeliveryAddress);
+                return _mapper.Map<DeliveryAddressDTO>(result);
+            }
+            catch (Exception e)
+            {
+               return new DeliveryAddressDTO();
+            }
         }
 
         public async Task<bool> DeleteDeliveryAddressAsync(Guid id)
@@ -39,29 +55,48 @@ namespace MeoMeo.Application.Services
             }
         }
 
-        public Task<IEnumerable<DeliveryAddress>> GetAllDeliveryAddressAsync()
+        public async Task<IEnumerable<DeliveryAddressDTO>> GetAllDeliveryAddressAsync()
         {
-            return _deliveryAddressRepository.GetAllAsync();
+            var addresses = await _deliveryAddressRepository.GetAllAsync();
+            return _mapper.Map<IEnumerable<DeliveryAddressDTO>>(addresses);
         }
 
-        public async Task<IEnumerable<DeliveryAddress>> GetByCustomerIdAsync(Guid customerId)
+        public async Task<IEnumerable<DeliveryAddressDTO>> GetByCustomerIdAsync(Guid customerId)
         {
             var query = _deliveryAddressRepository.Query().Where(a => a.CustomerId == customerId);
-            return await Task.FromResult(query.AsEnumerable());
+            var addresses = await Task.FromResult(query.AsEnumerable());
+            return _mapper.Map<IEnumerable<DeliveryAddressDTO>>(addresses);
         }
 
-        public async Task<DeliveryAddress> GetDeliveryAddressByIdAsync(Guid id)
+        public async Task<DeliveryAddressDTO> GetDeliveryAddressByIdAsync(Guid id)
         {
             var result = await _deliveryAddressRepository.GetByIdAsync(id);
-            return result;
+            return _mapper.Map<DeliveryAddressDTO>(result);
         }
 
-        public async Task<DeliveryAddress> UpdateDeliveryAddressAsync(CreateOrUpdateDeliveryAddressDTO deliveryAddress)
+        public async Task<DeliveryAddressDTO> UpdateDeliveryAddressAsync(CreateOrUpdateDeliveryAddressDTO deliveryAddress)
         {
-            DeliveryAddress itemAddress = new DeliveryAddress();
-            itemAddress = _mapper.Map<DeliveryAddress>(deliveryAddress);
-            var result = await _deliveryAddressRepository.UpdateAsync(itemAddress);
-            return result;
+            if (!deliveryAddress.Id.HasValue)
+                throw new ArgumentException("Id is required for update");
+                
+            var existingAddress = await _deliveryAddressRepository.GetByIdAsync(deliveryAddress.Id.Value);
+            if (existingAddress == null)
+                throw new ArgumentException("Delivery address not found");
+                
+            // Update only the fields that are provided
+            existingAddress.Name = deliveryAddress.Name;
+            existingAddress.PhoneNumber = deliveryAddress.PhoneNumber;
+            existingAddress.Address = deliveryAddress.Address;
+            
+            if (deliveryAddress.ProvinceId.HasValue)
+                existingAddress.ProvinceId = deliveryAddress.ProvinceId.Value;
+            if (deliveryAddress.DistrictId.HasValue)
+                existingAddress.DistrictId = deliveryAddress.DistrictId.Value;
+            if (deliveryAddress.CommuneId.HasValue)
+                existingAddress.CommuneId = deliveryAddress.CommuneId.Value;
+                
+            var result = await _deliveryAddressRepository.UpdateAsync(existingAddress);
+            return _mapper.Map<DeliveryAddressDTO>(result);
         }
     }
 }

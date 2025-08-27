@@ -5,6 +5,7 @@ using MeoMeo.Shared.Middlewares;
 using MeoMeo.Shared.Services;
 using MeoMeo.Shared.Utilities;
 using Microsoft.AspNetCore.Components.Authorization;
+using Radzen;
 
 var builder = WebApplication.CreateBuilder(args);
 // Add services to the container.
@@ -15,12 +16,19 @@ builder.Services.AddRazorComponents()
 builder.Services.AddAntDesign();
 builder.Services.AddScoped<MessageModalService>();
 builder.Services.AddSingleton<LoadingService>();
+builder.Services.AddRadzenComponents();
+builder.Services.AddSignalR(e => {
+    e.MaximumReceiveMessageSize = 102400000;
+});
 
+builder.Services.Configure<Microsoft.AspNetCore.Http.Features.FormOptions>(options =>
+{
+    options.MultipartBodyLengthLimit = long.MaxValue;
+});
 // Authentication Services
 builder.Services.AddScoped<IAuthClientService, AuthClientService>();
 builder.Services.AddScoped<CustomAuthStateProvider>();
 builder.Services.AddScoped<AuthenticationStateProvider, CustomAuthStateProvider>();
-
 builder.Services.AddScoped<ITokenProvider, TokenProvider>();
 builder.Services.AddHttpClient<IApiCaller, ApiCaller>(client =>
 {
@@ -38,8 +46,14 @@ builder.Services.AddScoped<IProductClientService, ProductClientService>();
 builder.Services.AddScoped<ICartClientService, CartClientService>();
 builder.Services.AddScoped<ISizeClientService, SizeClientService>();
 builder.Services.AddScoped<IColourClientService, ColourClientService>();
+builder.Services.AddScoped<IVoucherClientService, VoucherClientService>();
+builder.Services.AddScoped<ICommuneClientService, CommuneClientService>();
+builder.Services.AddScoped<IDistrictClientService, DistrictClientService>();
+builder.Services.AddScoped<IProvinceClientService, ProvinceClientService>();
 builder.Services.AddScoped<IDeliveryAddressClientService, DeliveryAddressClientService>();
 builder.Services.AddScoped<IOrderClientService, OrderClientService>();
+builder.Services.AddScoped<IProductReviewClientService, ProductReviewClientService>();
+
 //builder.WebHost.ConfigureKestrel(options =>
 //{
 //    options.ListenAnyIP(80); 

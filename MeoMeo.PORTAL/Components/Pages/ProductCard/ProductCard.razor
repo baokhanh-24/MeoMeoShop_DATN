@@ -1,5 +1,6 @@
 @using System.Globalization
 @using AntDesign
+@using MeoMeo.Shared.IServices
 @using Microsoft.AspNetCore.Components
 @using System.Text.Json
 @using MeoMeo.Contract.DTOs.Product
@@ -9,6 +10,7 @@
 @inject NavigationManager Navigation
 @inject IMessageService Message
 @inject MeoMeo.Shared.IServices.ICartClientService CartClient
+@inject IAuthClientService AuthClient;
 
 
 
@@ -139,76 +141,6 @@
 
     </GridRow>
 }
-else
-{
-    <GridRow Gutter="16">
-        @for (int i = 0; i < LstProduct.Count; i++)
-        {
-            var product = LstProduct[i];
-            var index = i;
-            <GridCol Span="4">
-                <div class="carder-horizontal">
-                    @if (product.ProductVariants?.Any() == true)
-                    {
-                        var maxDiscount = product.ProductVariants.Max(v => v.Discount ?? 0);
-                        @if (maxDiscount > 0)
-                        {
-                            <div class="discount-percent" @onclick="() => HandleRedirect(product)">
-                                -@(maxDiscount)%
-                            </div>
-                        }
-                    }
-
-                    <GridRow Align="RowAlign.Middle" Class="w-100">
-                        <GridCol Span="12">
-                            <div class="product-image-horizontal" @onclick="() => HandleRedirect(product)">
-                                <Image Fallback="@(backendUrl + "/Images/fallback.jpeg")"
-                                    Src="@(backendUrl + "/" + product.Thumbnail)" />
-                            </div>
-                        </GridCol>
-
-                        <!-- Right content -->
-                        <GridCol Span="12">
-                            <div class="right-content">
-                                <div>
-                                    <div class="product-name">@(product.Name)</div>
-
-                                    <div class="product-price mt-1">
-                                        @if (product.ProductVariants?.Any() == true)
-                                        {
-                                            var maxPrice = product.ProductVariants.Max(v => v.Price);
-                                            var maxDiscount = product.ProductVariants.Max(v => v.Discount ?? 0);
-
-                                            @if (maxDiscount > 0)
-                                            {
-                                                <div class="price-container">
-                                                    <span class="original-price-horizontal">@(maxPrice.ToString("N0"))</span>
-                                                    <span class="discounted-price-horizontal">@((maxPrice * (1 - maxDiscount /
-                                                                                                100)).ToString("N0"))</span>
-                                        <span class="discount-percent-horizontal">-@(maxDiscount)%</span>
-                                    </div>
-                                }
-                                                                else
-                                {
-                                    <span class="product-origin-price">@(maxPrice.ToString("N0"))</span>
-                                }
-                                                                }
-                            </div>
-                        </div>
-
-                        <div class="add-to-cart mt-4">
-                            <Button Class="btn-add-to-cart" @onclick="() => ShowVariantModal(product)">
-                                Thêm vào giỏ hàng
-                            </Button>
-                        </div>
-                    </div>
-                </GridCol>
-            </GridRow>
-        </div>
-    </GridCol>
-        }
-</GridRow>
-}
 
 <!-- Variant Selection Modal -->
 <Modal
@@ -226,7 +158,7 @@ else
     [Parameter] public List<ProductResponseDTO> LstProduct { get; set; } = new();
     [Parameter] public bool IsGridSelected { get; set; } = true;
     [Parameter] public EventCallback<bool> OnEvent { get; set; }
-    
+
 
     // Modal properties
     private bool variantModalVisible = false;
@@ -304,12 +236,12 @@ else
                 Quantity = quantity
             };
             var result = await CartClient.AddToCartAsync(
-                newItem
+            newItem
             );
 
             if (result != null && (int)result.ResponseStatus == 1) // Success = 1
             {
-                Message.Success($"Đã thêm {quantity} sản phẩm vào giỏ hàng thành công!");
+                Message.Success($"Đã thêm sản phẩm vào giỏ hàng thành công!");
             }
             else
             {
@@ -324,7 +256,7 @@ else
         }
     }
 
-    
+
 
     private async Task IncrementCart(int productId)
     {
@@ -382,11 +314,18 @@ else
     }
 
     // Modal methods
-    private void ShowVariantModal(ProductResponseDTO product)
+    private async Task ShowVariantModal(ProductResponseDTO product)
     {
+        var isLogged = await AuthClient.IsAuthenticatedAsync();
+        if (!isLogged)
+        {
+            Message.Warning("Vui lòng đăng nhập để thêm sản phẩm vào giỏ hàng");
+            return;
+
+        }
         selectedProductForModal = product;
         variantModalVisible = true;
-    
+
     }
 
 
@@ -404,7 +343,7 @@ else
             // Modal sẽ tự động đóng sau khi thêm vào giỏ hàng thành công
             variantModalVisible = false;
             selectedProductForModal = null;
-          
+
         }
     }
 

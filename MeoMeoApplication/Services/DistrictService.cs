@@ -45,6 +45,12 @@ namespace MeoMeo.Application.Services
             return _districtRrepository.GetAllAsync();
         }
 
+        public async Task<IEnumerable<District>> GetByProvinceIdAsync(Guid provinceId)
+        {
+            var query = _districtRrepository.Query().Where(d => d.ProvinceId == provinceId);
+            return await Task.FromResult(query.AsEnumerable());
+        }
+
         public async Task<CreateOrUpdateDistrictRespose> GetDistrictByIdAsync(Guid id)
         {
             CreateOrUpdateDistrictRespose respose = new CreateOrUpdateDistrictRespose();

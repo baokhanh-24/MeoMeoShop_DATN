@@ -1,0 +1,306 @@
+@page "/san-pham/{id:guid}/{slug?}"
+@using MeoMeo.Contract.DTOs.Product
+@using MeoMeo.Shared.IServices
+@inject IProductClientService ProductClientService
+@inject IProductReviewClientService ProductReviewClientService
+@inject NavigationManager Navigation
+@inject IConfiguration Configuration
+@inject AntDesign.MessageService MessageService
+@inject ICartClientService CartClient
+
+<div class="product-detail-container">
+    @if (isLoading)
+    {
+            <div class="loading">Đang tải...</div>
+    }
+    else if (product is null)
+    {
+            <div class="not-found">Không tìm thấy sản phẩm</div>
+    }
+    else
+    {
+            <div class="pd-grid">
+                <div class="pd-gallery">
+                    <div class="pd-gallery-main">
+                        <img src="@GetMediaUrl(selectedImageUrl)" alt="@product.Name" />
+                    </div>
+                    <div class="pd-gallery-thumbs">
+                        @foreach (var img in (product.Media ?? new List<ProductMediaUpload>()))
+                        {
+                                var url = backendUrl + "/" + (img.ImageUrl ?? img.ImageUrl);
+                                <img class="@(selectedImageUrl == (img.ImageUrl ?? img.ImageUrl) ? "active" : "")" src="@url" @onclick="(() => SelectImage(img.ImageUrl ?? img.ImageUrl))" />
+                        }
+                    </div>
+                </div>
+                <div class="pd-info">
+                    <h1 class="pd-title">@product.Name</h1>
+                    <div class="pd-price">@FormatPriceRange()</div>
+                    <div class="pd-rating">
+                        <span class="stars">@RenderStars(averageRating)</span>
+                        <span class="rating-text">@averageRating.ToString("0.0") (@totalReviews đánh giá)</span>
+                    </div>
+
+                    <div class="pd-variants">
+                        @if ((product.ColourNames?.Any() ?? false))
+                        {
+                                <div class="variant-block">
+                                    <div class="variant-label">Màu sắc</div>
+                                    <div class="variant-values">
+                                        @foreach (var colour in product.ColourNames!.Distinct())
+                                        {
+                                                <button class="chip @(selectedColour == colour ? "active" : "")" @onclick="(() => SelectColour(colour))">@colour</button>
+                                        }
+                                    </div>
+                                </div>
+                        }
+                        @if ((product.SizeValues?.Any() ?? false))
+                        {
+                                <div class="variant-block">
+                                    <div class="variant-label">Kích cỡ</div>
+                                    <div class="variant-values">
+                                        @foreach (var size in product.SizeValues!.Distinct())
+                                        {
+                                                <button class="chip @(selectedSize == size ? "active" : "")" @onclick="(() => SelectSize(size))">@size</button>
+                                        }
+                                    </div>
+                                </div>
+                        }
+                        <div class="variant-block">
+                            <div class="variant-label">Số lượng</div>
+                            <div class="variant-values qty">
+                                <button class="qty-btn" @onclick="DecreaseQty">-</button>
+                                <input class="qty-input" type="number" min="1" value="@quantity" @onchange="OnQtyChanged" />
+                                <button class="qty-btn" @onclick="IncreaseQty">+</button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="pd-actions">
+                        <button class="btn-primary" @onclick="AddToCart" disabled="@(!CanAddToCart)">Thêm vào giỏ hàng</button>
+                        <button class="btn-secondary" @onclick="BuyNow" disabled="@(!CanAddToCart)">Đặt hàng nhanh</button>
+                    </div>
+
+                    <div class="pd-desc">
+                        <h3>Chi tiết sản phẩm</h3>
+                      
+                    </div>
+                </div>
+            </div>
+
+            <div class="pd-reviews">
+                <h2>Đánh giá</h2>
+                <div class="reviews-summary">
+                    <div class="avg">@averageRating.ToString("0.0")</div>
+                    <div class="stars big">@RenderStars(averageRating)</div>
+                    <div class="count">@totalReviews đánh giá</div>
+                </div>
+                <div class="reviews-breakdown">
+                    @for (int s = 5; s >= 1; s--)
+                    {
+                        var pct = totalReviews > 0 ? (int)Math.Round(100.0 * ratingCounts.GetValueOrDefault(s, 0) / totalReviews) : 0;
+                        <div class="rb-row">
+                            <span class="rb-star">@s sao</span>
+                            <div class="rb-bar"><div class="rb-fill" style="width:@pct%"></div></div>
+                            <span class="rb-count">@ratingCounts.GetValueOrDefault(s, 0)</span>
+                        </div>
+                    }
+                </div>
+                <div class="reviews-list">
+                    @if (filteredReviews.Count == 0)
+                    {
+                            <div>Chưa có đánh giá nào.</div>
+                    }
+                    else
+                    {
+                            @foreach (var r in filteredReviews.Take(10))
+                            {
+                                    <div class="review-item">
+                                        <div class="review-header">
+                                            <div class="review-stars">@RenderStars(r.Rating)</div>
+                                            <div class="review-meta">@r.CreationTime.ToString("dd/MM/yyyy")</div>
+                                        </div>
+                                        <div class="review-content">@r.Content</div>
+                                        @if (r.ProductReviewFiles != null && r.ProductReviewFiles.Count > 0)
+                                        {
+                                                <div class="review-media">
+                                                    @foreach (var f in r.ProductReviewFiles)
+                                                    {
+                                                            <img src="@(backendUrl + "/" + f.FileUrl)" />
+                                                    }
+                                                </div>
+                                        }
+                                    </div>
+                            }
+                    }
+                </div>
+            </div>
+    }
+</div>
+
+@code {
+    [Parameter] public Guid id { get; set; }
+    [Parameter] public string? slug { get; set; }
+
+    private string backendUrl = string.Empty;
+    private ProductResponseDTO? product;
+    private bool isLoading = true;
+    private string? selectedImageUrl;
+    private string? selectedColour;
+    private string? selectedSize;
+    private int quantity = 1;
+
+    private List<ProductDetailGrid> variants = new();
+    private List<Guid> variantIds = new();
+
+    private List<ProductReviewDTO> allReviews = new();
+    private List<ProductReviewDTO> filteredReviews = new();
+    private float averageRating = 0;
+    private int totalReviews = 0;
+    private Dictionary<int, int> ratingCounts = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        backendUrl = Configuration["ApiSettings:BaseUrl"] ?? string.Empty;
+        await LoadData();
+    }
+
+    private async Task LoadData()
+    {
+        try
+        {
+            isLoading = true;
+            product = await ProductClientService.GetProductWithDetailsAsync(id);
+            variants = product?.ProductVariants ?? new List<ProductDetailGrid>();
+            variantIds = variants.Where(v => v.Id.HasValue).Select(v => v.Id!.Value).ToList();
+            var firstImg = product?.Media?.FirstOrDefault();
+            selectedImageUrl = firstImg?.ImageUrl ?? firstImg.ImageUrl ?? product?.Thumbnail;
+
+            allReviews = (await ProductReviewClientService.GetAllAsync())?.ToList() ?? new List<ProductReviewDTO>();
+            filteredReviews = allReviews.Where(r => variantIds.Contains(r.ProductDetailId) && !r.IsHidden).OrderByDescending(r => r.CreationTime).ToList();
+            totalReviews = filteredReviews.Count;
+            averageRating = totalReviews > 0 ? filteredReviews.Average(r => r.Rating) : 0;
+            ratingCounts = Enumerable.Range(1, 5).ToDictionary(s => s, s => filteredReviews.Count(r => Math.Round(r.Rating) == s));
+        }
+        finally
+        {
+            isLoading = false;
+            StateHasChanged();
+        }
+    }
+
+    private string GetMediaUrl(string? relative)
+    {
+        if (string.IsNullOrWhiteSpace(relative)) return backendUrl + "/Images/fallback.jpeg";
+        return backendUrl + "/" + relative;
+    }
+
+    private void SelectImage(string url)
+    {
+        selectedImageUrl = url;
+    }
+
+    private void SelectColour(string colour)
+    {
+        selectedColour = colour;
+    }
+
+    private void SelectSize(string size)
+    {
+        selectedSize = size;
+    }
+
+    private bool CanAddToCart => !string.IsNullOrEmpty(selectedColour) && !string.IsNullOrEmpty(selectedSize) && SelectedVariantId.HasValue && quantity > 0;
+
+    private Guid? SelectedVariantId =>
+        variants.FirstOrDefault(v => string.Equals(v.ColourName, selectedColour, StringComparison.OrdinalIgnoreCase)
+                                   && string.Equals(v.SizeName, selectedSize, StringComparison.OrdinalIgnoreCase))?.Id;
+
+    private async Task AddToCart()
+    {
+        var variantId = SelectedVariantId;
+        if (!variantId.HasValue)
+        {
+            MessageService.Warning("Vui lòng chọn màu và kích cỡ");
+            return;
+        }
+        var resp = await CartClient.AddToCartAsync(new MeoMeo.Contract.DTOs.AddToCartDTO
+        {
+            ProductDetailId = variantId.Value,
+            Quantity = quantity
+        });
+        if (resp?.ResponseStatus == MeoMeo.Contract.Commons.BaseStatus.Success)
+        {
+            MessageService.Success("Đã thêm vào giỏ hàng");
+        }
+        else
+        {
+            MessageService.Error(resp?.Message ?? "Không thể thêm vào giỏ");
+        }
+    }
+
+    private async Task BuyNow()
+    {
+        var variantId = SelectedVariantId;
+        if (!variantId.HasValue)
+        {
+            MessageService.Warning("Vui lòng chọn màu và kích cỡ");
+            return;
+        }
+        var addResp = await CartClient.AddToCartAsync(new MeoMeo.Contract.DTOs.AddToCartDTO
+        {
+            ProductDetailId = variantId.Value,
+            Quantity = quantity
+        });
+        if (addResp?.ResponseStatus != MeoMeo.Contract.Commons.BaseStatus.Success)
+        {
+            MessageService.Error(addResp?.Message ?? "Không thể thêm vào giỏ");
+            return;
+        }
+        var cart = await CartClient.GetCurrentCartAsync();
+        var line = cart?.Items?.OrderByDescending(i => i.Id).FirstOrDefault(i => i.ProductDetailId == variantId.Value);
+        if (line == null)
+        {
+            MessageService.Error("Không tìm thấy dòng giỏ hàng vừa thêm");
+            return;
+        }
+        var checkout = await CartClient.CheckoutAsync(new List<Guid> { line.Id });
+        if (checkout?.ResponseStatus == MeoMeo.Contract.Commons.BaseStatus.Success)
+        {
+            MessageService.Success("Đặt hàng thành công");
+            Navigation.NavigateTo("/orders");
+        }
+        else
+        {
+            MessageService.Error(checkout?.Message ?? "Đặt hàng thất bại");
+        }
+    }
+
+    private string RenderStars(float rating)
+    {
+        int full = (int)Math.Floor(rating);
+        bool half = rating - full >= 0.5f;
+        return new string('★', full) + (half ? "½" : "") + new string('☆', Math.Max(0, 5 - full - (half ? 1 : 0)));
+    }
+
+    private string FormatPriceRange()
+    {
+        var prices = variants.Select(v => (decimal)v.Price).ToList();
+        if (prices.Count == 0) return "Liên hệ";
+        var min = prices.Min();
+        var max = prices.Max();
+        if (min == max) return string.Format(new System.Globalization.CultureInfo("vi-VN"), "{0:C0}", min);
+        return string.Format(new System.Globalization.CultureInfo("vi-VN"), "{0:C0} - {1:C0}", min, max);
+    }
+
+    private void IncreaseQty() => quantity++;
+    private void DecreaseQty() { if (quantity > 1) quantity--; }
+    private void OnQtyChanged(ChangeEventArgs e)
+    {
+        if (int.TryParse(e?.Value?.ToString(), out var q))
+        {
+            quantity = Math.Max(1, q);
+        }
+    }
+}
+
+

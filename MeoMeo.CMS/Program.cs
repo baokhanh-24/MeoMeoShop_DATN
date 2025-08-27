@@ -12,12 +12,13 @@ var apiBaseUrl = builder.Configuration["ApiSettings:BaseUrl"];
 builder.Services.AddRazorComponents()
     .AddInteractiveServerComponents();
 builder.Services.AddAntDesign();
-builder.Services.AddRadzenComponents();
 builder.Services.AddControllersWithViews();
 builder.Services.AddRazorPages();
+builder.Services.AddRadzenComponents();
 builder.Services.AddSignalR(e => {
     e.MaximumReceiveMessageSize = 102400000;
 });
+
 builder.Services.Configure<Microsoft.AspNetCore.Http.Features.FormOptions>(options =>
 {
     options.MultipartBodyLengthLimit = long.MaxValue;

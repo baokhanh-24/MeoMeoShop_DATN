@@ -1,5 +1,10 @@
 @using MeoMeo.Contract.DTOs.Product
 @using MeoMeo.Domain.Commons.Enums
+@using Radzen
+@using Radzen.Blazor
+@using ButtonSize = AntDesign.ButtonSize
+@using ButtonType = AntDesign.ButtonType
+@using FlexWrap = Radzen.FlexWrap
 @inject IMessageService Message
 @inject IConfiguration Configuration
 @inject MeoMeo.Shared.IServices.ISizeClientService SizeClient
@@ -9,21 +14,37 @@
         <div class="product-info">
             <div class="product-image">
                 <div class="image-holder">
-                    <Image Width="100%" Height="100%" OnClick="@(() => { visible = true; })" PreviewVisible="false"
-                        Class="product-img" Fallback="@(backendUrl + "/Images/fallback.jpeg")"
-                        Src="@(backendUrl + "/" + Product.Thumbnail)" />
-                    <div style="display:none;">
-                        <ImagePreviewGroup @bind-PreviewVisible="visible">
+
+                    <RadzenCarousel @ref=carousel @bind-SelectedIndex="@selectedIndex" Auto="true"
+                        AllowPaging="@allowPaging" PagerPosition="@pagerPosition" PagerOverlay="@pagerOverlay">
+                        <Items>
+
                             @if (Product.Media.Any() && Product.Media.Count() > 0)
                             {
                                 foreach (var img in Product.Media)
                                 {
-                                    <Image Fallback="@(backendUrl + "/Images/fallback.jpeg")"
-                                        Src="@(backendUrl + "/" + img.ImageUrl)" />
+                                    @if (img.ContentType.StartsWith("video/"))
+                                    {
+                                        <RadzenCarouselItem class="image-preview">
+                                            <video controls class="image-preview">
+                                                <source src="@GetImagePreviewUrl(img)" type="video/mp4" />
+                                                Trình duyệt của bạn không hỗ trợ video.
+                                            </video>
+                                        </RadzenCarouselItem>
+
+                                    }
+                                    else
+                                    {
+                                        <RadzenCarouselItem class="image-preview">
+                                            <RadzenImage Path="@(backendUrl + "/" + img.ImageUrl)" class="rz-w-100" />
+                                        </RadzenCarouselItem>
+                                    }
+
                                 }
                             }
-                        </ImagePreviewGroup>
-                    </div>
+
+                        </Items>
+                    </RadzenCarousel>
                 </div>
             </div>
         </div>
@@ -152,6 +173,12 @@
     </GridCol>
 </GridRow>
 @code {
+    RadzenCarousel carousel;
+    bool allowPaging = true;
+    bool pagerOverlay = true;
+    PagerPosition pagerPosition = PagerPosition.Bottom;
+
+    int selectedIndex;
     [Parameter] public ProductResponseDTO Product { get; set; }
     [Parameter] public EventCallback<VariantSelectionResult> OnVariantSelected { get; set; }
     bool visible;
@@ -173,7 +200,15 @@
             }
         }
     }
+    private string GetImagePreviewUrl(ProductMediaUpload image)
+    {
+        if (!string.IsNullOrEmpty(image.Base64Data))
+        {
+            return $"data:{image.ContentType};base64,{image.Base64Data}";
+        }
 
+        return backendUrl + "/" + image.ImageUrl;
+    }
     private void SelectVariant(ProductDetailGrid variant)
     {
         if (variant.OutOfStock > 0)

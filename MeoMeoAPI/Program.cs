@@ -51,6 +51,7 @@ builder.Services.AddScoped<IOrderDetailService, OrderDetailService>();
 builder.Services.AddScoped<IDeliveryAddressRepository, DeliveryAddressRepository>();
 builder.Services.AddScoped<IDeliveryAddressService, DeliveryAddressService>();
 builder.Services.AddScoped<IProvinceRepository, ProvinceRepository>();
+builder.Services.AddScoped<ICommuneRepository, CommuneRepository>();
 builder.Services.AddScoped<IProvinceService, ProvinceService>();
 builder.Services.AddScoped<IIventoryBatchReposiory, InventoryBatchRepository>();
 builder.Services.AddScoped<IInventoryBatchServices, InventoryBatchService>();
@@ -68,6 +69,7 @@ builder.Services.AddScoped<IPromotionDetailRepository, PromotionDetailRepository
 builder.Services.AddScoped<IPromotionDetailServices, PromotionDetailServices>();
 builder.Services.AddScoped<IVoucherRepository, VoucherRepository>();
 builder.Services.AddScoped<IVoucherService, VoucherServices>();
+builder.Services.AddScoped<ICommuneService, CommuneService>();
 builder.Services.AddScoped<IUserRepository, UserRepository>();
 builder.Services.AddScoped<IUserService, UserService>();
 builder.Services.AddScoped<IOrderDetailInventoryBatchRepository, OrderDetailInventoryBatchRepository>();

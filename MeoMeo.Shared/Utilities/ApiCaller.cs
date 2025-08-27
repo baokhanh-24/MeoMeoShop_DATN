@@ -238,5 +238,25 @@ namespace MeoMeo.Shared.Utilities
                 await _loading.StopAsync();
             }
         }
+
+        public async Task<byte[]> GetByteArrayAsync(string url)
+        {
+            await _loading.StartAsync();
+            try
+            {
+                var response = await _http.GetAsync(url);
+                response.EnsureSuccessStatusCode();
+                return await response.Content.ReadAsByteArrayAsync();
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, ex.Message);
+                return [];
+            }
+            finally
+            {
+                await _loading.StopAsync();
+            }
+        }
     }
 }

@@ -9,8 +9,8 @@ namespace MeoMeo.Shared.Middlewares;
 public class BasicAuthMiddleware
 {
     private readonly RequestDelegate _next;
-    private readonly string _username = "usersw"; 
-    private readonly string _password = "Qtrrsw453"; 
+    // private readonly string _username = "usersw"; 
+    // private readonly string _password = "Qtrrsw453"; 
 
     public BasicAuthMiddleware(RequestDelegate next)
     {
@@ -42,28 +42,28 @@ public class BasicAuthMiddleware
                 catch (Exception ex)
                 { }
             }
-            if (context.Request.Path.StartsWithSegments("/swagger"))
-            {
-                string authHeader = context.Request.Headers["Authorization"];
-
-                if (authHeader != null && authHeader.StartsWith("Basic "))
-                {
-                    var encodedUsernamePassword = authHeader.Substring("Basic ".Length).Trim();
-                    var decodedUsernamePassword = Encoding.UTF8.GetString(Convert.FromBase64String(encodedUsernamePassword));
-                    var usernamePassword = decodedUsernamePassword.Split(':');
-
-                    if (usernamePassword[0] == _username && usernamePassword[1] == _password)
-                    {
-                        await _next(context);
-                        return;
-                    }
-                }
-
-                context.Response.Headers["WWW-Authenticate"] = "Basic";
-                context.Response.StatusCode = StatusCodes.Status401Unauthorized;
-                await context.Response.WriteAsync("Unauthorized");
-                return;
-            }
+            // if (context.Request.Path.StartsWithSegments("/swagger"))
+            // {
+            //     string authHeader = context.Request.Headers["Authorization"];
+            //
+            //     // if (authHeader != null && authHeader.StartsWith("Basic "))
+            //     // {
+            //     //     var encodedUsernamePassword = authHeader.Substring("Basic ".Length).Trim();
+            //     //     var decodedUsernamePassword = Encoding.UTF8.GetString(Convert.FromBase64String(encodedUsernamePassword));
+            //     //     var usernamePassword = decodedUsernamePassword.Split(':');
+            //     //
+            //     //     // if (usernamePassword[0] == _username && usernamePassword[1] == _password)
+            //     //     // {
+            //     //     //     await _next(context);
+            //     //     //     return;
+            //     //     // }
+            //     // }
+            //
+            //     context.Response.Headers["WWW-Authenticate"] = "Basic";
+            //     context.Response.StatusCode = StatusCodes.Status401Unauthorized;
+            //     await context.Response.WriteAsync("Unauthorized");
+            //     return;
+            // }
             else
             {
                 if (_next == null)
