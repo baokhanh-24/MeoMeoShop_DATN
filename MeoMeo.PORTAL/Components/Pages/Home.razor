@@ -2,6 +2,19 @@
 @using System.ComponentModel.DataAnnotations
 @inject MessageService MessageService
 @inject NavigationManager NavigationManager
+@using MeoMeo.Shared.IServices
+@using System.Linq
+@using MeoMeo.Contract.DTOs.Product
+@using MeoMeo.Contract.DTOs
+@using MeoMeo.Contract.DTOs.Size
+@using MeoMeo.Domain.Commons
+@using MeoMeo.PORTAL.Components.Pages.ProductCard
+@using ButtonType = AntDesign.ButtonType
+@inject IProductClientService ProductClientService
+@inject ISizeClientService SizeClientService
+@inject IColourClientService ColourClientService
+@inject IJSRuntime JS
+@inject IConfiguration Configuration
 
 <video autoplay muted loop playsinline >
                 <source src="videos/background.mp4" type="video/mp4">
@@ -169,6 +182,55 @@
     </GridCol>
 </GridRow>
 
+<!-- Best Sellers -->
+<GridRow Class="position-relative padding-large">
+    <GridCol Span="24">
+    <div class="position-relative">
+        <Title Level="2" Class="text-uppercase text-dark mb-3">Sản phẩm bán chạy trong tuần</Title>
+        @if (bestSellers.Any())
+        {
+            <Carousel Dots="false">
+                @foreach (var group in ChunkBestSellers(bestSellers, 4))
+                {
+                    <CarouselSlick>
+                        <GridRow Gutter="16">
+                            @foreach (var item in group)
+                            {
+                                <GridCol Span="6" Md="8" Sm="12">
+                                    <Card Class="h-100">
+                                        <div class="product-image">
+                                            <img src="@FormatThumbnail(item.Thumbnail)" alt="@item.Name" />
+                                        </div>
+                                        <div class="mt-2 fw-bold">@item.Name</div>
+                                        <div class="text-muted">Đã bán: @item.TotalSold</div>
+                                        <div class="mt-1">
+                                            @if (item.MinPrice.HasValue)
+                                            {
+                                                <span>
+                                                    @(((decimal)item.MinPrice.Value).ToString("C0", new System.Globalization.CultureInfo("vi-VN")))
+                                                </span>
+                                                @if (item.MaxPrice.HasValue && item.MaxPrice.Value != item.MinPrice.Value)
+                                                {
+                                                    <span> - @(((decimal)item.MaxPrice.Value).ToString("C0", new System.Globalization.CultureInfo("vi-VN")))</span>
+                                                }
+                                            }
+                                        </div>
+                                    </Card>
+                                </GridCol>
+                            }
+                        </GridRow>
+                    </CarouselSlick>
+                }
+            </Carousel>
+        }
+        else
+        {
+            <Empty />
+        }
+    </div>
+    </GridCol>
+</GridRow>
+
 <GridRow Class="position-relative">
     <GridCol Span="24">
     <div class="review-content position-relative">
@@ -223,7 +285,9 @@
     </GridCol>
 </GridRow>
 @code {
-    private List<Product> Products { get; set; } = new();
+    private List<ProductResponseDTO> products { get; set; } = new();
+    private List<BestSellerItemDTO> bestSellers { get; set; } = new();
+    private List<ProductResponseDTO> recentlyViewed { get; set; } = new();
     private List<Testimonial> Testimonials { get; set; } = new();
     private SubscriptionModel subscriptionModel = new();
     private decimal GetRandomRating()
@@ -234,26 +298,10 @@
 
     protected override async Task OnInitializedAsync()
     {
-        // Initialize products
-        Products = new List<Product>
-        {
-            new Product { Id = 1, Name = "Nike Air 107", Price = 1980, ImageUrl = "images/nikeair107.png" },
-            new Product { Id = 2, Name = "Nike Air EVO", Price = 1500, ImageUrl = "images/nikeairevo.png" },
-            new Product { Id = 3, Name = "Nike Air LV8", Price = 1900, ImageUrl = "images/nikeairlv8.png" },
-            new Product { Id = 4, Name = "Nike Air Shadow", Price = 2200, ImageUrl = "images/nikeairshadow.png" }, 
-            new Product { Id = 5, Name = "Nike Air 107", Price = 1980, ImageUrl = "images/nikeair107.png" },
-            new Product { Id = 6, Name = "Nike Air EVO", Price = 1500, ImageUrl = "images/nikeairevo.png" },
-            new Product { Id = 7, Name = "Nike Air LV8", Price = 1900, ImageUrl = "images/nikeairlv8.png" },
-            new Product { Id = 8, Name = "Nike Air Shadow", Price = 2200, ImageUrl = "images/nikeairshadow.png" }, 
-            new Product { Id = 9, Name = "Nike Air 107", Price = 1980, ImageUrl = "images/nikeair107.png" },
-            new Product { Id = 10, Name = "Nike Air EVO", Price = 1500, ImageUrl = "images/nikeairevo.png" },
-            new Product { Id = 11, Name = "Nike Air LV8", Price = 1900, ImageUrl = "images/nikeairlv8.png" },
-            new Product { Id = 12, Name = "Nike Air Shadow", Price = 2200, ImageUrl = "images/nikeairshadow.png" },    
-            new Product { Id = 13, Name = "Nike Air 107", Price = 1980, ImageUrl = "images/nikeair107.png" },
-            new Product { Id = 14, Name = "Nike Air EVO", Price = 1500, ImageUrl = "images/nikeairevo.png" },
-            new Product { Id = 15, Name = "Nike Air LV8", Price = 1900, ImageUrl = "images/nikeairlv8.png" },
-            new Product { Id = 16, Name = "Nike Air Shadow", Price = 2200, ImageUrl = "images/nikeairshadow.png" },
-        };
+        await LoadFilterOptions();
+        await LoadProductsAsync();
+        await LoadBestSellersAsync();
+        await LoadRecentlyViewedAsync();
 
         // Initialize testimonials
         Testimonials = new List<Testimonial>
@@ -283,12 +331,101 @@
         NavigationManager.NavigateTo("/Shop");
     }
 
-    public class Product
+    private async Task LoadFilterOptions()
     {
-        public int Id { get; set; }
-        public string Name { get; set; }
-        public decimal Price { get; set; }
-        public string ImageUrl { get; set; }
+        // sizes
+        var sizeResp = await SizeClientService.GetAllSizeAsync(new GetListSizeRequestDTO { PageIndex = 1, PageSize = 100 });
+        sizes = sizeResp.Items ?? new List<SizeDTO>();
+        // colours
+        var colourResp = await ColourClientService.GetAllColoursAsync();
+        colours = (colourResp ?? Enumerable.Empty<MeoMeo.Domain.Entities.Colour>())
+            .Select(c => new ColourDTO { Id = c.Id, Name = c.Name, Code = c.Code, Status = c.Status })
+            .ToList();
+    }
+
+    private async Task LoadProductsAsync()
+    {
+        var response = await ProductClientService.GetAllProductAsync(filter);
+        products = response.Items ?? new List<ProductResponseDTO>();
+        totalRecords = response.TotalRecords;
+        StateHasChanged();
+    }
+
+    private async Task LoadBestSellersAsync()
+    {
+        bestSellers = await ProductClientService.GetWeeklyBestSellersAsync(12);
+    }
+
+    private async Task LoadRecentlyViewedAsync()
+    {
+        try
+        {
+            var ids = await JS.InvokeAsync<string?>("localStorage.getItem", "recent_product_ids");
+            if (!string.IsNullOrWhiteSpace(ids))
+            {
+                var idList = ids.Split(',', StringSplitOptions.RemoveEmptyEntries)
+                    .Select(s => Guid.TryParse(s, out var id) ? id : Guid.Empty)
+                    .Where(g => g != Guid.Empty)
+                    .Distinct()
+                    .Take(12)
+                    .ToList();
+                // TODO: call API to get products by these ids when endpoint available
+            }
+        }
+        catch { }
+    }
+
+    private static List<List<BestSellerItemDTO>> ChunkBestSellers(List<BestSellerItemDTO> list, int size)
+    {
+        var result = new List<List<BestSellerItemDTO>>();
+        for (int i = 0; i < list.Count; i += size)
+        {
+            result.Add(list.GetRange(i, Math.Min(size, list.Count - i)));
+        }
+        return result;
+    }
+
+    private string FormatThumbnail(string? thumbnail)
+    {
+        if (string.IsNullOrWhiteSpace(thumbnail)) return "images/products/chilli.png";
+        var baseUrl = Configuration?["ApiSettings:BaseUrl"] ?? string.Empty;
+        return $"{baseUrl.TrimEnd('/')}/{thumbnail.TrimStart('/')}";
+    }
+
+    private async Task OnPageChanged(PaginationEventArgs args)
+    {
+        filter.PageIndex = args.Page;
+        filter.PageSize = args.PageSize;
+        await LoadProductsAsync();
+    }
+
+    private async Task ApplyFilter()
+    {
+        filter.PageIndex = 1;
+        await LoadProductsAsync();
+    }
+
+    private void ResetFilter()
+    {
+        filter = new GetListProductRequestDTO { PageIndex = 1, PageSize = 12 };
+        selectedPriceRange = null;
+        _ = LoadProductsAsync();
+    }
+
+    private void OnPriceRangeChanged(int? value)
+    {
+        selectedPriceRange = value;
+        switch (value)
+        {
+            case 1: filter.MinPriceFilter = 0; filter.MaxPriceFilter = 500_000; break;
+            case 2: filter.MinPriceFilter = 500_000; filter.MaxPriceFilter = 1_000_000; break;
+            case 3: filter.MinPriceFilter = 1_000_000; filter.MaxPriceFilter = 2_000_000; break;
+            case 4: filter.MinPriceFilter = 2_000_000; filter.MaxPriceFilter = 3_000_000; break;
+            case 5: filter.MinPriceFilter = 3_000_000; filter.MaxPriceFilter = 4_000_000; break;
+            case 6: filter.MinPriceFilter = 4_000_000; filter.MaxPriceFilter = 5_000_000; break;
+            case 7: filter.MinPriceFilter = 5_000_000; filter.MaxPriceFilter = null; break;
+            default: filter.MinPriceFilter = null; filter.MaxPriceFilter = null; break;
+        }
     }
 
     public class Testimonial

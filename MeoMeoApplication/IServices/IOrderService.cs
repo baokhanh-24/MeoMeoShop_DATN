@@ -12,7 +12,7 @@ namespace MeoMeo.Application.IServices
             GetListOrderRequestDTO request);
         Task<BaseResponse> UpdateStatusOrderAsync(UpdateStatusOrderRequestDTO request);
         Task<GetListOrderHistoryResponseDTO> GetListOrderHistoryAsync(Guid orderId);
-        Task<BaseResponse> CreateOrderAsync(CreateOrderDTO request);
+        Task<CreateOrderResultDTO> CreateOrderAsync(Guid customerId, Guid userId, CreateOrderDTO request);
         Task<bool> DeleteOrderAsync(Guid id);
     }
 }

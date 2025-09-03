@@ -1,0 +1,303 @@
+@using MeoMeo.Contract.DTOs.Product
+@using ButtonSize = AntDesign.ButtonSize
+@using ButtonType = AntDesign.ButtonType
+@using FlexWrap = Radzen.FlexWrap
+@inject IMessageService Message
+@inject IConfiguration Configuration
+@inject MeoMeo.Shared.IServices.ISizeClientService SizeClient
+@inject MeoMeo.Shared.IServices.IColourClientService ColourClient
+<GridRow Gutter="16">
+    <GridCol Span="8">
+        <div class="product-info">
+            <div class="product-image">
+                <div class="image-holder">
+
+                    <RadzenCarousel @ref=carousel @bind-SelectedIndex="@selectedIndex" Auto="true"
+                        AllowPaging="@allowPaging" PagerPosition="@pagerPosition" PagerOverlay="@pagerOverlay">
+                        <Items>
+
+                            @if (Product.Media.Any() && Product.Media.Count() > 0)
+                            {
+                                foreach (var img in Product.Media)
+                                {
+                                    @if (img.ContentType.StartsWith("video/"))
+                                    {
+                                        <RadzenCarouselItem class="image-preview">
+                                            <video controls class="image-preview">
+                                                <source src="@GetImagePreviewUrl(img)" type="video/mp4" />
+                                                Trình duyệt của bạn không hỗ trợ video.
+                                            </video>
+                                        </RadzenCarouselItem>
+
+                                    }
+                                    else
+                                    {
+                                        <RadzenCarouselItem class="image-preview">
+                                            <RadzenImage Path="@(backendUrl + "/" + img.ImageUrl)" class="rz-w-100" />
+                                        </RadzenCarouselItem>
+                                    }
+
+                                }
+                            }
+
+                        </Items>
+                    </RadzenCarousel>
+                </div>
+            </div>
+        </div>
+    </GridCol>
+    <GridCol Span="16">
+        <div class="variant-selection">
+            <h5>Chọn biến thể sản phẩm:</h5>
+
+            @if (Product.ProductVariants?.Any() == true)
+            {
+                <div class="variants-grid">
+                    @foreach (var variant in Product.ProductVariants)
+                    {
+                        var isSelected = selectedVariant?.Id == variant.Id;
+                        var isOutOfStock = variant.OutOfStock <= 0;
+
+                        <div class="variant-item @(isSelected ? "selected" : "") @(isOutOfStock ? "out-of-stock" : "")"
+                            @onclick="() => SelectVariant(variant)" @onclick:preventDefault="true">
+
+                            @if (variant.Discount > 0)
+                            {
+                                <div class="discount-badge-small">
+                                    -@(variant.Discount)%
+                                </div>
+                            }
+
+                            <div class="variant-info">
+                                <div class="variant-size">Size: @(variant.SizeName)</div>
+                                <div class="variant-color">Màu sắc: @(variant.ColourName)</div>
+                                <div class="variant-price">
+                                    @if (variant.Discount > 0)
+                                    {
+                                        var discountedPrice = (decimal)(variant.Price * (1 - variant.Discount / 100));
+                                        <span class="original-price-small">@(variant.Price.ToString("N0"))</span>
+                                        <span class="discounted-price-small">@(discountedPrice.ToString("N0"))</span>
+                                    }
+                                    else
+                                    {
+                                        <span>@(variant.Price.ToString("N0"))</span>
+                                    }
+                                </div>
+                                <div class="variant-stock">
+                                    @if (isOutOfStock)
+                                    {
+                                        <span class="stock-out">Hết hàng</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="stock-available">Còn @(variant.InventoryQuantity)</span>
+                                    }
+                                </div>
+                            </div>
+                        </div>
+                    }
+                </div>
+
+                @if (selectedVariant != null)
+                {
+                    <div class="quantity-selection">
+                        <h6>Số lượng:</h6>
+                        <div class="quantity-controls">
+                            <Button Type="ButtonType.Primary" Size="ButtonSize.Small" OnClick="() => DecreaseQuantity()"
+                                Disabled="@(quantity <= 1)">
+                                <Icon Type="minus" />
+                            </Button>
+                            <span class="quantity-display">@quantity</span>
+                            <Button Type="ButtonType.Primary" Size="ButtonSize.Small" OnClick="() => IncreaseQuantity()"
+                                Disabled="@(quantity >= selectedVariant.InventoryQuantity)">
+                                <Icon Type="plus" />
+                            </Button>
+                        </div>
+                    </div>
+
+                    <div class="selected-variant-summary">
+                        <div class="summary-item">
+                            <span class="label">Sản phẩm:</span>
+                            <span class="value">Size @(selectedVariant.SizeName) - Màu sắc
+                                @(selectedVariant.ColourName)</span>
+                        </div>
+                        <div class="summary-item">
+                            <span class="label">Giá:</span>
+                            <span class="value">
+                                @if (selectedVariant.Discount > 0)
+                                {
+                                    var discountedPrice = (decimal)(selectedVariant.Price * (1 - selectedVariant.Discount / 100));
+                                    <span class="original-price-summary">@(selectedVariant.Price.ToString("N0"))</span>
+                                    <span class="discounted-price-summary">@(discountedPrice.ToString("N0"))</span>
+                                }
+                                else
+                                {
+                                    <span>@(selectedVariant.Price.ToString("N0"))</span>
+                                }
+                            </span>
+                        </div>
+                        <div class="summary-item">
+                            <span class="label">Tổng:</span>
+                            <span class="value total-price">
+                                @if (selectedVariant.Discount > 0)
+                                {
+                                    var discountedPrice = (decimal)(selectedVariant.Price * (1 - selectedVariant.Discount / 100));
+                                    @((discountedPrice * quantity).ToString("N0"))
+                                }
+                                else
+                                {
+                                    @((selectedVariant.Price * quantity).ToString("N0"))
+                                }
+                            </span>
+                        </div>
+                    </div>
+
+                    <div class="action-buttons">
+                        <Button Type="ButtonType.Primary" Class="btn-add-to-cart-confirm" OnClick="ConfirmAddToCart"
+                            Disabled="@(selectedVariant.InventoryQuantity <= 0)">
+                            Thêm vào giỏ hàng
+                        </Button>
+                    </div>
+                }
+            }
+            else
+            {
+                <div class="no-variants">
+                    <p>Sản phẩm này không có biến thể nào.</p>
+                </div>
+            }
+        </div>
+    </GridCol>
+</GridRow>
+@code {
+    RadzenCarousel carousel;
+    bool allowPaging = true;
+    bool pagerOverlay = true;
+    PagerPosition pagerPosition = PagerPosition.Bottom;
+
+    int selectedIndex;
+    [Parameter] public ProductResponseDTO Product { get; set; }
+    [Parameter] public EventCallback<VariantSelectionResult> OnVariantSelected { get; set; }
+    bool visible;
+    private string backendUrl = "";
+    private ProductDetailGrid selectedVariant;
+    private int quantity = 1;
+
+    protected override async Task OnInitializedAsync()
+    {
+        backendUrl = Configuration["ApiSettings:BaseUrl"] ?? "";
+
+        if (Product?.ProductVariants != null)
+        {
+            selectedVariant = Product?.ProductVariants.First();
+            foreach (var v in Product.ProductVariants)
+            {
+                v.SizeName = await GetSizeNameAsync(v.SizeId);
+                v.ColourName = await GetColorNameAsync(v.ColourId);
+            }
+        }
+    }
+    private string GetImagePreviewUrl(ProductMediaUpload image)
+    {
+        if (!string.IsNullOrEmpty(image.Base64Data))
+        {
+            return $"data:{image.ContentType};base64,{image.Base64Data}";
+        }
+
+        return backendUrl + "/" + image.ImageUrl;
+    }
+    private void SelectVariant(ProductDetailGrid variant)
+    {
+        if (variant.OutOfStock > 0)
+        {
+            selectedVariant = variant;
+            quantity = 1;
+            StateHasChanged();
+        }
+    }
+    private async Task<string> GetSizeNameAsync(Guid sizeId)
+    {
+
+        try
+        {
+            var size = await SizeClient.GetSizeByIdAsync(sizeId);
+            return size.Value;
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error getting size name for ID {sizeId}: {ex.Message}");
+        }
+
+        return $"Size {sizeId.ToString().Substring(0, 8)}";
+    }
+
+    private async Task<string> GetColorNameAsync(Guid colorId)
+    {
+        try
+        {
+            var color = await ColourClient.GetColourByIdAsync(colorId);
+            return color.Name;
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error getting color name for ID {colorId}: {ex.Message}");
+        }
+
+        return $"Màu {colorId.ToString().Substring(0, 8)}";
+    }
+    private void IncreaseQuantity()
+    {
+        if (selectedVariant != null && quantity < selectedVariant.InventoryQuantity)
+        {
+            quantity++;
+            StateHasChanged();
+        }
+    }
+
+    private void DecreaseQuantity()
+    {
+        if (quantity > 1)
+        {
+            quantity--;
+            StateHasChanged();
+        }
+    }
+
+    private async Task ConfirmAddToCart()
+    {
+        if (selectedVariant != null && quantity > 0)
+        {
+            var result = new VariantSelectionResult
+            {
+                IsSuccess = true,
+                Product = Product,
+                SelectedVariant = selectedVariant,
+                Quantity = quantity,
+                Message = "Đã chọn biến thể thành công"
+            };
+
+            await OnVariantSelected.InvokeAsync(result);
+        }
+    }
+
+    private string GetSizeName(Guid sizeId)
+    {
+        // Tạm thời trả về ID, có thể cải tiến để lấy tên thực từ service
+        return $"Size {sizeId.ToString().Substring(0, 8)}";
+    }
+
+    private string GetColorName(Guid colorId)
+    {
+        // Tạm thời trả về ID, có thể cải tiến để lấy tên thực từ service
+        return $"Màu {colorId.ToString().Substring(0, 8)}";
+    }
+
+    public class VariantSelectionResult
+    {
+        public bool IsSuccess { get; set; }
+        public ProductResponseDTO Product { get; set; }
+        public ProductDetailGrid SelectedVariant { get; set; }
+        public int Quantity { get; set; }
+        public string Message { get; set; }
+    }
+}

@@ -18,7 +18,6 @@ namespace MeoMeo.EntityFrameworkCore.Configurations
             builder.Property(x => x.CustomerName).HasMaxLength(100).HasColumnType("nvarchar(100)");
             builder.Property(x => x.EmployeePhoneNumber).HasMaxLength(12).HasColumnType("varchar(12)");
             builder.Property(x => x.CustomerPhoneNumber).HasMaxLength(12).HasColumnType("varchar(12)");
-            builder.Property(x => x.CustomerCode).HasMaxLength(10).HasColumnType("varchar(10)");
             builder.Property(x => x.EmployeeEmail).HasMaxLength(255).HasColumnType("varchar(255)");
             builder.Property(x => x.CustomerEmail).HasMaxLength(255).HasColumnType("varchar(255)");
             builder.Property(x => x.DeliveryAddress).HasMaxLength(255).HasColumnType("nvarchar(255)");

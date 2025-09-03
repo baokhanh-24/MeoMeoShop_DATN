@@ -1,0 +1,947 @@
+@* @page "/san-pham/{ProductId:guid}/{Slug}" *@
+@* @using AntDesign *@
+@* @using Microsoft.AspNetCore.Components.Web *@
+@* @using System.Text.Json *@
+@* @using MeoMeo.Shared.IServices *@
+@* @using MeoMeo.Contract.DTOs.Product *@
+@* @using MeoMeo.Contract.DTOs *@
+@* @using MeoMeo.Contract.DTOs.ProductDetail *@
+@* @inject IJSRuntime JSRuntime *@
+@* @inject NavigationManager NavigationManager *@
+@* @inject HttpClient HttpClient *@
+@* @inject IMessageService MessageService *@
+@* @inject IConfiguration Configuration *@
+@* @inject IProductClientService ProductClientService *@
+@* *@
+@* <div class="content-background"> *@
+@*     <div class="container"> *@
+@*         <Breadcrumb> *@
+@*             <BreadcrumbItem> *@
+@*                 <a href="/">Trang chủ</a> *@
+@*             </BreadcrumbItem> *@
+@*             <BreadcrumbItem> *@
+@*                 <a href="/san-pham/category/@productDetail.CategoryId">@productDetail.Category</a> *@
+@*             </BreadcrumbItem> *@
+@*             <BreadcrumbItem> *@
+@*                 <span class="current">@productDetail.Name</span> *@
+@*             </BreadcrumbItem> *@
+@*         </Breadcrumb> *@
+@* *@
+@*         <div class="w-100"> *@
+@*             <Row Gutter="(16, 16)"> *@
+@*                 <Col Span="12"> *@
+@*                     <Card Style="box-shadow: none;"> *@
+@*                         <Carousel @ref="imageCarousel"  *@
+@*                                   Dots="false"  *@
+@*                                   Arrows="true" *@
+@*                                   AfterChange="OnImageChange"> *@
+@*                             @foreach (var image in images) *@
+@*                             { *@
+@*                                 <div class="w-100" style="height: auto; max-height: 362px;"> *@
+@*                                     @if (image.Type == 0) *@
+@*                                     { *@
+@*                                         <img src="@image.ItemImageSrc" alt="@image.Alt" class="image-gallery img-fluid w-100" /> *@
+@*                                     } *@
+@*                                     else if (image.Type == 1) *@
+@*                                     { *@
+@*                                         <video controls src="@image.ItemImageSrc" style="width: 100%;" class="image-gallery img-fluid w-100"></video> *@
+@*                                     } *@
+@*                                 </div> *@
+@*                             } *@
+@*                         </Carousel> *@
+@*                          *@
+@*                         @if (images.Count > 1) *@
+@*                         { *@
+@*                             <div class="thumbnail-container"> *@
+@*                                 <Row Gutter="8"> *@
+@*                                     @for (int i = 0; i < Math.Min(images.Count, 5); i++) *@
+@*                                     { *@
+@*                                         var index = i; // Capture for closure *@
+@*                                         <Col Span="4"> *@
+@*                                             <div class="thumbnail-item @(activeIndex == index ? "active" : "")"  *@
+@*                                                  @onclick="() => SetActiveImage(index)"> *@
+@*                                                 @if (images[index].Type == 0) *@
+@*                                                 { *@
+@*                                                     <img src="@images[index].ThumbnailImageSrc" alt="@images[index].Alt" /> *@
+@*                                                 } *@
+@*                                                 else *@
+@*                                                 { *@
+@*                                                     <video muted src="@images[index].ThumbnailImageSrc"></video> *@
+@*                                                 } *@
+@*                                             </div> *@
+@*                                         </Col> *@
+@*                                     } *@
+@*                                 </Row> *@
+@*                             </div> *@
+@*                         } *@
+@*                          *@
+@*                         <div class="index-display"> *@
+@*                             <span>@(activeIndex + 1)/@images.Count</span> *@
+@*                         </div> *@
+@*                     </Card> *@
+@*                 </Col> *@
+@* *@
+@*                 <Col Span="12"> *@
+@*                     <div class="space-coverage d-flex flex-column justify-content-between h-100"> *@
+@*                         <div> *@
+@*                             <Row Class="mb-4"> *@
+@*                                 <Col Span="24"> *@
+@*                                     <div class="product-name">@productDetail.Name</div> *@
+@*                                 </Col> *@
+@*                             </Row> *@
+@* *@
+@*                             <div class="product-vote"> *@
+@*                                 <span class="avg-vote d-flex"> *@
+@*                                     @if (productDetail.Rating > 0) *@
+@*                                     { *@
+@*                                         <span> *@
+@*                                             <span class="avg-value">@productDetail.Rating</span> *@
+@*                                             <img class="star-vote ms-2" src="/images/products/star_vote.svg" alt="" /> *@
+@*                                         </span> *@
+@*                                     } *@
+@*                                     else *@
+@*                                     { *@
+@*                                         <span class="no-vote">Chưa có đánh giá</span> *@
+@*                                     } *@
+@*                                     <span class="mx-1"> | </span> *@
+@*                                     <span>@productDetail.SaleNumber Lượt bán</span> *@
+@*                                 </span> *@
+@*                             </div> *@
+@* *@
+@*                             <div class="mt-2"> *@
+@*                                 <div class="info-product"> *@
+@*                                     Danh mục: <span class="ms-1">@productDetail.Category</span> *@
+@*                                 </div> *@
+@*                             </div> *@
+@* *@
+@*                             <div class="mt-2"> *@
+@*                                 <div class="info-product"> *@
+@*                                     Đơn vị tính: <span class="ms-1">@productDetail.Unit</span> *@
+@*                                 </div> *@
+@*                             </div> *@
+@* *@
+@*                             <div class="mt-2"> *@
+@*                                 <span class="discount-price"> *@
+@*                                     @CalcPriceAfterDiscount(productDetail.Price, productDetail.Discount).ToString("C0", new System.Globalization.CultureInfo("vi-VN")) *@
+@*                                 </span> *@
+@*                                 @if (productDetail.Discount > 0) *@
+@*                                 { *@
+@*                                     <span class="price ms-2"> *@
+@*                                         @productDetail.Price.ToString("C0", new System.Globalization.CultureInfo("vi-VN")) *@
+@*                                     </span> *@
+@*                                 } *@
+@*                             </div> *@
+@* *@
+@*                             <div class="mt-2"> *@
+@*                                 <div class="quantity">Số lượng:</div> *@
+@*                                 <div class="d-flex justify-content-between"> *@
+@*                                     <Button Class="btn-change-quantity" OnClick="DecreaseQuantity">-</Button> *@
+@*                                     <InputNumber @bind-Value="productQuantity"  *@
+@*                                                 Min="1"  *@
+@*                                                 Max="999"  *@
+@*                                                 Class="input-change-quantity" /> *@
+@*                                     <Button Class="btn-change-quantity" OnClick="IncreaseQuantity">+</Button> *@
+@*                                 </div> *@
+@*                             </div> *@
+@*                             <Divider /> *@
+@*                         </div> *@
+@* *@
+@*                         <div class="action-section d-flex justify-content-between"> *@
+@*                             @if (isFavorited) *@
+@*                             { *@
+@*                                 <span class="favorited" @onclick="() => FavoriteProduct(false)"> *@
+@*                                     <img class="favorited-icon" src="/images/products/favorited.svg" /> *@
+@*                                 </span> *@
+@*                             } *@
+@*                             else *@
+@*                             { *@
+@*                                 <span class="favorite" @onclick="() => FavoriteProduct(true)"> *@
+@*                                     <img class="favorited-icon" src="/images/products/favorite.svg" /> *@
+@*                                 </span> *@
+@*                             } *@
+@*                             <Button Class="btn-add-to-card" OnClick="() => AddToCart(false)"> *@
+@*                                 Thêm vào giỏ hàng *@
+@*                             </Button> *@
+@*                             <Button Class="btn-buy-now" OnClick="() => AddToCart(true)"> *@
+@*                                 Mua ngay *@
+@*                             </Button> *@
+@*                         </div> *@
+@*                     </div> *@
+@*                 </Col> *@
+@*             </Row> *@
+@*         </div> *@
+@* *@
+@*         <!-- Product Description Section --> *@
+@*         <div class="w-100"> *@
+@*             <Row> *@
+@*                 <Col Span="24" Class="mt-4"> *@
+@*                     <div class="space-coverage"> *@
+@*                         <div class="title-description mb-2">Mô tả sản phẩm</div> *@
+@*                         <div class="@(viewMoreDescription ? "description-short" : "description-view-all")"> *@
+@*                             @((MarkupString)sanitizedHtml) *@
+@*                         </div> *@
+@*                         @if (viewMoreDescription.HasValue) *@
+@*                         { *@
+@*                             <div class="text-center pointer"> *@
+@*                                 <img @onclick="ToggleDescription"  *@
+@*                                      class="star-vote"  *@
+@*                                      src="@(viewMoreDescription.Value ? "/images/products/droparrrow.svg" : "/images/products/uparrow.svg")"  *@
+@*                                      alt="" /> *@
+@*                                 <span class="view-more" @onclick="ToggleDescription"> *@
+@*                                     @(viewMoreDescription.Value ? " Xem thêm" : "Thu gọn") *@
+@*                                 </span> *@
+@*                             </div> *@
+@*                         } *@
+@*                     </div> *@
+@*                 </Col> *@
+@* *@
+@*                 <!-- Reviews Section --> *@
+@*                 <Col Span="24" Class="mt-4"> *@
+@*                     <div class="space-coverage"> *@
+@*                         <div class="title-description mb-2"> *@
+@*                             Đánh giá sản phẩm <span class="total-vote ms-2">(@totalComment đánh giá)</span> *@
+@*                         </div> *@
+@*                          *@
+@*                         @if (totalComment == 0) *@
+@*                         { *@
+@*                             <div class="text-center"> *@
+@*                                 <img class="empty-vote" src="/images/products/empty-vote.svg" alt="" /> *@
+@*                                 <div class="title-vote-empty">Hiện chưa có đánh giá nào.</div> *@
+@*                                 <div class="title-vote-empty">Bạn sẽ là người đầu tiên đánh giá sản phẩm này chứ?</div> *@
+@*                                 @if (canComment) *@
+@*                                 { *@
+@*                                     <div class="d-flex justify-content-center mt-3 mb-7"> *@
+@*                                         <Button Class="vote-now" OnClick="ShowCommentModal">Đánh giá ngay</Button> *@
+@*                                     </div> *@
+@*                                 } *@
+@*                             </div> *@
+@*                         } *@
+@*                         else *@
+@*                         { *@
+@*                             <Divider /> *@
+@*                             <Row> *@
+@*                                 <Col Span="6" Class="text-center"> *@
+@*                                     <div class="grand-vote-score"> *@
+@*                                         @productDetail.Rating *@
+@*                                         <img class="grand-star-vote ms-1" src="/images/products/star_vote.svg" alt="" /> *@
+@*                                     </div> *@
+@*                                     @if (canComment) *@
+@*                                     { *@
+@*                                         <Button Class="btn-sen-comment" OnClick="ShowCommentModal">Gửi đánh giá</Button> *@
+@*                                     } *@
+@*                                 </Col> *@
+@*                                 <Col Span="10"> *@
+@*                                     <div class="d-flex"> *@
+@*                                         <img class="grand-star" src="/images/products/5star.png" alt="" /> *@
+@*                                         <Progress Percent="@((double)productDetail.Rating5 / totalComment * 100)"  *@
+@*                                                  StrokeColor="#FFC214"  *@
+@*                                                  ShowInfo="false" /> *@
+@*                                         <span class="progress-value">@productDetail.Rating5</span> *@
+@*                                     </div> *@
+@*                                     <div class="d-flex"> *@
+@*                                         <img class="grand-star" src="/images/products/4star.png" alt="" /> *@
+@*                                         <Progress Percent="@((double)productDetail.Rating4 / totalComment * 100)"  *@
+@*                                                  StrokeColor="#FFC214"  *@
+@*                                                  ShowInfo="false" /> *@
+@*                                         <span class="progress-value">@productDetail.Rating4</span> *@
+@*                                     </div> *@
+@*                                     <div class="d-flex"> *@
+@*                                         <img class="grand-star" src="/images/products/3star.png" alt="" /> *@
+@*                                         <Progress Percent="@((double)productDetail.Rating3 / totalComment * 100)"  *@
+@*                                                  StrokeColor="#FFC214"  *@
+@*                                                  ShowInfo="false" /> *@
+@*                                         <span class="progress-value">@productDetail.Rating3</span> *@
+@*                                     </div> *@
+@*                                     <div class="d-flex"> *@
+@*                                         <img class="grand-star" src="/images/products/2star.png" alt="" /> *@
+@*                                         <Progress Percent="@((double)productDetail.Rating2 / totalComment * 100)"  *@
+@*                                                  StrokeColor="#FFC214"  *@
+@*                                                  ShowInfo="false" /> *@
+@*                                         <span class="progress-value">@productDetail.Rating2</span> *@
+@*                                     </div> *@
+@*                                     <div class="d-flex"> *@
+@*                                         <img class="grand-star" src="/images/products/1star.png" alt="" /> *@
+@*                                         <Progress Percent="@((double)productDetail.Rating1 / totalComment * 100)"  *@
+@*                                                  StrokeColor="#FFC214"  *@
+@*                                                  ShowInfo="false" /> *@
+@*                                         <span class="progress-value">@productDetail.Rating1</span> *@
+@*                                     </div> *@
+@*                                 </Col> *@
+@*                             </Row> *@
+@* *@
+@*                             <Divider /> *@
+@*                              *@
+@*                             <!-- Filter Section --> *@
+@*                             <div class="d-flex gap-3 align-items-center"> *@
+@*                                 <span class="filter">Lọc theo:</span> *@
+@*                                 <div class="list-number-stars"> *@
+@*                                     <div class="d-flex align-items-center gap-3"> *@
+@*                                         <span class="@GetFilterClass(6)" @onclick="() => FilterCommentByCondition(6)">Hình ảnh/ Video</span> *@
+@*                                         <span class="@GetFilterClass(null)" @onclick="() => FilterCommentByCondition(null)">Tất cả</span> *@
+@*                                         <span class="@GetFilterClass(5)" @onclick="() => FilterCommentByCondition(5)">5 sao</span> *@
+@*                                         <span class="@GetFilterClass(4)" @onclick="() => FilterCommentByCondition(4)">4 sao</span> *@
+@*                                         <span class="@GetFilterClass(3)" @onclick="() => FilterCommentByCondition(3)">3 sao</span> *@
+@*                                         <span class="@GetFilterClass(2)" @onclick="() => FilterCommentByCondition(2)">2 sao</span> *@
+@*                                         <span class="@GetFilterClass(1)" @onclick="() => FilterCommentByCondition(1)">1 sao</span> *@
+@*                                     </div> *@
+@*                                 </div> *@
+@*                             </div> *@
+@* *@
+@*                             <Row Gutter="(16, 8)" Style="margin-top: 8px;"> *@
+@*                                 <Col Span="24" Class="review-container"> *@
+@*                                     <div class="d-flex gap-1 align-items-center"> *@
+@*                                         @foreach (var file in fileListMediaComment.OrderByDescending(f => f.Name?.EndsWith(".mp4") == true)) *@
+@*                                         { *@
+@*                                             <div class="card-img me-2 mb-2 cursor-pointer" @onclick="() => PreviewFile(file)"> *@
+@*                                                 @if (file.Name?.EndsWith(".mp4") == true) *@
+@*                                                 { *@
+@*                                                     <div class="position-relative pointer"> *@
+@*                                                         <video style="max-height: 79.19px; border: 1px solid #d9d9d9; border-radius: 8px;"> *@
+@*                                                             <source src="@file.Url" type="video/mp4" /> *@
+@*                                                         </video> *@
+@*                                                         <div class="position-absolute" style="top: 50%; left: 50%; transform: translate(-50%, -50%);"> *@
+@*                                                             <img src="/images/actions/play-video.svg" alt="Play" style="width: 24px; height: 24px;" /> *@
+@*                                                         </div> *@
+@*                                                     </div> *@
+@*                                                 } *@
+@*                                                 else *@
+@*                                                 { *@
+@*                                                     <div style="padding: 8px; border: 1px solid #d9d9d9; border-radius: 8px;"> *@
+@*                                                         <Image Width="102" Style="aspect-ratio: 5/3; object-fit: contain;" Src="@file.Url" /> *@
+@*                                                     </div> *@
+@*                                                 } *@
+@*                                             </div> *@
+@*                                         } *@
+@*                                     </div> *@
+@*                                 </Col> *@
+@*                             </Row> *@
+@* *@
+@*                             <Divider /> *@
+@* *@
+@*                             <!-- Comments List --> *@
+@*                             @foreach (var comment in lstComment) *@
+@*                             { *@
+@*                                 <div class="comment w-100"> *@
+@*                                     <div class="d-flex gap-4 w-100"> *@
+@*                                         @if (string.IsNullOrEmpty(comment.Avatar)) *@
+@*                                         { *@
+@*                                             <div class="avatar text-center"> *@
+@*                                                 @GetAvatarWhenNull(comment.CustomerName) *@
+@*                                             </div> *@
+@*                                         } *@
+@*                                         else *@
+@*                                         { *@
+@*                                             <AvatarComponent Size="48" Src="@($"{cdnImage}{comment.Avatar}")" Style="border: 1px solid #000;" /> *@
+@*                                         } *@
+@* *@
+@*                                         <div class="comment-info"> *@
+@*                                             <div class="d-flex"> *@
+@*                                                 <div class="phone-number">@comment.Customer</div> *@
+@*                                                 <img class="history-action" src="/images/actions/history-action.svg" /> *@
+@*                                                 <div class="date-comment"> *@
+@*                                                     @comment.CreatedDate.ToString("HH:mm - dd/MM/yyyy") *@
+@*                                                 </div> *@
+@*                                             </div> *@
+@*                                              *@
+@*                                             <div class="voted-star mb-3 d-flex"> *@
+@*                                                 @for (int i = 0; i < comment.Rating; i++) *@
+@*                                                 { *@
+@*                                                     <img class="star-vote ms-1" src="/images/products/star_vote.svg" alt="star" /> *@
+@*                                                 } *@
+@*                                             </div> *@
+@*                                              *@
+@*                                             <div class="txt-comment">@comment.Comment</div> *@
+@* *@
+@*                                             <!-- Comment Media --> *@
+@*                                             <div class="review-container" style="margin-top: 8px; margin-bottom: 10px;"> *@
+@*                                                 <div class="d-flex gap-1 align-items-center"> *@
+@*                                                     @foreach (var file in fileListFullMediaComment.Where(f => f.ProductReviewId == comment.Id) *@
+@*                                                                                                      .OrderByDescending(f => f.Name?.EndsWith(".mp4") == true)) *@
+@*                                                     { *@
+@*                                                         <div class="card-img me-2 mb-2 cursor-pointer" @onclick="() => PreviewFile(file)"> *@
+@*                                                             @if (file.Name?.EndsWith(".mp4") == true) *@
+@*                                                             { *@
+@*                                                                 <div class="position-relative pointer"> *@
+@*                                                                     <video style="max-height: 79.19px; border: 1px solid #d9d9d9; border-radius: 8px;"> *@
+@*                                                                         <source src="@file.Url" type="video/mp4" /> *@
+@*                                                                     </video> *@
+@*                                                                     <div class="position-absolute" style="top: 50%; left: 50%; transform: translate(-50%, -50%);"> *@
+@*                                                                         <img src="/images/actions/play-video.svg" alt="Play" style="width: 24px; height: 24px;" /> *@
+@*                                                                     </div> *@
+@*                                                                 </div> *@
+@*                                                             } *@
+@*                                                             else *@
+@*                                                             { *@
+@*                                                                 <div style="padding: 8px; border: 1px solid #d9d9d9; border-radius: 8px;"> *@
+@*                                                                     <Image Width="102" Style="aspect-ratio: 5/3; object-fit: contain;" Src="@file.Url" /> *@
+@*                                                                 </div> *@
+@*                                                             } *@
+@*                                                         </div> *@
+@*                                                     } *@
+@*                                                 </div> *@
+@*                                             </div> *@
+@* *@
+@*                                             <!-- Reply Content --> *@
+@*                                             @if (!string.IsNullOrEmpty(comment.Answer)) *@
+@*                                             { *@
+@*                                                 <div class="reply-content"> *@
+@*                                                     <div class="d-flex"> *@
+@*                                                         <AvatarComponent Size="48" Src="/images/logo/logo.svg" /> *@
+@*                                                         <div class="reply-content-body"> *@
+@*                                                             <div class="d-flex"> *@
+@*                                                                 <div class="reply-content-brand">Solas Farm</div> *@
+@*                                                                 <img class="history-action" src="/images/actions/history-action.svg" /> *@
+@*                                                                 <div class="reply-content-date"> *@
+@*                                                                     @comment.ReplyDate?.ToString("HH:mm - dd/MM/yyyy") *@
+@*                                                                 </div> *@
+@*                                                             </div> *@
+@*                                                             <div style="white-space: pre-wrap;">@comment.Answer</div> *@
+@*                                                         </div> *@
+@*                                                     </div> *@
+@*                                                 </div> *@
+@*                                             } *@
+@*                                         </div> *@
+@*                                     </div> *@
+@*                                     <Divider /> *@
+@*                                 </div> *@
+@*                             } *@
+@* *@
+@*                             <!-- View More Comments --> *@
+@*                             @if (viewMoreVote.HasValue) *@
+@*                             { *@
+@*                                 <div class="text-center"> *@
+@*                                     <img @onclick="HandleViewMore"  *@
+@*                                          class="star-vote"  *@
+@*                                          src="@(viewMoreVote.Value ? "/images/products/droparrrow.svg" : "/images/products/uparrow.svg")"  *@
+@*                                          alt="" /> *@
+@*                                     <span class="view-more" @onclick="HandleViewMore"> *@
+@*                                         @(viewMoreVote.Value ? $"Xem thêm {totalComment - pageSize} đánh giá" : "Thu gọn") *@
+@*                                     </span> *@
+@*                                 </div> *@
+@*                             } *@
+@*                         } *@
+@*                     </div> *@
+@*                 </Col> *@
+@*             </Row> *@
+@*         </div> *@
+@* *@
+@*         <!-- Related Products --> *@
+@*         @if (productsRelatedProduct.Any()) *@
+@*         { *@
+@*             <div> *@
+@*                 <div class="title-description mt-4 mb-4">Sản phẩm liên quan</div> *@
+@*                 <Carousel Arrows="@(productsRelatedProduct.Count > 4)" Dots="false" Autoplay="false"> *@
+@*                     @foreach (var productGroup in ChunkProducts(productsRelatedProduct, 4)) *@
+@*                     { *@
+@*                         <div> *@
+@*                             <Row Gutter="16"> *@
+@*                                 @foreach (var product in productGroup) *@
+@*                                 { *@
+@*                                     <Col Span="6"> *@
+@*                                         <Card Class="carder"> *@
+@*                                             <div @onclick="() => HandleRedirect(product.Id, product.Name)"> *@
+@*                                                 @if (product.Discount > 0) *@
+@*                                                 { *@
+@*                                                     <div class="discount-percent">-@product.Discount%</div> *@
+@*                                                 } *@
+@*                                                 <div class="product-image"> *@
+@*                                                     <img src="@(string.IsNullOrEmpty(product.Thumbnail) ? "images/products/chilli.png" : $"{cdnImage}/{product.Thumbnail}")" alt="" /> *@
+@*                                                 </div> *@
+@*                                                 <div class="product-name d-flex justify-content-between"> *@
+@*                                                     <span>@product.Name</span> *@
+@*                                                 </div> *@
+@*                                                 <div class="product-price mt-1"> *@
+@*                                                     <span class="product-origin-price"> *@
+@*                                                         @CalcPriceAfterDiscount(product.Price, product.Discount).ToString("C0", new System.Globalization.CultureInfo("vi-VN")) *@
+@*                                                     </span> *@
+@*                                                     @if (product.Discount > 0) *@
+@*                                                     { *@
+@*                                                         <span class="product-discount-price pl-8"> *@
+@*                                                             @product.Price.ToString("C0", new System.Globalization.CultureInfo("vi-VN")) *@
+@*                                                         </span> *@
+@*                                                     } *@
+@*                                                 </div> *@
+@*                                                 @if (!product.IsCombo) *@
+@*                                                 { *@
+@*                                                     <div class="product-unit mt-1"> *@
+@*                                                         Đơn vị tính: @product.Unit *@
+@*                                                     </div> *@
+@*                                                 } *@
+@*                                             </div> *@
+@*                                             <div class="add-to-cart mt-4"> *@
+@*                                                 <Button Class="btn-add-to-cart" OnClick="() => AddProductToCart(product, 1)"> *@
+@*                                                     Thêm vào giỏ hàng *@
+@*                                                 </Button> *@
+@*                                             </div> *@
+@*                                         </Card> *@
+@*                                     </Col> *@
+@*                                 } *@
+@*                             </Row> *@
+@*                         </div> *@
+@*                     } *@
+@*                 </Carousel> *@
+@*             </div> *@
+@*         } *@
+@*     </div> *@
+@* </div> *@
+@* *@
+@* <!-- Comment Modal --> *@
+@* <Modal Title="Đánh giá sản phẩm"  *@
+@*        @bind-Visible="modalVisible"  *@
+@*        Width="600" *@
+@*        OnCancel="CancelComment" *@
+@*        Footer="null"> *@
+@*     <ModalContent> *@
+@*         <Row Gutter="(16, 16)" Align="middle"> *@
+@*             <Col Span="4"> *@
+@*                 <img class="combo-img-thumbnail" src="@($"{cdnImage}{productDetail.Thumbnail}")" alt="product" /> *@
+@*             </Col> *@
+@*             <Col Span="20"> *@
+@*                 <div class="combo-name">@productDetail.Name</div> *@
+@*                 <div class="combo-unit">Đơn vị tính: @productDetail.Unit</div> *@
+@*             </Col> *@
+@*         </Row> *@
+@* *@
+@*         <Rate @bind-Value="rating" Style="font-size: 48px; margin: 16px 0;" /> *@
+@* *@
+@*         <Row Gutter="16"> *@
+@*             <Col Span="24"> *@
+@*                 <Upload Multiple="true"  *@
+@*                         Accept="image/*,video/*"  *@
+@*                         ListType="picture-card" *@
+@*                         FileList="fileList" *@
+@*                         OnPreview="PreviewUploadFile" *@
+@*                         OnChange="HandleUploadChange" *@
+@*                         BeforeUpload="BeforeUpload"> *@
+@*                     @if (fileList.Count < 6) *@
+@*                     { *@
+@*                         <div style="display: flex; gap: 10px;"> *@
+@*                             <Button Style="border: 0; background: none;" Type="@ButtonType.Text"> *@
+@*                                 <Icon Type="upload" /> *@
+@*                                 <div style="margin-top: 8px;">Tải hình ảnh/ video</div> *@
+@*                             </Button> *@
+@*                         </div> *@
+@*                     } *@
+@*                 </Upload> *@
+@*             </Col> *@
+@*         </Row> *@
+@* *@
+@*         <div class="comment-lbl" style="margin-top: 16px;"> *@
+@*             Nhận xét: <span>(Ý kiến của bạn sẽ giúp chúng tôi nâng cao chất lượng sản phẩm và dịch vụ)</span> *@
+@*         </div> *@
+@*         <TextArea @bind-Value="comment"  *@
+@*                   MaxLength="500"  *@
+@*                   Rows="5"  *@
+@*                   Placeholder="Hãy chia sẻ nhận xét của bạn về sản phẩm này nhé!"  *@
+@*                   Style="margin-top: 12px;" /> *@
+@* *@
+@*         <Row Gutter="(8, 8)" Style="margin-top: 16px;"> *@
+@*             @for (int i = 0; i < tags.Count; i++) *@
+@*             { *@
+@*                 var index = i; *@
+@*                 var tag = tags[i]; *@
+@*                 <Col> *@
+@*                     <div @onclick="() => HandleChooseQuickTag(index, tag)"  *@
+@*                          class="@(selectedTag.Contains(index) ? "selected-tag" : "tag")"> *@
+@*                         <span>@tag</span> *@
+@*                     </div> *@
+@*                 </Col> *@
+@*             } *@
+@*         </Row> *@
+@* *@
+@*         <div class="shout-out">SOLAS FARM xin chân thành cảm ơn!</div> *@
+@* *@
+@*         <div style="margin-top: 16px; text-align: right;"> *@
+@*             <Button Class="btn-cancel" OnClick="CancelComment" Icon="cancel">Hủy</Button> *@
+@*             <Button Class="btn-save"  *@
+@*                     OnClick="HandleSubmitComment"  *@
+@*                     Loading="disabledButtonComment"  *@
+@*                     Icon="check"  *@
+@*                     Style="margin-left: 8px;"> *@
+@*                 Gửi *@
+@*             </Button> *@
+@*         </div> *@
+@*     </ModalContent> *@
+@* </Modal> *@
+@* *@
+@* <!-- Media Preview Modal --> *@
+@* <Modal Title="@(previewType == "video" ? "Xem video" : "Xem ảnh")"  *@
+@*        @bind-Visible="previewOpen"  *@
+@*        Footer="null"  *@
+@*        Centered="true" *@
+@*        Width="800"> *@
+@*     <ModalContent> *@
+@*         @if (previewType == "video") *@
+@*         { *@
+@*             <div class="w-100 d-flex justify-content-center"> *@
+@*                 <video controls src="@previewImage" style="max-height: 500px; width: 100%;"></video> *@
+@*             </div> *@
+@*         } *@
+@*         else *@
+@*         { *@
+@*             <Image Src="@previewImage" Style="width: 100%;" /> *@
+@*         } *@
+@*     </ModalContent> *@
+@* </Modal> *@
+@* *@
+@* <!-- Mobile Buy Modal --> *@
+@* <div class="button-fixed shadow-lg"> *@
+@*     <span class="btn-add-to-card text-center w-50" @onclick="() => AddToCart(false)">Thêm vào giỏ hàng</span> *@
+@*     <span @onclick="() => SetModalQuantity(true)" class="btn-buy-now text-center w-50">Mua ngay</span> *@
+@* </div> *@
+@* *@
+@* <div> *@
+@*     <div style="pointer-events: auto;"  *@
+@*          @onclick="() => SetModalQuantity(false)"  *@
+@*          class="overlay @(modalQuantity ? "show" : "")"></div> *@
+@*     <div class="modal-content @(modalQuantity ? "show" : "")"> *@
+@*         <div class="product-info"> *@
+@*             <div class="product-info-left"> *@
+@*                 <img src="@($"{cdnImage}{productDetail.Media?.FirstOrDefault()?.Url}")" alt="@productDetail.Name" /> *@
+@*                 <div class="product-info-content"> *@
+@*                     <span class="modal-discount-price"> *@
+@*                         @CalcPriceAfterDiscount(productDetail.Price, productDetail.Discount).ToString("C0", new System.Globalization.CultureInfo("vi-VN")) *@
+@*                     </span> *@
+@*                     <span class="modal-price"> *@
+@*                         @productDetail.Price.ToString("C0", new System.Globalization.CultureInfo("vi-VN")) *@
+@*                     </span> *@
+@*                 </div> *@
+@*             </div> *@
+@*             <Button Icon="close" Type="@ButtonType.Text" OnClick="() => SetModalQuantity(false)" /> *@
+@*         </div> *@
+@*         <div class="quantity-container-modal"> *@
+@*             <span style="font-size: 14px; color: #22313F;">Số lượng</span> *@
+@*             <div class="quantity-control"> *@
+@*                 <span @onclick="DecreaseQuantity">-</span> *@
+@*                 <span>@productQuantity</span> *@
+@*                 <span @onclick="IncreaseQuantity">+</span> *@
+@*             </div> *@
+@*         </div> *@
+@*         <Button OnClick="() => AddToCart(true)"  *@
+@*                 Style="height: 48px; background-color: #00833D; color: #fff; border-radius: 8px; font-size: 14px; width: 100%;"> *@
+@*             Mua ngay *@
+@*         </Button> *@
+@*     </div> *@
+@* </div> *@
+@* *@
+@* @code { *@
+@*     [Parameter] public Guid ProductId { get; set; } *@
+@*     [Parameter] public string Slug { get; set; } = string.Empty; *@
+@* *@
+@*     // Component state *@
+@*     private string cdnImage = string.Empty; *@
+@*     private ProductDetailViewModel productDetail = new(); *@
+@*     private List<ImageItem> images = new(); *@
+@*     private int activeIndex = 0; *@
+@*     private AntDesign.Carousel? imageCarousel; *@
+@* *@
+@*     // Quantity and actions *@
+@*     private int productQuantity = 1; *@
+@*     private bool isFavorited = false; *@
+@* *@
+@*     // Description and HTML content *@
+@*     private bool? viewMoreDescription = false; *@
+@*     private string sanitizedHtml = string.Empty; *@
+@* *@
+@*     // Comments state (basic placeholders) *@
+@*     private int totalComment = 0; *@
+@*     private bool canComment = false; *@
+@*     private bool? viewMoreVote = null; *@
+@*     private int pageSize = 5; *@
+@*     private List<CommentItem> lstComment = new(); *@
+@*     private List<ReviewFileItem> fileListMediaComment = new(); *@
+@*     private List<ReviewFileItem> fileListFullMediaComment = new(); *@
+@* *@
+@*     // Upload and preview *@
+@*     private bool modalVisible = false; *@
+@*     private int rating = 0; *@
+@*     private List<AntDesign.UploadFileItem> fileList = new(); *@
+@*     private string comment = string.Empty; *@
+@*     private List<string> tags = new() { "Đóng gói đẹp", "Giao nhanh", "Chất lượng tốt", "Đáng tiền" }; *@
+@*     private HashSet<int> selectedTag = new(); *@
+@*     private bool disabledButtonComment = false; *@
+@*     private bool previewOpen = false; *@
+@*     private string previewImage = string.Empty; *@
+@*     private string previewType = "image"; *@
+@* *@
+@*     // Mobile modal *@
+@*     private bool modalQuantity = false; *@
+@* *@
+@*     // Related products *@
+@*     private List<ProductResponseDTO> productsRelatedProduct = new(); *@
+@* *@
+@*     protected override async Task OnParametersSetAsync() *@
+@*     { *@
+@*         cdnImage = (Configuration["ApiSettings:BaseUrl"] ?? string.Empty).TrimEnd('/'); *@
+@*         await LoadProductAsync(); *@
+@*     } *@
+@* *@
+@*     private async Task LoadProductAsync() *@
+@*     { *@
+@*         try *@
+@*         { *@
+@*             var data = await ProductClientService.GetProductWithDetailsAsync(ProductId); *@
+@*             // Map to view model *@
+@*             productDetail = new ProductDetailViewModel *@
+@*             { *@
+@*                 Id = data.Id, *@
+@*                 Name = data.Name ?? string.Empty, *@
+@*                 CategoryId = data.CategoryIds?.FirstOrDefault() ?? Guid.Empty, *@
+@*                 Category = (data.CategoryNames?.FirstOrDefault()) ?? string.Empty, *@
+@*                 Unit = data.SizeValues?.FirstOrDefault() ?? string.Empty, *@
+@*                 Price = (decimal)(data.ProductVariants?.FirstOrDefault()?.Price ?? 0), *@
+@*                 Discount = (int)(data.ProductVariants?.Max(v => v.Discount ?? 0) ?? 0), *@
+@*                 Thumbnail = data.Thumbnail ?? string.Empty, *@
+@*                 Media = (data.Media ?? new List<ProductMediaUpload>()) *@
+@*                     .Select(m => new MediaItem { Url = $"/{m.ImageUrl}" }) *@
+@*                     .ToList(), *@
+@*                 Rating = 0, *@
+@*                 SaleNumber = data.ProductVariants?.Sum(v => v.SellNumber ?? 0) ?? 0, *@
+@*                 Description = string.Empty *@
+@*             }; *@
+@* *@
+@*             sanitizedHtml = productDetail.Description ?? string.Empty; *@
+@* *@
+@*             // Build image list for carousel *@
+@*             images = new List<ImageItem>(); *@
+@*             if (!string.IsNullOrEmpty(productDetail.Thumbnail)) *@
+@*             { *@
+@*                 images.Add(new ImageItem *@
+@*                 { *@
+@*                     Type = 0, *@
+@*                     Alt = productDetail.Name, *@
+@*                     ItemImageSrc = $"{cdnImage}/{productDetail.Thumbnail}", *@
+@*                     ThumbnailImageSrc = $"{cdnImage}/{productDetail.Thumbnail}" *@
+@*                 }); *@
+@*             } *@
+@*             foreach (var m in productDetail.Media) *@
+@*             { *@
+@*                 images.Add(new ImageItem *@
+@*                 { *@
+@*                     Type = 0, *@
+@*                     Alt = productDetail.Name, *@
+@*                     ItemImageSrc = $"{cdnImage}{m.Url}", *@
+@*                     ThumbnailImageSrc = $"{cdnImage}{m.Url}" *@
+@*                 }); *@
+@*             } *@
+@* *@
+@*             productsRelatedProduct = new List<ProductResponseDTO>(); *@
+@*         } *@
+@*         catch (Exception ex) *@
+@*         { *@
+@*             await MessageService.Error($"Không thể tải sản phẩm: {ex.Message}"); *@
+@*         } *@
+@*     } *@
+@* *@
+@*     private void OnImageChange(int index) *@
+@*     { *@
+@*         activeIndex = index; *@
+@*     } *@
+@* *@
+@*     private async Task SetActiveImage(int index) *@
+@*     { *@
+@*         activeIndex = index; *@
+@*         if (imageCarousel != null) *@
+@*         { *@
+@*             await imageCarousel.GoTo(activeIndex); *@
+@*         } *@
+@*         StateHasChanged(); *@
+@*     } *@
+@* *@
+@*     private void IncreaseQuantity() *@
+@*     { *@
+@*         if (productQuantity < 999) productQuantity++; *@
+@*     } *@
+@* *@
+@*     private void DecreaseQuantity() *@
+@*     { *@
+@*         if (productQuantity > 1) productQuantity--; *@
+@*     } *@
+@* *@
+@*     private async Task FavoriteProduct(bool add) *@
+@*     { *@
+@*         isFavorited = add; *@
+@*         await MessageService.Success(add ? "Đã thêm vào yêu thích" : "Đã bỏ yêu thích"); *@
+@*     } *@
+@* *@
+@*     private async Task AddToCart(bool buyNow) *@
+@*     { *@
+@*         await MessageService.Success(buyNow ? "Mua ngay" : "Đã thêm vào giỏ hàng"); *@
+@*     } *@
+@* *@
+@*     private void ToggleDescription() *@
+@*     { *@
+@*         viewMoreDescription = !(viewMoreDescription ?? false); *@
+@*     } *@
+@* *@
+@*     private void ShowCommentModal() *@
+@*     { *@
+@*         modalVisible = true; *@
+@*     } *@
+@* *@
+@*     private void CancelComment() *@
+@*     { *@
+@*         modalVisible = false; *@
+@*         rating = 0; *@
+@*         fileList.Clear(); *@
+@*         comment = string.Empty; *@
+@*         selectedTag.Clear(); *@
+@*     } *@
+@* *@
+@*     private async Task HandleSubmitComment() *@
+@*     { *@
+@*         disabledButtonComment = true; *@
+@*         await Task.Delay(300); *@
+@*         disabledButtonComment = false; *@
+@*         modalVisible = false; *@
+@*         await MessageService.Success("Gửi đánh giá thành công"); *@
+@*     } *@
+@* *@
+@*     private Task PreviewUploadFile(UploadFileItem file) *@
+@*     { *@
+@*         previewType = file.Type?.StartsWith("video/") == true ? "video" : "image"; *@
+@*         previewImage = file.Url ?? string.Empty; *@
+@*         previewOpen = true; *@
+@*         return Task.CompletedTask; *@
+@*     } *@
+@* *@
+@*     private Task HandleUploadChange(UploadInfo info) *@
+@*     { *@
+@*         fileList = info.FileList; *@
+@*         return Task.CompletedTask; *@
+@*     } *@
+@* *@
+@*     private Task<bool> BeforeUpload(UploadFileItem file) *@
+@*     { *@
+@*         if (fileList.Count >= 6) return Task.FromResult(false); *@
+@*         return Task.FromResult(true); *@
+@*     } *@
+@* *@
+@*     private void HandleViewMore() *@
+@*     { *@
+@*         viewMoreVote = !(viewMoreVote ?? true); *@
+@*     } *@
+@* *@
+@*     private string GetFilterClass(int? value) *@
+@*     { *@
+@*         return "tag"; *@
+@*     } *@
+@* *@
+@*     private void FilterCommentByCondition(int? value) *@
+@*     { *@
+@*         // Placeholder for filtering *@
+@*     } *@
+@* *@
+@*     private void PreviewFile(ReviewFileItem file) *@
+@*     { *@
+@*         previewType = file.Name?.EndsWith(".mp4") == true ? "video" : "image"; *@
+@*         previewImage = file.Url ?? string.Empty; *@
+@*         previewOpen = true; *@
+@*     } *@
+@* *@
+@*     private RenderFragment GetAvatarWhenNull(string name) => builder => *@
+@*     { *@
+@*         var initials = string.IsNullOrWhiteSpace(name) ? "?" : new string(name.Split(' ').Select(s => s[0]).ToArray()).ToUpperInvariant(); *@
+@*         builder.AddContent(0, initials); *@
+@*     }; *@
+@* *@
+@*     private void HandleRedirect(Guid id, string name) *@
+@*     { *@
+@*         var slug = Slugify(name) + ".html"; *@
+@*         NavigationManager.NavigateTo($"/san-pham/{id}/{slug}"); *@
+@*     } *@
+@* *@
+@*     private List<List<ProductResponseDTO>> ChunkProducts(List<ProductResponseDTO> list, int size) *@
+@*     { *@
+@*         var result = new List<List<ProductResponseDTO>>(); *@
+@*         for (int i = 0; i < list.Count; i += size) *@
+@*         { *@
+@*             result.Add(list.GetRange(i, Math.Min(size, list.Count - i))); *@
+@*         } *@
+@*         return result; *@
+@*     } *@
+@* *@
+@*     private async Task AddProductToCart(ProductResponseDTO product, int quantity) *@
+@*     { *@
+@*         await MessageService.Success("Đã thêm sản phẩm vào giỏ hàng"); *@
+@*     } *@
+@* *@
+@*     private void SetModalQuantity(bool show) *@
+@*     { *@
+@*         modalQuantity = show; *@
+@*     } *@
+@* *@
+@*     private decimal CalcPriceAfterDiscount(decimal price, int discount) *@
+@*     { *@
+@*         if (discount <= 0) return price; *@
+@*         return price * (100 - discount) / 100; *@
+@*     } *@
+@* *@
+@*     private string Slugify(string input) *@
+@*     { *@
+@*         if (string.IsNullOrEmpty(input)) return string.Empty; *@
+@*         return input.ToLowerInvariant() *@
+@*             .Replace(" ", "-") *@
+@*             .Replace("ă", "a").Replace("â", "a").Replace("á", "a").Replace("à", "a").Replace("ả", "a").Replace("ã", "a").Replace("ạ", "a") *@
+@*             .Replace("ê", "e").Replace("é", "e").Replace("è", "e").Replace("ẻ", "e").Replace("ẽ", "e").Replace("ẹ", "e") *@
+@*             .Replace("ô", "o").Replace("ơ", "o").Replace("ó", "o").Replace("ò", "o").Replace("ỏ", "o").Replace("õ", "o").Replace("ọ", "o") *@
+@*             .Replace("ư", "u").Replace("ú", "u").Replace("ù", "u").Replace("ủ", "u").Replace("ũ", "u").Replace("ụ", "u") *@
+@*             .Replace("í", "i").Replace("ì", "i").Replace("ỉ", "i").Replace("ĩ", "i").Replace("ị", "i") *@
+@*             .Replace("ý", "y").Replace("ỳ", "y").Replace("ỷ", "y").Replace("ỹ", "y").Replace("ỵ", "y") *@
+@*             .Replace("đ", "d"); *@
+@*     } *@
+@* *@
+@*     private class ProductDetailViewModel *@
+@*     { *@
+@*         public Guid Id { get; set; } *@
+@*         public string Name { get; set; } = string.Empty; *@
+@*         public Guid CategoryId { get; set; } *@
+@*         public string Category { get; set; } = string.Empty; *@
+@*         public string Unit { get; set; } = string.Empty; *@
+@*         public decimal Price { get; set; } *@
+@*         public int Discount { get; set; } *@
+@*         public string Thumbnail { get; set; } = string.Empty; *@
+@*         public List<MediaItem> Media { get; set; } = new(); *@
+@*         public double Rating { get; set; } *@
+@*         public int SaleNumber { get; set; } *@
+@*         public string Description { get; set; } = string.Empty; *@
+@*         public int Rating1 { get; set; } *@
+@*         public int Rating2 { get; set; } *@
+@*         public int Rating3 { get; set; } *@
+@*         public int Rating4 { get; set; } *@
+@*         public int Rating5 { get; set; } *@
+@*     } *@
+@* *@
+@*     private class MediaItem *@
+@*     { *@
+@*         public string Url { get; set; } = string.Empty; *@
+@*     } *@
+@* *@
+@*     private class ImageItem *@
+@*     { *@
+@*         public int Type { get; set; } *@
+@*         public string ItemImageSrc { get; set; } = string.Empty; *@
+@*         public string ThumbnailImageSrc { get; set; } = string.Empty; *@
+@*         public string Alt { get; set; } = string.Empty; *@
+@*     } *@
+@* *@
+@*     private class CommentItem *@
+@*     { *@
+@*         public Guid Id { get; set; } *@
+@*         public string CustomerName { get; set; } = string.Empty; *@
+@*         public string Customer { get; set; } = string.Empty; *@
+@*         public string? Avatar { get; set; } *@
+@*         public DateTime CreatedDate { get; set; } = DateTime.Now; *@
+@*         public int Rating { get; set; } *@
+@*         public string Comment { get; set; } = string.Empty; *@
+@*         public string? Answer { get; set; } *@
+@*         public DateTime? ReplyDate { get; set; } *@
+@*     } *@
+@* *@
+@*     private class ReviewFileItem *@
+@*     { *@
+@*         public Guid ProductReviewId { get; set; } *@
+@*         public string? Name { get; set; } *@
+@*         public string? Url { get; set; } *@
+@*     } *@
+@* } *@

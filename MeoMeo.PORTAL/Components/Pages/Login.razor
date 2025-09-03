@@ -1,0 +1,135 @@
+@page "/login"
+@using MeoMeo.Contract.DTOs.Auth
+@using MeoMeo.Shared.IServices
+@using MeoMeo.Shared.Utilities
+@using ButtonSize = AntDesign.ButtonSize
+@using ButtonType = AntDesign.ButtonType
+@inject IAuthClientService AuthService
+@inject CustomAuthStateProvider AuthStateProvider
+@inject NavigationManager NavigationManager
+@inject MessageService MessageService
+
+<div class="login-container">
+    <div class="login-card">
+        <div class="login-header">
+            <div class="logo-section">
+                <img src="/images/logo.png" alt="MeoMeo Shop" class="logo" />
+                <h1>MeoMeo Shop</h1>
+            </div>
+            <p class="welcome-text">Chào mừng bạn trở lại!</p>
+            <p class="subtitle">Đăng nhập để tiếp tục mua sắm</p>
+        </div>
+
+        <Form Model="@loginModel" OnFinish="HandleLogin" Layout="FormLayout.Vertical" class="login-form">
+            <FormItem Label="Tên đăng nhập" Name="UserName" Rules="@userNameRules">
+                <Input @bind-Value="@context.UserName" Placeholder="Nhập tên đăng nhập của bạn"
+                    Size="InputSize.Large" />
+            </FormItem>
+
+            <FormItem Label="Mật khẩu" Name="Password" Rules="@passwordRules">
+                <InputPassword @bind-Value="@context.Password" Placeholder="Nhập mật khẩu của bạn"
+                    Size="InputSize.Large" />
+            </FormItem>
+
+            <FormItem>
+                <div class="form-actions">
+                    <Checkbox @bind-Checked="@rememberMe">Ghi nhớ đăng nhập</Checkbox>
+                    <a href="/forgot-password" class="forgot-password">Quên mật khẩu?</a>
+                </div>
+            </FormItem>
+
+            <FormItem>
+                <Button Type="@ButtonType.Primary" HtmlType="submit" Size="ButtonSize.Large" Block="true"
+                    Loading="@isLoading" Class="login-button">
+                    @if (isLoading)
+                    {
+                        <span>Đang đăng nhập...</span>
+                    }
+                    else
+                    {
+                        <span>Đăng nhập</span>
+                    }
+                </Button>
+            </FormItem>
+        </Form>
+
+        <div class="login-footer">
+            <Divider>hoặc</Divider>
+            <div class="social-login">
+                <Button Type="@ButtonType.Default" Size="ButtonSize.Large" Block="true" Class="social-button">
+                    <Icon Type="google" />
+                    Đăng nhập bằng Google
+                </Button>
+            </div>
+            <div class="register-link">
+                <span>Chưa có tài khoản? </span>
+                <a href="/register">Đăng ký ngay</a>
+            </div>
+        </div>
+    </div>
+</div>
+
+@code {
+    private AuthenRequest loginModel = new();
+    private bool isLoading = false;
+    private bool rememberMe = false;
+
+    private readonly FormValidationRule[] userNameRules = new[]
+    {
+new FormValidationRule { Required = true, Message = "Vui lòng nhập tên đăng nhập!" }
+};
+
+    private readonly FormValidationRule[] passwordRules = new[]
+    {
+new FormValidationRule { Required = true, Message = "Vui lòng nhập mật khẩu!" },
+new FormValidationRule { Min = 6, Message = "Mật khẩu phải có ít nhất 6 ký tự!" }
+};
+
+    protected override async Task OnInitializedAsync()
+    {
+        var isAuthenticated = await AuthService.IsAuthenticatedAsync();
+        if (isAuthenticated)
+        {
+            NavigationManager.NavigateTo("/",forceLoad:true);
+        }
+    }
+
+    private async Task HandleLogin()
+    {
+        try
+        {
+            isLoading = true;
+            StateHasChanged();
+
+            var response = await AuthService.LoginAsync(loginModel);
+
+            if (response?.ResponseStatus == MeoMeo.Contract.Commons.BaseStatus.Success)
+            {
+                // Thông báo authentication state provider
+                AuthStateProvider.NotifyUserAuthentication(response.AccessToken);
+
+                MessageService.Success("Đăng nhập thành công!");
+
+                // Force UI update
+                StateHasChanged();
+
+                // Chuyển hướng về trang chủ
+                NavigationManager.NavigateTo("/",forceLoad:true);
+            }
+            else
+            {
+                var errorMessage = response?.Message ?? "Đăng nhập thất bại. Vui lòng kiểm tra lại thông tin!";
+                MessageService.Error(errorMessage);
+            }
+        }
+        catch (Exception ex)
+        {
+            MessageService.Error("Có lỗi xảy ra trong quá trình đăng nhập. Vui lòng thử lại!");
+        }
+        finally
+        {
+            isLoading = false;
+            StateHasChanged();
+        }
+    }
+}

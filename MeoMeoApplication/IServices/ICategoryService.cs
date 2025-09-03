@@ -15,5 +15,6 @@ namespace MeoMeo.Application.IServices
         Task<CategoryResponseDTO> CreateCategoryAsync(CategoryDTO categoryDTO);
         Task<CategoryResponseDTO> UpdateCategoryAsync(CategoryDTO categoryDTO);
         Task<CategoryResponseDTO> DeleteCategoryAsync(Guid id);
+        Task<MeoMeo.Contract.DTOs.Product.CategoryHoverResponseDTO> GetCategoryHoverPreviewAsync(Guid categoryId, int take = 6);
     }
 } 

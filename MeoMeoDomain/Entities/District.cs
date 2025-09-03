@@ -8,6 +8,6 @@
         public string Code { get; set; }
         public virtual Province Province { get; set; }
         public virtual ICollection<Commune> Communes { get; set; }
-        public virtual ICollection<DeliveryAddress> DeliveryAddresses { get; set; }
+        // public virtual ICollection<DeliveryAddress> DeliveryAddresses { get; set; }
     }
 }

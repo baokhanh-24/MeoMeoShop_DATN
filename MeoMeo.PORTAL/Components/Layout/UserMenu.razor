@@ -1,0 +1,109 @@
+@using MeoMeo.Shared.Services
+@using MeoMeo.Contract.DTOs.Auth
+@using MeoMeo.Shared.IServices
+@using MeoMeo.Shared.Utilities
+@using Microsoft.AspNetCore.Components.Authorization
+@using System.Security.Claims
+@using ButtonType = AntDesign.ButtonType
+@inject IAuthClientService AuthService
+@inject CustomAuthStateProvider AuthStateProvider
+@inject NavigationManager NavigationManager
+@inject MessageService MessageService
+
+<AuthorizeView>
+    <Authorized Context="context">
+        <div class="user-menu">
+            <Dropdown>
+                <ChildContent>
+                    <Button Type="@ButtonType.Link" Class="user-button">
+                        <Space>
+                            <Avatar Size="AvatarSize.Small" Style="background-color: #667eea">
+                                @if (!string.IsNullOrEmpty(GetUserAvatar(context.User)))
+                                {
+                                    <img src="@GetUserAvatar(context.User)" alt="Avatar" />
+                                }
+                                else
+                                {
+                                    @GetUserInitial(context.User)
+                                }
+                            </Avatar>
+                            <span class="user-name">@GetUserFullName(context.User)</span>
+                            <Icon Type="down" />
+                        </Space>
+                    </Button>
+                </ChildContent>
+                <Overlay>
+                    <Menu>
+                        <MenuItem Key="profile">
+                        <Icon Type="user" />
+                        <a href="/profile">Hồ sơ cá nhân</a>
+                        </MenuItem>
+                        <MenuItem Key="orders">
+                        <Icon Type="shopping" />
+                        <a href="/orders">Đơn hàng của tôi</a>
+                        </MenuItem>
+                        <MenuItem Key="wishlist">
+                        <Icon Type="heart" />
+                        <a href="/wishlist">Danh sách yêu thích</a>
+                        </MenuItem>
+                        <MenuDivider />
+                        <MenuItem Key="logout" OnClick="LogoutAsync">
+                        <Icon Type="logout" />
+                        Đăng xuất
+                        </MenuItem>
+                    </Menu>
+                </Overlay>
+            </Dropdown>
+        </div>
+    </Authorized>
+
+    <NotAuthorized>
+        <div class="auth-buttons">
+            <Button Type="@ButtonType.Link" Class="login-link"
+                OnClick="@(() => NavigationManager.NavigateTo("/login"))">
+                Đăng nhập
+            </Button>
+            <Button Type="@ButtonType.Primary" Class="register-button"
+                OnClick="@(() => NavigationManager.NavigateTo("/register"))">
+                Đăng ký
+            </Button>
+        </div>
+    </NotAuthorized>
+</AuthorizeView>
+
+@code {
+    private string GetUserFullName(ClaimsPrincipal user) =>
+    user?.FindFirst("FullName")?.Value
+    ?? user?.FindFirst("UserName")?.Value
+    ?? "User";
+
+    private string GetUserAvatar(ClaimsPrincipal user) =>
+    user?.FindFirst("Avatar")?.Value ?? string.Empty;
+
+    private string GetUserInitial(ClaimsPrincipal user)
+    {
+        var fullName = GetUserFullName(user);
+        return !string.IsNullOrEmpty(fullName)
+        ? fullName.Substring(0, 1).ToUpper()
+        : "U";
+    }
+
+    private async Task LogoutAsync()
+    {
+        try
+        {
+            var refreshToken = await AuthService.GetRefreshTokenAsync();
+            var logoutRequest = new RefreshTokenRequest { RefreshToken = refreshToken };
+
+            await AuthService.LogoutAsync(logoutRequest);
+            AuthStateProvider.NotifyUserLogout();
+
+            MessageService.Success("Đăng xuất thành công!");
+            NavigationManager.NavigateTo("/",forceLoad:true);
+        }
+        catch (Exception ex)
+        {
+            MessageService.Error("Có lỗi xảy ra trong quá trình đăng xuất!");
+        }
+    }
+}

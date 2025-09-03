@@ -5,6 +5,7 @@ using MeoMeo.Domain.Entities;
 using MeoMeo.Domain.IRepositories;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using MeoMeo.Contract.DTOs.Product;
 
 namespace MeoMeo.API.Controllers
 {
@@ -50,6 +51,14 @@ namespace MeoMeo.API.Controllers
         public async Task<IActionResult> Delete(Guid id)
         {
             var result = await _categoryService.DeleteCategoryAsync(id);
+            return Ok(result);
+        }
+
+        // Hover preview products for a category
+        [HttpGet("{id}/hover-preview")]
+        public async Task<IActionResult> GetHoverPreview(Guid id, [FromQuery] int take = 6)
+        {
+            var result = await _categoryService.GetCategoryHoverPreviewAsync(id, take);
             return Ok(result);
         }
     }

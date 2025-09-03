@@ -1,10 +1,7 @@
-﻿using MeoMeo.Contract.DTOs.Product;
+using MeoMeo.Contract.DTOs.Product;
 using MeoMeo.Domain.Entities;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+using MeoMeo.Contract.Commons;
+using MeoMeo.Domain.Commons;
 
 namespace MeoMeo.Application.IServices
 {
@@ -20,8 +17,11 @@ namespace MeoMeo.Application.IServices
         Task<ProductResponseDTO> GetProductWithDetailsAsync(Guid id);
         Task<BaseResponse> UpdateVariantStatusAsync(UpdateProductStatusDTO input);
         Task<List<Image>> GetOldImagesAsync(Guid productId);
+        
+        // New method for home page
+        Task<HomePageResponseDTO> GetHomePageProductsAsync(int discountedProductsLimit = 10, int bestSellingProductsLimit = 10);
 
-        // Extended endpoints used by API controllers
+        // New: Weekly best sellers and category previews
         Task<List<BestSellerItemDTO>> GetWeeklyBestSellersAsync(int take = 10);
         Task<CategoryHoverResponseDTO> GetCategoryHoverPreviewAsync(Guid categoryId, int take = 6);
 

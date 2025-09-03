@@ -1,0 +1,189 @@
+@page "/register"
+@using MeoMeo.Shared.IServices
+@using MeoMeo.Shared.Utilities
+@using ButtonSize = AntDesign.ButtonSize
+@using ButtonType = AntDesign.ButtonType
+@inject IAuthClientService AuthService
+@inject CustomAuthStateProvider AuthStateProvider
+@inject NavigationManager NavigationManager
+@inject MessageService MessageService
+
+<div class="register-container">
+    <div class="register-card">
+        <div class="register-header">
+            <div class="logo-section">
+                <img src="/images/logo.png" alt="MeoMeo Shop" class="logo" />
+                <h1>MeoMeo Shop</h1>
+            </div>
+            <p class="welcome-text">Tạo tài khoản mới</p>
+            <p class="subtitle">Tham gia cùng chúng tôi để trải nghiệm mua sắm tuyệt vời</p>
+        </div>
+
+        <Form Model="@registerModel" OnFinish="HandleRegister" Layout="FormLayout.Vertical" class="register-form">
+            <FormItem Label="Họ và tên" Name="FullName" Rules="@fullNameRules">
+                <Input @bind-Value="@registerModel.FullName" Placeholder="Nhập họ và tên của bạn"
+                    Size="InputSize.Large" />
+            </FormItem>
+
+            <FormItem Label="Tên đăng nhập" Name="UserName" Rules="@userNameRules">
+                <Input @bind-Value="@registerModel.UserName" Placeholder="Nhập tên đăng nhập" Size="InputSize.Large" />
+            </FormItem>
+
+            <FormItem Label="Email" Name="Email" Rules="@emailRules">
+                <Input @bind-Value="@registerModel.Email" Placeholder="Nhập email của bạn" Size="InputSize.Large" />
+            </FormItem>
+
+            <FormItem Label="Số điện thoại" Name="PhoneNumber" Rules="@phoneRules">
+                <Input @bind-Value="@registerModel.PhoneNumber" Placeholder="Nhập số điện thoại"
+                    Size="InputSize.Large" />
+            </FormItem>
+
+            <FormItem Label="Mật khẩu" Name="Password" Rules="@passwordRules">
+                <InputPassword @bind-Value="@registerModel.Password" Placeholder="Nhập mật khẩu"
+                    Size="InputSize.Large" />
+            </FormItem>
+
+            <FormItem Label="Xác nhận mật khẩu" Name="ConfirmPassword" Rules="@confirmPasswordRules">
+                <InputPassword @bind-Value="@registerModel.ConfirmPassword" Placeholder="Nhập lại mật khẩu"
+                    Size="InputSize.Large" />
+            </FormItem>
+
+            <FormItem>
+                <div class="form-actions">
+                    <Checkbox @bind-Checked="@agreeToTerms">Tôi đồng ý với <a href="/terms" target="_blank">điều khoản
+                            sử dụng</a></Checkbox>
+                </div>
+            </FormItem>
+
+            <FormItem>
+                <Button Type="@ButtonType.Primary" HtmlType="submit" Size="ButtonSize.Large" Block="true"
+                    Loading="@isLoading" Class="register-button">
+                    @if (isLoading)
+                    {
+                        <span>Đang đăng ký...</span>
+                    }
+                    else
+                    {
+                        <span>Đăng ký</span>
+                    }
+                </Button>
+            </FormItem>
+        </Form>
+
+        <div class="register-footer">
+            <Divider>hoặc</Divider>
+            <div class="social-register">
+                <Button Type="@ButtonType.Default" Size="ButtonSize.Large" Block="true" Class="social-button">
+                    <Icon Type="google" />
+                    Đăng ký bằng Google
+                </Button>
+            </div>
+            <div class="login-link">
+                <span>Đã có tài khoản? </span>
+                <a href="/login">Đăng nhập ngay</a>
+            </div>
+        </div>
+    </div>
+</div>
+
+@code {
+    private RegisterModel registerModel = new();
+    private bool isLoading = false;
+    private bool agreeToTerms = false;
+
+    private readonly FormValidationRule[] fullNameRules = new[]
+    {
+new FormValidationRule { Required = true, Message = "Vui lòng nhập họ và tên!" }
+};
+
+    private readonly FormValidationRule[] userNameRules = new[]
+    {
+new FormValidationRule { Required = true, Message = "Vui lòng nhập tên đăng nhập!" },
+new FormValidationRule { Min = 3, Message = "Tên đăng nhập phải có ít nhất 3 ký tự!" }
+};
+
+    private readonly FormValidationRule[] emailRules = new[]
+    {
+new FormValidationRule { Required = true, Message = "Vui lòng nhập email!" },
+new FormValidationRule { Type = FormFieldType.Email, Message = "Email không hợp lệ!" }
+};
+
+    private readonly FormValidationRule[] phoneRules = new[]
+    {
+new FormValidationRule { Required = true, Message = "Vui lòng nhập số điện thoại!" },
+new FormValidationRule { Pattern = @"^[0-9]{10,11}$", Message = "Số điện thoại không hợp lệ!" }
+};
+
+    private readonly FormValidationRule[] passwordRules = new[]
+    {
+new FormValidationRule { Required = true, Message = "Vui lòng nhập mật khẩu!" },
+new FormValidationRule { Min = 6, Message = "Mật khẩu phải có ít nhất 6 ký tự!" }
+};
+
+    private FormValidationRule[] confirmPasswordRules => new[]
+    {
+new FormValidationRule { Required = true, Message = "Vui lòng xác nhận mật khẩu!" },
+// new FormValidationRule { Validator = ValidateConfirmPassword, Message = "Mật khẩu xác nhận không khớp!" }
+};
+
+
+
+    protected override async Task OnInitializedAsync()
+    {
+        // Kiểm tra nếu đã đăng nhập thì chuyển về trang chủ
+        var isAuthenticated = await AuthService.IsAuthenticatedAsync();
+        if (isAuthenticated)
+        {
+            NavigationManager.NavigateTo("/");
+        }
+    }
+
+    private async Task HandleRegister()
+    {
+        if (!agreeToTerms)
+        {
+            MessageService.Warning("Vui lòng đồng ý với điều khoản sử dụng!");
+            return;
+        }
+
+        // Kiểm tra password confirmation
+        if (registerModel.Password != registerModel.ConfirmPassword)
+        {
+            MessageService.Error("Mật khẩu xác nhận không khớp!");
+            return;
+        }
+
+        try
+        {
+            isLoading = true;
+            StateHasChanged();
+
+            // TODO: Implement register API call
+            // var response = await AuthService.RegisterAsync(registerModel);
+
+            MessageService.Success("Đăng ký thành công!");
+
+            // Chuyển hướng về trang đăng nhập
+            NavigationManager.NavigateTo("/login");
+        }
+        catch (Exception ex)
+        {
+            MessageService.Error("Có lỗi xảy ra trong quá trình đăng ký. Vui lòng thử lại!");
+        }
+        finally
+        {
+            isLoading = false;
+            StateHasChanged();
+        }
+    }
+
+    public class RegisterModel
+    {
+        public string FullName { get; set; } = "";
+        public string UserName { get; set; } = "";
+        public string Email { get; set; } = "";
+        public string PhoneNumber { get; set; } = "";
+        public string Password { get; set; } = "";
+        public string ConfirmPassword { get; set; } = "";
+    }
+}

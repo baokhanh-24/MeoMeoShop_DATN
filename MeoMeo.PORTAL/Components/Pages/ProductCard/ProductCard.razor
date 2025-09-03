@@ -1,0 +1,344 @@
+@using System.Globalization
+@using AntDesign
+@using MeoMeo.Shared.IServices
+@using Microsoft.AspNetCore.Components
+@using System.Text.Json
+@using MeoMeo.Contract.DTOs.Product
+@using MeoMeo.Contract.DTOs
+@inject IConfiguration Configuration
+@inject IJSRuntime JSRuntime
+@inject NavigationManager Navigation
+@inject IMessageService Message
+@inject MeoMeo.Shared.IServices.ICartClientService CartClient
+@inject IAuthClientService AuthClient;
+
+
+
+@if (IsGridSelected)
+{
+    <GridRow Class="product-store position-relative padding-large no-padding-top  product-swiper" Id="product" Gutter="16">
+        @for (int i = 0; i < LstProduct.Count; i++)
+        {
+            var product = LstProduct[i];
+            var index = i;
+            <GridCol Span="6" Class="mb-3">
+                <Card Bordered="true" Hoverable=" true">
+                    <div class="product-card position-relative">
+                        <div class="image-holder">
+                            <Image Width="100%" OnClick="@(() => { visible = true; })" PreviewVisible="false"
+                                Class="product-img" Fallback="@(backendUrl + "/Images/fallback.jpeg")"
+                                Src="@(backendUrl + "/" + product.Thumbnail)" />
+                            <div style="display:none;">
+                                <ImagePreviewGroup @bind-PreviewVisible="visible">
+                                    @if (product.Media.Any() && product.Media.Count() > 0)
+                                    {
+                                        foreach (var img in product.Media)
+                                        {
+                                            <Image Fallback="@(backendUrl + "/Images/fallback.jpeg")"
+                                                Src="@(backendUrl + "/" + img.ImageUrl)" />
+                                        }
+                                    }
+                                </ImagePreviewGroup>
+                            </div>
+                        </div>
+
+                        <div class="cart-concern position-absolute">
+
+                            <div class="cart-button d-flex">
+                                <div class="btn btn-medium btn-black" @onclick="() => ShowVariantModal(product)">
+                                    <span class="btn-add-to-cart">Thêm vào giỏ hàng</span>
+                                    <Icon Type="shopping-cart" Class="cart-outline" />
+                                </div>
+                            </div>
+
+                        </div>
+                        <div class="card-detail d-flex justify-content-between align-items-baseline pt-2">
+                            <div class="card-title text-uppercase product-name">
+                                <Tooltip Title=@product.Name>
+                                    <a href="#">@product.Name</a>
+                                </Tooltip>
+                            </div>
+                        </div>
+                        <div class=" pt-2 d-flex align-items-center gap-2">
+                            Kích cỡ:
+                            @foreach (var size in product.SizeValues)
+                            {
+                                <div class="tager">
+                                    @size
+                                </div>
+                            }
+                        </div>
+                        <div class=" pt-2 d-flex align-items-center gap-2">
+                            Màu sắc:
+                            @foreach (var color in product.ColourNames)
+                            {
+                                <div class="tager-color">
+                                    @color
+                                </div>
+                            }
+                        </div>
+
+                        <div class="product-price-section">
+                            @if (product.ProductVariants?.Any() == true)
+                            {
+                                var minPrice = product.ProductVariants.Min(v => v.Price);
+                                var maxPrice = product.ProductVariants.Max(v => v.Price);
+                                var maxDiscount = product.ProductVariants.Max(v => v.Discount ?? 0);
+
+
+                                <div class="discount-badge">
+                                    <span class="discount-text">-@(maxDiscount)%</span>
+                                </div>
+
+                                @if (minPrice != maxPrice)
+                                {
+                                    <div class="d-flex align-items-center gap-2">
+                                        <span>
+                                            Giá bán:
+                                        </span>
+                                        <span span class="item-price text-primary">
+                                            @if (maxDiscount > 0)
+                                            {
+                                                var discountedMinPrice = minPrice * (1 - maxDiscount / 100);
+                                                var discountedMaxPrice = maxPrice * (1 - maxDiscount / 100);
+                                                <span class="original-price">@(minPrice.ToString("N0")) ~ @(maxPrice.ToString("N0"))</span>
+
+                                            }
+                                            else
+                                            {
+                                                <span> @(minPrice.ToString("N0")) ~ @(maxPrice.ToString("N0"))</span>
+                                            }
+                                        </span>
+                                    </div>
+
+                                }
+                                else
+                                {
+                                    <div class="d-flex align-items-center gap-2">
+                                        <span>
+                                            Giá bán:
+                                        </span>
+                                        <span class="item-price text-primary">
+                                            @if (maxDiscount > 0)
+                                            {
+                                                var discountedPrice = maxPrice * (1 - maxDiscount / 100);
+                                                <span class="original-price"> @(maxPrice.ToString("N0"))</span>
+                                            }
+                                            else
+                                            {
+                                                <span> @(maxPrice.ToString("N0"))</span>
+                                            }
+                                        </span>
+                                    </div>
+
+                                }
+                            }
+                        </div>
+                    </div>
+                </Card>
+            </GridCol>
+        }
+
+    </GridRow>
+}
+
+<!-- Variant Selection Modal -->
+<Modal
+    Title="@("Thêm vào giỏ hàng sản phẩm " + selectedProductForModal?.Name + " | " + selectedProductForModal?.BrandName)"
+    Visible="@variantModalVisible" OnCancel="HandleVariantModalCancel" Footer="null" Width="800">
+    @if (selectedProductForModal != null)
+    {
+        <VariantSelectionModal Product="selectedProductForModal" OnVariantSelected="HandleVariantSelectedFromModal" />
+    }
+</Modal>
+
+@code {
+    private string backendUrl = "";
+    bool visible;
+    [Parameter] public List<ProductResponseDTO> LstProduct { get; set; } = new();
+    [Parameter] public bool IsGridSelected { get; set; } = true;
+    [Parameter] public EventCallback<bool> OnEvent { get; set; }
+
+
+    // Modal properties
+    private bool variantModalVisible = false;
+    private ProductResponseDTO selectedProductForModal;
+
+    // Cache for size and color names
+    private Dictionary<Guid, string> sizeNameCache = new();
+    private Dictionary<Guid, string> colorNameCache = new();
+
+
+    private int CurrentUserId { get; set; }
+
+    protected override async Task OnInitializedAsync()
+    {
+        backendUrl = Configuration["ApiSettings:BaseUrl"] ?? "";
+    }
+
+
+
+
+    private async Task HandleVariantSelected(dynamic result)
+    {
+        if (result != null && result.IsSuccess)
+        {
+            await AddToCartWithVariant(result.Product, result.SelectedVariant, result.Quantity);
+        }
+    }
+
+    private async Task HandleVariantSelectedForProduct(dynamic result)
+    {
+        if (result != null && result.IsSuccess)
+        {
+            await AddToCartWithVariant(result.Product, result.SelectedVariant, result.Quantity);
+        }
+    }
+
+    private async Task AddToCartWithVariant(ProductResponseDTO product, ProductDetailGrid variant, int quantity)
+    {
+        try
+        {
+            if (variant == null || !variant.Id.HasValue)
+            {
+                Message.Error("Không thể lấy thông tin biến thể sản phẩm");
+                return;
+            }
+
+            @* // Kiểm tra trạng thái sản phẩm
+            if (variant.Status != Domain.Commons.Enums.EProductStatus.Selling)
+            {
+                Message.Warning("Sản phẩm này hiện không bán");
+                return; *@
+            // }
+
+            // Kiểm tra tồn kho
+            if (variant.OutOfStock <= 0)
+            {
+                Message.Warning("Sản phẩm này đã hết hàng");
+                return;
+            }
+
+            // Gọi API thêm vào giỏ hàng
+            var newItem = new AddToCartDTO()
+            {
+                PromotionId = Guid.NewGuid(),
+                ProductDetailId = Guid.Parse(variant.Id.ToString()),
+                Quantity = quantity
+            };
+            var result = await CartClient.AddToCartAsync(
+            newItem
+            );
+
+            if (result != null && (int)result.ResponseStatus == 1) // Success = 1
+            {
+                Message.Success($"Đã thêm sản phẩm vào giỏ hàng thành công!");
+            }
+            else
+            {
+                var errorMessage = result?.Message ?? "Có lỗi xảy ra khi thêm vào giỏ hàng";
+                Message.Error(errorMessage);
+            }
+        }
+        catch (Exception ex)
+        {
+            Message.Error($"Lỗi: {ex.Message}");
+            Console.WriteLine($"Error in AddToCartWithVariant: {ex}");
+        }
+    }
+
+
+
+    private async Task IncrementCart(int productId)
+    {
+        await Task.CompletedTask;
+    }
+
+    private decimal CalcPriceAfterDiscount(decimal price, int discount)
+    {
+        if (discount <= 0) return price;
+        return price * (100 - discount) / 100;
+    }
+
+    private string Slugify(string input)
+    {
+        if (string.IsNullOrEmpty(input)) return string.Empty;
+        return input.ToLowerInvariant()
+        .Replace(" ", "-")
+        .Replace("ă", "a")
+        .Replace("â", "a")
+        .Replace("á", "a")
+        .Replace("à", "a")
+        .Replace("ả", "a")
+        .Replace("ã", "a")
+        .Replace("ạ", "a")
+        .Replace("ê", "e")
+        .Replace("é", "e")
+        .Replace("è", "e")
+        .Replace("ẻ", "e")
+        .Replace("ẽ", "e")
+        .Replace("ẹ", "e")
+        .Replace("ô", "o")
+        .Replace("ơ", "o")
+        .Replace("ó", "o")
+        .Replace("ò", "o")
+        .Replace("ỏ", "o")
+        .Replace("õ", "o")
+        .Replace("ọ", "o")
+        .Replace("ư", "u")
+        .Replace("ú", "u")
+        .Replace("ù", "u")
+        .Replace("ủ", "u")
+        .Replace("ũ", "u")
+        .Replace("ụ", "u")
+        .Replace("í", "i")
+        .Replace("ì", "i")
+        .Replace("ỉ", "i")
+        .Replace("ĩ", "i")
+        .Replace("ị", "i")
+        .Replace("ý", "y")
+        .Replace("ỳ", "y")
+        .Replace("ỷ", "y")
+        .Replace("ỹ", "y")
+        .Replace("ỵ", "y")
+        .Replace("đ", "d");
+    }
+
+    // Modal methods
+    private async Task ShowVariantModal(ProductResponseDTO product)
+    {
+        var isLogged = await AuthClient.IsAuthenticatedAsync();
+        if (!isLogged)
+        {
+            Message.Warning("Vui lòng đăng nhập để thêm sản phẩm vào giỏ hàng");
+            return;
+
+        }
+        selectedProductForModal = product;
+        variantModalVisible = true;
+
+    }
+
+
+    private void HandleVariantModalCancel()
+    {
+        variantModalVisible = false;
+        selectedProductForModal = null;
+    }
+
+    private async Task HandleVariantSelectedFromModal(dynamic result)
+    {
+        if (result != null && result.IsSuccess)
+        {
+            await AddToCartWithVariant(result.Product, result.SelectedVariant, result.Quantity);
+            // Modal sẽ tự động đóng sau khi thêm vào giỏ hàng thành công
+            variantModalVisible = false;
+            selectedProductForModal = null;
+
+        }
+    }
+
+    // Methods to get size and color names
+
+
+}

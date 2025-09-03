@@ -19,10 +19,26 @@ namespace MeoMeo.Application.Services
 
         public async Task<DeliveryAddress> CreateDeliveryAddressAsync(CreateOrUpdateDeliveryAddressDTO deliveryAddress)
         {
-            var mappedDeliveryAddress = _mapper.Map<DeliveryAddress>(deliveryAddress);
-            mappedDeliveryAddress.Id = Guid.NewGuid();
-            var result = await _deliveryAddressRepository.CreateDeliveryAddressAsync(mappedDeliveryAddress);
-            return result;
+            try
+            {
+                var mappedDeliveryAddress = _mapper.Map<DeliveryAddress>(deliveryAddress);
+                mappedDeliveryAddress.Id = Guid.NewGuid();
+
+                // Set default values for Province, District, Commune if not provided
+                if (!deliveryAddress.ProvinceId.HasValue || deliveryAddress.ProvinceId == null)
+                    mappedDeliveryAddress.ProvinceId = -1;
+                if (!deliveryAddress.DistrictId.HasValue || deliveryAddress.DistrictId == null)
+                    mappedDeliveryAddress.DistrictId = -1;
+                if (!deliveryAddress.CommuneId.HasValue || deliveryAddress.CommuneId == null)
+                    mappedDeliveryAddress.CommuneId = -1;
+
+                var result = await _deliveryAddressRepository.CreateDeliveryAddressAsync(mappedDeliveryAddress);
+                return _mapper.Map<DeliveryAddressDTO>(result);
+            }
+            catch (Exception e)
+            {
+                return new DeliveryAddressDTO();
+            }
         }
 
         public async Task<bool> DeleteDeliveryAddressAsync(Guid id)

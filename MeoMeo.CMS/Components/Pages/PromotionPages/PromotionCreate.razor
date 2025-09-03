@@ -74,18 +74,10 @@
         </table>
     </div>
 
-    <h5 class="mt-4">Danh sách sản phẩm</h5>
+    <h5 class="mt-4">Chọn sản phẩm</h5>
 
-    <div class="d-flex gap-2 mb-3">
-        <select @bind="selectedProductId" class="form-select">
-            <option value="">-- Chọn sản phẩm --</option>
-            @foreach (var p in allProducts)
-            {
-                <option value="@p.Id">@p.Sku - @p.ProductName</option>
-            }
-        </select>
-        <button type="button" class="btn btn-success" @onclick="AddProduct">Thêm</button>
-    </div>
+    <Transfer DataSource="transferItems" TargetKeys="targetKeys" Titles="@(new[] { "Tất cả sản phẩm", "Đã chọn" })"
+        ShowSearch="true" OnChange="HandleTransferChange" Render="@(item => item.Title)" />
 
     <div class="mt-4 d-flex justify-content-end gap-2">
         <button class="btn btn-secondary" @onclick="Huy">Huỷ</button>
@@ -97,15 +89,24 @@
     private CreateOrUpdatePromotionDTO promotion = new();
     private List<PromotionProductViewModel> selectedProducts = new();
     private List<ProductDetailDTO> allProducts = new();
-    private Guid selectedProductId;
+    private List<TransferItem> transferItems = new();
+    private List<string> targetKeys = new();
     private string message = "";
     private bool isSuccess = false;
 
     protected override async Task OnInitializedAsync()
     {
-        var request = new GetListProductDetailRequestDTO(); // Có thể thêm bộ lọc nếu cần
+        var request = new GetListProductDetailRequestDTO();
         var result = await ProductDetailService.GetAllProductDetailAsync(request);
         allProducts = result.Items;
+
+        transferItems = allProducts.Select(p => new TransferItem
+        {
+            Key = p.Id.ToString(),
+            Title = $"{p.Sku} - {p.ProductName}"
+        }).ToList();
+
+        targetKeys = selectedProducts.Select(x => x.ProductDetailId.ToString()).ToList();
     }
 
     private void Huy()
@@ -113,28 +114,45 @@
         Navigation.NavigateTo("/manage-promotion");
     }
 
-    private void AddProduct()
+    private void HandleTransferChange(TransferChangeArgs args)
     {
-        if (selectedProductId == Guid.Empty || selectedProducts.Any(p => p.ProductDetailId == selectedProductId))
-            return;
+        targetKeys = (args.TargetKeys ?? Enumerable.Empty<string>()).ToList();
 
-        var product = allProducts.FirstOrDefault(p => p.Id == selectedProductId);
-        if (product != null)
+        var keysSet = new HashSet<string>(targetKeys);
+
+        // Remove products no longer selected
+        selectedProducts.RemoveAll(sp => !keysSet.Contains(sp.ProductDetailId.ToString()));
+
+        // Add newly selected products, preserving existing edits if already present
+        foreach (var key in targetKeys)
         {
-            selectedProducts.Add(new PromotionProductViewModel
+            var guid = Guid.Parse(key);
+            if (selectedProducts.All(sp => sp.ProductDetailId != guid))
             {
-                ProductDetailId = product.Id,
-                ProductName = product.ProductName,
-                ProductCode = product.Sku,
-                OriginalPrice = product.Price,
-                Discount = 0
-            });
+                var product = allProducts.FirstOrDefault(p => p.Id == guid);
+                if (product != null)
+                {
+                    selectedProducts.Add(new PromotionProductViewModel
+                    {
+                        ProductDetailId = product.Id,
+                        ProductName = product.ProductName,
+                        ProductCode = product.Sku,
+                        OriginalPrice = product.Price,
+                        Discount = 0
+                    });
+                }
+            }
         }
     }
 
     private void RemoveProduct(Guid productId)
     {
         selectedProducts.RemoveAll(p => p.ProductDetailId == productId);
+        var key = productId.ToString();
+        if (targetKeys.Contains(key))
+        {
+            targetKeys.Remove(key);
+        }
     }
 
     private async Task HandleSave()
@@ -208,10 +226,10 @@
     public class PromotionProductViewModel
     {
         public Guid ProductDetailId { get; set; }
-        public string ProductCode { get; set; }
-        public string ProductName { get; set; }
+        public string ProductCode { get; set; } = string.Empty;
+        public string ProductName { get; set; } = string.Empty;
         public float OriginalPrice { get; set; }
-        public string Note { get; set; }
+        public string Note { get; set; } = string.Empty;
         public float Discount { get; set; }
     }
 }

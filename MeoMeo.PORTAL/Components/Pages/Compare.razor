@@ -1,0 +1,129 @@
+@page "/so-sanh"
+@using Radzen
+@using Radzen.Blazor
+@using MeoMeo.Contract.DTOs.Product
+@using MeoMeo.Shared.IServices
+@inject IProductClientService ProductClient
+@inject IJSRuntime JS
+@inject NavigationManager Nav
+@inject IConfiguration Configuration
+
+<div class="container padding-large">
+    <h2 class="text-uppercase text-dark mb-3">So sánh sản phẩm</h2>
+
+    <div class="mb-3">
+        <RadzenDropDown Multiple="true"
+                       
+                        Data="recentOptions"
+                        @bind-Value="selectedIds"
+                        TextProperty="Name"
+                        ValueProperty="Id"
+                        Change="@(args => OnDropdownChange(args))"
+                        Placeholder="Chọn tối đa 3 sản phẩm vừa xem"
+                        Style="width: 100%; max-width: 800px" />
+        <div class="mt-2">
+            <RadzenButton Text="So sánh" Click="@(async()=> await LoadSelection())" Disabled="@(!selectedIds.Any())" Style="margin-right:8px" />
+            <RadzenButton Text="Xóa lựa chọn" ButtonStyle="ButtonStyle.Secondary" Click="@(args=>{ selectedIds = new List<Guid>(); compared.Clear(); StateHasChanged(); })" />
+        </div>
+    </div>
+
+    <RadzenSplitter Style="height: 70vh; border:1px solid #eee; border-radius:8px; overflow:hidden;">
+        <RadzenSplitterPane Size="33%" Min="20%">
+            @if (compared.Count > 0) { @ProductCard(compared[0]) } else { @PlaceholderPane(1) }
+        </RadzenSplitterPane>
+        <RadzenSplitterPane Size="34%" Min="20%">
+            @if (compared.Count > 1) { @ProductCard(compared[1]) } else { @PlaceholderPane(2) }
+        </RadzenSplitterPane>
+        <RadzenSplitterPane Size="33%" Min="20%">
+            @if (compared.Count > 2) { @ProductCard(compared[2]) } else { @PlaceholderPane(3) }
+        </RadzenSplitterPane>
+    </RadzenSplitter>
+</div>
+
+@code {
+    private List<ProductResponseDTO> recentOptions = new();
+    private List<Guid> selectedIds = new();
+    private List<ProductResponseDTO> compared = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadRecentlyViewedOptions();
+    }
+
+    private async Task LoadRecentlyViewedOptions()
+    {
+        var idsString = await JS.InvokeAsync<string?>("localStorage.getItem", "recent_product_ids");
+        if (string.IsNullOrWhiteSpace(idsString)) return;
+        var ids = idsString.Split(',', StringSplitOptions.RemoveEmptyEntries)
+            .Select(x => Guid.TryParse(x, out var id) ? id : Guid.Empty)
+            .Where(x => x != Guid.Empty)
+            .Distinct()
+            .Take(20)
+            .ToList();
+        if (ids.Count == 0) return;
+        var products = await ProductClient.GetByIdsAsync(ids);
+        recentOptions = products;
+    }
+
+    private async Task LoadSelection()
+    {
+        if (selectedIds.Count > 3)
+        {
+            selectedIds = selectedIds.Take(3).ToList();
+        }
+        if (!selectedIds.Any()) return;
+        compared = await ProductClient.GetByIdsAsync(selectedIds);
+    }
+
+    private void OnDropdownChange(object value)
+    {
+        var list = (value as IEnumerable<Guid>)?.ToList() ?? new List<Guid>();
+        if (list.Count > 3)
+        {
+            list = list.Take(3).ToList();
+        }
+        selectedIds = list;
+        StateHasChanged();
+    }
+
+    private RenderFragment ProductCard(ProductResponseDTO p) => builder =>
+    {
+        var baseUrl = (Configuration["ApiSettings:BaseUrl"] ?? string.Empty).TrimEnd('/');
+        var idx = 0;
+        builder.OpenElement(idx++, "div");
+        builder.AddAttribute(idx++, "class", "p-3 h-100 d-flex flex-column");
+        builder.AddMarkupContent(idx++, $"<div class=\"text-center\"><img style=\"max-height:220px;object-fit:contain\" src=\"{(string.IsNullOrEmpty(p.Thumbnail) ? "/images/products/chilli.png" : baseUrl + "/" + p.Thumbnail)}\" /></div>");
+        builder.AddMarkupContent(idx++, $"<h4 class=\"mt-2\">{p.Name}</h4>");
+        var minPrice = p.ProductVariants?.Min(v => v.Price) ?? 0;
+        var maxPrice = p.ProductVariants?.Max(v => v.Price) ?? 0;
+        builder.AddMarkupContent(idx++, $"<div class=\"text-muted\">Giá: {(minPrice==maxPrice? minPrice.ToString("C0", new System.Globalization.CultureInfo("vi-VN")) : $"{minPrice.ToString("C0", new System.Globalization.CultureInfo("vi-VN"))} - {maxPrice.ToString("C0", new System.Globalization.CultureInfo("vi-VN"))}")}</div>");
+        builder.AddMarkupContent(idx++, $"<div class=\"mt-2\">Màu sắc: {string.Join(", ", p.ColourNames ?? new List<string>())}</div>");
+        builder.AddMarkupContent(idx++, $"<div>Size: {string.Join(", ", p.SizeValues ?? new List<string>())}</div>");
+        builder.AddMarkupContent(idx++, $"<div class=\"mt-2\">Tồn kho biến thể: {p.ProductVariants?.Sum(v=> v.InventoryQuantity)}</div>");
+        builder.AddMarkupContent(idx++, $"<div class=\"mt-auto\"><button class=\"btn btn-dark\" onclick=\"location.href='/san-pham/{p.Id}/{Slugify(p.Name)}.html'\">Xem chi tiết</button></div>");
+        builder.CloseElement();
+    };
+
+    private RenderFragment PlaceholderPane(int index) => builder =>
+    {
+        var idx = 0;
+        builder.OpenElement(idx++, "div");
+        builder.AddAttribute(idx++, "class", "h-100 d-flex flex-column align-items-center justify-content-center text-muted");
+        builder.AddMarkupContent(idx++, $"<div>Ngăn {index}</div><div>Hãy chọn sản phẩm để so sánh</div>");
+        builder.CloseElement();
+    };
+
+    private string Slugify(string input)
+    {
+        if (string.IsNullOrEmpty(input)) return string.Empty;
+        return input.ToLowerInvariant()
+            .Replace(" ", "-")
+            .Replace("ă", "a").Replace("â", "a").Replace("á", "a").Replace("à", "a").Replace("ả", "a").Replace("ã", "a").Replace("ạ", "a")
+            .Replace("ê", "e").Replace("é", "e").Replace("è", "e").Replace("ẻ", "e").Replace("ẽ", "e").Replace("ẹ", "e")
+            .Replace("ô", "o").Replace("ơ", "o").Replace("ó", "o").Replace("ò", "o").Replace("ỏ", "o").Replace("õ", "o").Replace("ọ", "o")
+            .Replace("ư", "u").Replace("ú", "u").Replace("ù", "u").Replace("ủ", "u").Replace("ũ", "u").Replace("ụ", "u")
+            .Replace("í", "i").Replace("ì", "i").Replace("ỉ", "i").Replace("ĩ", "i").Replace("ị", "i")
+            .Replace("ý", "y").Replace("ỳ", "y").Replace("ỷ", "y").Replace("ỹ", "y").Replace("ỵ", "y")
+            .Replace("đ", "d");
+    }
+}
