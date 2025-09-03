@@ -5,7 +5,7 @@
 <header id="header" class="site-header fixed-top">
     <GridRow>
         <GridCol Span="22" Offset="1">
-            <nav id="header-nav" class="navbar navbar-expand-lg pt-3 mb-3">
+            <nav id="header-nav" class="navbar navbar-expand-lg ">
                 <div class="container-fluid d-flex justify-content-between align-items-center ">
                     <div>
                         <NavLink class="navbar-brand" href="" Match="NavLinkMatch.All">
@@ -28,83 +28,50 @@
                                 aria-label="Close" data-bs-target="#bdNavbar"></button>
                         </div>
                         <div class="offcanvas-body">
-                            <Affix>
-                                <Anchor ShowInkInFixed="false">
-                                    <ul id="navbar"
-                                        class="navbar-nav text-uppercase justify-content-end align-items-center flex-grow-1 pe-3">
-                                        <span @onclick="() => NavigateToPage(0)" class="me-4  custom-link">Trang
-                                            Chủ</span>
-                                        <span @onclick="() => NavigateToPage(1)" class="me-4 custom-link">Test Khách
-                                            hàng</span>
-                                        <AnchorLink class="nav-link me-4" Href="/#product" Title="Dịch vụ" />
-                                        <AnchorLink class="nav-link me-4" Href="/#product" Title="Sản Phẩm" />
-                                        <AnchorLink class="nav-link me-4" Href="/#product"
-                                            Title="Chính sách bảo hành" />
-                                        <AnchorLink class="nav-link me-4" Href="/#yearly-sale" Title="Giảm giá" />
-                                        <AnchorLink class="nav-link me-4" Href="/#latest-blog" Title="Bài viết" />
-                                        <AnchorLink class="nav-link me-4" Href="/#" Title="Chính sách bảo hành" />
-                                        <li class="nav-item dropdown">
-                                            <a class="nav-link me-4 dropdown-toggle link-dark" data-bs-toggle="dropdown"
-                                                href="#" role="button" aria-expanded="false">Pages</a>
-                                            <ul class="dropdown-menu">
-                                                <li>
-                                                    <a class="dropdown-item">Về chúng
-                                                        tôi</a>
-                                                </li>
-                                                <li><a class="dropdown-item">Bài viết</a></li>
-                                                <li><a class="dropdown-item">Cửa hàng</a></li>
-                                                <li><a class="dropdown-item">Giỏ hàng</a></li>
-                                                <li><a class="dropdown-item">Thanh toán</a>
-                                                </li>
-                                                <li>
-                                                    <a class="dropdown-item">Tư
-                                                        vấn</a>
-                                                </li>
-                                                <li>
-                                                    <a class="dropdown-item">Sản
-                                                        phẩm</a>
-                                                </li>
-                                                <li><a class="dropdown-item">Liên hệ</a>
-                                                </li>
-                                            </ul>
+                            <ul id="navbar"
+                                class="navbar-nav text-uppercase justify-content-end align-items-center flex-grow-1 pe-3">
+                                <span @onclick="() => NavigateToPage(0)" class="me-4 custom-link">Trang Chủ</span>
+                                <span @onclick="() => NavigateToPage(3)" class="me-4 custom-link">Sản Phẩm</span>
+                                <span @onclick="() => NavigateToPage(5)" class="me-4 custom-link">Giảm giá</span>
+                                <span @onclick="() => NavigateToPage(6)" class="me-4 custom-link">Bài viết</span>
+                                <span @onclick="() => NavigateToPage(7)" class="me-4 custom-link">Chính sách bảo
+                                    hành</span>
+                                <li class="nav-item dropdown">
+                                    <a class="nav-link me-4 dropdown-toggle link-dark" data-bs-toggle="dropdown"
+                                        href="#" role="button" aria-expanded="false">Xem thêm</a>
+                                    <ul class="dropdown-menu">
+                                        <li>
+                                            <a class="dropdown-item">Về chúng tôi</a>
                                         </li>
+                                        <li><a class="dropdown-item">Bài viết</a></li>
+                                        <li><a class="dropdown-item">Cửa hàng</a></li>
+                                        <li><a class="dropdown-item">Giỏ hàng</a></li>
+                                        <li><a class="dropdown-item">Thanh toán</a></li>
+                                        <li>
+                                            <a class="dropdown-item">Tư vấn</a>
+                                        </li>
+                                        <li>
+                                            <a class="dropdown-item">Sản phẩm</a>
+                                        </li>
+                                        <li><a class="dropdown-item">Liên hệ</a></li>
                                     </ul>
-                                </Anchor>
-                            </Affix>
+                                </li>
+                            </ul>
                         </div>
                     </div>
-                    <div class="user-items">
-                        <Button Type="@ButtonType.Link" Class="search-button ">
+                    <div class="user-items d-flex">
+                        <Button Type="@ButtonType.Text" Class="search-button ">
                             <svg class="search w-24 h-24">
                                 <use xlink:href="#search"></use>
                             </svg>
                         </Button>
-                        <Dropdown>
-                            <ChildContent>
-                                <Button Type="@ButtonType.Link" Class="dropdown-toggle">
-                                    <Icon Type="user" />
-                                </Button>
-                            </ChildContent>
-                            <Overlay>
-                                <Menu>
-                                    <MenuItem Key="profile">
-                                    <Icon Type="user" />
-                                    <a href="/account/profile">Hồ sơ</a>
-                                    </MenuItem>
-                                    <MenuDivider />
-                                    <MenuItem Key="logout">
-                                    <Icon Type="logout" />
-                                    Đăng xuất
-                                    </MenuItem>
-                                </Menu>
-                            </Overlay>
-                        </Dropdown>
-                        <Button Type="@ButtonType.Link">
+
+                        <Button Type="@ButtonType.Link" @onclick="() => NaViToCart()">
                             <svg class="cart w-24 h-24">
                                 <use xlink:href="#cart"></use>
                             </svg>
                         </Button>
-
+                        <UserMenu />
                     </div>
                     <div>
                         <svg xmlns="http://www.w3.org/2000/svg" style="display: none;">
@@ -179,6 +146,11 @@
             }
         }
     }
+
+    private void NaViToCart()
+    {
+        Navigation.NavigateTo("/cart");
+    }
     private void NavigateToPage(int page)
     {
         switch (page)
@@ -189,7 +161,24 @@
             case 1:
                 Navigation.NavigateTo("/manage-customer");
                 break;
-
+            case 2:
+                Navigation.NavigateTo("/#product");
+                break;
+            case 3:
+                Navigation.NavigateTo("/#product");
+                break;
+            case 4:
+                Navigation.NavigateTo("/#product");
+                break;
+            case 5:
+                Navigation.NavigateTo("/#yearly-sale");
+                break;
+            case 6:
+                Navigation.NavigateTo("/#latest-blog");
+                break;
+            case 7:
+                Navigation.NavigateTo("/#");
+                break;
             default:
                 Navigation.NavigateTo("/");
                 break;

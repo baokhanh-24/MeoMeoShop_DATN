@@ -1,4 +1,6 @@
-﻿using MeoMeo.Application.IServices;
+﻿using AutoMapper;
+using MeoMeo.API.Extensions;
+using MeoMeo.Application.IServices;
 using MeoMeo.Application.Services;
 using MeoMeo.Contract.DTOs;
 using Microsoft.AspNetCore.Mvc;

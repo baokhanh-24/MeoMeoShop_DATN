@@ -10,4 +10,5 @@ public interface IApiCaller
     Task<T?> PutFormAsync<T>(string url, MultipartFormDataContent formData);
     Task<bool> DeleteAsync(string url);
     Task<HttpResponseMessage> SendAsync(HttpRequestMessage request);
+    Task<byte[]> GetByteArrayAsync(string url);
 }

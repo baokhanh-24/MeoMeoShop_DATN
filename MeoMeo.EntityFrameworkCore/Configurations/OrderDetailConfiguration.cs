@@ -16,7 +16,6 @@ namespace MeoMeo.EntityFrameworkCore.Configurations
             builder.HasOne(x => x.Order).WithMany(x => x.OrderDetails).HasForeignKey(x => x.OrderId);
             builder.HasOne(x => x.ProductDetail).WithMany(x => x.OrderDetails).HasForeignKey(x => x.ProductDetailId);
             builder.HasOne(x => x.PromotionDetail).WithMany(x => x.OrderDetails).HasForeignKey(x => x.PromotionDetailId).IsRequired(false);
-            builder.HasOne(x => x.Size).WithMany(x => x.OrderDetails).HasForeignKey(x => x.SizeId);
         }
     }
 }

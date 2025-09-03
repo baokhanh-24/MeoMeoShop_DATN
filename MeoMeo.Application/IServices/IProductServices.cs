@@ -17,7 +17,7 @@ namespace MeoMeo.Application.IServices
         Task<ProductResponseDTO> GetProductWithDetailsAsync(Guid id);
         Task<BaseResponse> UpdateVariantStatusAsync(UpdateProductStatusDTO input);
         Task<List<Image>> GetOldImagesAsync(Guid productId);
-        
+
         // New method for home page
         Task<HomePageResponseDTO> GetHomePageProductsAsync(int discountedProductsLimit = 10, int bestSellingProductsLimit = 10);
 
@@ -26,6 +26,6 @@ namespace MeoMeo.Application.IServices
         Task<CategoryHoverResponseDTO> GetCategoryHoverPreviewAsync(Guid categoryId, int take = 6);
 
         // Recently viewed support
-        Task<List<ProductResponseDTO>> GetProductsByIdsAsync(List<Guid> ids);
+        Task<List<ProductResponseDTO>> GetProductsByIdsAsync(List<Guid> ids); ter
     }
 }

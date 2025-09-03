@@ -84,11 +84,14 @@ public async Task<AuthenResponse> LoginAsync(AuthenRequest input)
             {
                 var customer = await _customerRepository.Query().FirstOrDefaultAsync(c => c.UserId == userMapped.Id);
                 userMapped.FullName = customer.Name;
+                userMapped.CustomerId = customer.Id;
+
             }
             else if  (roles.Count > 0 && roles.Contains("Customer") ||  roles.Contains("Admin") )
             {
                 var employee = await _employeeRepository.Query().FirstOrDefaultAsync(c => c.UserId == userMapped.Id);
                 userMapped.FullName = employee.Name;
+                userMapped.EmployeeId = employee.Id;
             }
             
             string token = GenerateToken(userMapped, roles, permissionQuery);
@@ -307,6 +310,9 @@ public async Task<AuthenResponse> LoginAsync(AuthenRequest input)
             new Claim(ClaimTypeConst.Roles, string.Join(";", roles ?? new List<string>())),
             new Claim(ClaimTypeConst.Email, user.Email ?? ""),
             new Claim(ClaimTypeConst.Avatar, user.Avatar ?? ""),
+            new Claim(ClaimTypeConst.FullName, user.FullName ?? ""),
+            new Claim(ClaimTypeConst.CustomerId, user.CustomerId.HasValue ? user.CustomerId.ToString() : ""),
+            new Claim(ClaimTypeConst.EmployeeId, user.EmployeeId.HasValue ? user.EmployeeId.ToString() : ""),
             new Claim(ClaimTypeConst.FullName, user.FullName ?? ""),
             new Claim(ClaimTypeConst.Permissions, string.Join(";", listPermission))
         };

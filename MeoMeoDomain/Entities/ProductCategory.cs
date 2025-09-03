@@ -1,3 +1,5 @@
+using MeoMeo.Domain.Commons;
+
 namespace MeoMeo.Domain.Entities;
 
 public class ProductCategory

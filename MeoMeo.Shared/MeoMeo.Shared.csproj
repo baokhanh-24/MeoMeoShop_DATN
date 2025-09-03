@@ -18,6 +18,9 @@
     </ItemGroup>
 
     <ItemGroup>
+      <Reference Include="Blazored.LocalStorage">
+        <HintPath>..\..\..\.nuget\packages\blazored.localstorage\4.5.0\lib\net8.0\Blazored.LocalStorage.dll</HintPath>
+      </Reference>
       <Reference Include="Microsoft.AspNetCore.Hosting.Abstractions">
         <HintPath>..\..\..\..\..\usr\local\share\dotnet\shared\Microsoft.AspNetCore.App\8.0.6\Microsoft.AspNetCore.Hosting.Abstractions.dll</HintPath>
       </Reference>

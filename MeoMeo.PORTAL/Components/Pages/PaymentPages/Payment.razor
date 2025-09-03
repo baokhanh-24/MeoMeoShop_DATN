@@ -1,0 +1,477 @@
+@* @page "/payment" *@
+@* @using AntDesign *@
+@* @using Microsoft.AspNetCore.Components.Forms *@
+@* @using System.ComponentModel.DataAnnotations *@
+@* @using MeoMeo.Shared.IServices *@
+@* @using MeoMeo.Contract.Commons *@
+@* @inject IJSRuntime JSRuntime *@
+@* @inject NavigationManager Navigation *@
+@* @inject MessageService MessageService *@
+@* @inject HttpClient HttpClient *@
+@* @inject ICartClientService CartClient *@
+@* @inject IOrderClientService OrderClient *@
+@* *@
+@* <div class="content-background"> *@
+@*     <div class="container"> *@
+@*         <Breadcrumb> *@
+@*             <BreadcrumbItem> *@
+@*                 <a @onclick="HandleRedirectToCart" style="cursor: pointer;"> *@
+@*                     <Icon Type="left" /> Quay lại giỏ hàng *@
+@*                 </a> *@
+@*             </BreadcrumbItem> *@
+@*         </Breadcrumb> *@
+@* *@
+@*         @if (CartItems.Count == 0 && !HiddenData.IsBuyNow) *@
+@*         { *@
+@*             <div class="row"> *@
+@*                 <div class="col-12"> *@
+@*                     <div class="space-coverage text-center"> *@
+@*                         <img class="empty-cart" src="/images/products/Cart.svg" alt="" /> *@
+@*                         <div class="empty-text mt-4">Bạn chưa tick chọn sản phẩm nào để đặt hàng.</div> *@
+@*                         <div class="empty-text mt-1">Vui lòng quay lại giỏ hàng để chọn sản phẩm cần thanh toán</div> *@
+@*                         <div class="d-flex justify-content-center"> *@
+@*                             <button class="shopping-now mt-1" @onclick="HandleRedirectToCart"> *@
+@*                                 Đi tới giỏ hàng *@
+@*                             </button> *@
+@*                         </div> *@
+@*                     </div> *@
+@*                 </div> *@
+@*             </div> *@
+@*         } *@
+@* *@
+@*         @if (CartItems.Count > 0 || HiddenData.IsBuyNow) *@
+@*         { *@
+@*             <div class="row"> *@
+@*                 <div class="col-lg-9"> *@
+@*                     <div class="space-coverage"> *@
+@*                         <Table DataSource="@CartItems" TItem="CartItem" HidePagination="true" RowKey="i => i.Id"> *@
+@*                             <ChildContent Context="item"> *@
+@*                                 <Column TData="string" Title="Sản phẩm"> *@
+@*                                     <div class="d-flex align-items-center gap-3"> *@
+@*                                         <span class="prod-name"> *@
+@*                                             <span class="name-ellipsis">@item.ProductName</span> *@
+@*                                         </span> *@
+@*                                     </div> *@
+@*                                 </Column> *@
+@*                                 <Column TData="decimal" Title="Đơn giá" Align="ColumnAlign.Center"> *@
+@*                                     <div class="text-center d-flex flex-column align-items-center"> *@
+@*                                         <div class="discount-price"> *@
+@*                                             @(CalcPriceAfterDiscount(item.Price, item.Discount).ToString("C", new System.Globalization.CultureInfo("vi-VN"))) *@
+@*                                         </div> *@
+@*                                         @if (item.Discount > 0) *@
+@*                                         { *@
+@*                                             <div class="price">@item.Price.ToString("C", new System.Globalization.CultureInfo("vi-VN"))</div> *@
+@*                                         } *@
+@*                                     </div> *@
+@*                                 </Column> *@
+@*                                 <Column TData="int" Title="Số lượng" Align="ColumnAlign.Center"> *@
+@*                                     @item.Quantity *@
+@*                                 </Column> *@
+@*                                 <Column TData="decimal" Title="Thành tiền"> *@
+@*                                     @( (CalcPriceAfterDiscount(item.Price, item.Discount) * item.Quantity).ToString("C", new System.Globalization.CultureInfo("vi-VN")) ) *@
+@*                                 </Column> *@
+@*                             </ChildContent> *@
+@*                         </Table> *@
+@*                     </div> *@
+@* *@
+@*                     <div class="space-coverage mt-3"> *@
+@*                         <div class="payment-title">Chọn hình thức thanh toán</div> *@
+@*                         <Divider /> *@
+@*                         <RadioGroup @bind-Value="PaymentMethod"> *@
+@*                             <Radio RadioButton Value="0"> *@
+@*                                 <div> *@
+@*                                     <img class="payment-method" src="/images/cart/cash-method.png" alt="" /> *@
+@*                                     <span>Thanh toán khi nhận hàng</span> *@
+@*                                 </div> *@
+@*                             </Radio> *@
+@*                         </RadioGroup> *@
+@*                         <Divider /> *@
+@*                         <div class="d-flex justify-content-between"> *@
+@*                             <span class="force-to-export-ebill">Yêu cầu xuất hóa đơn điện tử</span> *@
+@*                             <Switch @bind-Value="IsDefaultExportBill" /> *@
+@*                         </div> *@
+@*                     </div> *@
+@* *@
+@*                     @if (IsDefaultExportBill) *@
+@*                     { *@
+@*                         <div class="space-coverage mt-3"> *@
+@*                             <div class="title-export">Thông tin xuất hóa đơn</div> *@
+@*                             <Form Model="@ExportBill" RequiredMark="FormRequiredMark.None"> *@
+@*                                 <AntDesign.GridRow Gutter="16"> *@
+@*                                     <AntDesign.GridCol Span="24"> *@
+@*                                         <FormItem Label="Mã số thuế" Required> *@
+@*                                             <Input @bind-Value="ExportBill.TaxCode" MaxLength="14" Placeholder="Nhập..." /> *@
+@*                                         </FormItem> *@
+@*                                     </AntDesign.GridCol> *@
+@*                                     <AntDesign.GridCol Span="24"> *@
+@*                                         <FormItem Label="Tên cá nhân/ công ty" Required> *@
+@*                                             <Input @bind-Value="ExportBill.Name" MaxLength="255" Placeholder="Nhập..." /> *@
+@*                                         </FormItem> *@
+@*                                     </AntDesign.GridCol> *@
+@*                                     <AntDesign.GridCol Span="24"> *@
+@*                                         <FormItem Label="Email" Required> *@
+@*                                             <Input @bind-Value="ExportBill.Email" MaxLength="255" Placeholder="Nhập..." /> *@
+@*                                         </FormItem> *@
+@*                                     </AntDesign.GridCol> *@
+@*                                     <AntDesign.GridCol Span="24"> *@
+@*                                         <FormItem Label="Điện thoại" Required> *@
+@*                                             <Input @bind-Value="ExportBill.Phone" MaxLength="12" Placeholder="Nhập..." /> *@
+@*                                         </FormItem> *@
+@*                                     </AntDesign.GridCol> *@
+@*                                     <AntDesign.GridCol Span="24"> *@
+@*                                         <FormItem Label="Địa chỉ" Required> *@
+@*                                             <Input @bind-Value="ExportBill.Address" MaxLength="255" Placeholder="Nhập..." /> *@
+@*                                         </FormItem> *@
+@*                                     </AntDesign.GridCol> *@
+@*                                     <AntDesign.GridCol Span="24"> *@
+@*                                         <FormItem Label="Ghi chú"> *@
+@*                                             <TextArea @bind-Value="ExportBill.Note" MaxLength="500" Rows="4" Placeholder="Nhập..." /> *@
+@*                                         </FormItem> *@
+@*                                     </AntDesign.GridCol> *@
+@*                                     <AntDesign.GridCol Span="24" Class="mt-3"> *@
+@*                                         <Checkbox @bind-Value="UseDefaultAddress"> *@
+@*                                             Sử dụng địa chỉ giao hàng *@
+@*                                         </Checkbox> *@
+@*                                     </AntDesign.GridCol> *@
+@*                                 </AntDesign.GridRow> *@
+@*                             </Form> *@
+@*                         </div> *@
+@*                     } *@
+@*                 </div> *@
+@* *@
+@*                 <div class="col-lg-3"> *@
+@*                     <div class="space-coverage"> *@
+@*                         <div class="d-flex justify-content-between"> *@
+@*                             <div class="title">Giao hàng đến</div> *@
+@*                             <div class="option text-end" style="cursor: pointer;" @onclick="ShowModalDelivery"> *@
+@*                                 Thay đổi *@
+@*                             </div> *@
+@*                         </div> *@
+@*                         <div class="d-flex justify-content-between m4"> *@
+@*                             <div class="fullname">@DefaultDeliveryAddress?.Name</div> *@
+@*                             <div class="phonenumber text-end">@DefaultDeliveryAddress?.Phone</div> *@
+@*                         </div> *@
+@*                         <div class="type m4"> *@
+@*                             @(DefaultDeliveryAddress?.AddressType == true ? "Văn phòng" : "Nhà riêng") *@
+@*                         </div> *@
+@*                         <div class="address">@DefaultDeliveryAddress?.FullAddress</div> *@
+@*                     </div> *@
+@* *@
+@*                     <div class="note-space mt-3"> *@
+@*                         <div class="d-flex justify-content-between mt-1 mb-1"> *@
+@*                             <div class="fullname">Lời nhắn cho shop</div> *@
+@*                         </div> *@
+@*                         <div> *@
+@*                             <TextArea @bind-Value="TxtNoteContent" MaxLength="500" Rows="3" Placeholder="Ghi chú..." /> *@
+@*                         </div> *@
+@*                     </div> *@
+@* *@
+@*                     <div class="space-coverage mt-3"> *@
+@*                         <div class="d-flex justify-content-between mt-1 mb-1"> *@
+@*                             <div class="fullname">Khuyến mại</div> *@
+@*                             <div class="option text-end" style="cursor: pointer;"> *@
+@*                                 Chọn mã giảm giá *@
+@*                             </div> *@
+@*                         </div> *@
+@* *@
+@*                         @if (DefaultVoucherForAllProductId != -1 && IsApplyVoucher) *@
+@*                         { *@
+@*                             <div class="voucher-applied"> *@
+@*                                 <div class="voucher-selected d-flex"> *@
+@*                                     <div class="discount-text"> *@
+@*                                         Giảm @FormatNumber(DiscountValueOfAllProduct) *@
+@*                                     </div> *@
+@*                                     <div class="btn-unselected"> *@
+@*                                         Bỏ chọn *@
+@*                                     </div> *@
+@*                                 </div> *@
+@*                             </div> *@
+@*                         } *@
+@*                     </div> *@
+@* *@
+@*                     <div class="space-coverage mt-3"> *@
+@*                         <div class="d-flex justify-content-between mb16"> *@
+@*                             <div class="text-left">Tổng tiền:</div> *@
+@*                             <div class="text-right text-end"> *@
+@*                                 @GrandTotalCount.ToString("C", new System.Globalization.CultureInfo("vi-VN")) *@
+@*                             </div> *@
+@*                         </div> *@
+@*                         <div class="d-flex justify-content-between mb16 mt16"> *@
+@*                             <div class="text-left">Giảm giá/ tổng đơn hàng:</div> *@
+@*                             <div class="text-deal text-end"> *@
+@*                                 @DiscountValueOfAllProduct.ToString("C", new System.Globalization.CultureInfo("vi-VN")) *@
+@*                             </div> *@
+@*                         </div> *@
+@*                         <div class="d-flex justify-content-between mb16 mt16"> *@
+@*                             <div class="text-left">Phí vận chuyển:</div> *@
+@*                             <div class="text-right text-end"> *@
+@*                                 @(0.ToString("C", new System.Globalization.CultureInfo("vi-VN"))) *@
+@*                             </div> *@
+@*                         </div> *@
+@*                         <div class="d-flex justify-content-between mb16 mt16"> *@
+@*                             <div class="text-left"> *@
+@*                                 Hạng @CurrentRankInfo?.RankName *@
+@*                                 <img class="current-rank-icon" src="/images/rank/@CurrentRankInfoImage" /> *@
+@*                             </div> *@
+@*                             <div class="text-right text-end"> *@
+@*                                 <span class="discount-member-ship"> *@
+@*                                     @(DiscountPriceOfMembership > 0 ? ("-" + DiscountPriceOfMembership.ToString("C", new System.Globalization.CultureInfo("vi-VN"))) : string.Empty) *@
+@*                                 </span> *@
+@*                             </div> *@
+@*                         </div> *@
+@* *@
+@*                         @if (CurrentRankInfo?.FinalPointNeed > 0) *@
+@*                         { *@
+@*                             <div class="@(IsUseCustomerPoint ? "d-flex justify-content-between" : "mt16")"> *@
+@*                                 <div class="d-flex gap-1"> *@
+@*                                     <div class="text-left"> *@
+@*                                         Dùng <span class="discount-member-ship">@CurrentRankInfo?.FinalPointNeed</span> điểm *@
+@*                                     </div> *@
+@*                                     <Switch @bind-Value="IsUseCustomerPoint" /> *@
+@*                                 </div> *@
+@*                                 @if (IsUseCustomerPoint) *@
+@*                                 { *@
+@*                                     <div class="text-right text-end"> *@
+@*                                         <span class="discount-member-ship"> *@
+@*                                             @(DiscountPriceOfPoint > 0 ? ("-" + DiscountPriceOfPoint.ToString("C", new System.Globalization.CultureInfo("vi-VN"))) : string.Empty) *@
+@*                                         </span> *@
+@*                                     </div> *@
+@*                                 } *@
+@*                             </div> *@
+@*                         } *@
+@* *@
+@*                         <Divider Class="custom-hr" /> *@
+@*                         <div class="d-flex justify-content-between mb16 mt16"> *@
+@*                             <div class="text-left">Thành tiền:</div> *@
+@*                             <div class="text-grand-total text-end"> *@
+@*                                 @FinalTotalAmount.ToString("C", new System.Globalization.CultureInfo("vi-VN")) *@
+@*                             </div> *@
+@*                         </div> *@
+@*                         <div class="btn-order text-center" style="cursor: pointer;" @onclick="PaymentProcess"> *@
+@*                             Đặt hàng *@
+@*                         </div> *@
+@*                     </div> *@
+@*                 </div> *@
+@*             </div> *@
+@*         } *@
+@*     </div> *@
+@* </div> *@
+@* *@
+@* @code { *@
+@*     [Parameter] public string Title { get; set; } = ""; *@
+@*     [Parameter] public string CdnImage { get; set; } = ""; *@
+@*     [Parameter] public List<object> ProductsJustWatchedProduct { get; set; } = new(); *@
+@* *@
+@*     // State variables *@
+@*     private bool IsApplyVoucher = false; *@
+@*     private int DefaultVoucherForAllProductId = -1; *@
+@*     private decimal DiscountPriceOfVoucher = 0; *@
+@*     private List<CartItem> CartItems = new(); *@
+@*     private decimal DiscountValueOfAllProduct = 0; *@
+@*     private DeliveryAddress DefaultDeliveryAddress = new(); *@
+@*     private RankInfo CurrentRankInfo = new(); *@
+@*     private decimal DiscountPriceOfMembership = 0; *@
+@*     private decimal DiscountPriceOfPoint = 0; *@
+@*     private decimal FinalTotalAmount = 0; *@
+@*     private decimal GrandTotalCount = 0; *@
+@*     private bool IsUseCustomerPoint = false; *@
+@*     private bool IsBuyNow = false; *@
+@*     private bool OpenVoucherModal = false; *@
+@*     private bool OpenDeliveryModal = false; *@
+@*     private bool OpenCreateOrUpdateAddressModal = false; *@
+@*     private bool IsFetched = false; *@
+@*     private string CurrentRankInfoImage = ""; *@
+@*     private int DefaultDeliveryId = -1; *@
+@*     private List<DeliveryAddress> LstDeliveryAddress = new(); *@
+@*     private string TxtNoteContent = ""; *@
+@*     private int PaymentMethod = 0; *@
+@*     private bool IsDefaultExportBill = false; *@
+@*     private List<Coupon> LstCouponForAllProduct = new(); *@
+@*     private bool UseDefaultAddress = false; *@
+@* *@
+@*     // Models *@
+@*     private ExportBillModel ExportBill = new(); *@
+@*     private HiddenDataModel HiddenData = new(); *@
+@* *@
+@*     // Table renders inline using CartItems *@
+@* *@
+@*     public class CartItem *@
+@*     { *@
+@*         public Guid Id { get; set; } *@
+@*         public string ProductName { get; set; } = string.Empty; *@
+@*         public string Thumbnail { get; set; } = string.Empty; *@
+@*         public decimal Price { get; set; } *@
+@*         public decimal Discount { get; set; } *@
+@*         public int Quantity { get; set; } *@
+@*         public string Unit { get; set; } = string.Empty; *@
+@*         public bool IsProduct { get; set; } *@
+@*         public Guid ProductId { get; set; } *@
+@*         public Guid ComboProductId { get; set; } *@
+@*         public Guid PromotionId { get; set; } *@
+@*     } *@
+@* *@
+@*     public class DeliveryAddress *@
+@*     { *@
+@*         public int AddressId { get; set; } *@
+@*         public string Name { get; set; } = string.Empty; *@
+@*         public string Phone { get; set; } = string.Empty; *@
+@*         public string Address { get; set; } = string.Empty; *@
+@*         public string FullAddress { get; set; } = string.Empty; *@
+@*         public bool? AddressType { get; set; } *@
+@*         public int IsDefault { get; set; } *@
+@*         public Province? Province { get; set; } *@
+@*         public District? District { get; set; } *@
+@*         public Commune? Commune { get; set; } *@
+@*     } *@
+@* *@
+@*     public class Province { public string ProvinceName { get; set; } = string.Empty; } *@
+@*     public class District { public string DistrictName { get; set; } = string.Empty; } *@
+@*     public class Commune { public string CommuneName { get; set; } = string.Empty; } *@
+@* *@
+@*     public class RankInfo *@
+@*     { *@
+@*         public string RankName { get; set; } = string.Empty; *@
+@*         public decimal CurrentPoint { get; set; } *@
+@*         public decimal FinalPointNeed { get; set; } *@
+@*         public decimal DiscountOfPoint { get; set; } *@
+@*     } *@
+@* *@
+@*     public class Coupon *@
+@*     { *@
+@*         public int Id { get; set; } *@
+@*         public int Type { get; set; } *@
+@*         public decimal Discount { get; set; } *@
+@*         public decimal MaxDiscount { get; set; } *@
+@*         public decimal MinOrder { get; set; } *@
+@*         public DateTime FinishDate { get; set; } *@
+@*         public int IsEnabled { get; set; } *@
+@*         public int IsEnabledOverTurn { get; set; } *@
+@*         public int TotalUse { get; set; } *@
+@*     } *@
+@* *@
+@*     public class ExportBillModel *@
+@*     { *@
+@*         [Required] public string TaxCode { get; set; } = ""; *@
+@*         [Required] public string Name { get; set; } = ""; *@
+@*         [Required] public string Email { get; set; } = ""; *@
+@*         [Required] public string Phone { get; set; } = ""; *@
+@*         [Required] public string Address { get; set; } = ""; *@
+@*         public string Note { get; set; } = ""; *@
+@*     } *@
+@* *@
+@*     public class HiddenDataModel *@
+@*     { *@
+@*         public bool IsBuyNow { get; set; } *@
+@*         public List<CartItem> LstProductForPayment { get; set; } = new(); *@
+@*         public int DefaultVoucherForAllProductId { get; set; } = -1; *@
+@*         public decimal DisCountValueOfAllProduct { get; set; } *@
+@*         public bool IsUsePoint { get; set; } *@
+@*         public int DefaultDeliveryId { get; set; } = -1; *@
+@*     } *@
+@* *@
+@*     protected override async Task OnInitializedAsync() *@
+@*     { *@
+@*         await LoadInitialData(); *@
+@*     } *@
+@* *@
+@*     private async Task LoadInitialData() *@
+@*     { *@
+@*         try *@
+@*         { *@
+@*             await GetCartItems(); *@
+@*             await GetDeliveryAddress(); *@
+@*             await GetDiscountFromMember(); *@
+@*         } *@
+@*         catch (Exception ex) *@
+@*         { *@
+@*             MessageService.Error($"Lỗi khi tải dữ liệu: {ex.Message}"); *@
+@*         } *@
+@*     } *@
+@* *@
+@*     private async Task GetCartItems() *@
+@*     { *@
+@*         var cart = await CartClient.GetCurrentCartAsync(); *@
+@*         CartItems = (cart?.Items ?? new()) *@
+@*             .Select(i => new CartItem *@
+@*             { *@
+@*                 Id = i.Id, *@
+@*                 ProductId = i.ProductDetailId, *@
+@*                 Quantity = i.Quantity, *@
+@*                 Price = (decimal)i.Price, *@
+@*                 Discount = (decimal)i.Discount, *@
+@*                 ProductName = $"SP {i.ProductDetailId.ToString().Substring(0, 8)}" *@
+@*             }) *@
+@*             .ToList(); *@
+@*         GrandTotalCount = CartItems.Sum(ci => CalcPriceAfterDiscount(ci.Price, ci.Discount) * ci.Quantity); *@
+@*         FinalTotalAmount = GrandTotalCount - DiscountValueOfAllProduct; *@
+@*     } *@
+@* *@
+@*     private Task GetDeliveryAddress() => Task.CompletedTask; *@
+@*     private Task GetDiscountFromMember() => Task.CompletedTask; *@
+@* *@
+@*     private static decimal CalcPriceAfterDiscount(decimal price, decimal discount) *@
+@*         => discount > 100 ? price - discount : price * (1 - discount / 100m); *@
+@* *@
+@*     private static string FormatNumber(decimal number) *@
+@*         => number.ToString("N0", new System.Globalization.CultureInfo("vi-VN")); *@
+@* *@
+@*     private static string GetDateFormat(DateTime date) *@
+@*         => date.ToString("dd/MM/yyyy"); *@
+@* *@
+@*     private void HandleRedirectToCart() *@
+@*     { *@
+@*         Navigation.NavigateTo("/cart"); *@
+@*     } *@
+@* *@
+@*     private void ShowModalDelivery() *@
+@*     { *@
+@*         OpenDeliveryModal = true; // UI only; no-op for now *@
+@*     } *@
+@* *@
+@*     private void ShowCreateOrUpdateAddress() *@
+@*     { *@
+@*         OpenCreateOrUpdateAddressModal = true; *@
+@*         OpenDeliveryModal = false; *@
+@*     } *@
+@* *@
+@*     private void HandleOkVoucher() => OpenVoucherModal = false; *@
+@*     private void HandleCancelVoucher() => OpenVoucherModal = false; *@
+@*     private void HandleOkDelivery() => OpenDeliveryModal = false; *@
+@*     private void HandleCancelDelivery() => OpenDeliveryModal = false; *@
+@* *@
+@*     private async Task PaymentProcess() *@
+@*     { *@
+@*         var currentCart = await CartClient.GetCurrentCartAsync(); *@
+@*         var cartItemIds = currentCart?.Items?.Select(i => i.Id).ToList() ?? new List<Guid>(); *@
+@*         if (cartItemIds.Count == 0) *@
+@*         { *@
+@*             MessageService.Warning("Không có sản phẩm để đặt hàng"); *@
+@*             return; *@
+@*         } *@
+@*         var resp = await CartClient.CheckoutAsync(cartItemIds); *@
+@*         if (resp?.ResponseStatus == BaseStatus.Success) *@
+@*         { *@
+@*             MessageService.Success("Đặt hàng thành công"); *@
+@*             if (PaymentMethod == 2) *@
+@*             { *@
+@*                 var createPayment = new MeoMeo.Contract.DTOs.Order.CreatePaymentUrlDTO *@
+@*                 { *@
+@*                     OrderId = resp.OrderId, *@
+@*                     Amount = resp.Amount, *@
+@*                     Description = $"Thanh toan don hang {resp.OrderId} luc {DateTime.Now:dd/MM/yyyy HH:mm}", *@
+@*                 }; *@
+@*                 var payUrl = await OrderClient.CreateVnpayPaymentUrlAsync(createPayment); *@
+@*                 if (!string.IsNullOrWhiteSpace(payUrl)) *@
+@*                 { *@
+@*                     Navigation.NavigateTo(payUrl, forceLoad: true); *@
+@*                     return; *@
+@*                 } *@
+@*             } *@
+@*             Navigation.NavigateTo("/orders"); *@
+@*         } *@
+@*         else *@
+@*         { *@
+@*             MessageService.Error(resp?.Message ?? "Đặt hàng thất bại"); *@
+@*         } *@
+@*     } *@
+@* } *@

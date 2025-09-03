@@ -1,38 +1,43 @@
-﻿<!DOCTYPE html>
+﻿@using Microsoft.AspNetCore.Components.Authorization
+
+<!DOCTYPE html>
 <html lang="en">
 
 <head>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <base href="/" />
-    <link href="_content/AntDesign/css/ant-design-blazor.css" rel="stylesheet" />
-    <link rel="stylesheet" href="bootstrap/bootstrap.min.css" />
-    <link rel="icon" type="image/png" href="favicon.png" />
+    <meta charset="utf-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <base href="/"/>
+    <link href="_content/AntDesign/css/ant-design-blazor.css" rel="stylesheet"/>
+    <link rel="stylesheet" href="bootstrap/bootstrap.min.css"/>
+    <link rel="icon" type="image/png" href="favicon.png"/>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/swiper@9/swiper-bundle.min.css" />
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/swiper@9/swiper-bundle.min.css"/>
     <link
         href="https://fonts.googleapis.com/css2?family=Jost:wght@300;400;500&family=Lato:wght@300;400;700&display=swap"
         rel="stylesheet">
-    <link rel="stylesheet" href="app.css" />
-    <link rel="stylesheet" href="MeoMeo.PORTAL.styles.css" />
-    <HeadOutlet @rendermode="new InteractiveServerRenderMode(prerender: true)" />
+    <link rel="stylesheet" href="_content/Radzen.Blazor/css/standard-base.css">
+    <link rel="stylesheet" href="app.css"/>
+    <link rel="stylesheet" href="MeoMeo.PORTAL.styles.css"/>
+    <HeadOutlet @rendermode="new InteractiveServerRenderMode(prerender: false)"/>
 </head>
 
 
 <body data-bs-spy="scroll" data-bs-target="#navbar" data-bs-root-margin="0px 0px -40%" data-bs-smooth-scroll="true"
-    tabindex="0">
-    <div class="page-wrapper">
-        <main>
-            <Routes @rendermode="RenderMode.InteractiveServer" />
-        </main>
-    </div>
-    <script src="_framework/blazor.web.js"></script>
-    <script src="_content/AntDesign/js/ant-design-blazor.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/jquery@3.6.0/dist/jquery.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/swiper/swiper-bundle.min.js"></script>
-    <script src="js/site.js"></script>
+      tabindex="0">
+<div class="page-wrapper">
+    <main>
+
+        <Routes @rendermode="new InteractiveServerRenderMode(prerender: false)"/>
+    </main>
+</div>
+<script src="_framework/blazor.web.js"></script>
+<script src="_content/AntDesign/js/ant-design-blazor.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/jquery@3.6.0/dist/jquery.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/swiper/swiper-bundle.min.js"></script>
+<script src="js/site.js"></script>
+<script src="_content/Radzen.Blazor/Radzen.Blazor.js"></script>
 </body>
 
 </html>

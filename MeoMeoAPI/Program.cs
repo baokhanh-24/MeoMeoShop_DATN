@@ -11,6 +11,8 @@ using MeoMeo.API.Extensions;
 using MeoMeo.Domain.Commons;
 using MeoMeo.EntityFrameworkCore.Commons;
 using MeoMeo.Shared.Middlewares;
+using MeoMeo.Shared.VnPay;
+using MeoMeo.Shared.VnPay.Models;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -40,10 +42,6 @@ builder.Services.AddScoped<IImageRepository, ImageRepository>();
 builder.Services.AddScoped<IImageService, ImageService>();
 builder.Services.AddScoped<IColourRepository, ColourRepository>();
 builder.Services.AddScoped<IColourService, ColourService>();
-builder.Services.AddScoped<IProductDetaillColourRepository, ProductDetaillColourRepository>();
-builder.Services.AddScoped<IProductDetaillColourService, ProductDetaillColourService>();
-builder.Services.AddScoped<IProductDetaillSizeRepository, ProductDetaillSizeRepository>();
-builder.Services.AddScoped<IProductDetaillSizeService, ProductDetaillSizeService>();
 builder.Services.AddScoped<ISizeRepository, SizeRepository>();
 builder.Services.AddScoped<ISizeService, SizeService>();
 builder.Services.AddScoped<IOrderRepository, OrderRepository>();
@@ -53,6 +51,7 @@ builder.Services.AddScoped<IOrderDetailService, OrderDetailService>();
 builder.Services.AddScoped<IDeliveryAddressRepository, DeliveryAddressRepository>();
 builder.Services.AddScoped<IDeliveryAddressService, DeliveryAddressService>();
 builder.Services.AddScoped<IProvinceRepository, ProvinceRepository>();
+builder.Services.AddScoped<ICommuneRepository, CommuneRepository>();
 builder.Services.AddScoped<IProvinceService, ProvinceService>();
 builder.Services.AddScoped<IIventoryBatchReposiory, InventoryBatchRepository>();
 builder.Services.AddScoped<IInventoryBatchServices, InventoryBatchService>();
@@ -70,11 +69,12 @@ builder.Services.AddScoped<IPromotionDetailRepository, PromotionDetailRepository
 builder.Services.AddScoped<IPromotionDetailServices, PromotionDetailServices>();
 builder.Services.AddScoped<IVoucherRepository, VoucherRepository>();
 builder.Services.AddScoped<IVoucherService, VoucherServices>();
+builder.Services.AddScoped<ICommuneService, CommuneService>();
 builder.Services.AddScoped<IUserRepository, UserRepository>();
 builder.Services.AddScoped<IUserService, UserService>();
 builder.Services.AddScoped<IOrderDetailInventoryBatchRepository, OrderDetailInventoryBatchRepository>();
 builder.Services.AddScoped<IOrderHistoryRepository, OrderHistoryRepository>();
-builder.Services.AddScoped<IProductDetailMaterialRepository, ProductDetailMaterialRepository>();
+builder.Services.AddScoped<IProductMaterialRepository, ProductMaterialRepository>();
 // builder.Services.AddScoped<IUserServices, UserServices>();
 builder.Services.AddScoped<IEmployeeRepository, EmployeeRepository>();
 builder.Services.AddScoped<IEmployeeServices, EmployeeServices>();
@@ -95,6 +95,7 @@ builder.Services.AddScoped<ISystemConfigService, SystemConfigService>();
 builder.Services.AddScoped<ICategoryRepository, CategoryRepository>();
 builder.Services.AddScoped<ICategoryService, CategoryService>();
 builder.Services.AddScoped<IProductCategoryRepository, ProductCategoryRepository>();
+builder.Services.AddScoped<IProductReviewRepository, ProductReviewRepository>();
 
 // Auth Service Dependencies
 builder.Services.AddScoped<IRefreshTokenRepository, RefreshTokenRepository>();
@@ -103,11 +104,11 @@ builder.Services.AddScoped<IPermissionRepository, PermissionRepository>();
 builder.Services.AddScoped<IPermissionGroupRepository, PermissionGroupRepository>();
 builder.Services.AddScoped<IRoleRepository, RoleRepository>();
 builder.Services.AddScoped<IUserRoleRepository, UserRoleRepository>();
-
+builder.Services.Configure<PaymentOptions>(builder.Configuration.GetSection(PaymentOptions.SectionName));
+builder.Services.AddSingleton<IVnpay, Vnpay>();
 // Auth Service
 builder.Services.AddScoped<IAuthService, AuthService>();
-
-
+builder.Services.AddHttpContextAccessor();
 builder.Services.AddAutoMapper(typeof(MeoMeoAutoMapperProfile));
 builder.Services.AddControllers(options =>
 {

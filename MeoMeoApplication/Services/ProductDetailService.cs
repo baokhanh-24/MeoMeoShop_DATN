@@ -1,6 +1,7 @@
 ﻿using AutoMapper;
 using MeoMeo.Application.IServices;
 using MeoMeo.Contract.Commons;
+using MeoMeo.Contract.DTOs.Product;
 using MeoMeo.Contract.DTOs.ProductDetail;
 using MeoMeo.Domain.Commons;
 using MeoMeo.Domain.Commons.Enums;
@@ -19,15 +20,13 @@ namespace MeoMeo.Application.Services
         private readonly IProductRepository _productRepository;
         private readonly IBrandRepository _brandRepository;
         private readonly ISizeRepository _sizeRepository;
-        private readonly IProductDetaillSizeRepository _productDetaillSizeRepository;
         private readonly IProductSeasonRepository _productSeasonRepository;
         private readonly ISeasonRepository _seasonRepository;
         private readonly IPromotionDetailRepository _promotionDetailRepository;
-        private readonly IProductDetaillColourRepository _productDetaillColourRepository;
         private readonly IColourRepository _colourRepository;
         private readonly IMaterialRepository _materialRepository;
         private readonly IImageRepository _imageRepository;
-        private readonly IProductDetailMaterialRepository _productDetailMaterialRepository;
+        private readonly IProductMaterialRepository _productMaterialRepository;
         private readonly ICategoryRepository _categoryRepository;
         private readonly IProductCategoryRepository _productCategoryRepository;
         private readonly IUnitOfWork _unitOfWork;
@@ -37,11 +36,10 @@ namespace MeoMeo.Application.Services
 
         public ProductDetailService(IProductsDetailRepository productDetailRepository,
             IProductRepository productRepository, IBrandRepository brandRepository, ISizeRepository sizeRepository,
-            IProductDetaillSizeRepository productDetaillSizeRepository,
             IProductSeasonRepository productSeasonRepository, ISeasonRepository seasonRepository,
             IPromotionDetailRepository promotionDetailRepository,
-            IProductDetaillColourRepository productDetaillColourRepository, IMaterialRepository materialRepository,
-            IImageRepository imageRepository, IProductDetailMaterialRepository productDetailMaterialRepository,
+             IMaterialRepository materialRepository,
+            IImageRepository imageRepository, IProductMaterialRepository productMaterialRepository,
             ICategoryRepository categoryRepository, IProductCategoryRepository productCategoryRepository,
             IUnitOfWork unitOfWork, IMapper mapper, IColourRepository colourRepository,
             IIventoryBatchReposiory inventoryRepository)
@@ -50,14 +48,12 @@ namespace MeoMeo.Application.Services
             _productRepository = productRepository;
             _brandRepository = brandRepository;
             _sizeRepository = sizeRepository;
-            _productDetaillSizeRepository = productDetaillSizeRepository;
             _productSeasonRepository = productSeasonRepository;
             _seasonRepository = seasonRepository;
             _promotionDetailRepository = promotionDetailRepository;
-            _productDetaillColourRepository = productDetaillColourRepository;
             _materialRepository = materialRepository;
             _imageRepository = imageRepository;
-            _productDetailMaterialRepository = productDetailMaterialRepository;
+            _productMaterialRepository = productMaterialRepository;
             _categoryRepository = categoryRepository;
             _productCategoryRepository = productCategoryRepository;
             _unitOfWork = unitOfWork;
@@ -88,11 +84,7 @@ namespace MeoMeo.Application.Services
                 {
                     detailQuery = detailQuery.Where(p => EF.Functions.Like(p.Sku, $"%{request.SKUFilter}%"));
                 }
-
-                if (request.GenderFilter != null)
-                {
-                    detailQuery = detailQuery.Where(p => p.Gender == request.GenderFilter);
-                }
+                
 
                 if (request.StockHeightFilter != null)
                 {
@@ -137,8 +129,6 @@ namespace MeoMeo.Application.Services
                         ProductName = product.Name,
                         detail.Price,
                         detail.Sku,
-                        detail.Description,
-                        detail.Gender,
                         detail.StockHeight,
                         detail.ViewNumber,
                         detail.SellNumber,
@@ -152,43 +142,43 @@ namespace MeoMeo.Application.Services
                     };
                 switch (request.SortField)
                 {
-                    case EProductDetailSortField.Name:
+                    case EProductSortField.Name:
                         mainQuery = request.SortDirection == ESortDirection.Desc
                             ? mainQuery.OrderByDescending(x => x.ProductName)
                             : mainQuery.OrderBy(x => x.ProductName);
                         break;
 
-                    case EProductDetailSortField.Price:
+                    case EProductSortField.Price:
                         mainQuery = request.SortDirection == ESortDirection.Desc
                             ? mainQuery.OrderByDescending(x => x.Price)
                             : mainQuery.OrderBy(x => x.Price);
                         break;
 
-                    case EProductDetailSortField.Discount:
+                    case EProductSortField.Discount:
                         mainQuery = request.SortDirection == ESortDirection.Desc
                             ? mainQuery.OrderByDescending(x => x.Discount)
                             : mainQuery.OrderBy(x => x.Discount);
                         break;
 
-                    case EProductDetailSortField.CreationTime:
+                    case EProductSortField.CreationTime:
                         mainQuery = request.SortDirection == ESortDirection.Desc
                             ? mainQuery.OrderByDescending(x => x.CreationTime)
                             : mainQuery.OrderBy(x => x.CreationTime);
                         break;
 
-                    case EProductDetailSortField.StockQuantity:
+                    case EProductSortField.StockQuantity:
                         mainQuery = request.SortDirection == ESortDirection.Desc
                             ? mainQuery.OrderByDescending(x => x.InventoryQuantity)
                             : mainQuery.OrderBy(x => x.InventoryQuantity);
                         break;
 
-                    case EProductDetailSortField.ViewNumber:
+                    case EProductSortField.ViewNumber:
                         mainQuery = request.SortDirection == ESortDirection.Desc
                             ? mainQuery.OrderByDescending(x => x.ViewNumber)
                             : mainQuery.OrderBy(x => x.ViewNumber);
                         break;
 
-                    case EProductDetailSortField.SellNumber:
+                    case EProductSortField.SellNumber:
                         mainQuery = request.SortDirection == ESortDirection.Desc
                             ? mainQuery.OrderByDescending(x => x.SellNumber)
                             : mainQuery.OrderBy(x => x.SellNumber);
@@ -208,26 +198,26 @@ namespace MeoMeo.Application.Services
                 var productDetailIds = mainResults.Select(x => x.Id);
                 var productIds = mainResults.Select(x => x.ProductId);
                 var imagesDict = await _imageRepository.Query()
-                    .Where(i => productDetailIds.Contains(i.ProductDetailId))
-                    .GroupBy(i => i.ProductDetailId)
+                    .Where(i => productDetailIds.Contains(i.ProductId))
+                    .GroupBy(i => i.ProductId)
                     .ToDictionaryAsync(g => g.Key, g => g.Select(x => x.URL).ToList());
 
-                var sizesDict = await (from pds in _productDetaillSizeRepository.Query()
-                        join s in _sizeRepository.Query() on pds.SizeId equals s.Id
-                        where productDetailIds.Contains(pds.ProductDetailId)
-                        group s.Value by pds.ProductDetailId)
-                    .ToDictionaryAsync(g => g.Key, g => string.Join(", ", g));
+                // var sizesDict = await (from pds in _productDetaillSizeRepository.Query()
+                //         join s in _sizeRepository.Query() on pds.SizeId equals s.Id
+                //         where productDetailIds.Contains(pds.ProductDetailId)
+                //         group s.Value by pds.ProductDetailId)
+                //     .ToDictionaryAsync(g => g.Key, g => string.Join(", ", g));
+                //
+                // var coloursDict = await (from pdc in _productDetaillColourRepository.Query()
+                //         join c in _colourRepository.Query() on pdc.ColourId equals c.Id
+                //         where productDetailIds.Contains(pdc.ProductDetailId)
+                //         group c.Name by pdc.ProductDetailId)
+                //     .ToDictionaryAsync(g => g.Key, g => string.Join(", ", g));
 
-                var coloursDict = await (from pdc in _productDetaillColourRepository.Query()
-                        join c in _colourRepository.Query() on pdc.ColourId equals c.Id
-                        where productDetailIds.Contains(pdc.ProductDetailId)
-                        group c.Name by pdc.ProductDetailId)
-                    .ToDictionaryAsync(g => g.Key, g => string.Join(", ", g));
-
-                var materialsDict = await (from pdm in _productDetailMaterialRepository.Query()
+                var materialsDict = await (from pdm in _productMaterialRepository.Query()
                         join m in _materialRepository.Query() on pdm.MaterialId equals m.Id
-                        where productDetailIds.Contains(pdm.ProductDetailId)
-                        group m.Name by pdm.ProductDetailId)
+                        where productIds.Contains(pdm.ProductId)
+                        group m.Name by pdm.ProductId)
                     .ToDictionaryAsync(g => g.Key, g => string.Join(", ", g));
 
                 var categoriesDict = await (from pdc in _productCategoryRepository.Query()
@@ -246,21 +236,19 @@ namespace MeoMeo.Application.Services
                         ProductName = main.ProductName,
                         Price = main.Price,
                         Sku = main.Sku,
-                        Description = main.Description,
-                        Gender = main.Gender,
                         StockHeight = main.StockHeight,
                         ClosureType = main.ClosureType,
                         OutOfStock = main.OutOfStock,
                         AllowReturn = main.AllowReturn,
-                        Status = main.Status,
+                        Status = Convert.ToInt32(main.Status),
                         ViewNumber = main.ViewNumber,
                         SellNumber = main.SellNumber,
                         InventoryQuantity = main.InventoryQuantity ?? 0,
                         Discount = main.Discount ?? 0,
                         Images = hasImages ? string.Join(", ", imageList) : string.Empty,
                         Thumbnail = hasImages ? imageList.FirstOrDefault() : string.Empty,
-                        Sizes = sizesDict.TryGetValue(main.Id, out var sizes) ? sizes : string.Empty,
-                        Colours = coloursDict.TryGetValue(main.Id, out var colours) ? colours : string.Empty,
+                        // Sizes = sizesDict.TryGetValue(main.Id, out var sizes) ? sizes : string.Empty,
+                        // Colours = coloursDict.TryGetValue(main.Id, out var colours) ? colours : string.Empty,
                         Materials = materialsDict.TryGetValue(main.Id, out var materials) ? materials : string.Empty,
                         Categories =
                             categoriesDict.TryGetValue(main.ProductId, out var categories) ? categories : string.Empty,
@@ -300,23 +288,23 @@ namespace MeoMeo.Application.Services
                     return new CreateOrUpdateProductDetailDTO();
                 }
 
-                var sizeIds = _productDetaillSizeRepository.Query()
-                    .Where(x => x.ProductDetailId == id)
-                    .Select(x => x.SizeId)
-                    .ToList();
-
-                var colourIds = _productDetaillColourRepository.Query()
-                    .Where(x => x.ProductDetailId == id)
-                    .Select(x => x.ColourId)
-                    .ToList();
+                // var sizeIds = _productDetaillSizeRepository.Query()
+                //     .Where(x => x.ProductDetailId == id)
+                //     .Select(x => x.SizeId)
+                //     .ToList();
+                //
+                // var colourIds = _productDetaillColourRepository.Query()
+                //     .Where(x => x.ProductDetailId == id)
+                //     .Select(x => x.ColourId)
+                //     .ToList();
 
                 var seasonIds = _productSeasonRepository.Query()
                     .Where(x => x.ProductId == productDetail.Product.Id)
                     .Select(x => x.SeasonId)
                     .ToList();
 
-                var materialIds = _productDetailMaterialRepository.Query()
-                    .Where(x => x.ProductDetailId == id)
+                var materialIds = _productMaterialRepository.Query()
+                    .Where(x => x.ProductId == id)
                     .Select(x => x.MaterialId)
                     .ToList();
 
@@ -326,7 +314,7 @@ namespace MeoMeo.Application.Services
                     .ToList();
 
                 var images = _imageRepository.Query()
-                    .Where(x => x.ProductDetailId == id)
+                    .Where(x => x.ProductId == id)
                     .Select(i => new ProductMediaUpload
                     {
                         Id = i.Id,
@@ -344,16 +332,14 @@ namespace MeoMeo.Application.Services
                     ProductId = productDetail.ProductDetail.ProductId,
                     ProductName = productDetail.Product.Name,
                     Price = productDetail.ProductDetail.Price,
-                    Description = productDetail.ProductDetail.Description,
-                    Gender = productDetail.ProductDetail.Gender,
                     StockHeight = productDetail.ProductDetail.StockHeight,
                     ClosureType = productDetail.ProductDetail.ClosureType,
                     OutOfStock = productDetail.ProductDetail.OutOfStock,
                     AllowReturn = productDetail.ProductDetail.AllowReturn,
-                    Status = productDetail.ProductDetail.Status,
+                    Status = Convert.ToInt32(productDetail.ProductDetail.Status),
                     BrandId = productDetail.Product.BrandId,
-                    SizeIds = sizeIds,
-                    ColourIds = colourIds,
+                    // SizeIds = sizeIds,
+                    // ColourIds = colourIds,
                     SeasonIds = seasonIds,
                     MaterialIds = materialIds,
                     CategoryIds = categoryIds,
@@ -401,25 +387,25 @@ namespace MeoMeo.Application.Services
                 mappedProductDetail.Sku = SkuGenerator.GenerateNextSku(latestSKU);
                 var response = await _productDetailRepository.CreateProductDetailAsync(mappedProductDetail);
 
-                if (productDetail.SizeIds.Any())
-                {
-                    var sizeEntities = productDetail.SizeIds.Select(sizeId => new ProductDetailSize
-                    {
-                        ProductDetailId = mappedProductDetail.Id,
-                        SizeId = sizeId
-                    });
-                    await _productDetaillSizeRepository.AddRangeAsync(sizeEntities);
-                }
-
-                if (productDetail.ColourIds.Any())
-                {
-                    var colourEntities = productDetail.ColourIds.Select(colourId => new ProductDetailColour
-                    {
-                        ProductDetailId = mappedProductDetail.Id,
-                        ColourId = colourId
-                    });
-                    await _productDetaillColourRepository.AddRangeAsync(colourEntities);
-                }
+                // if (productDetail.SizeIds.Any())
+                // {
+                //     var sizeEntities = productDetail.SizeIds.Select(sizeId => new ProductDetailSize
+                //     {
+                //         ProductDetailId = mappedProductDetail.Id,
+                //         SizeId = sizeId
+                //     });
+                //     await _productDetaillSizeRepository.AddRangeAsync(sizeEntities);
+                // }
+                //
+                // if (productDetail.ColourIds.Any())
+                // {
+                //     var colourEntities = productDetail.ColourIds.Select(colourId => new ProductDetailColour
+                //     {
+                //         ProductDetailId = mappedProductDetail.Id,
+                //         ColourId = colourId
+                //     });
+                //     await _productDetaillColourRepository.AddRangeAsync(colourEntities);
+                // }
 
                 if (productDetail.SeasonIds.Any())
                 {
@@ -433,12 +419,12 @@ namespace MeoMeo.Application.Services
 
                 if (productDetail.MaterialIds.Any())
                 {
-                    var materialEntities = productDetail.MaterialIds.Select(materialId => new ProductDetailMaterial
+                    var materialEntities = productDetail.MaterialIds.Select(materialId => new ProductMaterial
                     {
-                        ProductDetailId = mappedProductDetail.Id,
+                        ProductId = mappedProductDetail.ProductId,
                         MaterialId = materialId
                     });
-                    await _productDetailMaterialRepository.AddRangeAsync(materialEntities);
+                    await _productMaterialRepository.AddRangeAsync(materialEntities);
                 }
 
                 if (productDetail.CategoryIds.Any())
@@ -460,7 +446,7 @@ namespace MeoMeo.Application.Services
                         {
                             Id = Guid.NewGuid(),
                             Name = file.FileName,
-                            ProductDetailId = mappedProductDetail.Id,
+                            ProductId = mappedProductDetail.Id,
                             Type = Convert.ToInt32(file.FileType),
                             URL = file.RelativePath
                         };
@@ -508,7 +494,7 @@ namespace MeoMeo.Application.Services
                 }
 
                 // Xử lý ảnh: xóa ảnh cũ không còn, thêm ảnh mới
-                var oldImages = (await _imageRepository.GetAllImage()).Where(x => x.ProductDetailId == productDetail.Id)
+                var oldImages = (await _imageRepository.GetAllImage()).Where(x => x.ProductId == productDetail.Id)
                     .ToList();
                 var newImageIds =
                     productDetail.MediaUploads?.Where(i => i.Id != null).Select(i => i.Id.Value).ToList() ??
@@ -528,7 +514,7 @@ namespace MeoMeo.Application.Services
                         var image = new Image
                         {
                             Id = Guid.NewGuid(),
-                            ProductDetailId = productDetail.Id.Value,
+                            ProductId = productDetail.Id.Value,
                             Name = file.FileName,
                             Type = file.FileType ?? 0,
                             URL = file.RelativePath
@@ -537,39 +523,39 @@ namespace MeoMeo.Application.Services
                     }
                 }
 
-                // Thêm lại dữ liệu mới
-                if (productDetail.SizeIds.Any())
-                {
-                    // Xóa sizes cũ
-                    var oldSizes = await _productDetaillSizeRepository.Query()
-                        .Where(x => x.ProductDetailId == productDetail.Id.Value)
-                        .ToListAsync();
-                    await _productDetaillSizeRepository.DeleteRangeAsync(oldSizes);
-
-                    // Thêm sizes mới
-                    var sizeEntities = productDetail.SizeIds.Select(sizeId => new ProductDetailSize
-                    {
-                        ProductDetailId = productDetail.Id.Value,
-                        SizeId = sizeId
-                    });
-                    await _productDetaillSizeRepository.AddRangeAsync(sizeEntities);
-                }
-
-                if (productDetail.ColourIds.Any())
-                {
-                    // Xóa colours cũ
-                    var oldColours = await _productDetaillColourRepository.Query()
-                        .Where(x => x.ProductDetailId == productDetail.Id.Value)
-                        .ToListAsync();
-                    await _productDetaillColourRepository.DeleteRangeAsync(oldColours);
-                    // Thêm colours mới
-                    var colourEntities = productDetail.ColourIds.Select(colourId => new ProductDetailColour
-                    {
-                        ProductDetailId = productDetail.Id.Value,
-                        ColourId = colourId
-                    });
-                    await _productDetaillColourRepository.AddRangeAsync(colourEntities);
-                }
+                // // Thêm lại dữ liệu mới
+                // if (productDetail.SizeIds.Any())
+                // {
+                //     // Xóa sizes cũ
+                //     var oldSizes = await _productDetaillSizeRepository.Query()
+                //         .Where(x => x.ProductDetailId == productDetail.Id.Value)
+                //         .ToListAsync();
+                //     await _productDetaillSizeRepository.DeleteRangeAsync(oldSizes);
+                //
+                //     // Thêm sizes mới
+                //     var sizeEntities = productDetail.SizeIds.Select(sizeId => new ProductDetailSize
+                //     {
+                //         ProductDetailId = productDetail.Id.Value,
+                //         SizeId = sizeId
+                //     });
+                //     await _productDetaillSizeRepository.AddRangeAsync(sizeEntities);
+                // }
+                //
+                // if (productDetail.ColourIds.Any())
+                // {
+                //     // Xóa colours cũ
+                //     var oldColours = await _productDetaillColourRepository.Query()
+                //         .Where(x => x.ProductDetailId == productDetail.Id.Value)
+                //         .ToListAsync();
+                //     await _productDetaillColourRepository.DeleteRangeAsync(oldColours);
+                //     // Thêm colours mới
+                //     var colourEntities = productDetail.ColourIds.Select(colourId => new ProductDetailColour
+                //     {
+                //         ProductDetailId = productDetail.Id.Value,
+                //         ColourId = colourId
+                //     });
+                //     await _productDetaillColourRepository.AddRangeAsync(colourEntities);
+                // }
 
                 if (productDetail.SeasonIds.Any())
                 {
@@ -589,17 +575,17 @@ namespace MeoMeo.Application.Services
                 if (productDetail.MaterialIds.Any())
                 {
                     // Xóa materials cũ
-                    var oldMaterials = await _productDetailMaterialRepository.Query()
-                        .Where(x => x.ProductDetailId == productDetail.Id.Value)
+                    var oldMaterials = await _productMaterialRepository.Query()
+                        .Where(x => x.ProductId == productDetail.Id.Value)
                         .ToListAsync();
-                    await _productDetailMaterialRepository.DeleteRangeAsync(oldMaterials);
+                    await _productMaterialRepository.DeleteRangeAsync(oldMaterials);
                     // Thêm materials mới
-                    var materialEntities = productDetail.MaterialIds.Select(materialId => new ProductDetailMaterial
+                    var materialEntities = productDetail.MaterialIds.Select(materialId => new ProductMaterial
                     {
-                        ProductDetailId = productDetail.Id.Value,
+                        ProductId = productDetail.Id.Value,
                         MaterialId = materialId
                     });
-                    await _productDetailMaterialRepository.AddRangeAsync(materialEntities);
+                    await _productMaterialRepository.AddRangeAsync(materialEntities);
                 }
 
                 if (productDetail.CategoryIds.Any())
@@ -642,7 +628,7 @@ namespace MeoMeo.Application.Services
         public async Task<List<Image>> GetOldImagesAsync(Guid productDetailId)
         {
             var allImages = await _imageRepository.GetAllImage();
-            return allImages.Where(x => x.ProductDetailId == productDetailId).ToList();
+            return allImages.Where(x => x.ProductId == productDetailId).ToList();
         }
     }
 }

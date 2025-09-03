@@ -28,6 +28,13 @@ namespace MeoMeo.API.Controllers
             var result = await _districtService.GetAllAsync();
             return Ok(result);
         }
+
+        [HttpGet("by-province/{provinceId}")]
+        public async Task<IActionResult> GetByProvinceId(Guid provinceId)
+        {
+            var result = await _districtService.GetByProvinceIdAsync(provinceId);
+            return Ok(result);
+        }
         [HttpPost("create-district")]
         public async Task<IActionResult> CreateDistrict([FromBody] CreateOrUpdateDistrictDTO districtDTO)
         {

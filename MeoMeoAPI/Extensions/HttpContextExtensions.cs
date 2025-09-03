@@ -16,15 +16,26 @@ public static class HttpContextExtensions
         string email = claim?.Value;
         return email;
     }
-    public static int GetUserIdOfUserLogin(this HttpContext httpContext)
+    public static Guid GetCurrentUserId(this HttpContext httpContext)
     {
         bool isValidToken = httpContext.Request.Headers.TryGetValue(HeaderNames.Authorization, out var tokenString);
         if (!isValidToken || string.IsNullOrEmpty(tokenString.ToString()))
-            return default;
+            return  Guid.Empty;
         var jwtEncodedString = tokenString.ToString()[7..];
         var token = new JwtSecurityToken(jwtEncodedString);
         var claim = token.Claims.FirstOrDefault(x => x.Type == "id");
-        int UserId = Convert.ToInt32( claim?.Value);
+        var UserId = claim?.Value != null ? Guid.Parse(claim.Value) : Guid.Empty;
         return UserId;
+    }  
+    public static Guid GetCurrentCustomerId(this HttpContext httpContext)
+    {
+        bool isValidToken = httpContext.Request.Headers.TryGetValue(HeaderNames.Authorization, out var tokenString);
+        if (!isValidToken || string.IsNullOrEmpty(tokenString.ToString()))
+            return  Guid.Empty;
+        var jwtEncodedString = tokenString.ToString()[7..];
+        var token = new JwtSecurityToken(jwtEncodedString);
+        var claim = token.Claims.FirstOrDefault(x => x.Type == "customerId");
+        var customerId = claim?.Value != null ? Guid.Parse(claim.Value) : Guid.Empty;
+        return customerId;
     }
 }

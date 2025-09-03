@@ -9,7 +9,7 @@ namespace MeoMeo.Contract.DTOs
     public class ImageDTO
     {
         public Guid? Id { get; set; }
-        public Guid ProductDetailId { get; set; }
+        public Guid ProductId { get; set; }
         public string Name { get; set; }
         public int Type { get; set; }
         public string Url { get; set; }

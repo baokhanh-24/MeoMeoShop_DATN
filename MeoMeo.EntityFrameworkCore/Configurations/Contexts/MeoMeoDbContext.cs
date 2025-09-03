@@ -28,10 +28,7 @@ namespace MeoMeo.EntityFrameworkCore.Configurations.Contexts
         public DbSet<OrderDetail> orderDetails { get; set; }
         public DbSet<Product> products { get; set; }
         public DbSet<ProductDetail> productDetails { get; set; }
-        
-        public DbSet<ProductDetailColour> productDetailColours { get; set; }
-        public DbSet<ProductDetailMaterial> productDetailMaterials { get; set; }
-        public DbSet<ProductDetailSize> productDetailSizes { get; set; }
+        public DbSet<ProductMaterial> productMaterials { get; set; }
         public DbSet<ProductSeason> productSeasons { get; set; }
         public DbSet<Promotion> promotions { get; set; }
         public DbSet<PromotionDetail> promotionDetails { get; set; }
@@ -48,6 +45,7 @@ namespace MeoMeo.EntityFrameworkCore.Configurations.Contexts
         public DbSet<ProductCategory> productCategories { get; set; }
         public DbSet<Permission> permissions { get; set; }
         public DbSet<PermissionGroup> permissionGroups { get; set; }
+        public DbSet<ProductReview> productReviews { get; set; }
         public DbSet<Role> roles { get; set; }
         public DbSet<RolePermission> rolePermissions { get; set; }
         public DbSet<UserRole> userRoles { get; set; }
@@ -80,9 +78,7 @@ namespace MeoMeo.EntityFrameworkCore.Configurations.Contexts
             modelBuilder.ApplyConfiguration(new OrderDetailConfiguration());
             modelBuilder.ApplyConfiguration(new ProductConfiguration());
             modelBuilder.ApplyConfiguration(new ProductDetailConfiguration());
-            modelBuilder.ApplyConfiguration(new ProductDetailColourConfiguration());
-            modelBuilder.ApplyConfiguration(new ProductDetailMaterialConfiguration());
-            modelBuilder.ApplyConfiguration(new ProductDetailSizeConfiguration());
+            modelBuilder.ApplyConfiguration(new ProductConfiguration());
             modelBuilder.ApplyConfiguration(new ProductSeasonConfiguration());
             modelBuilder.ApplyConfiguration(new PromotionConfiguration());
             modelBuilder.ApplyConfiguration(new PromotionDetailConfiguration());
@@ -98,10 +94,13 @@ namespace MeoMeo.EntityFrameworkCore.Configurations.Contexts
             modelBuilder.ApplyConfiguration(new CategoryConfiguration());
             modelBuilder.ApplyConfiguration(new ProductCategoryConfiguration());
             modelBuilder.ApplyConfiguration(new PermissionGroupConfiguration());
+            modelBuilder.ApplyConfiguration(new PermissionConfiguration());
             modelBuilder.ApplyConfiguration(new RoleConfiguration());
             modelBuilder.ApplyConfiguration(new RolePermissionConfiguration());
             modelBuilder.ApplyConfiguration(new UserRoleConfiguration());
             modelBuilder.ApplyConfiguration(new UserTokenConfiguration());
+            modelBuilder.ApplyConfiguration(new ProductMaterialConfiguration());
+            modelBuilder.ApplyConfiguration(new ProductReviewConfiguration());
 
         }
     }

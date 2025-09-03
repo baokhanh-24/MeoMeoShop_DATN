@@ -50,4 +50,11 @@ public class OrderClientService:IOrderClientService
         var response = await _httpClient.GetAsync<GetListOrderHistoryResponseDTO>(url);
         return response ?? new GetListOrderHistoryResponseDTO();
     }
+
+    public async Task<string> CreateVnpayPaymentUrlAsync(CreatePaymentUrlDTO request)
+    {
+        var url = "/api/Orders/take-vn-pay";
+        var response = await _httpClient.PostAsync<CreatePaymentUrlDTO, string>(url, request);
+        return response ?? string.Empty;
+    }
 }

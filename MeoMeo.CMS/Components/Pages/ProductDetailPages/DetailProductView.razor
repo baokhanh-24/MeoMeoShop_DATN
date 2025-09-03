@@ -1,7 +1,10 @@
 @page "/product-detail/{id:guid}"
+@using System.ComponentModel.DataAnnotations
+@using System.Reflection
 @using MeoMeo.Contract.DTOs.Product
 @using MeoMeo.Contract.DTOs.ProductDetail
 @using MeoMeo.Contract.Commons
+@using MeoMeo.Domain.Commons.Enums
 @using MeoMeo.Shared.IServices
 @using MeoMeo.Shared.Utilities
 @inject IProductClientService ProductService
@@ -378,29 +381,29 @@ else if (previewType == "video")
             isLoading = true;
             StateHasChanged();
 
-            // Call actual API service
-            var response = await ProductService.GetProductDetailAsync(Id);
-            if (response.IsSuccess && response.Data != null)
-            {
-                model = response.Data;
-
-                // Sample file data - replace with actual API call
-                fileList = new List<FileViewDto>
-{
-new() { Url = "/images/sample1.jpg", Name = "Image 1", Type = "image/jpeg" },
-new() { Url = "/images/sample2.jpg", Name = "Image 2", Type = "image/jpeg" },
-new() { Url = "/videos/sample.mp4", Name = "Video 1", Type = "video/mp4" }
-};
-
-                fileThumbnailList = new List<FileViewDto>
-{
-new() { Url = "/images/thumbnail.jpg", Name = "Thumbnail", Type = "image/jpeg" }
-};
-            }
-            else
-            {
-                await MessageModalService.Error(response.Message ?? "Không thể tải dữ liệu sản phẩm");
-            }
+            // // Call actual API service
+            // var response = await ProductService.GetProductDetailAsync(Id);
+            // if (response)
+            // {
+            // model = response;
+            //
+            // // Sample file data - replace with actual API call
+            // fileList = new List<FileViewDto>
+            // {
+            // new() { Url = "/images/sample1.jpg", Name = "Image 1", Type = "image/jpeg" },
+            // new() { Url = "/images/sample2.jpg", Name = "Image 2", Type = "image/jpeg" },
+            // new() { Url = "/videos/sample.mp4", Name = "Video 1", Type = "video/mp4" }
+            // };
+            //
+            // fileThumbnailList = new List<FileViewDto>
+            // {
+            // new() { Url = "/images/thumbnail.jpg", Name = "Thumbnail", Type = "image/jpeg" }
+            // };
+            // }
+            // else
+            // {
+            // await MessageModalService.Error(response.Message ?? "Không thể tải dữ liệu sản phẩm");
+            // }
         }
         catch (Exception ex)
         {
@@ -436,9 +439,11 @@ new() { Url = "/images/thumbnail.jpg", Name = "Thumbnail", Type = "image/jpeg" }
 
         if (model == null) return buttons;
 
-        switch (model.Status)
+        var status = (EProductStatus)model.Status;
+
+        switch (status)
         {
-            case 0: // Lưu tạm
+            case EProductStatus.Draft:
                 buttons.Add(new ActionButton("Sửa", "edit", "btn-edit w-100px", HandleEdit));
                 buttons.Add(new ActionButton("Xóa", "delete", "btn-deny-outline w-100px", HandleDelete));
                 buttons.Add(new ActionButton("Gửi duyệt", "send", "btn-send", HandleSendApproval));
@@ -446,13 +451,13 @@ new() { Url = "/images/thumbnail.jpg", Name = "Thumbnail", Type = "image/jpeg" }
                 buttons.Add(new ActionButton("Quay lại", "arrow-left", "btn-back", HandleGoBack));
                 break;
 
-            case 1: // Đang bán
+            case EProductStatus.Selling:
                 buttons.Add(new ActionButton("Ngừng bán", "stop", "btn-reset", HandleStopSelling));
                 buttons.Add(new ActionButton("Lịch sử", "history", "btn-back", HandleViewHistory));
                 buttons.Add(new ActionButton("Quay lại", "arrow-left", "btn-back", HandleGoBack));
                 break;
 
-            case 2: // Ngừng bán
+            case EProductStatus.StopSelling:
                 buttons.Add(new ActionButton("Sửa", "edit", "btn-edit w-100px", HandleEdit));
                 buttons.Add(new ActionButton("Xóa", "delete", "btn-deny-outline w-100px", HandleDelete));
                 buttons.Add(new ActionButton("Công bố", "notification", "btn-send", HandleAnnounce));
@@ -460,7 +465,7 @@ new() { Url = "/images/thumbnail.jpg", Name = "Thumbnail", Type = "image/jpeg" }
                 buttons.Add(new ActionButton("Quay lại", "arrow-left", "btn-back", HandleGoBack));
                 break;
 
-            case 3: // Chờ duyệt
+            case EProductStatus.Pending:
                 buttons.Add(new ActionButton("Xóa", "delete", "btn-deny-outline w-100px", HandleDelete));
                 buttons.Add(new ActionButton("Phê duyệt", "check-circle", "btn-save-outline", HandleApprove));
                 buttons.Add(new ActionButton("Từ chối", "close-circle", "btn-deny-outline", HandleReject));
@@ -469,15 +474,7 @@ new() { Url = "/images/thumbnail.jpg", Name = "Thumbnail", Type = "image/jpeg" }
                 buttons.Add(new ActionButton("Quay lại", "arrow-left", "btn-back", HandleGoBack));
                 break;
 
-            case 4: // Đã duyệt
-                buttons.Add(new ActionButton("Sửa", "edit", "btn-edit w-100px", HandleEdit));
-                buttons.Add(new ActionButton("Xóa", "delete", "btn-delete w-100px", HandleDelete));
-                buttons.Add(new ActionButton("Công bố", "notification", "btn-send", HandleAnnounce));
-                buttons.Add(new ActionButton("Lịch sử", "history", "btn-back", HandleViewHistory));
-                buttons.Add(new ActionButton("Quay lại", "arrow-left", "btn-back", HandleGoBack));
-                break;
-
-            case 5: // Bị từ chối
+            case EProductStatus.Rejected:
                 buttons.Add(new ActionButton("Sửa", "edit", "btn-edit w-100px", HandleEdit));
                 buttons.Add(new ActionButton("Xóa", "delete", "btn-deny-outline w-100px", HandleDelete));
                 buttons.Add(new ActionButton("Gửi duyệt", "send", "btn-send", HandleSendApproval));
@@ -491,45 +488,51 @@ new() { Url = "/images/thumbnail.jpg", Name = "Thumbnail", Type = "image/jpeg" }
 
     private RenderFragment GetStatusBadge(int status)
     {
-        return status switch
+        var productStatus = (EProductStatus)status;
+        var displayAttribute = productStatus.GetType()
+        .GetField(productStatus.ToString())
+        ?.GetCustomAttribute<DisplayAttribute>();
+
+        var statusName = displayAttribute?.Name ?? productStatus.ToString();
+
+        return productStatus switch
         {
-            0 => @<div class="status-temp">
+            EProductStatus.Draft => @<div class="status-temp">
     <span>
         <Icon Type="dot-chart" Style="margin-right: 8px;" />
-        Lưu tạm
+        @statusName
     </span>
 </div>,
-1 => @<div class="status-announced">
+EProductStatus.Selling => @<div class="status-announced">
     <span>
         <Icon Type="dot-chart" Style="margin-right: 8px;" />
-        Đang bán
+        @statusName
     </span>
 </div>,
-2 => @<div class="status-retracted">
+EProductStatus.StopSelling => @<div class="status-retracted">
     <span>
         <Icon Type="dot-chart" Style="margin-right: 8px;" />
-        Ngừng bán
+        @statusName
     </span>
 </div>,
-3 => @<div class="status-pending">
+EProductStatus.Pending => @<div class="status-pending">
     <span>
         <Icon Type="dot-chart" Style="margin-right: 8px;" />
-        Chờ duyệt
+        @statusName
     </span>
 </div>,
-4 => @<div class="status-approved">
+EProductStatus.Rejected => @<div class="status-rejected">
     <span>
         <Icon Type="dot-chart" Style="margin-right: 8px;" />
-        Đã duyệt
+        @statusName
     </span>
 </div>,
-5 => @<div class="status-rejected">
+_ => @<div class="status-default">
     <span>
         <Icon Type="dot-chart" Style="margin-right: 8px;" />
-        Bị từ chối
+        @statusName
     </span>
-</div>,
-_ => @<div></div>
+</div>
 };
     }
 

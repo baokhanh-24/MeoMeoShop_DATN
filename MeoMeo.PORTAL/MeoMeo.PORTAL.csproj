@@ -11,6 +11,7 @@
       <PackageReference Include="AntDesign" Version="1.4.1" />
       <PackageReference Include="AntDesign.Extensions.Localization" Version="1.4.1.1" />
       <PackageReference Include="Blazored.Video" Version="1.0.1" />
+      <PackageReference Include="Radzen.Blazor" Version="7.1.6" />
     </ItemGroup>
 
     <ItemGroup>
@@ -37,11 +38,6 @@
       <ProjectReference Include="..\MeoMeo.Contract\MeoMeo.Contract.csproj" />
       <ProjectReference Include="..\MeoMeo.Shared\MeoMeo.Shared.csproj" />
       <ProjectReference Include="..\MeoMeoDomain\MeoMeo.Domain.csproj" />
-    </ItemGroup>
-
-    <ItemGroup>
-      <Folder Include="IServices\" />
-      <Folder Include="Services\" />
     </ItemGroup>
 
 </Project>

@@ -1,0 +1,216 @@
+.product-name {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+.product-img {
+    .ant-image {
+        width: 100% !important;
+    }
+}
+
+.image-holder {
+    height: 301px !important;
+    .ant-image-img {
+        height: 301px !important;
+        object-fit: contain;
+    }
+}
+
+/* Product Price Section */
+.product-price-section {
+    padding: 8px 0;
+    margin-top: 8px;
+}
+
+.discount-badge {
+    position: absolute;
+    top: -5px;
+    right: 0;
+    background: #ff4757;
+    color: white;
+    padding: 4px 8px;
+    border-radius: 12px;
+    font-size: 12px;
+    font-weight: bold;
+    z-index: 1;
+}
+
+.discount-text {
+    color: white;
+}
+
+.item-price {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    font-weight: 600;
+}
+
+.original-price {
+    text-decoration: line-through;
+    color: #999;
+    font-size: 14px;
+    font-weight: normal;
+}
+
+.discounted-price {
+    color: #ff4757;
+    font-size: 16px;
+    font-weight: bold;
+}
+
+/* Horizontal Layout Price Styling */
+.price-container {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+.original-price-horizontal {
+    text-decoration: line-through;
+    color: #999;
+    font-size: 14px;
+}
+
+.discounted-price-horizontal {
+    color: #ff4757;
+    font-size: 16px;
+    font-weight: bold;
+}
+
+.discount-percent-horizontal {
+    background: #ff4757;
+    color: white;
+    padding: 2px 6px;
+    border-radius: 8px;
+    font-size: 12px;
+    font-weight: bold;
+}
+
+.product-origin-price {
+    color: #333;
+    font-size: 16px;
+    font-weight: 600;
+}
+
+/* Product Card Hover Effects */
+.product-card {
+    transition: all 0.3s ease;
+}
+
+.product-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+/* Cart Button Styling */
+.cart-button .btn {
+    transition: all 0.3s ease;
+}
+
+.cart-button .btn:hover {
+    background-color: #333;
+    color: white;
+}
+
+/* Popover Customization */
+:global(.ant-popover) {
+    z-index: 1050;
+}
+
+:global(.ant-popover-inner) {
+    border-radius: 8px;
+    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.12);
+}
+
+:global(.ant-popover-title) {
+    border-bottom: 1px solid #f0f0f0;
+    padding: 12px 16px;
+    margin: 0;
+    font-weight: 600;
+    color: #333;
+}
+
+:global(.ant-popover-inner-content) {
+    padding: 0;
+}
+
+/* Variant Selection Popover */
+:global(.variant-selection-popover .ant-popover-inner) {
+    padding: 0;
+    border-radius: 8px;
+    overflow: hidden;
+}
+
+:global(.variant-selection-popover .ant-popover-arrow) {
+    display: none;
+}
+
+:global(.variant-selection-popover .ant-popover-title) {
+    background: #fafafa;
+    border-bottom: 1px solid #f0f0f0;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+    .discount-badge {
+        font-size: 10px;
+        padding: 2px 6px;
+    }
+
+    .item-price {
+        font-size: 14px;
+    }
+
+    .original-price {
+        font-size: 12px;
+    }
+
+    .discounted-price {
+        font-size: 14px;
+    }
+
+    .price-container {
+        gap: 4px;
+    }
+
+    .original-price-horizontal {
+        font-size: 12px;
+    }
+
+    .discounted-price-horizontal {
+        font-size: 14px;
+    }
+
+    .discount-percent-horizontal {
+        font-size: 10px;
+        padding: 1px 4px;
+    }
+
+    /* Mobile Popover Adjustments */
+    :global(.ant-popover) {
+        max-width: 90vw;
+    }
+
+    :global(.variant-selection-popover .ant-popover-inner) {
+        max-width: 90vw;
+    }
+}
+.tager {
+    font-size: 12px;
+    border-radius: 16px;
+    padding: 4px 8px;
+    background: #b3cde0;
+}
+.tager-color {
+    border-radius: 16px;
+    padding: 4px 8px;
+    background: #fad9c1;
+    font-size: 12px;
+    color: #f37736;
+}
+.btn-add-to-cart {
+    font-size: 0.8rem !important;
+}
