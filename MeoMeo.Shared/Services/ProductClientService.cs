@@ -4,6 +4,9 @@ using MeoMeo.Domain.Commons;
 using MeoMeo.Shared.IServices;
 using MeoMeo.Shared.Utilities;
 using Microsoft.Extensions.Logging;
+using System.Net.Http;
+using System.Text.Json;
+using System.IO;
 
 namespace MeoMeo.Shared.Services
 {
@@ -18,39 +21,76 @@ namespace MeoMeo.Shared.Services
             _logger = logger;
         }
 
-        public async Task<PagingExtensions.PagedResult<ProductDTO>> GetAllProductAsync(GetListProductRequestDTO request)
+        public async Task<PagingExtensions.PagedResult<ProductResponseDTO, GetListProductResponseDTO>>
+            GetAllProductAsync(GetListProductRequestDTO request)
         {
             try
             {
                 var queryString = BuildQuery.ToQueryString(request);
-                var url = $"/api/Product/get-all-product-async?{queryString}";
-                var reponse = await _httpClient.GetAsync<PagingExtensions.PagedResult<ProductDTO>>(url);
-                return reponse ?? new PagingExtensions.PagedResult<ProductDTO>();
+                var url = $"/api/Products/get-paged-products-async?{queryString}";
+                var response = await _httpClient
+                    .GetAsync<PagingExtensions.PagedResult<ProductResponseDTO, GetListProductResponseDTO>>(url);
+                return response ?? new PagingExtensions.PagedResult<ProductResponseDTO, GetListProductResponseDTO>();
             }
             catch (Exception ex)
             {
-
                 _logger.LogError(ex, "Có lỗi khi xảy ra khi lấy danh sách sản phẩm: {Message}", ex.Message);
-                return new PagingExtensions.PagedResult<ProductDTO>();
+                return new PagingExtensions.PagedResult<ProductResponseDTO, GetListProductResponseDTO>();
             }
         }
 
-        public async Task<ApiResponse<DetailProductViewDto>> GetProductDetailAsync(Guid id)
+        public async Task<CreateOrUpdateProductDTO> GetProductDetailAsync(Guid id)
         {
-            throw new NotImplementedException();
+            try
+            {
+                var url = $"/api/Products/get-product-by-id-async/{id}";
+                var response = await _httpClient.GetAsync<CreateOrUpdateProductDTO>(url);
+                return response ?? new CreateOrUpdateProductDTO();
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Có lỗi xảy ra khi lấy sản phẩm");
+                return new CreateOrUpdateProductDTO();
+            }
         }
 
-        public async Task<ApiResponse<bool>> UpdateProductStatusAsync(Guid id, int status)
+        public async Task<ProductResponseDTO> GetProductWithDetailsAsync(Guid id)
         {
-            throw new NotImplementedException();
+            try
+            {
+                var url = $"/api/Products/get-product-with-details/{id}";
+                var response = await _httpClient.GetAsync<ProductResponseDTO>(url);
+                return response ?? new ProductResponseDTO();
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Có lỗi khi lấy chi tiết sản phẩm: {Message}", ex.Message);
+                return new ProductResponseDTO();
+            }
         }
 
-        public async Task<ApiResponse<bool>> DeleteProductAsync(Guid id)
+        public async Task<BaseResponse> CreateProductAsync(CreateOrUpdateProductDTO product)
         {
-            throw new NotImplementedException();
+            try
+            {
+                var url = "/api/Products/create-product-async";
+                var formData = ConvertToFormData(product);
+                var result = await _httpClient.PostFormAsync<BaseResponse>(url, formData);
+                return result ?? new BaseResponse
+                {
+                    ResponseStatus = BaseStatus.Error,
+                    Message = "Không có dữ liệu trả về"
+                };
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Có lỗi xảy ra khi tạo sản phẩm: {Message}", ex.Message);
+                return new BaseResponse
+                    { ResponseStatus = BaseStatus.Error, Message = ex.Message };
+            }
         }
 
-        public async Task<ApiResponse<List<ProductHistoryDto>>> GetProductHistoryAsync(Guid id)
+        public async Task<BaseResponse> UpdateProductAsync(CreateOrUpdateProductDTO product)
         {
             try
             {
@@ -68,7 +108,7 @@ namespace MeoMeo.Shared.Services
                 _logger.LogError(ex, "Có lỗi xảy ra khi cập nhật sản phẩm {Id}: {Message}", product.Id,
                     ex.Message);
                 return new BaseResponse
-                { ResponseStatus = BaseStatus.Error, Message = ex.Message };
+                    { ResponseStatus = BaseStatus.Error, Message = ex.Message };
             }
         }
 
@@ -89,7 +129,7 @@ namespace MeoMeo.Shared.Services
                 _logger.LogError(ex, "Có lỗi xảy ra khi cập nhật trạng thái sản phẩm {Id}: {Message}", input.Id,
                     ex.Message);
                 return new BaseResponse
-                { ResponseStatus = BaseStatus.Error, Message = ex.Message };
+                    { ResponseStatus = BaseStatus.Error, Message = ex.Message };
             }
         }
 
@@ -119,7 +159,7 @@ namespace MeoMeo.Shared.Services
             {
                 _logger.LogError(ex, "Có lỗi xảy ra khi xóa sản phẩm {Id}: {Message}", id, ex.Message);
                 return new BaseResponse
-                { ResponseStatus = BaseStatus.Error, Message = ex.Message };
+                    { ResponseStatus = BaseStatus.Error, Message = ex.Message };
             }
         }
 
@@ -157,9 +197,9 @@ namespace MeoMeo.Shared.Services
         {
             var formData = new MultipartFormDataContent();
             // Basic fields
-            formData.Add(new StringContent(product.Id.HasValue ? product.Id.Value.ToString() : ""), "Id");
-            formData.Add(new StringContent(string.IsNullOrEmpty(product.Name) ? "" : product.Name), "Name");
-            formData.Add(new StringContent(string.IsNullOrEmpty(product.Description) ? "" : product.Description), "Description");
+            formData.Add(new StringContent(product.Id.HasValue? product.Id.Value.ToString():""), "Id");
+            formData.Add(new StringContent(string.IsNullOrEmpty(product.Name)?"":product.Name), "Name");
+            formData.Add(new StringContent(string.IsNullOrEmpty(product.Description)?"":product.Description), "Description");
             formData.Add(new StringContent(product.BrandId.ToString()), "BrandId");
             if (product.SeasonIds.Any())
             {
@@ -189,14 +229,14 @@ namespace MeoMeo.Shared.Services
                     {
                         formData.Add(new StringContent(variant.Id.Value.ToString()),
                             $"ProductVariants[{i}].Id");
-                    }
+                    }   
                     if (variant.ProductId.HasValue)
                     {
                         formData.Add(new StringContent(variant.ProductId.Value.ToString()),
                             $"ProductVariants[{i}].ProductId");
                     }
                     formData.Add(new StringContent(variant.SizeId.ToString()), $"ProductVariants[{i}].SizeId");
-                    formData.Add(new StringContent(String.IsNullOrEmpty(variant.Sku) ? "" : variant.Sku), $"ProductVariants[{i}].Sku");
+                    formData.Add(new StringContent(String.IsNullOrEmpty(variant.Sku)?"":variant.Sku), $"ProductVariants[{i}].Sku");
                     formData.Add(new StringContent(variant.ColourId.ToString()), $"ProductVariants[{i}].ColourId");
                     formData.Add(new StringContent(variant.Price.ToString()), $"ProductVariants[{i}].Price");
                     formData.Add(new StringContent(variant.OutOfStock.ToString()), $"ProductVariants[{i}].OutOfStock");

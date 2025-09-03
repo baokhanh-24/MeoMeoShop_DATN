@@ -5,6 +5,8 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using MeoMeo.Contract.Commons;
+using MeoMeo.Domain.Commons;
 
 namespace MeoMeo.Application.IServices
 {

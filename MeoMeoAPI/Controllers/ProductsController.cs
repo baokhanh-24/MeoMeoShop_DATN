@@ -1,6 +1,11 @@
 ﻿using MeoMeo.Application.IServices;
 using MeoMeo.Contract.DTOs.Product;
+using MeoMeo.Contract.Commons;
+using MeoMeo.Shared.Utilities;
+using MeoMeo.Domain.Commons;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Http;
+using MeoMeo.API.Extensions;
 
 namespace MeoMeo.API.Controllers
 {
@@ -9,11 +14,14 @@ namespace MeoMeo.API.Controllers
     public class ProductsController : ControllerBase
     {
         private readonly IProductServices _productServices;
+        private readonly IWebHostEnvironment _environment;
 
-        public ProductsController(IProductServices productServices)
+        public ProductsController(IProductServices productServices, IWebHostEnvironment environment)
         {
             _productServices = productServices;
+            _environment = environment;
         }
+
         [HttpGet("get-all-product-async")]
         public async Task<IActionResult> GetAllProducts()
         {
@@ -139,7 +147,7 @@ namespace MeoMeo.API.Controllers
             }
             catch (Exception ex)
             {
-                return new BaseResponse()
+                return  new BaseResponse()
                 {
                     Message = $"Lỗi khi cập nhật sản phẩm: {ex.Message}",
                     ResponseStatus = BaseStatus.Error
@@ -211,32 +219,26 @@ namespace MeoMeo.API.Controllers
             return Ok(result);
         }
 
-        [HttpGet("find-product-by-id/{id}")]
-        public async Task<IActionResult> GetProductById(Guid id)
+        [HttpPost("create-product-legacy")]
+        public async Task<IActionResult> CreateProductLegacy([FromBody] CreateOrUpdateProductDTO productDto)
         {
-            var result = await _productServices.GetProductByIdAsync(id);
-            return Ok(result);
-        }
-        [HttpPost]
-        public async Task<IActionResult> CreateProduct([FromBody] CreateOrUpdateProductDTO productDto)
-        {
-            var result = await _productServices.CreateProductAsync(productDto);
-            return Ok(result);
-        }
-        [HttpPut("{id}")]
-        public async Task<IActionResult> UpdateProduct(Guid id, [FromBody] CreateOrUpdateProductDTO productDto)
-        {
-            var result = await _productServices.UpdateAsync(productDto);
+            var result = await _productServices.CreateProductAsync(productDto, new List<FileUploadResult>());
             return Ok(result);
         }
 
-        [HttpDelete("{id}")]
-        public async Task<IActionResult> DeleteProduct(Guid id)
+        [HttpPut("update-product-legacy/{id}")]
+        public async Task<IActionResult> UpdateProductLegacy(Guid id, [FromBody] CreateOrUpdateProductDTO productDto)
         {
-            var result = await _productServices.GetProductByIdAsync(id);
+            productDto.Id = id;
+            var result = await _productServices.UpdateAsync(productDto, new List<FileUploadResult>());
+            return Ok(result);
+        }
 
+        [HttpDelete("delete-product-legacy/{id}")]
+        public async Task<IActionResult> DeleteProductLegacy(Guid id)
+        {
+            var result = await _productServices.DeleteAsync(id);
             return Ok(result);
         }
     }
-
 }

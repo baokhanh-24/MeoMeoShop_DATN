@@ -38,7 +38,11 @@ namespace MeoMeo.Application.Services
             IMapper mapper, IOrderDetailRepository orderDetailRepository,
             IInventoryTranSactionRepository inventoryTransactionRepository,
             IProductsDetailRepository productsDetailRepository, IUnitOfWork unitOfWork,
-            IOrderDetailInventoryBatchRepository orderDetailInventoryBatchRepository, ICartDetaillRepository cartDetailRepository, ICartRepository cartRepository, IOrderHistoryRepository orderHistoryRepository, IUserRepository userRepository, IDeliveryAddressRepository deliveryAddressRepository, IEmployeeRepository employeeRepository, ICustomerRepository customerRepository, IProductRepository productRepository)
+            IOrderDetailInventoryBatchRepository orderDetailInventoryBatchRepository,
+            ICartDetaillRepository cartDetailRepository, ICartRepository cartRepository,
+            IOrderHistoryRepository orderHistoryRepository, IUserRepository userRepository,
+            IDeliveryAddressRepository deliveryAddressRepository, IEmployeeRepository employeeRepository,
+            ICustomerRepository customerRepository, IProductRepository productRepository)
         {
             _inventoryRepository = inventoryRepository;
             _orderRepository = orderRepository;
@@ -60,7 +64,8 @@ namespace MeoMeo.Application.Services
         }
 
 
-        public async Task<PagingExtensions.PagedResult<OrderDTO, GetListOrderResponseDTO>> GetListOrderAsync(GetListOrderRequestDTO request)
+        public async Task<PagingExtensions.PagedResult<OrderDTO, GetListOrderResponseDTO>> GetListOrderAsync(
+            GetListOrderRequestDTO request)
         {
             var metaDataValue = new GetListOrderResponseDTO();
             try
@@ -115,6 +120,7 @@ namespace MeoMeo.Application.Services
                 {
                     query = query.Where(o => o.CreationTime <= request.CreationDateEndFilter.Value);
                 }
+
                 if (request.ShippingDateStartFilter.HasValue)
                 {
                     query = query.Where(o => o.DeliveryDate >= request.ShippingDateStartFilter.Value);
@@ -200,8 +206,9 @@ namespace MeoMeo.Application.Services
                 if (!orders.Any())
                 {
                     return new BaseResponse()
-                    { Message = "Không tìm thấy đơn hàng", ResponseStatus = BaseStatus.Error };
+                        { Message = "Không tìm thấy đơn hàng", ResponseStatus = BaseStatus.Error };
                 }
+
                 var currentStatus = orders.First().Status;
                 foreach (var order in orders)
                 {
@@ -241,11 +248,13 @@ namespace MeoMeo.Application.Services
                             ResponseStatus = BaseStatus.Error,
                         };
                     }
+
                     foreach (var orderDetail in listOrderDetails)
                     {
                         var requiredQuantity = orderDetail.Quantity;
                         var availableBatches = await _inventoryRepository.Query()
-                            .Where(x => x.ProductDetailId == orderDetail.ProductDetailId && x.Quantity > 0 && x.Status == EInventoryBatchStatus.Aprroved)
+                            .Where(x => x.ProductDetailId == orderDetail.ProductDetailId && x.Quantity > 0 &&
+                                        x.Status == EInventoryBatchStatus.Aprroved)
                             .OrderBy(x => x.CreationTime)
                             .ToListAsync();
                         foreach (var batch in availableBatches)
@@ -273,7 +282,8 @@ namespace MeoMeo.Application.Services
                         }
                     }
                 }
-                else if ((currentStatus == EOrderStatus.Confirmed || currentStatus == EOrderStatus.InTransit || currentStatus == EOrderStatus.Completed) && request.Status == EOrderStatus.Canceled)
+                else if ((currentStatus == EOrderStatus.Confirmed || currentStatus == EOrderStatus.InTransit ||
+                          currentStatus == EOrderStatus.Completed) && request.Status == EOrderStatus.Canceled)
                 {
                     var orderDetailBatchMappings = await _orderDetailInventoryBatchRepository.Query()
                         .Where(x => orderDetailIds.Contains(x.OrderDetailId))
@@ -294,12 +304,12 @@ namespace MeoMeo.Application.Services
                         });
                     }
                 }
+
                 orders.ForEach(o =>
                 {
                     o.Status = request.Status;
                     o.LastModifiedTime = DateTime.Now;
                     o.Reason = request.Reason;
-
                 });
                 var lstHistory = orders.Select(o =>
                 {
@@ -311,8 +321,10 @@ namespace MeoMeo.Application.Services
                                    """;
                     if (request.Status == EOrderStatus.Canceled && !string.IsNullOrWhiteSpace(request.Reason))
                     {
-                        content += $"""<p><strong>Lý do từ chối:</strong> <span class="status-new">{request.Reason}</span></p>""";
+                        content +=
+                            $"""<p><strong>Lý do từ chối:</strong> <span class="status-new">{request.Reason}</span></p>""";
                     }
+
                     return new OrderHistory
                     {
                         OrderId = o.Id,
@@ -326,7 +338,7 @@ namespace MeoMeo.Application.Services
                 await _orderRepository.UpdateRangeAsync(orders);
                 await _unitOfWork.CommitAsync();
                 return new BaseResponse()
-                { Message = "", ResponseStatus = BaseStatus.Success };
+                    { Message = "", ResponseStatus = BaseStatus.Success };
             }
             catch (Exception ex)
             {
@@ -345,18 +357,18 @@ namespace MeoMeo.Application.Services
             {
                 GetListOrderHistoryResponseDTO response = new GetListOrderHistoryResponseDTO();
                 var orderHistory = await (from oh in _orderHistoryRepository.Query()
-                                          join u in _userRepository.Query() on oh.CreatedBy equals u.Id into userJoin
-                                          from u in userJoin.DefaultIfEmpty()
-                                          where oh.OrderId == orderId
-                                          select new OrderHistoryDTO
-                                          {
-                                              Id = oh.Id,
-                                              CreationTime = oh.CreationTime,
-                                              Content = oh.Content,
-                                              Type = oh.Type,
-                                              OrderId = oh.OrderId,
-                                              Actor = String.IsNullOrEmpty(u.UserName) ? "Admin hệ thống" : u.UserName
-                                          }).OrderByDescending(oh => oh.CreationTime).ToListAsync();
+                    join u in _userRepository.Query() on oh.CreatedBy equals u.Id into userJoin
+                    from u in userJoin.DefaultIfEmpty()
+                    where oh.OrderId == orderId
+                    select new OrderHistoryDTO
+                    {
+                        Id = oh.Id,
+                        CreationTime = oh.CreationTime,
+                        Content = oh.Content,
+                        Type = oh.Type,
+                        OrderId = oh.OrderId,
+                        Actor = String.IsNullOrEmpty(u.UserName) ? "Admin hệ thống" : u.UserName
+                    }).OrderByDescending(oh => oh.CreationTime).ToListAsync();
                 response.Items = orderHistory;
                 return response;
             }
@@ -368,7 +380,6 @@ namespace MeoMeo.Application.Services
                     ResponseStatus = BaseStatus.Error,
                     Message = ex.Message
                 };
-
             }
         }
 
@@ -384,139 +395,152 @@ namespace MeoMeo.Application.Services
                 _ => status.ToString()
             };
         }
+
         public async Task<CreateOrderResultDTO> CreateOrderAsync(Guid customerId, Guid userId, CreateOrderDTO request)
         {
-            var cartDetailItems = await _cartDetailRepository.Query()
-                .Where(c => request.CartItems.Contains(c.Id))
-                .ToListAsync();
-
-            if (!cartDetailItems.Any())
+            try
             {
-                return new CreateOrderResultDTO
-                {
-                    Message = "Không tìm thấy sản phẩm trong giỏ hàng",
-                    ResponseStatus = BaseStatus.Error
-                };
-            }
+                var cartDetailItems = await _cartDetailRepository.Query()
+                    .Where(c => request.CartItems.Contains(c.Id))
+                    .ToListAsync();
 
-            // 2) Xác thực các dòng giỏ thuộc về giỏ của đúng Customer
-            var cartOfCustomer = await _cartRepository.Query()
-                .Where(c => c.CustomerId == customerId)
-                .Select(c => new { c.Id })
-                .FirstOrDefaultAsync();
-            if (cartOfCustomer == null)
-            {
-                return new CreateOrderResultDTO { Message = "Không tìm thấy giỏ hàng của khách", ResponseStatus = BaseStatus.Error };
-            }
-
-            // 3) Kiểm tra tồn kho theo từng biến thể (gom nhóm theo ProductDetailId)
-            var groupedByVariant = cartDetailItems
-                .GroupBy(x => x.ProductDetailId)
-                .Select(g => new { ProductDetailId = g.Key, TotalQty = g.Sum(x => x.Quantity) })
-                .ToList();
-
-            foreach (var g in groupedByVariant)
-            {
-                // Chỉ tính các lô đã duyệt
-                var available = await _inventoryRepository.Query()
-                    .Where(x => x.ProductDetailId == g.ProductDetailId && x.Status == EInventoryBatchStatus.Aprroved)
-                    .SumAsync(x => (int?)x.Quantity) ?? 0;
-                if (g.TotalQty > available)
+                if (!cartDetailItems.Any())
                 {
                     return new CreateOrderResultDTO
                     {
-                        Message = $"Không đủ tồn kho cho biến thể {g.ProductDetailId}. Cần {g.TotalQty}, còn {available}",
+                        Message = "Không tìm thấy sản phẩm trong giỏ hàng",
                         ResponseStatus = BaseStatus.Error
                     };
                 }
-            }
 
-            // 4) Tạo đơn hàng (Pending). Tổng tiền sẽ tính theo các dòng giỏ (giá sau chiết khấu)
-            var orderCode = await GenerateUniqueOrderCodeAsync();
-            var deliInfor = await _deliveryAddressRepository.Query()
-                .FirstOrDefaultAsync(c => c.Id == request.DeliveryAddressId);
-            if (deliInfor == null)
-            {
-                return new CreateOrderResultDTO
+                // 2) Xác thực các dòng giỏ thuộc về giỏ của đúng Customer
+                var cartOfCustomer = await _cartRepository.Query()
+                    .Where(c => c.CustomerId == customerId)
+                    .Select(c => new { c.Id })
+                    .FirstOrDefaultAsync();
+                if (cartOfCustomer == null)
                 {
-                    Message = $"Không tìm thấy địa chỉ giao hàng",
-                    ResponseStatus = BaseStatus.Error
-                };
-            }
+                    return new CreateOrderResultDTO
+                        { Message = "Không tìm thấy giỏ hàng của khách", ResponseStatus = BaseStatus.Error };
+                }
 
-            var customerUser = await _userRepository.Query().FirstOrDefaultAsync(c => c.Id == userId);
-            var order = new Order
-            {
-                Id = Guid.NewGuid(),
-                Code = orderCode,
-                CustomerId = customerId,
-                DeliveryAddress = deliInfor.Address,
-                CustomerName = deliInfor.Name,
-                CustomerEmail = customerUser.Email ?? "",
-                CustomerPhoneNumber = deliInfor.PhoneNumber,
-                VoucherId = request.VoucherId,
-                DeliveryAddressId = request.DeliveryAddressId,
-                Note = request.Note,
-                PaymentMethod = request.PaymentMethod,
-                Type = EOrderType.Online,
-                Status = EOrderStatus.Pending,
-                CreationTime = DateTime.Now
-            };
-            await _orderRepository.AddAsync(order);
+                // 3) Kiểm tra tồn kho theo từng biến thể (gom nhóm theo ProductDetailId)
+                var groupedByVariant = cartDetailItems
+                    .GroupBy(x => x.ProductDetailId)
+                    .Select(g => new { ProductDetailId = g.Key, TotalQty = g.Sum(x => x.Quantity) })
+                    .ToList();
 
-            decimal totalPrice = 0m;
-            // 5) Tạo các dòng chi tiết đơn từ các dòng giỏ
-            foreach (var cart in cartDetailItems)
-            {
-                // Giá cuối cùng dựa trên discount %/số tiền trong giỏ
-                float discount = cart.Discount;
-                var linePriceAfterDiscount = discount > 100
-                    ? cart.Price - discount
-                    : cart.Price * (1 - discount / 100f);
-                totalPrice += (decimal)(linePriceAfterDiscount * cart.Quantity);
-                // Lưu giá gốc và %/tiền giảm để tiện theo dõi, tính toán
-                var productDetailInfor = await _productsDetailRepository.Query()
-                    .FirstOrDefaultAsync(c => c.Id == cart.ProductDetailId);
-                var productInfor = await _productRepository.Query()
-                    .FirstOrDefaultAsync(c => c.Id == productDetailInfor.ProductId);
-                var orderDetail = new OrderDetail
+                foreach (var g in groupedByVariant)
+                {
+                    // Chỉ tính các lô đã duyệt
+                    var available = await _inventoryRepository.Query()
+                        .Where(x => x.ProductDetailId == g.ProductDetailId &&
+                                    x.Status == EInventoryBatchStatus.Aprroved)
+                        .SumAsync(x => (int?)x.Quantity) ?? 0;
+                    if (g.TotalQty > available)
+                    {
+                        return new CreateOrderResultDTO
+                        {
+                            Message =
+                                $"Không đủ tồn kho cho biến thể {g.ProductDetailId}. Cần {g.TotalQty}, còn {available}",
+                            ResponseStatus = BaseStatus.Error
+                        };
+                    }
+                }
+
+                // 4) Tạo đơn hàng (Pending). Tổng tiền sẽ tính theo các dòng giỏ (giá sau chiết khấu)
+                var orderCode = await GenerateUniqueOrderCodeAsync();
+                var deliInfor = await _deliveryAddressRepository.Query()
+                    .FirstOrDefaultAsync(c => c.Id == request.DeliveryAddressId);
+                if (deliInfor == null)
+                {
+                    return new CreateOrderResultDTO
+                    {
+                        Message = $"Không tìm thấy địa chỉ giao hàng",
+                        ResponseStatus = BaseStatus.Error
+                    };
+                }
+
+                var customerUser = await _userRepository.Query().FirstOrDefaultAsync(c => c.Id == userId);
+                var order = new Order
                 {
                     Id = Guid.NewGuid(),
-                    OrderId = order.Id,
-                    ProductName = productInfor.Name,
-                    Sku = productDetailInfor.Sku,
-                    ProductDetailId = cart.ProductDetailId,
-                    Image = productInfor.Thumbnail,
-                    Quantity = cart.Quantity,
-                    Price = cart.Price,
-                    OriginalPrice = cart.Price,
-                    Discount = cart.Discount,
-                    PromotionDetailId = cart.PromotionDetailId == Guid.Empty ? (Guid?)null : cart.PromotionDetailId
+                    Code = orderCode,
+                    CustomerId = customerId,
+                    DeliveryAddress = deliInfor.Address,
+                    CustomerName = deliInfor.Name,
+                    CustomerEmail = customerUser.Email ?? "",
+                    CustomerPhoneNumber = deliInfor.PhoneNumber,
+                    VoucherId = request.VoucherId,
+                    DeliveryAddressId = request.DeliveryAddressId,
+                    Note = request.Note,
+                    PaymentMethod = request.PaymentMethod,
+                    Type = EOrderType.Online,
+                    Status = EOrderStatus.Pending,
+                    CreationTime = DateTime.Now
                 };
-                await _orderDetailRepository.AddAsync(orderDetail);
-            }
-            // Cập nhật tổng tiền đơn
-            order.TotalPrice = totalPrice;
-            await _orderRepository.UpdateAsync(order);
+                await _orderRepository.AddAsync(order);
 
-            // 6) Xoá các dòng giỏ đã checkout và cập nhật lại tổng tiền giỏ còn lại
-            foreach (var cd in cartDetailItems)
-            {
-                await _cartDetailRepository.Delete(cd.Id);
-            }
-            var newCartTotal = await _cartDetailRepository.Query()
-                .Where(d => d.CartId == cartOfCustomer.Id)
-                .SumAsync(i => (decimal)((i.Price - (i.Price * i.Discount / 100f)) * i.Quantity));
-            var cartEntity = await _cartRepository.GetCartById(cartOfCustomer.Id);
-            if (cartEntity != null)
-            {
-                cartEntity.TotalPrice = newCartTotal;
-                await _cartRepository.Update(cartEntity);
-            }
+                decimal totalPrice = 0m;
+                // 5) Tạo các dòng chi tiết đơn từ các dòng giỏ
+                foreach (var cart in cartDetailItems)
+                {
+                    // Giá cuối cùng dựa trên discount %/số tiền trong giỏ
+                    float discount = cart.Discount;
+                    var linePriceAfterDiscount = discount > 100
+                        ? cart.Price - discount
+                        : cart.Price * (1 - discount / 100f);
+                    totalPrice += (decimal)(linePriceAfterDiscount * cart.Quantity);
+                    // Lưu giá gốc và %/tiền giảm để tiện theo dõi, tính toán
+                    var productDetailInfor = await _productsDetailRepository.Query()
+                        .FirstOrDefaultAsync(c => c.Id == cart.ProductDetailId);
+                    var productInfor = await _productRepository.Query()
+                        .FirstOrDefaultAsync(c => c.Id == productDetailInfor.ProductId);
+                    var orderDetail = new OrderDetail
+                    {
+                        Id = Guid.NewGuid(),
+                        OrderId = order.Id,
+                        ProductName = productInfor.Name,
+                        Sku = productDetailInfor.Sku,
+                        ProductDetailId = cart.ProductDetailId,
+                        Image = productInfor.Thumbnail,
+                        Quantity = cart.Quantity,
+                        Price = cart.Price,
+                        OriginalPrice = cart.Price,
+                        Discount = cart.Discount,
+                        PromotionDetailId = cart.PromotionDetailId == Guid.Empty ? (Guid?)null : cart.PromotionDetailId
+                    };
+                    await _orderDetailRepository.AddAsync(orderDetail);
+                }
 
-            await _unitOfWork.CommitAsync();
-            return new CreateOrderResultDTO { ResponseStatus = BaseStatus.Success, Message = "Tạo đơn hàng thành công. Mã đơn hàng của bạn là " + orderCode, OrderId = order.Id, Amount = totalPrice };
-        }
+                // Cập nhật tổng tiền đơn
+                order.TotalPrice = totalPrice;
+                await _orderRepository.UpdateAsync(order);
+
+                // 6) Xoá các dòng giỏ đã checkout và cập nhật lại tổng tiền giỏ còn lại
+                foreach (var cd in cartDetailItems)
+                {
+                    await _cartDetailRepository.Delete(cd.Id);
+                }
+
+                var newCartTotal = await _cartDetailRepository.Query()
+                    .Where(d => d.CartId == cartOfCustomer.Id)
+                    .SumAsync(i => (decimal)((i.Price - (i.Price * i.Discount / 100f)) * i.Quantity));
+                var cartEntity = await _cartRepository.GetCartById(cartOfCustomer.Id);
+                if (cartEntity != null)
+                {
+                    cartEntity.TotalPrice = newCartTotal;
+                    await _cartRepository.Update(cartEntity);
+                }
+
+                await _unitOfWork.CommitAsync();
+                return new CreateOrderResultDTO
+                {
+                    ResponseStatus = BaseStatus.Success,
+                    Message = "Tạo đơn hàng thành công. Mã đơn hàng của bạn là " + orderCode, OrderId = order.Id,
+                    Amount = totalPrice
+                };
+            }
             catch (Exception ex)
             {
                 await _unitOfWork.RollbackAsync();
@@ -524,60 +548,63 @@ namespace MeoMeo.Application.Services
                 {
                     Message = ex.Message,
                     ResponseStatus = BaseStatus.Error
-    };
-}
+                };
+            }
         }
 
 
         public async Task<bool> DeleteOrderAsync(Guid id)
-{
-    var checkOrder = await _orderRepository.GetOrderByIdAsync(id);
-    if (checkOrder.Id != id)
-    {
-        return false;
-    }
-    else
-    {
-        await _orderRepository.DeleteOrderAsync(checkOrder);
-        return true;
-    }
-}
-
-private async Task<string> GenerateUniqueOrderCodeAsync()
-{
-    // Format: MEO-yyyymmdd-XXXXXX (Base36 uppercase), max length 20
-    // Ensure uniqueness by checking existing codes; retry a few times to avoid rare collisions
-    for (int attempt = 0; attempt < 5; attempt++)
-    {
-        var candidate = GenerateOrderCode();
-        var exists = await _orderRepository.Query().AnyAsync(o => o.Code == candidate);
-        if (!exists)
         {
-            return candidate;
+            var checkOrder = await _orderRepository.GetOrderByIdAsync(id);
+            if (checkOrder.Id != id)
+            {
+                return false;
+            }
+            else
+            {
+                await _orderRepository.DeleteOrderAsync(checkOrder);
+                return true;
+            }
         }
-    }
-    // Fallback with extra random chars if repeated collisions (extremely unlikely)
-    return GenerateOrderCode(8);
-}
 
-private static string GenerateOrderCode(int randomChars = 6)
-{
-    var date = DateTime.Now.ToString("yyyyMMdd");
-    using var rng = RandomNumberGenerator.Create();
-    Span<byte> bytes = stackalloc byte[6];
-    rng.GetBytes(bytes);
-    ulong num = BitConverter.ToUInt64(new byte[] { bytes[0], bytes[1], bytes[2], bytes[3], bytes[4], bytes[5], 0, 0 }, 0);
-    const string alphabet = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ";
-    var chars = new char[randomChars];
-    for (int i = 0; i < randomChars; i++)
-    {
-        chars[i] = alphabet[(int)(num % 36)];
-        num /= 36;
-    }
-    Array.Reverse(chars);
-    var code = $"MEO-{date}-{new string(chars)}";
-    return code.Length > 20 ? code.Substring(0, 20) : code; // respect max length
-}
+        private async Task<string> GenerateUniqueOrderCodeAsync()
+        {
+            // Format: MEO-yyyymmdd-XXXXXX (Base36 uppercase), max length 20
+            // Ensure uniqueness by checking existing codes; retry a few times to avoid rare collisions
+            for (int attempt = 0; attempt < 5; attempt++)
+            {
+                var candidate = GenerateOrderCode();
+                var exists = await _orderRepository.Query().AnyAsync(o => o.Code == candidate);
+                if (!exists)
+                {
+                    return candidate;
+                }
+            }
+
+            // Fallback with extra random chars if repeated collisions (extremely unlikely)
+            return GenerateOrderCode(8);
+        }
+
+        private static string GenerateOrderCode(int randomChars = 6)
+        {
+            var date = DateTime.Now.ToString("yyyyMMdd");
+            using var rng = RandomNumberGenerator.Create();
+            Span<byte> bytes = stackalloc byte[6];
+            rng.GetBytes(bytes);
+            ulong num = BitConverter.ToUInt64(
+                new byte[] { bytes[0], bytes[1], bytes[2], bytes[3], bytes[4], bytes[5], 0, 0 }, 0);
+            const string alphabet = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+            var chars = new char[randomChars];
+            for (int i = 0; i < randomChars; i++)
+            {
+                chars[i] = alphabet[(int)(num % 36)];
+                num /= 36;
+            }
+
+            Array.Reverse(chars);
+            var code = $"MEO-{date}-{new string(chars)}";
+            return code.Length > 20 ? code.Substring(0, 20) : code; // respect max length
+        }
 
         // public async Task<CreateOrUpdateOrderResponse> GetOrderByIdAsync(Guid id)
         // {

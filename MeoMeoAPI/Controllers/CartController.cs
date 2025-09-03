@@ -2,6 +2,7 @@
 using MeoMeo.Application.IServices;
 using MeoMeo.Application.Services;
 using MeoMeo.Contract.DTOs;
+using MeoMeo.Contract.DTOs.Order;
 using MeoMeo.Domain.Entities;
 using MeoMeo.Domain.IRepositories;
 using MeoMeo.EntityFrameworkCore.Configurations.Contexts;
@@ -9,6 +10,9 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using System.Security.Claims;
+using AutoMapper;
+using MeoMeo.API.Extensions;
+using MeoMeo.Contract.Commons;
 
 namespace MeoMeo.API.Controllers
 {
@@ -17,22 +21,30 @@ namespace MeoMeo.API.Controllers
     public class CartController : ControllerBase
     {
         private readonly ICartService _cartService;
-        public CartController(ICartService cartService)
+        private readonly IOrderService _orderService;
+        private readonly IHttpContextAccessor _httpContextAccessor;
+        public CartController(ICartService cartService, IHttpContextAccessor httpContextAccessor, IOrderService orderService)
         {
             _cartService = cartService;
+            _httpContextAccessor = httpContextAccessor;
+            _orderService = orderService;
         }
         //
-        [HttpGet]
-        public async Task<IActionResult> GetAll()
+        [HttpGet("get-cart-detail")]
+        public async Task<IActionResult> GetById()
         {
-            var result = await _cartService.GetAllCartsAsync();
+            var customerId = _httpContextAccessor.HttpContext.GetCurrentCustomerId();
+            if (customerId == Guid.Empty)
+            {
+                return BadRequest();
+            }
+            var result = await _cartService.GetCurrentCartAsync(customerId);
             return Ok(result);
         }
-        //
-        [HttpGet("{id}")]
-        public async Task<IActionResult> GetById(Guid id)
+        // add product to cart
+        [HttpPost("addProductToCart")]
+        public async Task<CartResponseDTO> AddProductToCart([FromBody] AddToCartDTO request)
         {
-            var result = await _cartService.GetCartByIdAsync(id);
             var customerId = _httpContextAccessor.HttpContext.GetCurrentCustomerId();
             if (customerId == Guid.Empty)
             {
@@ -97,7 +109,7 @@ namespace MeoMeo.API.Controllers
                 };
             }
             var userId = _httpContextAccessor.HttpContext.GetCurrentUserId();
-            var result = await _orderService.CreateOrderAsync(customerId, userId, request);
+            var result = await _orderService.CreateOrderAsync(customerId,userId,request);
             return result;
         }
 
