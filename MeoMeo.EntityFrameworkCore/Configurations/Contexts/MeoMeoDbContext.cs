@@ -41,6 +41,9 @@ namespace MeoMeo.EntityFrameworkCore.Configurations.Contexts
         public DbSet<Voucher> vouchers { get; set; }
         public DbSet<OrderDetailInventoryBatch> orderDetailInventoryBatches { get; set; }
         public DbSet<OrderHistory> orderHistories { get; set; }
+        public DbSet<OrderReturn> orderReturns { get; set; }
+        public DbSet<OrderReturnItem> orderReturnItems { get; set; }
+        public DbSet<OrderReturnFile> orderReturnFiles { get; set; }
         public DbSet<Category> categories { get; set; }
         public DbSet<ProductCategory> productCategories { get; set; }
         public DbSet<Permission> permissions { get; set; }
@@ -91,6 +94,9 @@ namespace MeoMeo.EntityFrameworkCore.Configurations.Contexts
             modelBuilder.ApplyConfiguration(new VoucherConfiguration());
             modelBuilder.ApplyConfiguration(new OrderDetailInventoryBatchConfiguration());
             modelBuilder.ApplyConfiguration(new OrderHistoryConfiguration());
+            modelBuilder.ApplyConfiguration(new OrderReturnConfiguration());
+            modelBuilder.ApplyConfiguration(new OrderReturnItemConfiguration());
+            modelBuilder.ApplyConfiguration(new OrderReturnFileConfiguration());
             modelBuilder.ApplyConfiguration(new CategoryConfiguration());
             modelBuilder.ApplyConfiguration(new ProductCategoryConfiguration());
             modelBuilder.ApplyConfiguration(new PermissionGroupConfiguration());

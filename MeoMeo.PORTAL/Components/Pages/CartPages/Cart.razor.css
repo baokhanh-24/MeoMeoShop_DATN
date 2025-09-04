@@ -3,6 +3,12 @@
     overflow: hidden;
     text-overflow: ellipsis;
 }
+.prod-name {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 150px;
+}
 .title {
     font-weight: 600;
     color: #000;

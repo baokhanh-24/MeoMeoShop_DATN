@@ -13,6 +13,12 @@ namespace MeoMeo.Domain.Commons.Enums
         [Display(Name = "Đã hủy")]
         Canceled,
         [Display(Name = "Hoàn thành")]
-        Completed
+        Completed,   
+        [Display(Name = "Chờ xác nhận hoàn hàng")]
+        PendingReturn,   
+        [Display(Name = "Đã hoàn hàng")]
+        Returned,   
+        [Display(Name = "Từ chối cho phép hoàn hàng")]
+        RejectReturned,
     }
 }

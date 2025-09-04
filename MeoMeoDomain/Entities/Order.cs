@@ -27,6 +27,8 @@ namespace MeoMeo.Domain.Entities
         public EOrderType Type { get; set; }
         
         public bool? IsTransferred { get; set; }
+        public string? GhnCode { get; set; }
+        public string? ShippingMethod { get; set; }
         public DateTime CreationTime { get; set; } = DateTime.Now;
         public DateTime? LastModifiedTime { get; set; }
         public string? Note { get; set; }

@@ -96,6 +96,10 @@ builder.Services.AddScoped<ICategoryRepository, CategoryRepository>();
 builder.Services.AddScoped<ICategoryService, CategoryService>();
 builder.Services.AddScoped<IProductCategoryRepository, ProductCategoryRepository>();
 builder.Services.AddScoped<IProductReviewRepository, ProductReviewRepository>();
+builder.Services.AddScoped<IOrderReturnRepository, OrderReturnRepository>();
+builder.Services.AddScoped<IOrderReturnItemRepository, OrderReturnItemRepository>();
+builder.Services.AddScoped<IOrderReturnFileRepository, OrderReturnFileRepository>();
+builder.Services.AddScoped<IOrderReturnService, OrderReturnService>();
 
 // Auth Service Dependencies
 builder.Services.AddScoped<IRefreshTokenRepository, RefreshTokenRepository>();

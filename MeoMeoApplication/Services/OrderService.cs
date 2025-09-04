@@ -206,7 +206,7 @@ namespace MeoMeo.Application.Services
                 if (!orders.Any())
                 {
                     return new BaseResponse()
-                        { Message = "Không tìm thấy đơn hàng", ResponseStatus = BaseStatus.Error };
+                    { Message = "Không tìm thấy đơn hàng", ResponseStatus = BaseStatus.Error };
                 }
 
                 var currentStatus = orders.First().Status;
@@ -338,7 +338,7 @@ namespace MeoMeo.Application.Services
                 await _orderRepository.UpdateRangeAsync(orders);
                 await _unitOfWork.CommitAsync();
                 return new BaseResponse()
-                    { Message = "", ResponseStatus = BaseStatus.Success };
+                { Message = "", ResponseStatus = BaseStatus.Success };
             }
             catch (Exception ex)
             {
@@ -357,18 +357,18 @@ namespace MeoMeo.Application.Services
             {
                 GetListOrderHistoryResponseDTO response = new GetListOrderHistoryResponseDTO();
                 var orderHistory = await (from oh in _orderHistoryRepository.Query()
-                    join u in _userRepository.Query() on oh.CreatedBy equals u.Id into userJoin
-                    from u in userJoin.DefaultIfEmpty()
-                    where oh.OrderId == orderId
-                    select new OrderHistoryDTO
-                    {
-                        Id = oh.Id,
-                        CreationTime = oh.CreationTime,
-                        Content = oh.Content,
-                        Type = oh.Type,
-                        OrderId = oh.OrderId,
-                        Actor = String.IsNullOrEmpty(u.UserName) ? "Admin hệ thống" : u.UserName
-                    }).OrderByDescending(oh => oh.CreationTime).ToListAsync();
+                                          join u in _userRepository.Query() on oh.CreatedBy equals u.Id into userJoin
+                                          from u in userJoin.DefaultIfEmpty()
+                                          where oh.OrderId == orderId
+                                          select new OrderHistoryDTO
+                                          {
+                                              Id = oh.Id,
+                                              CreationTime = oh.CreationTime,
+                                              Content = oh.Content,
+                                              Type = oh.Type,
+                                              OrderId = oh.OrderId,
+                                              Actor = String.IsNullOrEmpty(u.UserName) ? "Admin hệ thống" : u.UserName
+                                          }).OrderByDescending(oh => oh.CreationTime).ToListAsync();
                 response.Items = orderHistory;
                 return response;
             }
@@ -421,7 +421,7 @@ namespace MeoMeo.Application.Services
                 if (cartOfCustomer == null)
                 {
                     return new CreateOrderResultDTO
-                        { Message = "Không tìm thấy giỏ hàng của khách", ResponseStatus = BaseStatus.Error };
+                    { Message = "Không tìm thấy giỏ hàng của khách", ResponseStatus = BaseStatus.Error };
                 }
 
                 // 3) Kiểm tra tồn kho theo từng biến thể (gom nhóm theo ProductDetailId)
@@ -467,7 +467,7 @@ namespace MeoMeo.Application.Services
                     Id = Guid.NewGuid(),
                     Code = orderCode,
                     CustomerId = customerId,
-                    DeliveryAddress = deliInfor.Address,
+                    DeliveryAddress = deliInfor.FullAddress,
                     CustomerName = deliInfor.Name,
                     CustomerEmail = customerUser.Email ?? "",
                     CustomerPhoneNumber = deliInfor.PhoneNumber,
@@ -537,8 +537,11 @@ namespace MeoMeo.Application.Services
                 return new CreateOrderResultDTO
                 {
                     ResponseStatus = BaseStatus.Success,
-                    Message = "Tạo đơn hàng thành công. Mã đơn hàng của bạn là " + orderCode, OrderId = order.Id,
-                    Amount = totalPrice
+                    Message = "Tạo đơn hàng thành công. Mã đơn hàng của bạn là " + orderCode,
+                    OrderId = order.Id,
+                    Code = order.Code,
+                    DeliveryAddress = order.DeliveryAddress,
+                    Note = order.Note ?? "",
                 };
             }
             catch (Exception ex)

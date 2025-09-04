@@ -7,8 +7,6 @@ namespace MeoMeo.Domain.Commons.Enums
         [Display(Name = "Tại quyầy")]
         Store,
         [Display(Name = "Online")]
-        Online,
-        [Display(Name = "Đi giao")]
-        Shiiping
+        Online
     }
 }

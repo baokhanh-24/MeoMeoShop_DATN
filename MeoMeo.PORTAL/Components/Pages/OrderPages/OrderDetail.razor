@@ -1,0 +1,572 @@
+@page "/order/{OrderId:guid}"
+@using AntDesign
+@using MeoMeo.Shared.IServices
+@using MeoMeo.Contract.DTOs.Order
+@using MeoMeo.Contract.DTOs.Order.Return
+@using MeoMeo.Contract.Commons
+@using MeoMeo.Contract.DTOs.OrderDetail
+@using MeoMeo.Domain.Commons.Enums
+@inject NavigationManager Navigation
+@inject MessageService MessageService
+@inject IOrderClientService OrderClient
+@inject IOrderReturnClientService OrderReturnClient
+
+<div class="order-detail-container">
+    @if (IsLoading)
+    {
+        <div class="text-center">
+            <Spin Size="SpinSize.Large" />
+            <div class="mt-3">Đang tải thông tin đơn hàng...</div>
+        </div>
+    }
+    else if (Order == null)
+    {
+        <div class="text-center">
+            <div class="error-message">Không tìm thấy đơn hàng</div>
+            <Button Type="@AntDesign.ButtonType.Primary" OnClick="@(() => Navigation.NavigateTo("/orders"))" Class="mt-3">
+                Quay lại danh sách đơn hàng
+            </Button>
+        </div>
+    }
+    else
+    {
+        <div class="order-header">
+            <div class="d-flex justify-content-between align-items-center">
+                <h2>Chi tiết đơn hàng: @Order.Code</h2>
+                <Button Type="@AntDesign.ButtonType.Default" OnClick="@(() => Navigation.NavigateTo("/orders"))">
+                    <Icon Type="arrow-left" />
+                    Quay lại
+                </Button>
+            </div>
+        </div>
+
+        <div class="order-info-section">
+            <h3>Thông tin đơn hàng</h3>
+            <div class="row">
+                <div class="col-md-6">
+                    <div class="info-item">
+                        <span class="label">Trạng thái:</span>
+                        <Tag Color="@GetStatusColor(Order.Status)">
+                            @GetStatusName(Order.Status)
+                        </Tag>
+                    </div>
+                    <div class="info-item">
+                        <span class="label">Ngày tạo:</span>
+                        <span>@Order.CreationTime.ToString("dd/MM/yyyy HH:mm")</span>
+                    </div>
+                    <div class="info-item">
+                        <span class="label">Ngày giao:</span>
+                        <span>@(Order.DeliveryDate?.ToString("dd/MM/yyyy HH:mm") ?? "Chưa giao")</span>
+                    </div>
+                    <div class="info-item">
+                        <span class="label">Ngày nhận:</span>
+                        <span>@(Order.ReceiveDate?.ToString("dd/MM/yyyy HH:mm") ?? "Chưa nhận")</span>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="info-item">
+                        <span class="label">Tổng tiền:</span>
+                        <span class="price">@Order.TotalPrice.ToString("N0") đ</span>
+                    </div>
+                    <div class="info-item">
+                        <span class="label">Phí vận chuyển:</span>
+                        <span>@(Order.ShippingFee?.ToString("N0") ?? "0") đ</span>
+                    </div>
+                    <div class="info-item">
+                        <span class="label">Địa chỉ giao:</span>
+                        <span>@Order.DeliveryAddress</span>
+                    </div>
+                    <div class="info-item">
+                        <span class="label">Ghi chú:</span>
+                        <span>@(string.IsNullOrEmpty(Order.Note) ? "Không có" : Order.Note)</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="order-items-section">
+            <h3>Sản phẩm đã đặt</h3>
+            <div class="order-items">
+                @foreach (var item in OrderDetailsWithReturn)
+                {
+                    <div class="order-item">
+                        <div class="item-image">
+                            <img src="@item.OrderDetail.Image" alt="@item.OrderDetail.ProductName" />
+                        </div>
+                        <div class="item-info">
+                            <div class="item-name">@item.OrderDetail.ProductName</div>
+                            <div class="item-sku">SKU: @item.OrderDetail.Sku</div>
+                            <div class="item-price">@item.OrderDetail.Price.ToString("N0") đ x @item.OrderDetail.Quantity</div>
+                        </div>
+                        <div class="item-total">
+                            @((item.OrderDetail.Price * item.OrderDetail.Quantity).ToString("N0")) đ
+                        </div>
+                    </div>
+                }
+            </div>
+        </div>
+
+        @if (CanCreateReturn)
+        {
+            <div class="return-section">
+                <h3>Yêu cầu hoàn hàng</h3>
+                <div class="return-info">
+                    <Alert Type="@AlertType.Info" ShowIcon="true">
+                        Bạn có thể tạo yêu cầu hoàn hàng trong vòng 5 ngày kể từ ngày nhận hàng.
+                        @if (DaysSinceReceived.HasValue)
+                        {
+                            <span>Còn @(5 - DaysSinceReceived.Value) ngày.</span>
+                        }
+                    </Alert>
+                </div>
+                <Button Type="@AntDesign.ButtonType.Primary" OnClick="@ShowReturnModal" Class="mt-3">
+                    <Icon Type="rollback" />
+                    Tạo yêu cầu hoàn hàng
+                </Button>
+            </div>
+        }
+
+        @if (OrderReturns.Any())
+        {
+            <div class="return-history-section">
+                <h3>Lịch sử yêu cầu hoàn hàng</h3>
+                @foreach (var returnRequest in OrderReturns)
+                {
+                    <div class="return-item">
+                        <div class="return-header">
+                            <span class="return-code">@returnRequest.Code</span>
+                            <Tag Color="@GetReturnStatusColor(returnRequest.Status)">
+                                @GetReturnStatusName(returnRequest.Status)
+                            </Tag>
+                        </div>
+                        <div class="return-details">
+                            <div><strong>Lý do:</strong> @returnRequest.Reason</div>
+                            <div><strong>Phương thức hoàn:</strong> @GetRefundMethodName(returnRequest.RefundMethod)</div>
+                            <div><strong>Ngày tạo:</strong> @returnRequest.CreationTime.ToString("dd/MM/yyyy HH:mm")</div>
+                        </div>
+                    </div>
+                }
+            </div>
+        }
+    }
+</div>
+
+@if (IsReturnModalVisible)
+{
+    <Modal Title="Tạo yêu cầu hoàn hàng" Visible="@IsReturnModalVisible" OnCancel="@HideReturnModal"
+        OnOk="@CreateReturnRequest" OkText="@("Gửi yêu cầu")" CancelText="@("Hủy")" ConfirmLoading="@IsSubmitting">
+        <Form Model="@ReturnRequest" Layout="@FormLayout.Vertical">
+            <FormItem Label="Lý do hoàn hàng" Required>
+                <TextArea @bind-Value="@ReturnRequest.Reason" Rows="3"
+                    Placeholder="Vui lòng mô tả lý do bạn muốn hoàn hàng..." />
+            </FormItem>
+
+            <FormItem Label="Chọn sản phẩm cần hoàn" Required>
+                <div class="return-items-selection">
+                    @foreach (var item in OrderDetailsWithReturn)
+                    {
+                        <div class="return-item-checkbox">
+                            <Checkbox @bind-Checked="@item.IsSelectedForReturn">
+                                @item.OrderDetail.ProductName (SKU: @item.OrderDetail.Sku)
+                            </Checkbox>
+                            @if (item.IsSelectedForReturn)
+                            {
+                                <AntDesign.InputNumber @bind-Value="@item.ReturnQuantity" Min="1" Max="@item.OrderDetail.Quantity"
+                                    Placeholder="Số lượng" />
+                            }
+                        </div>
+                    }
+                </div>
+            </FormItem>
+
+            <FormItem Label="Phương thức nhận tiền" Required>
+                <RadioGroup @bind-Value="@ReturnRequest.RefundMethod">
+                    <Radio Value="@ERefundMethod.BankTransfer">Chuyển khoản</Radio>
+                    <Radio Value="@ERefundMethod.ViaShipper">Nhận qua shipper</Radio>
+                    <Radio Value="@ERefundMethod.InStore">Nhận tại cửa hàng</Radio>
+                </RadioGroup>
+            </FormItem>
+
+            @if (ReturnRequest.RefundMethod == ERefundMethod.BankTransfer)
+            {
+                <FormItem Label="Thông tin ngân hàng">
+                    <Input @bind-Value="@ReturnRequest.BankName" Placeholder="Tên ngân hàng" />
+                    <Input @bind-Value="@ReturnRequest.BankAccountName" Placeholder="Tên chủ tài khoản" Class="mt-2" />
+                    <Input @bind-Value="@ReturnRequest.BankAccountNumber" Placeholder="Số tài khoản" Class="mt-2" />
+                </FormItem>
+            }
+            else
+            {
+                <FormItem Label="Thông tin liên hệ">
+                    <Input @bind-Value="@ReturnRequest.ContactName" Placeholder="Tên người nhận" />
+                    <Input @bind-Value="@ReturnRequest.ContactPhone" Placeholder="Số điện thoại" Class="mt-2" />
+                </FormItem>
+            }
+
+            <FormItem Label="Hình ảnh minh chứng">
+                <Upload @bind-FileList="@UploadedFiles" Multiple="true" Accept="image/*"
+                    ListType="@UploadListType.PictureCard">
+                    <Button Icon="plus">
+                        <Icon Type="plus" />
+                        Tải ảnh
+                    </Button>
+                </Upload>
+            </FormItem>
+        </Form>
+    </Modal>
+}
+
+@code {
+    [Parameter]
+    public Guid OrderId { get; set; }
+
+    private OrderDTO? Order;
+    private List<OrderReturnViewDTO> OrderReturns = new();
+    private List<OrderDetailWithReturn> OrderDetailsWithReturn = new();
+    private bool IsLoading = true;
+    private bool IsReturnModalVisible = false;
+    private bool IsSubmitting = false;
+    private CreateOrderReturnRequestDTO ReturnRequest = new();
+    private List<UploadFileItem> UploadedFiles = new();
+
+    private bool CanCreateReturn => Order?.Status == EOrderStatus.Completed &&
+    Order.ReceiveDate.HasValue &&
+    DaysSinceReceived <= 5;
+
+    private int? DaysSinceReceived => Order?.ReceiveDate.HasValue == true
+    ? (int)(DateTime.Now - Order.ReceiveDate.Value).TotalDays
+    : null;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadOrderData();
+    }
+
+    private async Task LoadOrderData()
+    {
+        try
+        {
+            IsLoading = true;
+            // Load order details
+            var orderResult = await OrderClient.GetListOrderAsync(new GetListOrderRequestDTO
+            {
+                PageIndex = 1,
+                PageSize = 1,
+                CodeFilter = OrderId.ToString() // This might need adjustment based on your API
+            });
+
+            Order = orderResult.Items?.FirstOrDefault();
+
+            if (Order != null)
+            {
+                // Create wrapper objects for order details
+                OrderDetailsWithReturn = Order.OrderDetails.Select(od => new OrderDetailWithReturn
+                {
+                    OrderDetail = od,
+                    IsSelectedForReturn = false,
+                    ReturnQuantity = 0
+                }).ToList();
+
+                // Load return requests for this order
+                OrderReturns = await OrderReturnClient.GetByOrderIdAsync(Order.Id);
+            }
+        }
+        catch (Exception ex)
+        {
+            MessageService.Error($"Lỗi khi tải dữ liệu: {ex.Message}");
+        }
+        finally
+        {
+            IsLoading = false;
+            StateHasChanged();
+        }
+    }
+
+    private void ShowReturnModal()
+    {
+        ReturnRequest = new CreateOrderReturnRequestDTO
+        {
+            OrderId = Order!.Id,
+            Reason = string.Empty,
+            RefundMethod = ERefundMethod.BankTransfer,
+            Items = new List<CreateOrderReturnItemDTO>(),
+            Files = new List<CreateOrderReturnFileDTO>()
+        };
+
+        // Reset selection
+        foreach (var item in OrderDetailsWithReturn)
+        {
+            item.IsSelectedForReturn = false;
+            item.ReturnQuantity = 0;
+        }
+
+        IsReturnModalVisible = true;
+    }
+
+    private void HideReturnModal()
+    {
+        IsReturnModalVisible = false;
+    }
+
+    private async Task CreateReturnRequest()
+    {
+        try
+        {
+            // Validate form
+            if (string.IsNullOrWhiteSpace(ReturnRequest.Reason))
+            {
+                MessageService.Error("Vui lòng nhập lý do hoàn hàng");
+                return;
+            }
+
+            var selectedItems = OrderDetailsWithReturn.Where(x => x.IsSelectedForReturn && x.ReturnQuantity > 0).ToList();
+            if (!selectedItems.Any())
+            {
+                MessageService.Error("Vui lòng chọn ít nhất một sản phẩm để hoàn");
+                return;
+            }
+
+            // Build return items
+            ReturnRequest.Items = selectedItems.Select(x => new CreateOrderReturnItemDTO
+            {
+                OrderDetailId = x.OrderDetail.Id,
+                Quantity = x.ReturnQuantity,
+                Reason = string.Empty
+            }).ToList();
+
+            // Build return files (simplified - you might need to handle actual file uploads)
+            ReturnRequest.Files = UploadedFiles.Select(x => new CreateOrderReturnFileDTO
+            {
+                Url = x.FileName ?? "",
+                Name = x.FileName,
+                ContentType = "image/jpeg"
+            }).ToList();
+
+            IsSubmitting = true;
+            var result = await OrderReturnClient.CreateAsync(ReturnRequest);
+
+            if (result.ResponseStatus == BaseStatus.Success)
+            {
+                MessageService.Success($"Đã tạo yêu cầu hoàn hàng thành công. Mã: {result.Code}");
+                HideReturnModal();
+                await LoadOrderData(); // Reload to show new return request
+            }
+            else
+            {
+                MessageService.Error(result.Message ?? "Không thể tạo yêu cầu hoàn hàng");
+            }
+        }
+        catch (Exception ex)
+        {
+            MessageService.Error($"Lỗi: {ex.Message}");
+        }
+        finally
+        {
+            IsSubmitting = false;
+        }
+    }
+
+    private string GetStatusName(EOrderStatus status) => status switch
+    {
+        EOrderStatus.Pending => "Chờ xác nhận",
+        EOrderStatus.Confirmed => "Đã xác nhận",
+        EOrderStatus.InTransit => "Đang giao",
+        EOrderStatus.Completed => "Hoàn thành",
+        EOrderStatus.Canceled => "Đã hủy",
+        _ => status.ToString()
+    };
+
+    private string GetStatusColor(EOrderStatus status) => status switch
+    {
+        EOrderStatus.Pending => "orange",
+        EOrderStatus.Confirmed => "blue",
+        EOrderStatus.InTransit => "geekblue",
+        EOrderStatus.Completed => "green",
+        EOrderStatus.Canceled => "red",
+        _ => "default"
+    };
+
+    private string GetReturnStatusName(EOrderReturnStatus status) => status switch
+    {
+        EOrderReturnStatus.Pending => "Chờ duyệt",
+        EOrderReturnStatus.Approved => "Đã duyệt",
+        EOrderReturnStatus.Rejected => "Từ chối",
+        EOrderReturnStatus.Received => "Đã nhận hàng",
+        EOrderReturnStatus.Refunded => "Đã hoàn tiền",
+        _ => status.ToString()
+    };
+
+    private string GetReturnStatusColor(EOrderReturnStatus status) => status switch
+    {
+        EOrderReturnStatus.Pending => "orange",
+        EOrderReturnStatus.Approved => "blue",
+        EOrderReturnStatus.Rejected => "red",
+        EOrderReturnStatus.Received => "geekblue",
+        EOrderReturnStatus.Refunded => "green",
+        _ => "default"
+    };
+
+    private string GetRefundMethodName(ERefundMethod method) => method switch
+    {
+        ERefundMethod.BankTransfer => "Chuyển khoản",
+        ERefundMethod.ViaShipper => "Nhận qua shipper",
+        ERefundMethod.InStore => "Nhận tại cửa hàng",
+        _ => method.ToString()
+    };
+
+    private class OrderDetailWithReturn
+    {
+        public OrderDetailDTO OrderDetail { get; set; } = null!;
+        public bool IsSelectedForReturn { get; set; }
+        public int ReturnQuantity { get; set; }
+    }
+}
+
+<style>
+    .order-detail-container {
+        max-width: 1200px;
+        margin: 0 auto;
+        padding: 20px;
+    }
+
+    .order-header h2 {
+        color: #00833D;
+        margin: 0;
+    }
+
+    .order-info-section,
+    .order-items-section,
+    .return-section,
+    .return-history-section {
+        background: white;
+        border-radius: 8px;
+        padding: 20px;
+        margin-bottom: 20px;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    }
+
+    .order-info-section h3,
+    .order-items-section h3,
+    .return-section h3,
+    .return-history-section h3 {
+        color: #00833D;
+        margin-bottom: 20px;
+        border-bottom: 2px solid #00833D;
+        padding-bottom: 10px;
+    }
+
+    .info-item {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 10px;
+        padding: 8px 0;
+    }
+
+    .info-item .label {
+        font-weight: 600;
+        color: #333;
+    }
+
+    .price {
+        font-weight: 600;
+        color: #00833D;
+        font-size: 18px;
+    }
+
+    .order-items {
+        display: flex;
+        flex-direction: column;
+        gap: 15px;
+    }
+
+    .order-item {
+        display: flex;
+        align-items: center;
+        padding: 15px;
+        border: 1px solid #e8e8e8;
+        border-radius: 8px;
+        background: #fafafa;
+    }
+
+    .item-image img {
+        width: 60px;
+        height: 60px;
+        object-fit: cover;
+        border-radius: 4px;
+        margin-right: 15px;
+    }
+
+    .item-info {
+        flex: 1;
+    }
+
+    .item-name {
+        font-weight: 600;
+        margin-bottom: 5px;
+    }
+
+    .item-sku {
+        color: #666;
+        font-size: 14px;
+        margin-bottom: 5px;
+    }
+
+    .item-price {
+        color: #00833D;
+    }
+
+    .item-total {
+        font-weight: 600;
+        color: #00833D;
+        font-size: 16px;
+    }
+
+    .return-info {
+        margin-bottom: 20px;
+    }
+
+    .return-history-section .return-item {
+        border: 1px solid #e8e8e8;
+        border-radius: 8px;
+        padding: 15px;
+        margin-bottom: 15px;
+        background: #fafafa;
+    }
+
+    .return-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 10px;
+    }
+
+    .return-code {
+        font-weight: 600;
+        color: #00833D;
+    }
+
+    .return-details div {
+        margin-bottom: 5px;
+    }
+
+    .return-items-selection {
+        max-height: 300px;
+        overflow-y: auto;
+        border: 1px solid #d9d9d9;
+        border-radius: 4px;
+        padding: 10px;
+    }
+
+    .return-item-checkbox {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 8px 0;
+        border-bottom: 1px solid #f0f0f0;
+    }
+
+    .return-item-checkbox:last-child {
+        border-bottom: none;
+    }
+</style>

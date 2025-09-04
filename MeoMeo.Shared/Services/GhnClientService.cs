@@ -2,10 +2,12 @@ using MeoMeo.Contract.DTOs;
 using MeoMeo.Shared.IServices;
 using MeoMeo.Shared.Utilities;
 using System.Text.Json;
+using MeoMeo.Shared.DTOs;
+using Microsoft.Extensions.Configuration;
 
 namespace MeoMeo.Shared.Services
 {
-    public class GhnService : IGhnService
+    public class GhnClientService : IGhnClientService
     {
         private readonly IApiCaller _apiCaller;
         private readonly IConfiguration _configuration;
@@ -13,7 +15,7 @@ namespace MeoMeo.Shared.Services
         private readonly string _ghnToken;
         private readonly int _ghnShopId;
 
-        public GhnService(IApiCaller apiCaller, IConfiguration configuration)
+        public GhnClientService(IApiCaller apiCaller, IConfiguration configuration)
         {
             _apiCaller = apiCaller;
             _configuration = configuration;
@@ -29,7 +31,7 @@ namespace MeoMeo.Shared.Services
                 var httpRequest = new HttpRequestMessage(HttpMethod.Post, $"{_ghnBaseUrl}/v2/shipping-order/create");
                 httpRequest.Headers.Add("token", _ghnToken);
                 httpRequest.Headers.Add("shop_id", _ghnShopId.ToString());
-                
+
                 var jsonContent = JsonSerializer.Serialize(request);
                 httpRequest.Content = new StringContent(jsonContent, System.Text.Encoding.UTF8, "application/json");
 
@@ -250,7 +252,6 @@ namespace MeoMeo.Shared.Services
                                 ServiceId = service.GetProperty("service_id").GetInt32(),
                                 ServiceName = service.GetProperty("short_name").GetString() ?? "",
                                 ServiceTypeId = service.GetProperty("service_type_id").GetInt32(),
-                                ServiceTypeName = service.GetProperty("service_type_name").GetString() ?? ""
                             });
                         }
                     }

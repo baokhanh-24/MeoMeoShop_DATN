@@ -2,6 +2,7 @@ namespace MeoMeo.Contract.DTOs.OrderDetail;
 
 public class OrderDetailDTO
 {
+    public Guid Id { get; set; }
     public Guid OrderId { get; set; }
     public Guid ProductDetailId { get; set; }
     public Guid PromotionDetailId { get; set; }

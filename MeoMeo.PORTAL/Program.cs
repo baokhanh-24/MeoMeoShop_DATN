@@ -52,8 +52,9 @@ builder.Services.AddScoped<IDistrictClientService, DistrictClientService>();
 builder.Services.AddScoped<IProvinceClientService, ProvinceClientService>();
 builder.Services.AddScoped<IDeliveryAddressClientService, DeliveryAddressClientService>();
 builder.Services.AddScoped<IOrderClientService, OrderClientService>();
+builder.Services.AddScoped<IOrderReturnClientService, OrderReturnClientService>();
 builder.Services.AddScoped<IProductReviewClientService, ProductReviewClientService>();
-builder.Services.AddScoped<IGhnService, GhnService>();
+builder.Services.AddScoped<IGhnClientService, GhnClientService>();
 
 //builder.WebHost.ConfigureKestrel(options =>
 //{

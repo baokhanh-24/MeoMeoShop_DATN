@@ -8,8 +8,8 @@
 @using MeoMeo.Contract.Commons
 @using MeoMeo.Contract.DTOs.Order
 @using MeoMeo.Contract.DTOs
-@using MeoMeo.PORTAL.Components.Pages.PaymentPages
 @using MeoMeo.Domain.Commons.Enums
+@using MeoMeo.Shared.DTOs
 @using ButtonSize = AntDesign.ButtonSize
 @using ButtonType = AntDesign.ButtonType
 @inject ICartClientService CartClient
@@ -23,7 +23,7 @@
 @inject IDistrictClientService DistrictClient
 @inject ICommuneClientService CommuneClient
 @inject IApiCaller ApiCaller
-@inject IGhnService GhnService
+@inject IGhnClientService GhnService
 <div class="content-background">
     <GridRow Gutter="16">
         <GridCol Span="22" Offset="1">
@@ -40,7 +40,7 @@
                 <div class="row">
                     <div class="col-12">
                         <div class="space-coverage text-center">
-                            <img class="empty-cart" src="/images/products/Cart.svg" alt="" />
+                            <img class="empty-cart" src="/images/Cart.svg" alt="" />
                             <div class="empty-text mt-4">Giỏ hàng của bạn đang trống.</div>
                             <div class="empty-text mt-1">Hãy chọn thêm sản phẩm để mua sắm nhé</div>
                             <div class="d-flex justify-content-center">
@@ -94,7 +94,7 @@
                                     <Column TData="float" Title="Đơn giá" Align="ColumnAlign.Center" Width="15%">
                                         <div class="text-center d-flex flex-column align-items-center">
                                             <div class="discount-price">@FormatCurrency(CalcPriceAfterDiscount(item.Price,
-                                                item.Discount))
+                                                                                            item.Discount))
                                         </div>
                                         @if (item.Discount > 0)
                                             {
@@ -376,24 +376,23 @@
                     pattern="[0-9]*" onkeypress="return event.charCode>=48 && event.charCode<=57" />
             </FormItem>
             <FormItem Label="Tỉnh/Thành phố" Required>
-                <Select TItem="MeoMeo.Shared.IServices.GhnLocationItem" TItemValue="int?"
-                    @bind-Value="SelectedProvinceId" Placeholder="Chọn tỉnh/thành phố..."
-                    OnSelectedItemChanged="OnProvinceChange" DataSource="LstGhnProvinces" ValueName="Id"
-                    LabelName="Name">
+                <Select TItem="GhnLocationItem" TItemValue="int?" @bind-Value="SelectedProvinceId"
+                    Placeholder="Chọn tỉnh/thành phố..." OnSelectedItemChanged="OnProvinceChange"
+                    DataSource="LstGhnProvinces" ValueName="Id" LabelName="Name">
                 </Select>
             </FormItem>
             <FormItem Label="Quận/Huyện" Required>
-                <Select TItem="MeoMeo.Shared.IServices.GhnLocationItem" TItemValue="int?"
-                    @bind-Value="SelectedDistrictId" Placeholder="Chọn quận/huyện..."
-                    OnSelectedItemChanged="OnDistrictChange" Disabled="@(!SelectedProvinceId.HasValue)"
-                    DataSource="LstGhnDistricts" ValueName="Id" LabelName="Name">
+                <Select TItem="GhnLocationItem" TItemValue="int?" @bind-Value="SelectedDistrictId"
+                    Placeholder="Chọn quận/huyện..." OnSelectedItemChanged="OnDistrictChange"
+                    Disabled="@(!SelectedProvinceId.HasValue)" DataSource="LstGhnDistricts" ValueName="Id"
+                    LabelName="Name">
                 </Select>
             </FormItem>
             <FormItem Label="Phường/Xã" Required>
-                <Select TItem="MeoMeo.Shared.IServices.GhnLocationItem" TItemValue="int?"
-                    @bind-Value="SelectedCommuneId" Placeholder="Chọn phường/xã..."
-                    OnSelectedItemChanged="OnCommuneChange" Disabled="@(!SelectedProvinceId.HasValue)"
-                    DataSource="LstGhnCommunes" ValueName="Id" LabelName="Name">
+                <Select TItem="GhnLocationItem" TItemValue="int?" @bind-Value="SelectedCommuneId"
+                    Placeholder="Chọn phường/xã..." OnSelectedItemChanged="OnCommuneChange"
+                    Disabled="@(!SelectedProvinceId.HasValue)" DataSource="LstGhnCommunes" ValueName="Id"
+                    LabelName="Name">
                 </Select>
             </FormItem>
             <FormItem Label="Địa chỉ chi tiết" Required>
@@ -508,9 +507,9 @@
     private Guid SelectedAddressId = Guid.Empty;
 
     // GHN Location data - using GHN service
-    private List<MeoMeo.Shared.IServices.GhnLocationItem> LstGhnProvinces = new();
-    private List<MeoMeo.Shared.IServices.GhnLocationItem> LstGhnDistricts = new();
-    private List<MeoMeo.Shared.IServices.GhnLocationItem> LstGhnCommunes = new();
+    private List<GhnLocationItem> LstGhnProvinces = new();
+    private List<GhnLocationItem> LstGhnDistricts = new();
+    private List<GhnLocationItem> LstGhnCommunes = new();
 
     // Selected GHN IDs for proper API calls
     private int? SelectedGhnProvinceId;
@@ -794,7 +793,7 @@
 
         var newOrder = new CreateOrderDTO()
         {
-            VoucherId = SelectedVoucher.Id,
+            VoucherId = SelectedVoucher != null ? SelectedVoucher.Id : null,
             DeliveryAddressId = SelectedAddressId,
             PaymentMethod = (EOrderPaymentMethod)SelectedPaymentMethod,
             Note = TxtNoteContent,
@@ -804,11 +803,9 @@
         if (resp?.ResponseStatus == BaseStatus.Success)
         {
             MessageService.Success(resp.Message);
-
-            // Create GHN shipping order
             try
             {
-                var ghnOrderRequest = CreateGhnOrderRequest(resp.OrderId);
+                var ghnOrderRequest = CreateGhnOrderRequest(resp);
                 var ghnResponse = await GhnService.CreateOrderAsync(ghnOrderRequest);
 
                 if (ghnResponse?.Code == 200 && ghnResponse.Data != null)
@@ -832,7 +829,7 @@
                 var createPayment = new CreatePaymentUrlDTO
                 {
                     OrderId = resp.OrderId,
-                    Amount = resp.Amount,
+                    Amount = FinalTotalAmount,
                     Description = $"{AddInfo} - {DateTime.Now:dd/MM/yyyy HH:mm}",
                 };
                 var payUrl = await OrderClient.CreateVnpayPaymentUrlAsync(createPayment);
@@ -1100,7 +1097,7 @@
         }
     }
 
-    private async void OnProvinceChange(MeoMeo.Shared.IServices.GhnLocationItem province)
+    private async void OnProvinceChange(GhnLocationItem province)
     {
         SelectedProvinceId = province.Id;
         EditingAddress.ProvinceId = province.Id;
@@ -1153,7 +1150,7 @@
         }
     }
 
-    private async void OnDistrictChange(MeoMeo.Shared.IServices.GhnLocationItem district)
+    private async void OnDistrictChange(GhnLocationItem district)
     {
         SelectedDistrictId = district.Id;
         EditingAddress.DistrictId = district.Id;
@@ -1201,7 +1198,7 @@
         }
     }
 
-    private async void OnCommuneChange(MeoMeo.Shared.IServices.GhnLocationItem commune)
+    private async void OnCommuneChange(GhnLocationItem commune)
     {
         SelectedCommuneId = commune.Id;
         EditingAddress.CommuneId = commune.Id;
@@ -1255,27 +1252,29 @@
         OpenShippingFeeModal = false;
     }
 
-    private GhnCreateOrderRequestDTO CreateGhnOrderRequest(Guid orderId)
+    private GhnCreateOrderRequestDTO CreateGhnOrderRequest(CreateOrderResultDTO order)
     {
+
+        // cho thử hàng
         var ghnRequest = new GhnCreateOrderRequestDTO
         {
             PaymentTypeId = SelectedPaymentMethod == 0 ? 2 : 1, // 2: Buyer pays, 1: Shop pays
-            Note = TxtNoteContent,
-            RequiredNote = "KHONGCHOXEMHANG",
+            Note = "CHOTHUHANG",
+            RequiredNote = "CHOTHUHANG",
             FromName = "MeoMeo Shop",
-            FromPhone = "0987654321",
-            FromAddress = "72 Thành Thái, Phường 14, Quận 10, Hồ Chí Minh, Vietnam",
-            FromWardName = "Phường 14",
-            FromDistrictName = "Quận 10",
-            FromProvinceName = "HCM",
-            ClientOrderCode = orderId.ToString(),
+            FromPhone = "0347324430",
+            FromAddress = "53 Ngõ 19, Tố Hữu, Trung Văn, Nam Từ Liêm, Hà Nội, VietNam",
+            FromWardName = "Trung Văn",
+            FromDistrictName = " Nam Từ Liêm",
+            FromProvinceName = "HN",
+            ClientOrderCode = order.Code,
             ToName = DefaultDeliveryAddress?.Name ?? "",
             ToPhone = DefaultDeliveryAddress?.PhoneNumber ?? "",
             ToAddress = DefaultDeliveryAddress?.Address ?? "",
             ToWardCode = DefaultDeliveryAddress?.CommuneId.ToString() ?? "",
             ToDistrictId = DefaultDeliveryAddress?.DistrictId ?? 0,
             CodAmount = SelectedPaymentMethod == 0 ? (int)FinalTotalAmount : 0,
-            Content = $"Đơn hàng {orderId}",
+            Content = $"Đơn hàng {order.Code}",
             Weight = totalWeight,
             Length = maxLength,
             Width = maxWidth,

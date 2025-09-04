@@ -38,7 +38,7 @@
                 <div class="row">
                     <div class="col-12">
                         <div class="space-coverage text-center">
-                            <img class="empty-cart" src="/images/products/Cart.svg" alt="" />
+                            <img class="empty-cart" src="/images/Cart.svg" alt="" />
                             <div class="empty-text mt-4">Bạn chưa có đơn hàng nào.</div>
                             <div class="d-flex justify-content-center">
                                 <button class="shopping-now mt-1" @onclick="@(() => Navigation.NavigateTo("/"))">Mua sắm ngay</button>
@@ -63,20 +63,28 @@
                                 </Tag>
                             </div>
                         </div>
-                        <div class="mt-2">
-                            @foreach (var item in order.OrderDetails)
-                            {
-                                <div class="d-flex justify-content-between">
-                                    <span>@item.Sku</span>
-                                    <span>x@item.Quantity</span>
-                                    <span>@item.Price.ToString("N0") đ</span>
-                                </div>
-                            }
+                        <div class="mt-2 d-flex justify-content-between align-items-center">
+                            <div>
+                                @foreach (var item in order.OrderDetails)
+                                {
+                                    <div class="d-flex justify-content-between">
+                                        <span>@item.Sku</span>
+                                        <span>x@item.Quantity</span>
+                                        <span>@item.Price.ToString("N0") đ</span>
+                                    </div>
+                                }
+                            </div>
+                            <div class="d-flex flex-column align-items-end">
+                                <div><b>Tổng tiền:</b> @order.TotalPrice.ToString("N0") đ</div>
+                                <Button Type="@AntDesign.ButtonType.Primary" 
+                                        Size="@AntDesign.ButtonSize.Small" 
+                                        OnClick="@(() => Navigation.NavigateTo($"/order/{order.Id}"))"
+                                        Class="mt-2">
+                                    Xem chi tiết
+                                </Button>
+                            </div>
                         </div>
-                        <div class="d-flex justify-content-between mt-2">
-                            <div><b>Tổng tiền:</b></div>
-                            <div>@order.TotalPrice.ToString("N0") đ</div>
-                        </div>
+
                     </div>
                 }
             }
