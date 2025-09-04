@@ -26,6 +26,12 @@ namespace MeoMeo.Domain.Entities
         public DateTime? LastModificationTime { get; set; }
         public EProductStatus Status { get; set; }
         
+        // Thông tin vận chuyển - cần thiết cho GHN
+        public int Weight { get; set; } = 500; // Trọng lượng (gram) - mặc định 500g
+        public int Length { get; set; } = 15;  // Chiều dài (cm) - mặc định 15cm
+        public int Width { get; set; } = 15;   // Chiều rộng (cm) - mặc định 15cm
+        public int Height { get; set; } = 15;  // Chiều cao (cm) - mặc định 15cm
+        public int? MaxBuyPerOrder { get; set; }// Số lượng được mua tối đa trên 1 đơn hàng
         
         // Navigation properties
         public virtual Product Product { get; set; }

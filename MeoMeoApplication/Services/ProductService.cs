@@ -302,6 +302,16 @@ namespace MeoMeo.Application.Services
                             existingVariant.ClosureType = newVariantData.ClosureType;
                             existingVariant.AllowReturn = newVariantData.AllowReturn;
                             existingVariant.Status = newVariantData.Status;
+                            
+                            // Cập nhật thông tin vận chuyển
+                            existingVariant.Weight = newVariantData.Weight;
+                            existingVariant.Length = newVariantData.Length;
+                            existingVariant.Width = newVariantData.Width;
+                            existingVariant.Height = newVariantData.Height;
+                            
+                            // Cập nhật giới hạn mua hàng
+                            existingVariant.MaxBuyPerOrder = newVariantData.MaxBuyPerOrder;
+                            
                             existingVariant.LastModificationTime = DateTime.Now;
                             await _productDetailRepository.UpdateProductDetailAsync(existingVariant);
                         }
@@ -1212,7 +1222,16 @@ namespace MeoMeo.Application.Services
                         Price = v.Price,
                         SellNumber = v.SellNumber,
                         OutOfStock = v.OutOfStock,
-                        StockHeight = v.StockHeight
+                        StockHeight = v.StockHeight,
+                        
+                        // Thông tin vận chuyển
+                        Weight = v.Weight,
+                        Length = v.Length,
+                        Width = v.Width,
+                        Height = v.Height,
+                        
+                        // Giới hạn mua hàng
+                        MaxBuyPerOrder = v.MaxBuyPerOrder
                     }).ToList(),
                     Media = images.Select(i => new ProductMediaUpload
                     {

@@ -10,6 +10,7 @@ namespace MeoMeo.Contract.DTOs
         public string Name { get; set; } = string.Empty;
         public string PhoneNumber { get; set; } = string.Empty;
         public string Address { get; set; } = string.Empty;
+        public string FullAddress { get; set; } = string.Empty;
 
         // Navigation properties
         public string ProvinceName { get; set; } = string.Empty;

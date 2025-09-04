@@ -46,7 +46,7 @@
       ValidateMode="FormValidateMode.Rules"
       @ref="form">
     <div class="row">
-        <div class="col-lg-5">
+        <div class="col-lg-4">
             <Card Title="Thông tin chung" Style="margin-bottom: 24px;">
                 <Row Gutter="16">
                     <Col Span="8">
@@ -168,9 +168,15 @@
             </Card>
         </div>
         
-        <div class="col-lg-7">
+        <div class="col-lg-8">
             <Card Title="Quản lý biến thể sản phẩm" Style="margin-bottom: 24px;">
                 <div style="margin-bottom: 16px;">
+                    <Alert Type="AlertType.Info" ShowIcon="true" Style="margin-bottom: 16px;">
+                     
+                            <strong>Lưu ý:</strong> Thông tin kích thước và trọng lượng rất quan trọng để tính phí vận chuyển chính xác. 
+                            Hãy nhập đầy đủ và chính xác để khách hàng không bị tính sai phí vận chuyển.
+
+                    </Alert>
                     <Row Gutter="16">
                         <Col Span="8">
                             <FormItem Label="Màu sắc">
@@ -225,6 +231,31 @@
                                         ItemValue="c => c.Value"
                                         ItemLabel="c => c.Name" Style="width: 100%;"/>
                             </PropertyColumn>
+                            
+                            <!-- Thông tin vận chuyển -->
+                            <PropertyColumn Property="c => c.Weight" Title="Trọng lượng (g)">
+                                <AntDesign.InputNumber TValue="int" @bind-Value="@data.Weight" Min="1" Max="50000"
+                                                       Style="width: 100%;" Placeholder="500"/>
+                            </PropertyColumn>
+                            <PropertyColumn Property="c => c.Length" Title="Chiều dài (cm)">
+                                <AntDesign.InputNumber TValue="int" @bind-Value="@data.Length" Min="1" Max="200"
+                                                       Style="width: 100%;" Placeholder="15"/>
+                            </PropertyColumn>
+                            <PropertyColumn Property="c => c.Width" Title="Chiều rộng (cm)">
+                                <AntDesign.InputNumber TValue="int" @bind-Value="@data.Width" Min="1" Max="200"
+                                                       Style="width: 100%;" Placeholder="15"/>
+                            </PropertyColumn>
+                            <PropertyColumn Property="c => c.Height" Title="Chiều cao (cm)">
+                                <AntDesign.InputNumber TValue="int" @bind-Value="@data.Height" Min="1" Max="200"
+                                                       Style="width: 100%;" Placeholder="15"/>
+                            </PropertyColumn>
+                            
+                            <PropertyColumn Property="c => c.MaxBuyPerOrder" Title="Giới hạn mua/đơn">
+                                <AntDesign.InputNumber TValue="int?" @bind-Value="@data.MaxBuyPerOrder" Min="1" Max="999"
+                                                       Style="width: 100%;" Placeholder="Không giới hạn"
+                                                       AllowEmpty="true"/>
+                            </PropertyColumn>
+                            
                             <PropertyColumn Property="c => c.AllowReturn" Title="Cho phép trả hàng">
                                 <Checkbox @bind-Value="@data.AllowReturn"/>
                             </PropertyColumn>
@@ -415,7 +446,16 @@
             StockHeight = 2,
             ClosureType = EClosureType.LaceUp,
             AllowReturn = true,
-            Status = 0
+            Status = 0,
+            
+            // Thông tin vận chuyển mặc định
+            Weight = 500,  // 500g
+            Length = 15,   // 15cm
+            Width = 15,    // 15cm
+            Height = 15,   // 15cm
+            
+            // Giới hạn mua hàng mặc định
+            MaxBuyPerOrder = null  // Không giới hạn
         };
 
         if (productModel.ProductVariants == null)
@@ -470,6 +510,38 @@
         {
             await MessageModalService.Warning("Vui lòng thêm ít nhất 1 biến thể sản phẩm!");
             return;
+        }
+
+        // Validation thông tin vận chuyển và giới hạn mua hàng
+        foreach (var variant in productModel.ProductVariants)
+        {
+            if (variant.Weight <= 0 || variant.Weight > 50000)
+            {
+                await MessageModalService.Warning($"Trọng lượng của biến thể {GetColorName(variant.ColourId)} - {GetSizeName(variant.SizeId)} phải từ 1-50000g!");
+                return;
+            }
+            if (variant.Length <= 0 || variant.Length > 200)
+            {
+                await MessageModalService.Warning($"Chiều dài của biến thể {GetColorName(variant.ColourId)} - {GetSizeName(variant.SizeId)} phải từ 1-200cm!");
+                return;
+            }
+            if (variant.Width <= 0 || variant.Width > 200)
+            {
+                await MessageModalService.Warning($"Chiều rộng của biến thể {GetColorName(variant.ColourId)} - {GetSizeName(variant.SizeId)} phải từ 1-200cm!");
+                return;
+            }
+            if (variant.Height <= 0 || variant.Height > 200)
+            {
+                await MessageModalService.Warning($"Chiều cao của biến thể {GetColorName(variant.ColourId)} - {GetSizeName(variant.SizeId)} phải từ 1-200cm!");
+                return;
+            }
+            
+            // Validation giới hạn mua hàng
+            if (variant.MaxBuyPerOrder.HasValue && (variant.MaxBuyPerOrder.Value <= 0 || variant.MaxBuyPerOrder.Value > 999))
+            {
+                await MessageModalService.Warning($"Giới hạn mua hàng của biến thể {GetColorName(variant.ColourId)} - {GetSizeName(variant.SizeId)} phải từ 1-999 hoặc để trống!");
+                return;
+            }
         }
 
         if (!validationResult)

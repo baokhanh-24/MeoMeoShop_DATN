@@ -1,4 +1,5 @@
-﻿using MeoMeo.Contract.Commons;
+﻿using System.Globalization;
+using MeoMeo.Contract.Commons;
 using MeoMeo.Contract.DTOs.Product;
 using MeoMeo.Domain.Commons;
 using MeoMeo.Shared.IServices;
@@ -86,7 +87,7 @@ namespace MeoMeo.Shared.Services
             {
                 _logger.LogError(ex, "Có lỗi xảy ra khi tạo sản phẩm: {Message}", ex.Message);
                 return new BaseResponse
-                    { ResponseStatus = BaseStatus.Error, Message = ex.Message };
+                { ResponseStatus = BaseStatus.Error, Message = ex.Message };
             }
         }
 
@@ -108,7 +109,7 @@ namespace MeoMeo.Shared.Services
                 _logger.LogError(ex, "Có lỗi xảy ra khi cập nhật sản phẩm {Id}: {Message}", product.Id,
                     ex.Message);
                 return new BaseResponse
-                    { ResponseStatus = BaseStatus.Error, Message = ex.Message };
+                { ResponseStatus = BaseStatus.Error, Message = ex.Message };
             }
         }
 
@@ -129,7 +130,7 @@ namespace MeoMeo.Shared.Services
                 _logger.LogError(ex, "Có lỗi xảy ra khi cập nhật trạng thái sản phẩm {Id}: {Message}", input.Id,
                     ex.Message);
                 return new BaseResponse
-                    { ResponseStatus = BaseStatus.Error, Message = ex.Message };
+                { ResponseStatus = BaseStatus.Error, Message = ex.Message };
             }
         }
 
@@ -159,7 +160,7 @@ namespace MeoMeo.Shared.Services
             {
                 _logger.LogError(ex, "Có lỗi xảy ra khi xóa sản phẩm {Id}: {Message}", id, ex.Message);
                 return new BaseResponse
-                    { ResponseStatus = BaseStatus.Error, Message = ex.Message };
+                { ResponseStatus = BaseStatus.Error, Message = ex.Message };
             }
         }
 
@@ -197,9 +198,9 @@ namespace MeoMeo.Shared.Services
         {
             var formData = new MultipartFormDataContent();
             // Basic fields
-            formData.Add(new StringContent(product.Id.HasValue? product.Id.Value.ToString():""), "Id");
-            formData.Add(new StringContent(string.IsNullOrEmpty(product.Name)?"":product.Name), "Name");
-            formData.Add(new StringContent(string.IsNullOrEmpty(product.Description)?"":product.Description), "Description");
+            formData.Add(new StringContent(product.Id.HasValue ? product.Id.Value.ToString() : ""), "Id");
+            formData.Add(new StringContent(string.IsNullOrEmpty(product.Name) ? "" : product.Name), "Name");
+            formData.Add(new StringContent(string.IsNullOrEmpty(product.Description) ? "" : product.Description), "Description");
             formData.Add(new StringContent(product.BrandId.ToString()), "BrandId");
             if (product.SeasonIds.Any())
             {
@@ -229,17 +230,30 @@ namespace MeoMeo.Shared.Services
                     {
                         formData.Add(new StringContent(variant.Id.Value.ToString()),
                             $"ProductVariants[{i}].Id");
-                    }   
+                    }
                     if (variant.ProductId.HasValue)
                     {
                         formData.Add(new StringContent(variant.ProductId.Value.ToString()),
                             $"ProductVariants[{i}].ProductId");
                     }
                     formData.Add(new StringContent(variant.SizeId.ToString()), $"ProductVariants[{i}].SizeId");
-                    formData.Add(new StringContent(String.IsNullOrEmpty(variant.Sku)?"":variant.Sku), $"ProductVariants[{i}].Sku");
+                    formData.Add(new StringContent(String.IsNullOrEmpty(variant.Sku) ? "" : variant.Sku), $"ProductVariants[{i}].Sku");
+                    formData.Add(new StringContent(String.IsNullOrEmpty(variant.ColourName) ? "" : variant.ColourName), $"ProductVariants[{i}].ColourName");
+                    formData.Add(new StringContent(String.IsNullOrEmpty(variant.SizeName) ? "" : variant.SizeName), $"ProductVariants[{i}].SizeName");
                     formData.Add(new StringContent(variant.ColourId.ToString()), $"ProductVariants[{i}].ColourId");
-                    formData.Add(new StringContent(variant.Price.ToString()), $"ProductVariants[{i}].Price");
+                    formData.Add(new StringContent(variant.Price.ToString(CultureInfo.InvariantCulture)), $"ProductVariants[{i}].Price");
+                    formData.Add(new StringContent((variant.Discount ?? 0).ToString(CultureInfo.InvariantCulture)), $"ProductVariants[{i}].Discount");
+
                     formData.Add(new StringContent(variant.OutOfStock.ToString()), $"ProductVariants[{i}].OutOfStock");
+                    if (variant.MaxBuyPerOrder.HasValue)
+                    {
+                        formData.Add(new StringContent( variant.MaxBuyPerOrder.Value.ToString()), $"ProductVariants[{i}].MaxBuyPerOrder");
+                    }
+                    formData.Add(new StringContent(variant.Weight.ToString()), $"ProductVariants[{i}].Weight");
+                    formData.Add(new StringContent(variant.Width.ToString()), $"ProductVariants[{i}].Width");
+                    formData.Add(new StringContent(variant.Height.ToString()), $"ProductVariants[{i}].Height");
+                    formData.Add(new StringContent(variant.Length.ToString()), $"ProductVariants[{i}].Length");
+                    formData.Add(new StringContent(variant.InventoryQuantity.ToString()), $"ProductVariants[{i}].InventoryQuantity");
                     formData.Add(new StringContent(variant.StockHeight.ToString()),
                         $"ProductVariants[{i}].StockHeight");
                     formData.Add(new StringContent(((int)variant.ClosureType).ToString()),
@@ -249,7 +263,6 @@ namespace MeoMeo.Shared.Services
                     formData.Add(new StringContent(variant.Status.ToString()), $"ProductVariants[{i}].Status");
                     formData.Add(new StringContent("0"), $"ProductVariants[{i}].ViewNumber");
                     formData.Add(new StringContent("0"), $"ProductVariants[{i}].SellNumber");
-                    formData.Add(new StringContent(variant.Status.ToString()), $"ProductVariants[{i}].Status");
                 }
             }
 

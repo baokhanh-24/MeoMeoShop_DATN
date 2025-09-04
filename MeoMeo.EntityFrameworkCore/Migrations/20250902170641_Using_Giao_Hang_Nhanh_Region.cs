@@ -11,18 +11,6 @@ namespace MeoMeo.EntityFrameworkCore.Migrations
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
 {
-    // 1. Xóa FK và Index cũ
-    migrationBuilder.DropForeignKey(
-        name: "FK_DeliveryAddresses_Communes_CommuneId",
-        table: "DeliveryAddresses");
-
-    migrationBuilder.DropForeignKey(
-        name: "FK_DeliveryAddresses_Districts_DistrictId",
-        table: "DeliveryAddresses");
-
-    migrationBuilder.DropForeignKey(
-        name: "FK_DeliveryAddresses_Provinces_ProvinceId",
-        table: "DeliveryAddresses");
 
     migrationBuilder.DropIndex(
         name: "IX_DeliveryAddresses_CommuneId",
@@ -83,27 +71,6 @@ namespace MeoMeo.EntityFrameworkCore.Migrations
         name: "IX_DeliveryAddresses_CommuneId",
         table: "DeliveryAddresses",
         column: "CommuneId");
-
-    migrationBuilder.AddForeignKey(
-        name: "FK_DeliveryAddresses_Provinces_ProvinceId",
-        table: "DeliveryAddresses",
-        column: "ProvinceId",
-        principalTable: "Provinces",
-        principalColumn: "Id");
-
-    migrationBuilder.AddForeignKey(
-        name: "FK_DeliveryAddresses_Districts_DistrictId",
-        table: "DeliveryAddresses",
-        column: "DistrictId",
-        principalTable: "Districts",
-        principalColumn: "Id");
-
-    migrationBuilder.AddForeignKey(
-        name: "FK_DeliveryAddresses_Communes_CommuneId",
-        table: "DeliveryAddresses",
-        column: "CommuneId",
-        principalTable: "Communes",
-        principalColumn: "Id");
 }
 
         /// <inheritdoc />
@@ -148,26 +115,7 @@ namespace MeoMeo.EntityFrameworkCore.Migrations
                 table: "DeliveryAddresses",
                 column: "ProvinceId");
 
-            migrationBuilder.AddForeignKey(
-                name: "FK_DeliveryAddresses_Communes_CommuneId",
-                table: "DeliveryAddresses",
-                column: "CommuneId",
-                principalTable: "Communes",
-                principalColumn: "Id");
-
-            migrationBuilder.AddForeignKey(
-                name: "FK_DeliveryAddresses_Districts_DistrictId",
-                table: "DeliveryAddresses",
-                column: "DistrictId",
-                principalTable: "Districts",
-                principalColumn: "Id");
-
-            migrationBuilder.AddForeignKey(
-                name: "FK_DeliveryAddresses_Provinces_ProvinceId",
-                table: "DeliveryAddresses",
-                column: "ProvinceId",
-                principalTable: "Provinces",
-                principalColumn: "Id");
+            
         }
     }
 }

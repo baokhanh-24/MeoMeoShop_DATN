@@ -1287,3 +1287,6 @@ figure.instagram-item img.insta-image {
     max-height: 45px;
     max-width: 40px;
 }
+::deep .ant-layout-footer {
+    background: #fff !important;
+}

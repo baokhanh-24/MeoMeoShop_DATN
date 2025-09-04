@@ -78,7 +78,7 @@ namespace MeoMeo.API.Controllers
         }
 
         [HttpPost("create-product-async")]
-        [RequestSizeLimit(100 * 1024 * 1024)] // 100MB limit
+        [RequestSizeLimit(200 * 1024 * 1024)] // 200MB limit
         public async Task<BaseResponse> CreateProduct([FromForm] CreateOrUpdateProductDTO productDto)
         {
             try
@@ -114,7 +114,7 @@ namespace MeoMeo.API.Controllers
             }
         }
         [HttpPut("update-product-async")]
-        [RequestSizeLimit(100 * 1024 * 1024)] // 100MB limit
+        [RequestSizeLimit(200 * 1024 * 1024)] // 200MB limi
         public async Task<BaseResponse> UpdateProduct([FromForm] CreateOrUpdateProductDTO productDto)
         {
             try

@@ -11,6 +11,7 @@ namespace MeoMeo.Domain.Entities
         public string Name { get; set; }
         public string PhoneNumber { get; set; }
         public string Address { get; set; }
+        public string FullAddress { get; set; }
         public virtual Customers Customers { get; set; }
         // public virtual Province Province { get; set; }
         // public virtual District District { get; set; }

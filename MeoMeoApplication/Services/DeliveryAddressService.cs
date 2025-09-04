@@ -63,7 +63,7 @@ namespace MeoMeo.Application.Services
 
         public async Task<IEnumerable<DeliveryAddressDTO>> GetByCustomerIdAsync(Guid customerId)
         {
-            var query = _deliveryAddressRepository.Query().Where(a => a.CustomerId == customerId);
+            var query = _deliveryAddressRepository.Query().Where(a => a.CustomerId == customerId).OrderByDescending(c=>c.CreationTime);
             var addresses = await Task.FromResult(query.AsEnumerable());
             return _mapper.Map<IEnumerable<DeliveryAddressDTO>>(addresses);
         }
@@ -87,6 +87,7 @@ namespace MeoMeo.Application.Services
             existingAddress.Name = deliveryAddress.Name;
             existingAddress.PhoneNumber = deliveryAddress.PhoneNumber;
             existingAddress.Address = deliveryAddress.Address;
+            existingAddress.FullAddress = deliveryAddress.FullAddress;
             
             if (deliveryAddress.ProvinceId.HasValue)
                 existingAddress.ProvinceId = deliveryAddress.ProvinceId.Value;

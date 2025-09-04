@@ -7,6 +7,7 @@
 @using MeoMeo.Contract.DTOs
 @using MeoMeo.Contract.Commons
 @using MeoMeo.Contract.DTOs.Order
+@using MeoMeo.Contract.DTOs
 @using MeoMeo.PORTAL.Components.Pages.PaymentPages
 @using MeoMeo.Domain.Commons.Enums
 @using ButtonSize = AntDesign.ButtonSize
@@ -22,6 +23,7 @@
 @inject IDistrictClientService DistrictClient
 @inject ICommuneClientService CommuneClient
 @inject IApiCaller ApiCaller
+@inject IGhnService GhnService
 <div class="content-background">
     <GridRow Gutter="16">
         <GridCol Span="22" Offset="1">
@@ -283,7 +285,12 @@
                             <Divider />
                             <div class="d-flex justify-content-between mb-3">
                                 <div class="text-left">Phí vận chuyển (GHN):</div>
-                                <div class="text-right text-end">@FormatCurrency(ShippingFee)</div>
+                                <div class="text-right text-end">
+                                    @FormatCurrency(ShippingFee)
+                                    <Button Type="@ButtonType.Text" OnClick="ShowShippingFeeModal" Class="p-0 ml-1">
+                                        <Icon Type="info-circle" />
+                                    </Button>
+                                </div>
                             </div>
                             <Divider />
                             <div class="d-flex justify-content-between mb-3 mt-3">
@@ -317,35 +324,33 @@
                     {
                         <div class="address-item @(address.Id == SelectedAddressId ? "selected" : "")">
                             <Radio TValue="Guid" Value="@address.Id" Class="address-radio">
-                                <div class="address-content">
-                                    <div class="address-info">
-                                        <div class="d-flex gap-1 justify-items-center">
-                                            <div class="address-name"> <i class="fas fa-user"></i> @address.Name</div>
-                                            <div class=""> | </div>
-                                            <div class="address-phone"><i class="fas fa-phone"></i> @address.PhoneNumber
+                                <div class="d-flex justify-content-between">
+                                    <div class="address-content">
+                                        <div class="address-info ">
+                                            <div class="d-flex gap-1 justify-items-center">
+                                                <div class="address-name"> <i class="fas fa-user"></i> @address.Name</div>
+                                                <div class=""> | </div>
+                                                <div class="address-phone"><i class="fas fa-phone"></i> @address.PhoneNumber
+                                                </div>
                                             </div>
-                                        </div>
-                                        <div class="d-flex gap-1 justify-items-center">
-                                            <div class="address-type">Văn phòng
-                                            </div>
-                                            <div class=""> | </div>
-                                            <div class="address-detail"><i
-                                                    class="fa-solid fa-location-dot"></i>@address.Address,
-                                                @address.CommuneName,
-                                                @address.DistrictName, @address.ProvinceName
+                                            <div class="d-flex gap-1 justify-items-center">
+                                                <div class="address-detail"><i class="fas fa-location-arrow"></i>
+                                                    @address.FullAddress
+                                                </div>
                                             </div>
                                         </div>
                                     </div>
+                                    <div class="address-actions">
+                                        <Button Type="@ButtonType.Text" OnClick="@(() => EditAddress(address))" Class="p-0">
+                                            <Icon Type="edit" />
+                                        </Button>
+                                        <Button Type="@ButtonType.Text" OnClick="@(() => DeleteAddress(address))"
+                                            Class="p-0 text-danger">
+                                            <Icon Type="delete" />
+                                        </Button>
+                                    </div>
                                 </div>
-                                <div class="address-actions">
-                                    <Button Type="@ButtonType.Text" OnClick="@(() => EditAddress(address))" Class="p-0">
-                                        <Icon Type="edit" />
-                                    </Button>
-                                    <Button Type="@ButtonType.Text" OnClick="@(() => DeleteAddress(address))"
-                                        Class="p-0 text-danger">
-                                        <Icon Type="delete" />
-                                    </Button>
-                                </div>
+
                             </Radio>
                         </div>
                     }
@@ -356,9 +361,6 @@
         {
             <div class="text-center py-4">
                 <p>Bạn chưa có địa chỉ giao hàng nào.</p>
-                <Button Type="@ButtonType.Primary" OnClick="ShowCreateAddressModal">
-                    Thêm địa chỉ đầu tiên
-                </Button>
             </div>
         }
     </Modal>
@@ -370,26 +372,28 @@
                 <Input @bind-Value="EditingAddress.Name" MaxLength="255" Placeholder="Nhập họ tên..." />
             </FormItem>
             <FormItem Label="Điện thoại" Required>
-                <Input @bind-Value="EditingAddress.PhoneNumber" MaxLength="12" Placeholder="SĐT..." />
+                <Input @bind-Value="EditingAddress.PhoneNumber" MaxLength="11" Placeholder="SĐT..." inputmode="numeric"
+                    pattern="[0-9]*" onkeypress="return event.charCode>=48 && event.charCode<=57" />
             </FormItem>
             <FormItem Label="Tỉnh/Thành phố" Required>
-                <Select TItem="GhnLocationItem" TItemValue="int?" @bind-Value="SelectedProvinceId"
-                    Placeholder="Chọn tỉnh/thành phố..." OnSelectedItemChanged="OnProvinceChange"
-                    DataSource="LstGhnProvinces" ValueName="Id" LabelName="Name">
+                <Select TItem="MeoMeo.Shared.IServices.GhnLocationItem" TItemValue="int?"
+                    @bind-Value="SelectedProvinceId" Placeholder="Chọn tỉnh/thành phố..."
+                    OnSelectedItemChanged="OnProvinceChange" DataSource="LstGhnProvinces" ValueName="Id"
+                    LabelName="Name">
                 </Select>
             </FormItem>
             <FormItem Label="Quận/Huyện" Required>
-                <Select TItem="GhnLocationItem" TItemValue="int?" @bind-Value="SelectedDistrictId"
-                    Placeholder="Chọn quận/huyện..." OnSelectedItemChanged="OnDistrictChange"
-                    Disabled="@(!SelectedProvinceId.HasValue)" DataSource="LstGhnDistricts" ValueName="Id"
-                    LabelName="Name">
+                <Select TItem="MeoMeo.Shared.IServices.GhnLocationItem" TItemValue="int?"
+                    @bind-Value="SelectedDistrictId" Placeholder="Chọn quận/huyện..."
+                    OnSelectedItemChanged="OnDistrictChange" Disabled="@(!SelectedProvinceId.HasValue)"
+                    DataSource="LstGhnDistricts" ValueName="Id" LabelName="Name">
                 </Select>
             </FormItem>
             <FormItem Label="Phường/Xã" Required>
-                <Select TItem="GhnLocationItem" TItemValue="int?" @bind-Value="SelectedCommuneId"
-                    Placeholder="Chọn phường/xã..." OnSelectedItemChanged="OnCommuneChange"
-                    Disabled="@(!SelectedDistrictId.HasValue)" DataSource="LstGhnCommunes" ValueName="Id"
-                    LabelName="Name">
+                <Select TItem="MeoMeo.Shared.IServices.GhnLocationItem" TItemValue="int?"
+                    @bind-Value="SelectedCommuneId" Placeholder="Chọn phường/xã..."
+                    OnSelectedItemChanged="OnCommuneChange" Disabled="@(!SelectedProvinceId.HasValue)"
+                    DataSource="LstGhnCommunes" ValueName="Id" LabelName="Name">
                 </Select>
             </FormItem>
             <FormItem Label="Địa chỉ chi tiết" Required>
@@ -400,17 +404,17 @@
     <!-- Modal chọn mã giảm giá -->
     <Modal Title="Chọn mã giảm giá" Visible="@OpenVoucherModal" OnOk="HandleOkVoucher" OnCancel="HandleCancelVoucher"
         Width="800">
-        <div class="mb-3">
+        <div class="mb-3 d-flex justify-content-between gap-2">
             <Input @bind-Value="VoucherSearchCode" Placeholder="Nhập mã voucher..." OnPressEnter="SearchVoucher"
                 AllowClear="true" />
-            <Button Type="@ButtonType.Primary" OnClick="SearchVoucher" Class="ml-2">Tìm kiếm</Button>
+            <Button Type="@ButtonType.Primary" OnClick="SearchVoucher" Class="">Tìm kiếm</Button>
         </div>
         @if (AvailableVouchers.Any())
         {
             <div class="voucher-list">
                 @foreach (var voucher in AvailableVouchers)
                 {
-                    <div class="voucher-item @(SelectedVoucher?.Id == voucher.Id ? "selected" : "")"
+                    <div class="voucher-item mt-2 mb-2 @(SelectedVoucher?.Id == voucher.Id ? "selected" : "")"
                         @onclick="() => SelectVoucher(voucher)">
                         <div class="d-flex justify-content-between align-items-center">
                             <div class="voucher-info">
@@ -448,6 +452,31 @@
             </div>
         }
     </Modal>
+    <!-- Modal phí vận chuyển -->
+    <Modal Title="Chi tiết phí vận chuyển" Visible="@OpenShippingFeeModal" OnOk="HandleOkShippingFee"
+        OnCancel="HandleCancelShippingFee" Width="800">
+        <div class="mb-3">
+            <h5>Thông tin phí vận chuyển</h5>
+            <p>Tổng trọng lượng: @totalWeight g</p>
+            <p>Tổng thể tích: @totalVolume cm³</p>
+            <p>Kích thước lớn nhất: @maxLength cm x @maxWidth cm x @maxHeight cm</p>
+            <p>Phí vận chuyển: @FormatCurrency(ShippingFee)</p>
+        </div>
+        <Divider />
+        <h5>Các bước tính toán</h5>
+        <ul>
+            <li>Trọng lượng: Lấy trọng lượng của từng sản phẩm trong giỏ hàng, cộng lại. Nếu giỏ hàng trống, sử dụng
+                trọng lượng mặc định.</li>
+            <li>Thể tích: Tính thể tích của từng sản phẩm trong giỏ hàng, cộng lại. Nếu giỏ hàng trống, sử dụng thể tích
+                mặc định.</li>
+            <li>Kích thước: Lấy kích thước lớn nhất từ các sản phẩm để tính thể tích.</li>
+            <li>Phí vận chuyển: Gọi API GHN để lấy phí vận chuyển dựa trên kích thước và trọng lượng.</li>
+        </ul>
+        <Divider />
+        <h5>Lưu ý</h5>
+        <p>Phí vận chuyển được tính dựa trên kích thước và trọng lượng thực tế của đơn hàng. Nếu kích thước hoặc trọng
+            lượng lớn hơn mặc định, phí vận chuyển sẽ được tính lại.</p>
+    </Modal>
 </div>
 @code {
     string style = "height:30px;line-height:30px";
@@ -478,10 +507,10 @@
     private CreateOrUpdateDeliveryAddressDTO EditingAddress = new();
     private Guid SelectedAddressId = Guid.Empty;
 
-    // GHN Location data - using GHN master-data API
-    private List<GhnLocationItem> LstGhnProvinces = new();
-    private List<GhnLocationItem> LstGhnDistricts = new();
-    private List<GhnLocationItem> LstGhnCommunes = new();
+    // GHN Location data - using GHN service
+    private List<MeoMeo.Shared.IServices.GhnLocationItem> LstGhnProvinces = new();
+    private List<MeoMeo.Shared.IServices.GhnLocationItem> LstGhnDistricts = new();
+    private List<MeoMeo.Shared.IServices.GhnLocationItem> LstGhnCommunes = new();
 
     // Selected GHN IDs for proper API calls
     private int? SelectedGhnProvinceId;
@@ -493,35 +522,39 @@
     private int? SelectedDistrictId;
     private int? SelectedCommuneId;
 
-    // GHN Location item class for better type safety
-    private class GhnLocationItem
-    {
-        public int Id { get; set; } = -1; // Local Int for UI binding
-        public string Name { get; set; } = "";
-        public int GhnProvinceId { get; set; } // GHN ProvinceID
-        public int GhnDistrictId { get; set; } // GHN DistrictID
-        public string? GhnWardCode { get; set; } // GHN WardCode
-    }
+
     // Other properties
     private string TxtNoteContent = "";
     private int SelectedPaymentMethod = 0;
     private decimal FinalTotalAmount = 0;
     private decimal ShippingFee = 0;
     private string GhnToken = "";
-    private int GhnShopId = 0;
-    private int GhnFromDistrictId = 0;
-    private string GhnFromWardCode = "";
+    //Id shop lấy từ trang https://khachhang.ghn.vn/account
+    private int GhnShopId = 197393;
+    // Fix cứng id quận Nam từ liêm là địa chỉ của shop
+    private int GhnFromDistrictId = 3440;
+    //13009 là mã code của phường trung văn
+    private string GhnFromWardCode = "13009";
     private int DefaultItemWeightGram = 500;
     private int DefaultLengthCm = 15;
     private int DefaultWidthCm = 15;
     private int DefaultHeightCm = 15;
+    private bool OpenShippingFeeModal = false;
+
+    // Shipping fee calculation details for display
+    private int totalWeight = 0;
+    private int totalVolume = 0;
+    private int maxLength = 0;
+    private int maxWidth = 0;
+    private int maxHeight = 0;
+
     protected override async Task OnInitializedAsync()
     {
         backendUrl = Configuration["ApiSettings:BaseUrl"] ?? "";
         GhnToken = Configuration["Ghn:Token"] ?? "";
         int.TryParse(Configuration["Ghn:ShopId"], out GhnShopId);
         int.TryParse(Configuration["Ghn:FromDistrictId"], out GhnFromDistrictId);
-        GhnFromWardCode = Configuration["Ghn:FromWardCode"] ?? "";
+        GhnFromWardCode = Configuration["Ghn:FromWardCode"] ?? GhnFromWardCode;
         int.TryParse(Configuration["Ghn:DefaultItemWeightGram"], out DefaultItemWeightGram);
         int.TryParse(Configuration["Ghn:DefaultLengthCm"], out DefaultLengthCm);
         int.TryParse(Configuration["Ghn:DefaultWidthCm"], out DefaultWidthCm);
@@ -680,127 +713,60 @@
         try
         {
             ShippingFee = 0;
-            if (DefaultDeliveryAddress == null || string.IsNullOrWhiteSpace(DefaultDeliveryAddress.CommuneName) ||
-            string.IsNullOrWhiteSpace(DefaultDeliveryAddress.DistrictName))
+            if (DefaultDeliveryAddress == null || DefaultDeliveryAddress.ProvinceId < 1 ||
+            DefaultDeliveryAddress.CommuneId < 1 || DefaultDeliveryAddress.DistrictId < 1 || string.IsNullOrWhiteSpace(GhnToken))
             {
                 return;
             }
-            if (string.IsNullOrWhiteSpace(GhnToken) || GhnFromDistrictId == 0)
-            {
-                return;
-            }
-            var ghnBase = "https://online-gateway.ghn.vn/shiip/public-api";
-            // Resolve to_district_id
-            var districtReq = new HttpRequestMessage(HttpMethod.Post, $"{ghnBase}/master-data/district");
-            districtReq.Headers.Add("token", GhnToken);
-            districtReq.Content = new StringContent("{}", System.Text.Encoding.UTF8, "application/json");
-            var districtResp = await ApiCaller.SendAsync(districtReq);
-            var districtJson = await districtResp.Content.ReadAsStringAsync();
-            using var doc1 = System.Text.Json.JsonDocument.Parse(districtJson);
-            var districts = doc1.RootElement.GetProperty("data");
-            int toDistrictId = 0;
-            string targetDistrictName = DefaultDeliveryAddress.DistrictName.ToLowerInvariant();
-            foreach (var d in districts.EnumerateArray())
-            {
-                var name = d.GetProperty("DistrictName").GetString()?.ToLowerInvariant() ?? "";
-                if (name.Contains(targetDistrictName))
-                {
-                    toDistrictId = d.GetProperty("DistrictID").GetInt32();
-                    break;
-                }
-            }
-            if (toDistrictId == 0)
-            {
-                return;
-            }
-            // Resolve to_ward_code
-            var wardReq = new HttpRequestMessage(HttpMethod.Post, $"{ghnBase}/master-data/ward");
-            wardReq.Headers.Add("token", GhnToken);
-            var wardBody = new { district_id = toDistrictId };
-            wardReq.Content = new StringContent(System.Text.Json.JsonSerializer.Serialize(wardBody), System.Text.Encoding.UTF8,
-            "application/json");
-            var wardResp = await ApiCaller.SendAsync(wardReq);
-            var wardJson = await wardResp.Content.ReadAsStringAsync();
-            using var doc2 = System.Text.Json.JsonDocument.Parse(wardJson);
-            var wards = doc2.RootElement.GetProperty("data");
-            string toWardCode = "";
-            string targetWardName = DefaultDeliveryAddress.CommuneName.ToLowerInvariant();
-            foreach (var w in wards.EnumerateArray())
-            {
-                var name = w.GetProperty("WardName").GetString()?.ToLowerInvariant() ?? "";
-                if (name.Contains(targetWardName))
-                {
-                    toWardCode = w.GetProperty("WardCode").GetString() ?? "";
-                    break;
-                }
-            }
-            if (string.IsNullOrWhiteSpace(toWardCode))
-            {
-                return;
-            }
-            // Get available services
-            var servicesReq = new HttpRequestMessage(HttpMethod.Post, $"{ghnBase}/v2/shipping-order/available-services");
-            servicesReq.Headers.Add("token", GhnToken);
-            var servicesBody = new
-            {
-                shop_id = GhnShopId,
-                from_district = GhnFromDistrictId,
-                to_district = toDistrictId
-            };
-            servicesReq.Content = new StringContent(System.Text.Json.JsonSerializer.Serialize(servicesBody),
-            System.Text.Encoding.UTF8, "application/json");
-            var servicesResp = await ApiCaller.SendAsync(servicesReq);
-            var servicesJson = await servicesResp.Content.ReadAsStringAsync();
-            using var doc3 = System.Text.Json.JsonDocument.Parse(servicesJson);
-            int serviceId = 0;
-            if (doc3.RootElement.TryGetProperty("data", out var servicesData) && servicesData.ValueKind ==
-            System.Text.Json.JsonValueKind.Array)
-            {
-                foreach (var s in servicesData.EnumerateArray())
-                {
-                    if (s.TryGetProperty("service_id", out var sid))
-                    {
-                        serviceId = sid.GetInt32();
-                        break;
-                    }
-                }
-            }
-            if (serviceId == 0)
-            {
-                return;
-            }
+
             // Compute parcel dimensions and weight
-            int totalWeight = Math.Max(DefaultItemWeightGram, 100);
+            totalWeight = Math.Max(DefaultItemWeightGram, 100);
+            maxLength = DefaultLengthCm;
+            maxWidth = DefaultWidthCm;
+            maxHeight = DefaultHeightCm;
+
             if (selectedRows != null && selectedRows.Any())
             {
-                totalWeight = Math.Max(200, selectedRows.Sum(x => Math.Max(DefaultItemWeightGram, 200)));
+                // Tính tổng trọng lượng từ các sản phẩm thực tế
+                totalWeight = Math.Max(200, selectedRows.Sum(x => Math.Max(x.Weight, 200)));
+
+                // Lấy kích thước lớn nhất từ các sản phẩm để tính thể tích
+                // Sử dụng thông tin thực tế từ ProductDetail
+                totalVolume = selectedRows.Sum(x =>
+                {
+                    // Sử dụng thông tin kích thước từ ProductDetail
+                    var itemLength = x.Length > 0 ? x.Length : DefaultLengthCm;
+                    var itemWidth = x.Width > 0 ? x.Width : DefaultWidthCm;
+                    var itemHeight = x.Height > 0 ? x.Height : DefaultHeightCm;
+                    return itemLength * itemWidth * itemHeight;
+                });
+
+                // Tính kích thước tối đa dựa trên thể tích tổng
+                var cubeRoot = Math.Pow(totalVolume, 1.0 / 3.0);
+                maxLength = maxWidth = maxHeight = Math.Max(DefaultLengthCm, (int)Math.Ceiling(cubeRoot));
             }
-            // Fee request
-            var feeReq = new HttpRequestMessage(HttpMethod.Post, $"{ghnBase}/v2/shipping-order/fee");
-            feeReq.Headers.Add("token", GhnToken);
-            feeReq.Headers.Add("shop_id", GhnShopId.ToString());
-            var feeBody = new
+            // Get available services using GHN service
+            var services = await GhnService.GetAvailableServicesAsync(GhnFromDistrictId, DefaultDeliveryAddress.DistrictId);
+            if (!services.Any())
             {
-                service_id = serviceId,
-                insurance_value = (int)Math.Max(0, Math.Round((double)(cart?.TotalPrice ?? 0))),
-                coupon = (string?)null,
-                from_district_id = GhnFromDistrictId,
-                to_district_id = toDistrictId,
-                to_ward_code = toWardCode,
-                height = DefaultHeightCm,
-                length = DefaultLengthCm,
-                weight = totalWeight,
-                width = DefaultWidthCm
-            };
-            feeReq.Content = new StringContent(System.Text.Json.JsonSerializer.Serialize(feeBody), System.Text.Encoding.UTF8,
-            "application/json");
-            var feeResp = await ApiCaller.SendAsync(feeReq);
-            var feeJson = await feeResp.Content.ReadAsStringAsync();
-            using var doc4 = System.Text.Json.JsonDocument.Parse(feeJson);
-            if (doc4.RootElement.TryGetProperty("data", out var feeData) && feeData.TryGetProperty("total", out var totalEl))
-            {
-                ShippingFee = totalEl.GetDecimal();
+                return;
             }
+
+            var availableServiceId = services.First().ServiceId;
+            var insuranceValue = (decimal)Math.Max(0, Math.Round((double)(cart?.TotalPrice ?? 0)));
+
+            // Calculate shipping fee using GHN service
+            ShippingFee = await GhnService.CalculateShippingFeeAsync(
+            GhnFromDistrictId,
+            DefaultDeliveryAddress.DistrictId,
+            DefaultDeliveryAddress.CommuneId.ToString(),
+            totalWeight,
+            maxLength,
+            maxWidth,
+            maxHeight,
+            availableServiceId,
+            insuranceValue
+            );
         }
         catch
         {
@@ -838,6 +804,27 @@
         if (resp?.ResponseStatus == BaseStatus.Success)
         {
             MessageService.Success(resp.Message);
+
+            // Create GHN shipping order
+            try
+            {
+                var ghnOrderRequest = CreateGhnOrderRequest(resp.OrderId);
+                var ghnResponse = await GhnService.CreateOrderAsync(ghnOrderRequest);
+
+                if (ghnResponse?.Code == 200 && ghnResponse.Data != null)
+                {
+                    MessageService.Success($"Đã tạo đơn hàng vận chuyển GHN: {ghnResponse.Data.OrderCode}");
+                }
+                else
+                {
+                    MessageService.Warning($"Đặt hàng thành công nhưng không thể tạo đơn hàng GHN: {ghnResponse?.Message}");
+                }
+            }
+            catch (Exception ex)
+            {
+                MessageService.Warning($"Đặt hàng thành công nhưng không thể tạo đơn hàng GHN: {ex.Message}");
+            }
+
             // Show order code for user reference
             await LoadCart();
             if (SelectedPaymentMethod == 2)
@@ -1007,17 +994,47 @@
     {
         try
         {
-            if (string.IsNullOrWhiteSpace(EditingAddress.Name) ||
-            string.IsNullOrWhiteSpace(EditingAddress.PhoneNumber) ||
-            !SelectedProvinceId.HasValue ||
-            !SelectedDistrictId.HasValue ||
-            !SelectedCommuneId.HasValue ||
-            string.IsNullOrWhiteSpace(EditingAddress.Address))
+            // Normalize inputs
+            EditingAddress.Name = EditingAddress.Name?.Trim();
+            EditingAddress.PhoneNumber = EditingAddress.PhoneNumber?.Trim();
+            EditingAddress.Address = EditingAddress.Address?.Trim();
+
+            // Basic validations
+            if (string.IsNullOrWhiteSpace(EditingAddress.Name))
             {
-                MessageService.Warning("Vui lòng điền đầy đủ thông tin");
+                MessageService.Warning("Vui lòng nhập họ tên");
+                return;
+            }
+            if (EditingAddress.Name!.Length < 2)
+            {
+                MessageService.Warning("Họ tên quá ngắn");
+                return;
+            }
+            if (string.IsNullOrWhiteSpace(EditingAddress.PhoneNumber))
+            {
+                MessageService.Warning("Vui lòng nhập số điện thoại");
+                return;
+            }
+            if (!IsValidVietnamPhone(EditingAddress.PhoneNumber!))
+            {
+                MessageService.Warning("Số điện thoại không hợp lệ (10-11 số, bắt đầu bằng 0)");
+                return;
+            }
+            if (!SelectedProvinceId.HasValue || !SelectedDistrictId.HasValue || !SelectedCommuneId.HasValue)
+            {
+                MessageService.Warning("Vui lòng chọn đủ Tỉnh/Thành, Quận/Huyện, Phường/Xã");
+                return;
+            }
+            if (string.IsNullOrWhiteSpace(EditingAddress.Address))
+            {
+                MessageService.Warning("Vui lòng nhập địa chỉ chi tiết (số nhà, đường...)");
                 return;
             }
             EditingAddress.CommuneId = SelectedCommuneId;
+            EditingAddress.ProvinceId = SelectedProvinceId;
+            EditingAddress.DistrictId = SelectedDistrictId;
+            // Compose full address before saving
+            EditingAddress.FullAddress = BuildFullAddress(EditingAddress.Address);
             var result = await AddressClient.CreateOrUpdateAsync(EditingAddress);
             if (result.HasValue)
             {
@@ -1060,42 +1077,20 @@
                 return;
             }
 
-            var ghnBase = "https://online-gateway.ghn.vn/shiip/public-api";
-            var provinceReq = new HttpRequestMessage(HttpMethod.Post, $"{ghnBase}/master-data/province");
-            provinceReq.Headers.Add("token", GhnToken);
-            provinceReq.Content = new StringContent("{}", System.Text.Encoding.UTF8, "application/json");
+            var provinces = await GhnService.GetProvincesAsync();
+            LstGhnProvinces.Clear();
+            LstGhnProvinces.AddRange(provinces);
 
-            var provinceResp = await ApiCaller.SendAsync(provinceReq);
-            var provinceJson = await provinceResp.Content.ReadAsStringAsync();
-
-            using var doc = System.Text.Json.JsonDocument.Parse(provinceJson);
-            if (doc.RootElement.TryGetProperty("data", out var provinceData))
+            // Prefill from EditingAddress if present
+            if (EditingAddress.ProvinceId.HasValue && EditingAddress.ProvinceId.Value != -1)
             {
-                LstGhnProvinces.Clear();
-                foreach (var p in provinceData.EnumerateArray())
+                SelectedProvinceId = EditingAddress.ProvinceId;
+                // Find corresponding GHN province ID
+                var selectedProvince = LstGhnProvinces.FirstOrDefault(p => p.Id == EditingAddress.ProvinceId);
+                if (selectedProvince != null)
                 {
-                    var ghnProvinceId = p.GetProperty("ProvinceID").GetInt32();
-                    var provinceName = p.GetProperty("ProvinceName").GetString() ?? "";
-
-                    LstGhnProvinces.Add(new GhnLocationItem
-                    {
-                        Id = ghnProvinceId,
-                        Name = provinceName,
-                        GhnProvinceId = ghnProvinceId
-                    });
-                }
-
-                // Prefill from EditingAddress if present
-                if (EditingAddress.ProvinceId.HasValue && EditingAddress.ProvinceId.Value != -1)
-                {
-                    SelectedProvinceId = EditingAddress.ProvinceId;
-                    // Find corresponding GHN province ID
-                    var selectedProvince = LstGhnProvinces.FirstOrDefault(p => p.Id == EditingAddress.ProvinceId);
-                    if (selectedProvince != null)
-                    {
-                        SelectedGhnProvinceId = selectedProvince.GhnProvinceId;
-                        await LoadGhnDistricts(selectedProvince.GhnProvinceId);
-                    }
+                    SelectedGhnProvinceId = selectedProvince.GhnProvinceId;
+                    await LoadGhnDistricts(selectedProvince.GhnProvinceId);
                 }
             }
         }
@@ -1105,7 +1100,7 @@
         }
     }
 
-    private async void OnProvinceChange(GhnLocationItem province)
+    private async void OnProvinceChange(MeoMeo.Shared.IServices.GhnLocationItem province)
     {
         SelectedProvinceId = province.Id;
         EditingAddress.ProvinceId = province.Id;
@@ -1134,44 +1129,19 @@
                 return;
             }
 
-            var ghnBase = "https://online-gateway.ghn.vn/shiip/public-api";
-            var districtReq = new HttpRequestMessage(HttpMethod.Post, $"{ghnBase}/master-data/district");
-            districtReq.Headers.Add("token", GhnToken);
+            var districts = await GhnService.GetDistrictsAsync(ghnProvinceId);
+            LstGhnDistricts.Clear();
+            LstGhnDistricts.AddRange(districts);
 
-            var districtBody = new { province_id = ghnProvinceId };
-            districtReq.Content = new StringContent(System.Text.Json.JsonSerializer.Serialize(districtBody),
-            System.Text.Encoding.UTF8, "application/json");
-
-            var districtResp = await ApiCaller.SendAsync(districtReq);
-            var districtJson = await districtResp.Content.ReadAsStringAsync();
-
-            using var doc = System.Text.Json.JsonDocument.Parse(districtJson);
-            if (doc.RootElement.TryGetProperty("data", out var districtData))
+            // Prefill from EditingAddress if present
+            if (EditingAddress.DistrictId.HasValue && EditingAddress.DistrictId.Value != -1)
             {
-                LstGhnDistricts.Clear();
-                foreach (var d in districtData.EnumerateArray())
+                SelectedDistrictId = EditingAddress.DistrictId;
+                var selectedDistrict = LstGhnDistricts.FirstOrDefault(d => d.Id == EditingAddress.DistrictId);
+                if (selectedDistrict != null)
                 {
-                    var ghnDistrictId = d.GetProperty("DistrictID").GetInt32();
-                    var districtName = d.GetProperty("DistrictName").GetString() ?? "";
-
-                    LstGhnDistricts.Add(new GhnLocationItem
-                    {
-                        Id = ghnDistrictId,
-                        Name = districtName,
-                        GhnDistrictId = ghnDistrictId
-                    });
-                }
-
-                // Prefill from EditingAddress if present
-                if (EditingAddress.DistrictId.HasValue && EditingAddress.DistrictId.Value != -1)
-                {
-                    SelectedDistrictId = EditingAddress.DistrictId;
-                    var selectedDistrict = LstGhnDistricts.FirstOrDefault(d => d.Id == EditingAddress.DistrictId);
-                    if (selectedDistrict != null)
-                    {
-                        SelectedGhnDistrictId = selectedDistrict.GhnDistrictId;
-                        await LoadGhnCommunes(selectedDistrict.GhnDistrictId);
-                    }
+                    SelectedGhnDistrictId = selectedDistrict.GhnDistrictId;
+                    await LoadGhnCommunes(selectedDistrict.GhnDistrictId);
                 }
             }
 
@@ -1183,7 +1153,7 @@
         }
     }
 
-    private async void OnDistrictChange(GhnLocationItem district)
+    private async void OnDistrictChange(MeoMeo.Shared.IServices.GhnLocationItem district)
     {
         SelectedDistrictId = district.Id;
         EditingAddress.DistrictId = district.Id;
@@ -1208,43 +1178,18 @@
                 return;
             }
 
-            var ghnBase = "https://online-gateway.ghn.vn/shiip/public-api";
-            var communeReq = new HttpRequestMessage(HttpMethod.Post, $"{ghnBase}/master-data/ward");
-            communeReq.Headers.Add("token", GhnToken);
+            var communes = await GhnService.GetWardsAsync(ghnDistrictId);
+            LstGhnCommunes.Clear();
+            LstGhnCommunes.AddRange(communes);
 
-            var communeBody = new { district_id = ghnDistrictId };
-            communeReq.Content = new StringContent(System.Text.Json.JsonSerializer.Serialize(communeBody),
-            System.Text.Encoding.UTF8, "application/json");
-
-            var communeResp = await ApiCaller.SendAsync(communeReq);
-            var communeJson = await communeResp.Content.ReadAsStringAsync();
-
-            using var doc = System.Text.Json.JsonDocument.Parse(communeJson);
-            if (doc.RootElement.TryGetProperty("data", out var communeData))
+            // Prefill from EditingAddress if present
+            if (EditingAddress.CommuneId.HasValue && EditingAddress.CommuneId.Value != -1)
             {
-                LstGhnCommunes.Clear();
-                foreach (var c in communeData.EnumerateArray())
+                SelectedCommuneId = EditingAddress.CommuneId;
+                var selectedCommune = LstGhnCommunes.FirstOrDefault(c => c.Id == EditingAddress.CommuneId);
+                if (selectedCommune != null)
                 {
-                    var ghnWardCode = c.GetProperty("WardCode").GetString() ?? "";
-                    var wardName = c.GetProperty("WardName").GetString() ?? "";
-
-                    LstGhnCommunes.Add(new GhnLocationItem
-                    {
-                        Id = Convert.ToInt32(ghnWardCode),
-                        Name = wardName,
-                        GhnWardCode = ghnWardCode
-                    });
-                }
-
-                // Prefill from EditingAddress if present
-                if (EditingAddress.CommuneId.HasValue && EditingAddress.CommuneId.Value != -1)
-                {
-                    SelectedCommuneId = EditingAddress.CommuneId;
-                    var selectedCommune = LstGhnCommunes.FirstOrDefault(c => c.Id == EditingAddress.CommuneId);
-                    if (selectedCommune != null)
-                    {
-                        SelectedGhnWardCode = selectedCommune.GhnWardCode;
-                    }
+                    SelectedGhnWardCode = selectedCommune.GhnWardCode;
                 }
             }
 
@@ -1256,11 +1201,38 @@
         }
     }
 
-    private async void OnCommuneChange(GhnLocationItem commune)
+    private async void OnCommuneChange(MeoMeo.Shared.IServices.GhnLocationItem commune)
     {
         SelectedCommuneId = commune.Id;
         EditingAddress.CommuneId = commune.Id;
         SelectedGhnWardCode = commune.GhnWardCode;
+    }
+
+    private string BuildFullAddress(string detail)
+    {
+        var wardName = LstGhnCommunes.FirstOrDefault(x => x.Id == (SelectedCommuneId ?? -1))?.Name
+        ?? DefaultDeliveryAddress?.CommuneName
+        ?? string.Empty;
+        var districtName = LstGhnDistricts.FirstOrDefault(x => x.Id == (SelectedDistrictId ?? -1))?.Name
+        ?? DefaultDeliveryAddress?.DistrictName
+        ?? string.Empty;
+        var provinceName = LstGhnProvinces.FirstOrDefault(x => x.Id == (SelectedProvinceId ?? -1))?.Name
+        ?? string.Empty;
+
+        var parts = new List<string>();
+        if (!string.IsNullOrWhiteSpace(detail)) parts.Add(detail.Trim());
+        if (!string.IsNullOrWhiteSpace(wardName)) parts.Add(wardName.Trim());
+        if (!string.IsNullOrWhiteSpace(districtName)) parts.Add(districtName.Trim());
+        if (!string.IsNullOrWhiteSpace(provinceName)) parts.Add(provinceName.Trim());
+        return string.Join(", ", parts);
+    }
+
+    private static bool IsValidVietnamPhone(string phone)
+    {
+        // Accept 10-11 digits starting with 0; strips spaces and dashes before check
+        var digits = new string(phone.Where(char.IsDigit).ToArray());
+        if (!digits.StartsWith("0")) return false;
+        return digits.Length == 10 || digits.Length == 11;
     }
     private void HandleRedirectToHomepage() => Navigation.NavigateTo("/");
     private static string FormatCurrency(decimal amount) =>
@@ -1269,4 +1241,73 @@
     string.Format(System.Globalization.CultureInfo.GetCultureInfo("vi-VN"), "{0:C0}", amount);
     private static float CalcPriceAfterDiscount(float price, float discount) =>
     discount > 100 ? price - discount : price * (1 - discount / 100f);
+
+    private void ShowShippingFeeModal()
+    {
+        OpenShippingFeeModal = true;
+    }
+    private void HandleOkShippingFee()
+    {
+        OpenShippingFeeModal = false;
+    }
+    private void HandleCancelShippingFee()
+    {
+        OpenShippingFeeModal = false;
+    }
+
+    private GhnCreateOrderRequestDTO CreateGhnOrderRequest(Guid orderId)
+    {
+        var ghnRequest = new GhnCreateOrderRequestDTO
+        {
+            PaymentTypeId = SelectedPaymentMethod == 0 ? 2 : 1, // 2: Buyer pays, 1: Shop pays
+            Note = TxtNoteContent,
+            RequiredNote = "KHONGCHOXEMHANG",
+            FromName = "MeoMeo Shop",
+            FromPhone = "0987654321",
+            FromAddress = "72 Thành Thái, Phường 14, Quận 10, Hồ Chí Minh, Vietnam",
+            FromWardName = "Phường 14",
+            FromDistrictName = "Quận 10",
+            FromProvinceName = "HCM",
+            ClientOrderCode = orderId.ToString(),
+            ToName = DefaultDeliveryAddress?.Name ?? "",
+            ToPhone = DefaultDeliveryAddress?.PhoneNumber ?? "",
+            ToAddress = DefaultDeliveryAddress?.Address ?? "",
+            ToWardCode = DefaultDeliveryAddress?.CommuneId.ToString() ?? "",
+            ToDistrictId = DefaultDeliveryAddress?.DistrictId ?? 0,
+            CodAmount = SelectedPaymentMethod == 0 ? (int)FinalTotalAmount : 0,
+            Content = $"Đơn hàng {orderId}",
+            Weight = totalWeight,
+            Length = maxLength,
+            Width = maxWidth,
+            Height = maxHeight,
+            InsuranceValue = (int)Math.Max(0, Math.Round((double)(cart?.TotalPrice ?? 0))),
+            ServiceTypeId = 2, // E-commerce Delivery
+            Items = new List<GhnOrderItemDTO>()
+        };
+
+        // Add items to GHN order
+        if (selectedRows != null && selectedRows.Any())
+        {
+            foreach (var item in selectedRows)
+            {
+                ghnRequest.Items.Add(new GhnOrderItemDTO
+                {
+                    Name = item.ProductName,
+                    Code = item.Sku,
+                    Quantity = item.Quantity,
+                    Price = (int)CalcPriceAfterDiscount(item.Price, item.Discount),
+                    Length = Math.Max(item.Length, DefaultLengthCm),
+                    Width = Math.Max(item.Width, DefaultWidthCm),
+                    Height = Math.Max(item.Height, DefaultHeightCm),
+                    Weight = Math.Max(item.Weight, DefaultItemWeightGram),
+                    Category = new GhnItemCategoryDTO
+                    {
+                        Level1 = "Sản phẩm"
+                    }
+                });
+            }
+        }
+
+        return ghnRequest;
+    }
 }

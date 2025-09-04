@@ -4,6 +4,7 @@ using MeoMeo.EntityFrameworkCore.Configurations.Contexts;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace MeoMeo.EntityFrameworkCore.Migrations
 {
     [DbContext(typeof(MeoMeoDbContext))]
-    partial class MeoMeoDbContextModelSnapshot : ModelSnapshot
+    [Migration("20250903150449_Add_Full_Address_Delivery")]
+    partial class Add_Full_Address_Delivery
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -954,21 +957,8 @@ namespace MeoMeo.EntityFrameworkCore.Migrations
                     b.Property<DateTime>("CreationTime")
                         .HasColumnType("datetime2");
 
-                    b.Property<int>("Height")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int")
-                        .HasDefaultValue(15);
-
                     b.Property<DateTime?>("LastModificationTime")
                         .HasColumnType("datetime2");
-
-                    b.Property<int>("Length")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int")
-                        .HasDefaultValue(15);
-
-                    b.Property<int?>("MaxBuyPerOrder")
-                        .HasColumnType("int");
 
                     b.Property<int>("OutOfStock")
                         .HasColumnType("int");
@@ -998,16 +988,6 @@ namespace MeoMeo.EntityFrameworkCore.Migrations
 
                     b.Property<int?>("ViewNumber")
                         .HasColumnType("int");
-
-                    b.Property<int>("Weight")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int")
-                        .HasDefaultValue(500);
-
-                    b.Property<int>("Width")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int")
-                        .HasDefaultValue(15);
 
                     b.HasKey("Id");
 

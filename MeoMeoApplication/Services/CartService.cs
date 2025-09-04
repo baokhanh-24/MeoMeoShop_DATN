@@ -254,7 +254,16 @@ namespace MeoMeo.Application.Services
                     PromotionDetailId = cd.PromotionDetailId.HasValue? Guid.Parse(cd.PromotionDetailId.ToString()): Guid.Empty, // Mã KM nếu có
                     Quantity = cd.Quantity,              // Số lượng
                     Price = cd.Price,                    // Đơn giá
-                    Discount = cd.Discount               // % giảm
+                    Discount = cd.Discount,              // % giảm
+                    
+                    // Thông tin vận chuyển từ ProductDetail
+                    Weight = cd.ProductDetail.Weight,
+                    Length = cd.ProductDetail.Length,
+                    Width = cd.ProductDetail.Width,
+                    Height = cd.ProductDetail.Height,
+                    
+                    // Giới hạn mua hàng
+                    MaxBuyPerOrder = cd.ProductDetail.MaxBuyPerOrder
                 })
                 .ToListAsync();
 
@@ -296,6 +305,13 @@ namespace MeoMeo.Application.Services
             var availableStock = await _inventoryBatchRepository.Query()
                 .Where(b => b.ProductDetailId == item.ProductDetailId)
                 .SumAsync(b => (int?)b.Quantity) ?? 0;
+
+            // Lấy thông tin giới hạn mua hàng
+            var productDetail = await _productDetailRepository.GetByIdAsync(item.ProductDetailId);
+            if (productDetail?.MaxBuyPerOrder.HasValue == true && newQuantity > productDetail.MaxBuyPerOrder.Value)
+            {
+                return new CartResponseDTO { ResponseStatus = BaseStatus.Error, Message = $"Số lượng vượt quá giới hạn mua hàng ({productDetail.MaxBuyPerOrder.Value} sản phẩm/đơn hàng)" };
+            }
 
             // Tổng dự kiến = các dòng khác + số lượng mới của dòng hiện tại
             var projectedTotal = sameVariantItems.Sum(x => x.Quantity) + newQuantity;
