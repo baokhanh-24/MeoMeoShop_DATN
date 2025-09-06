@@ -46,6 +46,8 @@ builder.Services.AddScoped<IOrderClientService, OrderClientService>();
 builder.Services.AddScoped<IPromotionClientService, PromotionClientService>();
 builder.Services.AddScoped<IPromotionDetailClientService, PromotionDetailClientService>();
 builder.Services.AddScoped<ISystemConfigClientService, SystenConfigClientService>();
+builder.Services.AddScoped<IGhnClientService, GhnClientService>();
+builder.Services.AddScoped<IDeliveryAddressClientService, DeliveryAddressClientService>();
 builder.Services.AddHttpClient<IApiCaller, ApiCaller>(client =>
 {
     client.BaseAddress = new Uri(apiBaseUrl!);

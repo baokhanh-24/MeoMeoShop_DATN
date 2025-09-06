@@ -655,6 +655,9 @@ namespace MeoMeo.EntityFrameworkCore.Migrations
                     b.Property<DateTime?>("ExpectReceiveDate")
                         .HasColumnType("datetime2");
 
+                    b.Property<string>("GhnCode")
+                        .HasColumnType("nvarchar(max)");
+
                     b.Property<bool?>("IsTransferred")
                         .HasColumnType("bit");
 
@@ -677,6 +680,9 @@ namespace MeoMeo.EntityFrameworkCore.Migrations
 
                     b.Property<decimal?>("ShippingFee")
                         .HasColumnType("decimal(18,2)");
+
+                    b.Property<string>("ShippingMethod")
+                        .HasColumnType("nvarchar(max)");
 
                     b.Property<int>("Status")
                         .HasColumnType("int");
@@ -816,6 +822,118 @@ namespace MeoMeo.EntityFrameworkCore.Migrations
                     b.HasIndex("OrderId");
 
                     b.ToTable("OrderHistories", (string)null);
+                });
+
+            modelBuilder.Entity("MeoMeo.Domain.Entities.OrderReturn", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("BankAccountName")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("BankAccountNumber")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("BankName")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("Code")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("ContactName")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("ContactPhone")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTime>("CreationTime")
+                        .HasColumnType("datetime2");
+
+                    b.Property<Guid>("CustomerId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime?>("LastModifiedTime")
+                        .HasColumnType("datetime2");
+
+                    b.Property<Guid>("OrderId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("Reason")
+                        .IsRequired()
+                        .HasMaxLength(1000)
+                        .HasColumnType("nvarchar(1000)");
+
+                    b.Property<int>("RefundMethod")
+                        .HasColumnType("int");
+
+                    b.Property<int>("Status")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CustomerId");
+
+                    b.HasIndex("OrderId");
+
+                    b.ToTable("OrderReturns", (string)null);
+                });
+
+            modelBuilder.Entity("MeoMeo.Domain.Entities.OrderReturnFile", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("ContentType")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<Guid>("OrderReturnId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("Url")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("OrderReturnId");
+
+                    b.ToTable("OrderReturnFiles", (string)null);
+                });
+
+            modelBuilder.Entity("MeoMeo.Domain.Entities.OrderReturnItem", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("OrderDetailId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("OrderReturnId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<int>("Quantity")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Reason")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("OrderDetailId");
+
+                    b.HasIndex("OrderReturnId");
+
+                    b.ToTable("OrderReturnItems", (string)null);
                 });
 
             modelBuilder.Entity("MeoMeo.Domain.Entities.Permission", b =>
@@ -1786,6 +1904,55 @@ namespace MeoMeo.EntityFrameworkCore.Migrations
                     b.Navigation("Order");
                 });
 
+            modelBuilder.Entity("MeoMeo.Domain.Entities.OrderReturn", b =>
+                {
+                    b.HasOne("MeoMeo.Domain.Entities.Customers", "Customer")
+                        .WithMany()
+                        .HasForeignKey("CustomerId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("MeoMeo.Domain.Entities.Order", "Order")
+                        .WithMany()
+                        .HasForeignKey("OrderId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Customer");
+
+                    b.Navigation("Order");
+                });
+
+            modelBuilder.Entity("MeoMeo.Domain.Entities.OrderReturnFile", b =>
+                {
+                    b.HasOne("MeoMeo.Domain.Entities.OrderReturn", "OrderReturn")
+                        .WithMany("Files")
+                        .HasForeignKey("OrderReturnId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("OrderReturn");
+                });
+
+            modelBuilder.Entity("MeoMeo.Domain.Entities.OrderReturnItem", b =>
+                {
+                    b.HasOne("MeoMeo.Domain.Entities.OrderDetail", "OrderDetail")
+                        .WithMany()
+                        .HasForeignKey("OrderDetailId")
+                        .OnDelete(DeleteBehavior.NoAction)
+                        .IsRequired();
+
+                    b.HasOne("MeoMeo.Domain.Entities.OrderReturn", "OrderReturn")
+                        .WithMany("Items")
+                        .HasForeignKey("OrderReturnId")
+                        .OnDelete(DeleteBehavior.NoAction)
+                        .IsRequired();
+
+                    b.Navigation("OrderDetail");
+
+                    b.Navigation("OrderReturn");
+                });
+
             modelBuilder.Entity("MeoMeo.Domain.Entities.Permission", b =>
                 {
                     b.HasOne("MeoMeo.Domain.Entities.PermissionGroup", "PermissionGroup")
@@ -2089,6 +2256,13 @@ namespace MeoMeo.EntityFrameworkCore.Migrations
             modelBuilder.Entity("MeoMeo.Domain.Entities.OrderDetail", b =>
                 {
                     b.Navigation("OrderDetailInventoryBatches");
+                });
+
+            modelBuilder.Entity("MeoMeo.Domain.Entities.OrderReturn", b =>
+                {
+                    b.Navigation("Files");
+
+                    b.Navigation("Items");
                 });
 
             modelBuilder.Entity("MeoMeo.Domain.Entities.Permission", b =>

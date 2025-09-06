@@ -10,6 +10,7 @@ public class CustomerDTO
     public string Code { get; set; }
     public string PhoneNumber { get; set; }
     public DateTime? DateOfBirth { get; set; }
+    public DateTime CreationTime { get; set; }
     public string? TaxCode { get; set; }
     public string? Address { get; set; }
     public ECustomerStatus Status { get; set; }

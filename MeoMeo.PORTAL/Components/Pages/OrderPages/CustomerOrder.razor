@@ -3,128 +3,324 @@
 @using MeoMeo.Shared.IServices
 @using MeoMeo.Contract.DTOs.Order
 @using MeoMeo.Contract.Commons
+@using MeoMeo.Contract.DTOs
 @inject NavigationManager Navigation
 @inject MessageService MessageService
 @inject IOrderClientService OrderClient
+@inject ICartClientService CartClient
+@inject IConfiguration Configuration
+<div class="content-background">
+    <GridRow Gutter="16">
+        <GridCol Span="22" Offset="1">
+            <Breadcrumb Class="mb-3">
+                <BreadcrumbItem>
+                    <a class="">
+                        Trang chủ
+                    </a>
+                </BreadcrumbItem>
+                <BreadcrumbItem>
+                    <a class="current">
+                        Đơn hàng của tôi
+                    </a>
+                </BreadcrumbItem>
+                <BreadcrumbItem>
+                    <a class="current">
+                        Tiếp tục mua sắm
+                    </a>
+                </BreadcrumbItem>
+            </Breadcrumb>
 
-<div>
-    <div class="d-flex justify-content-between" style="justify-items: center;">
-        <div class="title">Đơn hàng của tôi</div>
-        <div class="search-container">
-            <Search Placeholder="Tìm theo mã đơn hàng"
-                    @bind-Value="SearchValue"
-                    OnSearch="OnSearch"
-                    EnterButton="true"
-                    Loading="IsLoading" />
-        </div>
-    </div>
-
-    <div class="status-container" style="display: flex; margin-top: 10px; width: 100%; background-color: #FFFFFF; border-top-left-radius: 8px; border-top-right-radius: 8px; overflow-x: auto;">
-        @foreach (var tab in StatusTabs)
-        {
-            <div class="@GetTabClasses(tab)"
-                 style="@GetTabStyles(tab)"
-                 @onclick="() => OnTabClick(tab)">
-                @tab.Label (@GetStatusCount(tab.Value))
-            </div>
-        }
-    </div>
-
-    <div style="margin-top: 10px; display: flex; flex-direction: column; gap: 10px; justify-content: space-between;">
-        @if (!IsLoading)
-        {
-            @if (Orders.Count == 0)
-            {
-                <div class="row">
-                    <div class="col-12">
-                        <div class="space-coverage text-center">
-                            <img class="empty-cart" src="/images/Cart.svg" alt="" />
-                            <div class="empty-text mt-4">Bạn chưa có đơn hàng nào.</div>
-                            <div class="d-flex justify-content-center">
-                                <button class="shopping-now mt-1" @onclick="@(() => Navigation.NavigateTo("/"))">Mua sắm ngay</button>
-                            </div>
-                        </div>
+            <div>
+                <div class="d-flex justify-content-between" style="justify-items: center;">
+                    <div class="title">Đơn hàng của tôi</div>
+                    <div class="search-container">
+                        <Search Placeholder="Tìm theo mã đơn hàng"
+                                @bind-Value="SearchValue"
+                                OnSearch="OnSearch"
+                                EnterButton="true"
+                                Loading="IsLoading" />
                     </div>
                 </div>
-            }
-            else
-            {
-                @foreach (var order in Orders)
-                {
-                    <div class="space-coverage">
-                        <div class="d-flex justify-content-between">
-                            <div>
-                                <div><b>Mã đơn:</b> @order.Code</div>
-                                <div><b>Ngày tạo:</b> @order.CreationTime.ToString("dd/MM/yyyy HH:mm")</div>
-                            </div>
-                            <div>
-                                <Tag Color="@(order.Status == Domain.Commons.Enums.EOrderStatus.Pending ? "orange" : order.Status == Domain.Commons.Enums.EOrderStatus.Confirmed ? "blue" : order.Status == Domain.Commons.Enums.EOrderStatus.InTransit ? "geekblue" : order.Status == Domain.Commons.Enums.EOrderStatus.Completed ? "green" : "red")">
-                                    @order.Status.ToString()
-                                </Tag>
-                            </div>
-                        </div>
-                        <div class="mt-2 d-flex justify-content-between align-items-center">
-                            <div>
-                                @foreach (var item in order.OrderDetails)
-                                {
-                                    <div class="d-flex justify-content-between">
-                                        <span>@item.Sku</span>
-                                        <span>x@item.Quantity</span>
-                                        <span>@item.Price.ToString("N0") đ</span>
-                                    </div>
-                                }
-                            </div>
-                            <div class="d-flex flex-column align-items-end">
-                                <div><b>Tổng tiền:</b> @order.TotalPrice.ToString("N0") đ</div>
-                                <Button Type="@AntDesign.ButtonType.Primary" 
-                                        Size="@AntDesign.ButtonSize.Small" 
-                                        OnClick="@(() => Navigation.NavigateTo($"/order/{order.Id}"))"
-                                        Class="mt-2">
-                                    Xem chi tiết
-                                </Button>
-                            </div>
-                        </div>
 
+                <div class="status-container" style="display: flex; margin-top: 10px; width: 100%; background-color: #FFFFFF; border-top-left-radius: 8px; border-top-right-radius: 8px; overflow-x: auto;">
+                    @foreach (var tab in StatusTabs)
+                    {
+                        <div class="@GetTabClasses(tab)"
+                             style="@GetTabStyles(tab)"
+                             @onclick="() => OnTabClick(tab)">
+                            @tab.Label (@GetStatusCount(tab.Value))
+                        </div>
+                    }
+                </div>
+
+                <div style="margin-top: 10px; display: flex; flex-direction: column; gap: 10px; justify-content: space-between;">
+                    @if (!IsLoading)
+                    {
+                        @if (Orders.Count == 0)
+                        {
+                            <div class="row">
+                                <div class="col-12">
+                                    <div class="space-coverage text-center">
+                                        <img class="empty-cart" src="/images/Cart.svg" alt="" />
+                                        <div class="empty-text mt-4">Bạn chưa có đơn hàng nào.</div>
+                                        <div class="d-flex justify-content-center">
+                                            <button class="shopping-now mt-1" @onclick="@(() => Navigation.NavigateTo("/"))">Mua sắm ngay</button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        }
+                        else
+                        {
+                            @foreach (var order in Orders)
+                            {
+                                <div class="order-card">
+                                    <!-- Header đơn hàng -->
+                                    <div class="order-header">
+                                        <div class="order-info">
+                                            <div class="order-code">
+                                                <i class="fas fa-receipt"></i>
+                                                <span><b>Mã đơn:</b> @order.Code</span>
+                                            </div>
+                                            <div class="order-date">
+                                                <i class="fas fa-calendar-alt"></i>
+                                                <span><b>Ngày tạo:</b> @order.CreationTime.ToString("dd/MM/yyyy HH:mm")</span>
+                                            </div>
+                                            @if (order.DeliveryDate.HasValue)
+                                            {
+                                                <div class="delivery-date">
+                                                    <i class="fas fa-truck"></i>
+                                                    <span><b>Giao hàng dự kiến:</b> @order.DeliveryDate.Value.ToString("dd/MM/yyyy")</span>
+                                                </div>
+                                            }
+                                            @if (order.Status == Domain.Commons.Enums.EOrderStatus.Canceled && !string.IsNullOrEmpty(order.Reason))
+                                            {
+                                                <div class="cancel-reason">
+                                                    <i class="fas fa-times-circle text-danger"></i>
+                                                    <span><b>Lý do hủy:</b> @order.Reason</span>
+                                                </div>
+                                            }
+                                        </div>
+                                        <div class="order-status">
+                                            <Tag Color="@(order.Status == Domain.Commons.Enums.EOrderStatus.Pending ? "orange" : order.Status == Domain.Commons.Enums.EOrderStatus.Confirmed ? "blue" : order.Status == Domain.Commons.Enums.EOrderStatus.InTransit ? "geekblue" : order.Status == Domain.Commons.Enums.EOrderStatus.Completed ? "green" : "red")">
+                                                @GetStatusDisplayName(order.Status)
+                                            </Tag>
+                                        </div>
+                                    </div>
+
+                                    <!-- Thông tin thanh toán -->
+                                    <div class="payment-info">
+                                        <h6 class="payment-title">
+                                            <i class="fas fa-credit-card"></i>
+                                            Hình thức thanh toán
+                                        </h6>
+                                        <div class="payment-details">
+                                            <div><b>Phương thức:</b> @GetPaymentMethodName(order.PaymentMethod)</div>
+                                            @if (order.Status == Domain.Commons.Enums.EOrderStatus.Completed && order.ReceiveDate.HasValue)
+                                            {
+                                                <div><b>Ngày nhận hàng:</b> @order.ReceiveDate.Value.ToString("dd/MM/yyyy HH:mm")</div>
+                                            }
+                                        </div>
+                                    </div>
+
+                                    <!-- Thông tin sản phẩm -->
+                                    <div class="order-products">
+                                        <h6 class="products-title">
+                                            <i class="fas fa-box"></i>
+                                            Sản phẩm đã đặt
+                                        </h6>
+                                        @foreach (var item in order.OrderDetails)
+                                        {
+                                            <div class="product-item">
+                                                <div class="product-image">
+                                                    <Image Width="60" Height="60" 
+                                                           Src="@(backendUrl + "/" + item.Image)" 
+                                                          Fallback="@(backendUrl + "/Images/fallback.jpeg")"
+                                                           PreviewVisible="false"
+                                                           Class="product-img" />
+                                                </div>
+                                                <div class="product-info">
+                                                    <div class="product-name">@item.ProductName</div>
+                                                    <div class="product-sku">SKU: @item.Sku</div>
+                                                    <div class="product-variant">
+                                                        @if (!string.IsNullOrEmpty(item.Note))
+                                                        {
+                                                            <span>@item.Note</span>
+                                                        }
+                                                        @if (!string.IsNullOrEmpty(item.SizeName))
+                                                        {
+                                                            <span class="size-badge">Size: @item.SizeName</span>
+                                                        }
+                                                        @if (!string.IsNullOrEmpty(item.ColourName))
+                                                        {
+                                                            <span class="color-badge">Màu: @item.ColourName</span>
+                                                        }
+                                                    </div>
+                                                </div>
+                                                <div class="product-quantity">
+                                                    <span class="quantity-badge">x @(item.Quantity)</span>
+                                                </div>
+                                                <div class="product-price">
+                                                    <div class="price-original">@item.Price.ToString("N0") đ</div>
+                                                    @if (item.Discount > 0)
+                                                    {
+                                                        <div class="price-discount">-@item.Discount.ToString("N0") đ</div>
+                                                    }
+                                                </div>
+                                                <div class="product-total">
+                                                    <div class="total-label">Tổng:</div>
+                                                    <div class="total-amount">@item.GrandTotal.ToString("N0") đ</div>
+                                                </div>
+                                            </div>
+                                        }
+                                    </div>
+
+                                    <!-- Thông tin giao hàng -->
+                                    @if (!string.IsNullOrEmpty(order.CustomerName) || !string.IsNullOrEmpty(order.CustomerPhoneNumber) || !string.IsNullOrEmpty(order.DeliveryAddress))
+                                    {
+                                        <div class="delivery-info">
+                                            <h6 class="delivery-title">
+                                                <i class="fas fa-map-marker-alt"></i>
+                                                Thông tin giao hàng
+                                            </h6>
+                                            <div class="delivery-details">
+                                                <div><b>Người nhận:</b> @order.CustomerName</div>
+                                                <div><b>Số điện thoại:</b> @order.CustomerPhoneNumber</div>
+                                                <div><b>Địa chỉ:</b> @order.DeliveryAddress</div>
+                                            </div>
+                                        </div>
+                                    }
+
+                                    <!-- Tổng kết đơn hàng -->
+                                    <div class="order-summary">
+                                        <div class="summary-row">
+                                            <span>Tổng tiền sản phẩm:</span>
+                                            <span>@order.TotalPrice.ToString("N0") đ</span>
+                                        </div>
+                                        @if (order.DiscountPrice > 0)
+                                        {
+                                            <div class="summary-row discount">
+                                                <span>Giảm giá:</span>
+                                                <span>-@order.DiscountPrice.Value.ToString("N0") đ</span>
+                                            </div>
+                                        }
+                                        @if (order.ShippingFee > 0)
+                                        {
+                                            <div class="summary-row">
+                                                <span>Phí vận chuyển:</span>
+                                                <span>@order.ShippingFee.Value.ToString("N0") đ</span>
+                                            </div>
+                                        }
+                                        <div class="summary-row total">
+                                            <span><b>Tổng thanh toán:</b></span>
+                                            <span><b>@((order.TotalPrice - (order.DiscountPrice ?? 0) + (order.ShippingFee ?? 0)).ToString("N0")) đ</b></span>
+                                        </div>
+                                    </div>
+
+                                    <!-- Nút thao tác -->
+                                    <div class="order-actions">
+                                        @if (order.Status == Domain.Commons.Enums.EOrderStatus.Pending)
+                                        {
+                                            <Button Type="@AntDesign.ButtonType.Default" 
+                                                    Size="@AntDesign.ButtonSize.Small" 
+                                                    OnClick="@(() => OpenCancelModal(order))"
+                                                    Icon="close-circle">
+                                                Hủy đơn
+                                            </Button>
+                                        }
+                                        @if (order.Status == Domain.Commons.Enums.EOrderStatus.Completed)
+                                        {
+                                            <Button Type="@AntDesign.ButtonType.Primary" 
+                                                    Size="@AntDesign.ButtonSize.Small" 
+                                                    OnClick="@(() => ReorderProducts(order))"
+                                                    Icon="shopping-cart"
+                                                    Loading="@(ReorderingOrderId == order.Id)">
+                                                Mua lại
+                                            </Button>
+                                        }
+                                        <Button Type="@AntDesign.ButtonType.Primary" 
+                                                Size="@AntDesign.ButtonSize.Small" 
+                                                OnClick="@(() => Navigation.NavigateTo($"/order/{order.Id}"))"
+                                                Icon="eye">
+                                            Xem chi tiết
+                                        </Button>
+                                    </div>
+                                </div>
+                            }
+                        }
+                    }
+                    else
+                    {
+                        <Skeleton Active/>
+                        <Skeleton Active/>
+                    }
+                </div>
+
+                @if (Orders.Count < TotalRecords)
+                {
+                    <div class="text-center mt-3 mb-3">
+                        <i class="fas fa-chevron-down"></i>
+                        <span style="cursor: pointer; font-size: 14px;" class="view-more" @onclick="LoadMore">
+                            Xem thêm @(TotalRecords - Orders.Count) đơn hàng
+                        </span>
                     </div>
                 }
-            }
-        }
-        else
-        {
-            <Skeleton Active/>
-            <Skeleton Active/>
-        }
-    </div>
-
-    @if (Orders.Count < TotalRecords)
-    {
-        <div class="text-center mt-3 mb-3">
-            <img class="star-vote" src="/images/products/droparrrow.svg" alt="" />
-            <span style="cursor: pointer; font-size: 14px;" class="view-more" @onclick="LoadMore">
-                Xem thêm @(TotalRecords - Orders.Count) đơn hàng
-            </span>
-        </div>
-    }
+            </div>
+        </GridCol>
+    </GridRow>
 </div>
+
+<!-- Modal hủy đơn hàng -->
+<Modal Title="Hủy đơn hàng" 
+       Visible="@ShowCancelModal" 
+       OnOk="ConfirmCancelOrder" 
+       OnCancel="@(() => ShowCancelModal = false)">
+    <div class="cancel-order-modal">
+        <div class="warning-message">
+            <i class="fas fa-exclamation-triangle text-warning"></i>
+            <span>Bạn có chắc chắn muốn hủy đơn hàng <strong>@SelectedOrder?.Code</strong>?</span>
+        </div>
+        <div class="form-group mt-3">
+            <label><b>Lý do hủy đơn hàng:</b></label>
+            <TextArea @bind-Value="CancelReason" 
+                     Placeholder="Nhập lý do hủy đơn hàng (bắt buộc)"
+                     Rows="3"
+                     MaxLength="500" />
+        </div>
+        <div class="note mt-2">
+            <small class="text-muted">
+                <i class="fas fa-info-circle"></i>
+                Lưu ý: Đơn hàng đã hủy không thể khôi phục lại.
+            </small>
+        </div>
+    </div>
+</Modal>
 
 @code {
     private string SearchValue = string.Empty;
     private bool IsLoading = false;
     private int TotalRecords = 0;
+    private bool ShowCancelModal = false;
+    private string CancelReason = string.Empty;
+    private OrderDTO? SelectedOrder = null;
+    private Guid? ReorderingOrderId = null;
     private GetListOrderRequestDTO Filter = new() { PageIndex = 1, PageSize = 10 };
     private List<OrderDTO> Orders = new();
-
+    private string backendUrl = "";
+    private GetListOrderResponseDTO metaData = new();
+    private string activeTab = "All";
     private List<StatusTab> StatusTabs = new()
     {
-        new() { Key = "0", Label = "Tất cả", Value = null },
-        new() { Key = "1", Label = "Chờ xác nhận", Value = (int)Domain.Commons.Enums.EOrderStatus.Pending },
-        new() { Key = "2", Label = "Đang giao", Value = (int)Domain.Commons.Enums.EOrderStatus.InTransit },
-        new() { Key = "3", Label = "Đã giao", Value = (int)Domain.Commons.Enums.EOrderStatus.Completed },
-        new() { Key = "4", Label = "Đã huỷ", Value = (int)Domain.Commons.Enums.EOrderStatus.Canceled }
+        new() { Key = "All", Label = "Tất cả", Value = null },
+        new() { Key = "Pending", Label = "Chờ xác nhận", Value = (int)Domain.Commons.Enums.EOrderStatus.Pending },
+        new() { Key = "InTransit", Label = "Đang giao", Value = (int)Domain.Commons.Enums.EOrderStatus.InTransit },
+        new() { Key = "Completed", Label = "Đã giao", Value = (int)Domain.Commons.Enums.EOrderStatus.Completed },
+        new() { Key = "Canceled", Label = "Đã huỷ", Value = (int)Domain.Commons.Enums.EOrderStatus.Canceled }
     };
 
     protected override async Task OnInitializedAsync()
     {
+        backendUrl = Configuration["ApiSettings:BaseUrl"] ?? "";
         await FetchOrders();
     }
 
@@ -133,9 +329,10 @@
         try
         {
             IsLoading = true;
-            var result = await OrderClient.GetListOrderAsync(Filter);
+            var result = await OrderClient.GetMyOrdersAsync(Filter);
             TotalRecords = result.TotalRecords;
             Orders = result.Items?.ToList() ?? new List<OrderDTO>();
+            metaData = result.Metadata ?? new GetListOrderResponseDTO();
         }
         catch (Exception ex)
         {
@@ -164,16 +361,100 @@
 
     private async Task OnTabClick(StatusTab tab)
     {
+        activeTab = tab.Key;
         Filter.PageIndex = 1;
         Filter.PageSize = 10;
         Filter.OrderStatusFilter = tab.Value.HasValue ? (Domain.Commons.Enums.EOrderStatus?)tab.Value.Value : null;
         await FetchOrders();
     }
 
+    private void OpenCancelModal(OrderDTO order)
+    {
+        SelectedOrder = order;
+        CancelReason = string.Empty;
+        ShowCancelModal = true;
+    }
+
+    private async Task ConfirmCancelOrder()
+    {
+        if (string.IsNullOrWhiteSpace(CancelReason?.Trim()))
+        {
+            MessageService.Warning("Vui lòng nhập lý do hủy đơn hàng!");
+            return;
+        }
+
+        if (SelectedOrder == null) return;
+
+        try
+        {
+            var result = await OrderClient.CancelOrderAsync(SelectedOrder.Id);
+            
+            if (result.ResponseStatus == BaseStatus.Success)
+            {
+                MessageService.Success("Hủy đơn hàng thành công!");
+                ShowCancelModal = false;
+                await FetchOrders();
+            }
+            else
+            {
+                MessageService.Error($"Lỗi khi hủy đơn hàng: {result.Message}");
+            }
+        }
+        catch (Exception ex)
+        {
+            MessageService.Error($"Lỗi khi hủy đơn hàng: {ex.Message}");
+        }
+    }
+
+    private async Task ReorderProducts(OrderDTO order)
+    {
+        try
+        {
+            ReorderingOrderId = order.Id;
+            
+            // Thêm từng sản phẩm vào giỏ hàng
+            foreach (var item in order.OrderDetails)
+            {
+                var addToCartRequest = new AddToCartDTO
+                {
+                    ProductDetailId = item.ProductDetailId,
+                    Quantity = item.Quantity
+                };
+                
+                var result = await CartClient.AddToCartAsync(addToCartRequest);
+                if (result?.ResponseStatus == BaseStatus.Error)
+                {
+                    MessageService.Warning($"Không thể thêm sản phẩm {item.ProductName}: {result.Message}");
+                }
+            }
+            
+            MessageService.Success("Đã thêm tất cả sản phẩm vào giỏ hàng!");
+            Navigation.NavigateTo("/cart");
+        }
+        catch (Exception ex)
+        {
+            MessageService.Error($"Lỗi khi mua lại: {ex.Message}");
+        }
+        finally
+        {
+            ReorderingOrderId = null;
+            StateHasChanged();
+        }
+    }
+
     private int GetStatusCount(int? valueStatus)
     {
-        // For PORTAL simplify: use current page totals if metadata not available here
-        return TotalRecords;
+        if (!valueStatus.HasValue) return metaData.TotalAll;
+        
+        return valueStatus.Value switch
+        {
+            (int)Domain.Commons.Enums.EOrderStatus.Pending => metaData.Pending,
+            (int)Domain.Commons.Enums.EOrderStatus.Confirmed => metaData.Confirmed,
+            (int)Domain.Commons.Enums.EOrderStatus.InTransit => metaData.InTransit,
+            (int)Domain.Commons.Enums.EOrderStatus.Completed => metaData.Completed,
+            (int)Domain.Commons.Enums.EOrderStatus.Canceled => metaData.Canceled,
+            _ => 0
+        };
     }
 
     private string GetTabClasses(StatusTab tab)
@@ -185,10 +466,33 @@
 
     private string GetTabStyles(StatusTab tab)
     {
-        var isActive = Filter.OrderStatusFilter.HasValue && (int)Filter.OrderStatusFilter.Value == (tab.Value ?? -1);
+        var isActive = activeTab == tab.Key;
         var borderColor = isActive ? "rgba(0, 131, 61, 1)" : "#FFFFFF";
         var textColor = isActive ? "rgba(0, 131, 61, 1)" : "rgba(34, 49, 63, 1)";
         return $"cursor: pointer; height: 48px; border-bottom: 1px solid {borderColor}; font-size: 14px; color: {textColor}; background-color: #ffff; display: flex; justify-content: center; align-items: center; white-space: nowrap;";
+    }
+
+    private string GetStatusDisplayName(Domain.Commons.Enums.EOrderStatus status)
+    {
+        return status switch
+        {
+            Domain.Commons.Enums.EOrderStatus.Pending => "Chờ xác nhận",
+            Domain.Commons.Enums.EOrderStatus.Confirmed => "Đã xác nhận",
+            Domain.Commons.Enums.EOrderStatus.InTransit => "Đang giao",
+            Domain.Commons.Enums.EOrderStatus.Completed => "Hoàn thành",
+            Domain.Commons.Enums.EOrderStatus.Canceled => "Đã hủy",
+            _ => status.ToString()
+        };
+    }
+
+    private string GetPaymentMethodName(Domain.Commons.Enums.EOrderPaymentMethod paymentMethod)
+    {
+        return paymentMethod switch
+        {
+            Domain.Commons.Enums.EOrderPaymentMethod.Cash => "Tiền mặt",
+            Domain.Commons.Enums.EOrderPaymentMethod.Transfer => "Chuyển khoản ngân hàng",
+            _ => paymentMethod.ToString()
+        };
     }
 
     private class StatusTab
@@ -207,7 +511,362 @@
     .empty-text { font-size: 16px; color: #666; margin-top: 16px; }
     .shopping-now { background-color: #00833D; color: white; border: none; padding: 8px 16px; border-radius: 4px; cursor: pointer; margin-top: 8px; }
     .shopping-now:hover { background-color: #006b32; }
-    .star-vote { width: 16px; height: 16px; margin-right: 8px; }
     .view-more { color: #00833D; font-weight: 500; }
     .view-more:hover { text-decoration: underline; }
+
+    /* Order Card Styles */
+    .order-card {
+        background: white;
+        border-radius: 12px;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        padding: 20px;
+        margin-bottom: 16px;
+        border: 1px solid #e8e8e8;
+    }
+
+    .order-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        margin-bottom: 20px;
+        padding-bottom: 15px;
+        border-bottom: 1px solid #f0f0f0;
+    }
+
+    .order-info {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+    }
+
+    .order-code, .order-date, .delivery-date, .cancel-reason {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        font-size: 14px;
+        color: #666;
+    }
+
+    .order-code i, .order-date i, .delivery-date i {
+        color: #00833D;
+        width: 16px;
+    }
+
+    .cancel-reason i {
+        color: #ff4d4f;
+        width: 16px;
+    }
+
+    .order-status {
+        text-align: right;
+    }
+
+    /* Payment Info */
+    .payment-info {
+        margin-bottom: 20px;
+        padding: 15px;
+        background: #f0f8ff;
+        border-radius: 8px;
+        border-left: 4px solid #1890ff;
+    }
+
+    .payment-title {
+        color: #333;
+        margin-bottom: 10px;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+
+    .payment-title i {
+        color: #1890ff;
+    }
+
+    .payment-details {
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+        font-size: 14px;
+        color: #666;
+    }
+
+    /* Products Section */
+    .order-products {
+        margin-bottom: 20px;
+    }
+
+    .products-title {
+        color: #333;
+        margin-bottom: 15px;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+
+    .products-title i {
+        color: #00833D;
+    }
+
+    .product-item {
+        display: flex;
+        align-items: center;
+        padding: 12px;
+        border: 1px solid #f0f0f0;
+        border-radius: 8px;
+        margin-bottom: 8px;
+        background: #fafafa;
+    }
+
+    .product-image {
+        margin-right: 15px;
+        flex-shrink: 0;
+    }
+
+    .product-img {
+        border-radius: 6px;
+        border: 1px solid #e8e8e8;
+    }
+
+    .product-info {
+        flex: 1;
+        margin-right: 15px;
+    }
+
+    .product-name {
+        font-weight: 600;
+        color: #333;
+        margin-bottom: 4px;
+        font-size: 14px;
+    }
+
+    .product-sku {
+        color: #666;
+        font-size: 12px;
+        margin-bottom: 2px;
+    }
+
+    .product-variant {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        align-items: center;
+    }
+
+    .size-badge, .color-badge {
+        background: #f0f0f0;
+        color: #666;
+        padding: 2px 6px;
+        border-radius: 4px;
+        font-size: 11px;
+        font-weight: 500;
+    }
+
+    .size-badge {
+        background: #e6f7ff;
+        color: #1890ff;
+    }
+
+    .color-badge {
+        background: #fff7e6;
+        color: #fa8c16;
+    }
+
+    .product-quantity {
+        margin-right: 15px;
+    }
+
+    .quantity-badge {
+        background: #00833D;
+        color: white;
+        padding: 4px 8px;
+        border-radius: 12px;
+        font-size: 12px;
+        font-weight: 600;
+    }
+
+    .product-price {
+        text-align: center;
+        margin-right: 15px;
+        min-width: 80px;
+    }
+
+    .price-original {
+        font-size: 14px;
+        color: #333;
+        margin-bottom: 2px;
+    }
+
+    .price-discount {
+        font-size: 12px;
+        color: #ff4d4f;
+        font-weight: 600;
+    }
+
+    .product-total {
+        text-align: right;
+        min-width: 100px;
+    }
+
+    .total-label {
+        font-size: 12px;
+        color: #666;
+        margin-bottom: 2px;
+    }
+
+    .total-amount {
+        font-size: 16px;
+        font-weight: 600;
+        color: #00833D;
+    }
+
+    /* Delivery Info */
+    .delivery-info {
+        margin-bottom: 20px;
+        padding: 15px;
+        background: #f8f9fa;
+        border-radius: 8px;
+        border-left: 4px solid #00833D;
+    }
+
+    .delivery-title {
+        color: #333;
+        margin-bottom: 10px;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+
+    .delivery-title i {
+        color: #00833D;
+    }
+
+    .delivery-details {
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+        font-size: 14px;
+        color: #666;
+    }
+
+    /* Order Summary */
+    .order-summary {
+        background: #f8f9fa;
+        padding: 15px;
+        border-radius: 8px;
+        margin-bottom: 20px;
+    }
+
+    .summary-row {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 8px 0;
+        border-bottom: 1px solid #e8e8e8;
+    }
+
+    .summary-row:last-child {
+        border-bottom: none;
+        border-top: 2px solid #00833D;
+        padding-top: 12px;
+        margin-top: 8px;
+    }
+
+    .summary-row.discount {
+        color: #ff4d4f;
+    }
+
+    .summary-row.total {
+        font-size: 16px;
+        color: #00833D;
+    }
+
+    /* Order Actions */
+    .order-actions {
+        display: flex;
+        justify-content: flex-end;
+        gap: 12px;
+        padding-top: 15px;
+        border-top: 1px solid #f0f0f0;
+    }
+
+    /* Cancel Modal */
+    .cancel-order-modal {
+        padding: 10px 0;
+    }
+
+    .warning-message {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 15px;
+        background: #fff7e6;
+        border: 1px solid #ffd591;
+        border-radius: 6px;
+        color: #d46b08;
+    }
+
+    .warning-message i {
+        font-size: 18px;
+    }
+
+    .form-group label {
+        display: block;
+        margin-bottom: 8px;
+        color: #333;
+        font-weight: 500;
+    }
+
+    .note {
+        padding: 10px;
+        background: #f6ffed;
+        border: 1px solid #b7eb8f;
+        border-radius: 6px;
+        color: #389e0d;
+    }
+
+    .note i {
+        margin-right: 5px;
+    }
+
+    /* Responsive */
+    @@media (max-width: 768px) {
+        .order-header {
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        .order-status {
+            text-align: left;
+        }
+
+        .product-item {
+            flex-direction: column;
+            text-align: center;
+            gap: 10px;
+        }
+
+        .product-image {
+            margin-right: 0;
+            margin-bottom: 10px;
+        }
+
+        .product-info {
+            margin-right: 0;
+            margin-bottom: 10px;
+            text-align: center;
+        }
+
+        .product-quantity, .product-price, .product-total {
+            margin-right: 0;
+            margin-bottom: 10px;
+        }
+
+        .order-actions {
+            flex-direction: column;
+        }
+
+        .order-actions button {
+            width: 100%;
+        }
+    }
 </style>

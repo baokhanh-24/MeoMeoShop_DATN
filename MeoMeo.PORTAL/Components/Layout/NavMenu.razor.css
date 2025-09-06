@@ -1,29 +1,99 @@
-::deep .ant-anchor-ink {
-    display: none !important;
+/* Category Menu Hover Styles */
+
+::deep .modal-category {
+    position: relative !important;
 }
-::deep .ant-anchor-ink::before {
-    display: none !important;
+::deep .ant-menu-horizontal {
+    display: flex !important;
 }
-::deep .navbar-expand-lg .offcanvas {
-    flex-grow: 0 !important;
+.bg-header-root {
+    background: aliceblue !important;
 }
-.w-24 {
-    width: 24px;
+.category-dropdown {
+    position: absolute;
+    top: 100%;
+    left: 50%;
+    transform: translateX(-50%);
+    background: white;
+    border: 1px solid #e8e8e8;
+    border-radius: 6px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    z-index: 1000;
+    padding: 20px;
+    display: none;
+    min-width: 1200px;
+    max-width: 1440px;
 }
-.h-24 {
-    height: 24px;
+
+.category-submenu:hover .category-dropdown,
+.category-dropdown:hover {
+    display: block !important;
 }
-.custom-link {
+
+.category-products {
+    margin-bottom: 12px;
+}
+
+/* Override ProductCard styles for dropdown */
+.category-dropdown .product-card {
+    margin-bottom: 8px;
+}
+
+.category-dropdown .product-card:last-child {
+    margin-bottom: 0;
+}
+
+.loading-products {
+    text-align: center;
+    padding: 20px;
+    color: #999;
+    font-style: italic;
+}
+
+.view-all-link {
+    text-align: center;
+    padding-top: 12px;
+    border-top: 1px solid #f0f0f0;
+}
+
+.view-all-link a {
+    color: #1890ff;
+    text-decoration: none;
+    font-size: 14px;
+    font-weight: 500;
+}
+
+.view-all-link a:hover {
+    text-decoration: underline;
+}
+
+/* Cart Badge Styles */
+.cart-badge {
+    position: absolute;
+    top: -8px;
+    right: -8px;
+    background-color: #ff4d4f;
+    color: white;
+    border-radius: 50%;
+    width: 20px;
+    height: 20px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 12px;
+    font-weight: bold;
+    line-height: 1;
+    min-width: 20px;
+    padding: 0 4px;
+}
+
+.cart-button {
     position: relative;
-    display: block;
-    margin-bottom: 3px;
-    overflow: hidden;
-    color: rgba(0, 0, 0, 0.85);
-    white-space: nowrap;
-    text-overflow: ellipsis;
-    transition: all 0.3s;
-    cursor: pointer;
 }
-.custom-link:hover {
-    color: #72aec8 !important;
+
+/* Responsive */
+@media (max-width: 768px) {
+    .category-dropdown {
+        min-width: 350px;
+    }
 }

@@ -17,10 +17,19 @@ public class OrderClientService:IOrderClientService
         _httpClient = httpClient;
         _logger = logger;
     }
+    
     public async Task<PagingExtensions.PagedResult<OrderDTO,GetListOrderResponseDTO>> GetListOrderAsync(GetListOrderRequestDTO filter)
     {
         var query = BuildQuery.ToQueryString(filter);
         var url = $"/api/Orders/get-list-order-async?{query}";
+        var response = await _httpClient.GetAsync<PagingExtensions.PagedResult<OrderDTO,GetListOrderResponseDTO>>(url);
+        return response ?? new PagingExtensions.PagedResult<OrderDTO,GetListOrderResponseDTO>();
+    }
+
+    public async Task<PagingExtensions.PagedResult<OrderDTO,GetListOrderResponseDTO>> GetMyOrdersAsync(GetListOrderRequestDTO filter)
+    {
+        var query = BuildQuery.ToQueryString(filter);
+        var url = $"/api/Orders/get-my-orders?{query}";
         var response = await _httpClient.GetAsync<PagingExtensions.PagedResult<OrderDTO,GetListOrderResponseDTO>>(url);
         return response ?? new PagingExtensions.PagedResult<OrderDTO,GetListOrderResponseDTO>();
     }
@@ -44,6 +53,25 @@ public class OrderClientService:IOrderClientService
         }
     }
 
+    public async Task<BaseResponse> CancelOrderAsync(Guid orderId)
+    {
+        try
+        {
+            var url = $"/api/Orders/cancel-order/{orderId}";
+            var result = await _httpClient.PutAsync<object, BaseResponse>(url, new {});
+            return result ?? new BaseResponse
+            {
+                ResponseStatus = BaseStatus.Error,
+                Message = "Không thể hủy đơn hàng"
+            };
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Có lỗi xảy ra khi hủy Order {Id}: {Message}", orderId, ex.Message);
+            return new BaseResponse { ResponseStatus = BaseStatus.Error, Message = ex.Message };
+        }
+    }
+
     public async Task<GetListOrderHistoryResponseDTO> GetListOrderHistoryAsync(Guid orderId)
     {
         var url = $"/api/Orders/history/{orderId}";
@@ -56,5 +84,12 @@ public class OrderClientService:IOrderClientService
         var url = "/api/Orders/take-vn-pay";
         var response = await _httpClient.PostAsync<CreatePaymentUrlDTO, string>(url, request);
         return response ?? string.Empty;
+    }
+
+    public async Task<CreatePosOrderResultDTO> CreatePosOrderAsync(CreatePosOrderDTO request)
+    {
+        var url = "/api/Orders/create-pos-order";
+        var response = await _httpClient.PostAsync<CreatePosOrderDTO, CreatePosOrderResultDTO>(url, request);
+        return response ?? new CreatePosOrderResultDTO { ResponseStatus = BaseStatus.Error, Message = "Không tạo được đơn POS" };
     }
 }

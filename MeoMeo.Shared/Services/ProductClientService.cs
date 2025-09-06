@@ -292,5 +292,20 @@ namespace MeoMeo.Shared.Services
 
             return formData;
         }
+
+        public async Task<Dictionary<Guid, List<ProductResponseDTO>>> GetHeaderProductsAsync()
+        {
+            try
+            {
+                var url = "/api/Products/get-header-products";
+                var response = await _httpClient.GetAsync<Dictionary<Guid, List<ProductResponseDTO>>>(url);
+                return response ?? new Dictionary<Guid, List<ProductResponseDTO>>();
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Có lỗi khi lấy sản phẩm cho header: {Message}", ex.Message);
+                return new Dictionary<Guid, List<ProductResponseDTO>>();
+            }
+        }
     }
 }

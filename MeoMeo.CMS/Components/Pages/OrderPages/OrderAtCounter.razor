@@ -1,6 +1,13 @@
 @page "/order-at-counter"
 @using System.ComponentModel.DataAnnotations
 @inject IMessageService MessageService
+@inject MeoMeo.Shared.IServices.ICustomerClientService CustomerClientService
+@inject MeoMeo.Shared.IServices.IProductDetailClientService ProductDetailClientService
+@inject MeoMeo.Shared.IServices.IProductClientService ProductClientService
+@inject MeoMeo.Shared.IServices.IGhnClientService GhnService
+@inject MeoMeo.Shared.IServices.IOrderClientService OrderClientService
+@inject NavigationManager Navigation
+@inject IConfiguration Configuration
 
 <div class="content-background layout-container">
     <Breadcrumb>
@@ -204,11 +211,11 @@
         </div>
         <div class="order-section-product-table-summary">
             <div class="product-list order-section-product-table">
-                <Table DataSource="@Products" @bind-SelectedRows="selectedRows" RowKey="x => x.Id"
+                <Table DataSource="@Products" @bind-SelectedRows="selectedRows" RowKey="x => x.ProductDetailId"
                     Loading="@ProductsLoading" Size="@TableSize.Small">
                     <ChildContent Context="product">
                         <Selection Type="@selectionType" />
-                        <Column TData="string" Title="Địa chỉ" Width="136">
+                        <Column TData="string" Title="SKU" Width="136">
                             <div>@product.Sku</div>
                         </Column>
                         <Column TData="string" Title="Ảnh sản phẩm" Width="116">
@@ -218,8 +225,11 @@
                         <Column TData="string" Title="Tên sản phẩm">
                             <div>@product.Name</div>
                         </Column>
-                        <Column TData="string" Title="Dung tích" Width="116" Align="@ColumnAlign.Right">
-                            <div>@product.UnitName</div>
+                        <Column TData="string" Title="Size" Width="116" Align="@ColumnAlign.Right">
+                            <div>@product.SizeName</div>
+                        </Column>
+                        <Column TData="string" Title="Màu sắc" Width="116" Align="@ColumnAlign.Right">
+                            <div>@product.ColourName</div>
                         </Column>
                         <Column TData="decimal" Title="Đơn giá (đ)" Width="116" Align="@ColumnAlign.Right">
                             @product.Price.ToString("N0") đ
@@ -282,28 +292,7 @@
                     </div>
                     <Divider class="order-summary-divider" />
                 }
-                @if (SelectedCustomer != null && MinusMembership > 0)
-                {
-                    <div class="order-summary-row order-summary-row-membership">
-                        <div class="txt-14-n-400">
-                            Hạng @SelectedCustomer.MembershipName
-                            <Icon Type="crown" class="order-icon-crown" />
-                        </div>
-                        <div class="txt-14-n-500 order-summary-membership-amount">-@MinusMembership.ToString("N0") ₫</div>
-                    </div>
-                    <Divider class="order-summary-divider" />
-                }
-                @if (SelectedCustomer != null && SelectedCustomer.RemainingPoint > 0 && CalcPointCanUse() > 0)
-                {
-                    <div class="order-summary-row order-summary-row-point">
-                        <div class="txt-14-n-400">
-                            Dùng <span class="txt-14-n-500 order-summary-point-amount">@CalcPointUse().ToString("N0")</span> điểm
-                            <Switch @bind-Checked="@UsePoint" class="order-switch-use-point" />
-                        </div>
-                        <div class="txt-14-n-500 order-summary-point-discount">-@(CalcPointUse() * AmountPayRate).ToString("N0") ₫</div>
-                    </div>
-                    <Divider class="order-summary-divider" />
-                }
+                
                 <div class="order-summary-row order-summary-row-final">
                     <div class="order-summary-final-label">Thành tiền</div>
                     <div class="order-summary-final-amount">@CalculateTotal().ToString("N0") đ</div>
@@ -321,6 +310,23 @@
     </Form>
     <Modal Title="Thêm khách hàng mới" Visible="@AddCustomerModalVisible" OnCancel="HandleCloseAddCustomerModal"
         Footer="null">
+        <div style="padding: 8px 0;">
+            <Form TModel="MeoMeo.Contract.DTOs.CreateOrUpdateCustomerDTO" Model="newCustomerModel" Layout="@FormLayout.Vertical">
+                <FormItem Label="Họ và tên" Required="true">
+                    <Input @bind-Value="newCustomerModel.Name" Placeholder="Nhập họ và tên" MaxLength="255" />
+                </FormItem>
+                <FormItem Label="Số điện thoại" Required="true">
+                    <Input @bind-Value="newCustomerModel.PhoneNumber" Placeholder="Nhập số điện thoại" MaxLength="20" />
+                </FormItem>
+                <FormItem Label="Mã khách hàng">
+                    <Input @bind-Value="newCustomerModel.Code" Placeholder="Tự động nếu bỏ trống" MaxLength="50" />
+                </FormItem>
+                <div class="d-flex" style="justify-content: flex-end; gap: 8px;">
+                    <Button OnClick="HandleCloseAddCustomerModal">Hủy</Button>
+                    <Button Type="AntDesign.ButtonType.Primary" Loading="@creatingCustomer" OnClick="CreateCustomerAsync">Lưu</Button>
+                </div>
+            </Form>
+        </div>
     </Modal>
 </div>
 @code {
@@ -334,7 +340,7 @@
         public int? CustomerId { get; set; }
         public DeliveryInfo Delivery { get; set; } = new();
     }
-    IEnumerable<Product> selectedRows;
+    IEnumerable<Product> selectedRows = Enumerable.Empty<Product>();
     public class DeliveryInfo
     {
         public string ConsigneeName { get; set; } = string.Empty;
@@ -376,11 +382,12 @@
     }
     public class Product
     {
-        public int Id { get; set; }
+        public Guid ProductDetailId { get; set; }
         public string Sku { get; set; }
         public string Name { get; set; }
         public string ImageUrl { get; set; }
-        public string UnitName { get; set; }
+        public string SizeName { get; set; }
+        public string ColourName { get; set; }
         public decimal Price { get; set; }
         public int Quantity { get; set; } = 1;
     }
@@ -411,35 +418,122 @@ new() { Label = "Giao hàng", Value = 2 }
     private string ProductSearchKeyword = string.Empty;
     private bool SearchDropdownVisible = false;
     private bool AddCustomerModalVisible = false;
+    private MeoMeo.Contract.DTOs.CreateOrUpdateCustomerDTO newCustomerModel = new();
+    private bool creatingCustomer = false;
     private decimal ShippingFee = 0;
     private string DiscountCode = string.Empty;
     private string? DiscountCodeError = null;
     private object? DiscountCodeResponse = null;
     private decimal DiscountCodeAmount = 0;
-    private decimal MinusMembership = 0;
-    private bool UsePoint = false;
-    private decimal AmountPayRate = 1000;
-    private decimal RateAmountPay = 1000;
     private int PaymentType = 0;
+    private string ApiBaseUrl = string.Empty;
     private RenderFragment ProductSearchDropdown => builder =>
     {
         builder.AddContent(0, "Search results here...");
     };
     protected override async Task OnInitializedAsync()
     {
+        ApiBaseUrl = Configuration["ApiSettings:BaseUrl"]?.TrimEnd('/') ?? string.Empty;
         await LoadInitialData();
     }
     private async Task HandleCancel()
     {
+        Products.Clear();
+        SelectedProducts.Clear();
+        OrderModel = new();
+        SelectedCustomer = null;
+        SelectedProvinceId = 0;
+        SelectedDistrictId = 0;
+        ShippingFee = 0;
+        DiscountCode = string.Empty;
+        DiscountCodeError = null;
+        DiscountCodeResponse = null;
+        PaymentType = 0;
+        StateHasChanged();
+        MessageService.Success("Đã làm mới biểu mẫu");
     }
     private async Task HandleSave(bool isDraft)
     {
+        if (!Products.Any())
+        {
+            MessageService.Warning("Vui lòng chọn sản phẩm");
+            return;
+        }
+        if (OrderType == 2)
+        {
+            if (string.IsNullOrWhiteSpace(OrderModel.Delivery.ConsigneeName) ||
+                string.IsNullOrWhiteSpace(OrderModel.Delivery.ConsigneePhone) ||
+                !OrderModel.Delivery.ProvinceId.HasValue ||
+                !OrderModel.Delivery.DistrictId.HasValue ||
+                !OrderModel.Delivery.CommuneId.HasValue ||
+                string.IsNullOrWhiteSpace(OrderModel.Delivery.ConsigneeAddress))
+            {
+                MessageService.Warning("Vui lòng nhập đủ thông tin giao hàng");
+                return;
+            }
+        }
+
+        try
+        {
+            var dto = new MeoMeo.Contract.DTOs.Order.CreatePosOrderDTO
+            {
+                Type = OrderType == 2 ? MeoMeo.Domain.Commons.Enums.EOrderType.Online : MeoMeo.Domain.Commons.Enums.EOrderType.Store,
+                OrderTime = OrderModel.OrderTime,
+                PaymentMethod = PaymentType == 0 ? MeoMeo.Domain.Commons.Enums.EOrderPaymentMethod.Cash : MeoMeo.Domain.Commons.Enums.EOrderPaymentMethod.Transfer,
+                Note = OrderModel.Delivery.ConsigneeNote,
+                ShippingFee = ShippingFee,
+                DiscountCode = string.IsNullOrWhiteSpace(DiscountCode) ? null : DiscountCode,
+                CustomerId = null,
+                NewCustomer = SelectedCustomer == null ? new MeoMeo.Contract.DTOs.Order.CreatePosCustomerDTO
+                {
+                    Name = string.Empty,
+                    PhoneNumber = string.Empty
+                } : new MeoMeo.Contract.DTOs.Order.CreatePosCustomerDTO
+                {
+                    Name = SelectedCustomer.Name,
+                    PhoneNumber = SelectedCustomer.Phone
+                },
+                Delivery = OrderType == 2 ? new MeoMeo.Contract.DTOs.Order.CreatePosDeliveryDTO
+                {
+                    ConsigneeName = OrderModel.Delivery.ConsigneeName,
+                    ConsigneePhone = OrderModel.Delivery.ConsigneePhone,
+                    ProvinceId = OrderModel.Delivery.ProvinceId ?? 0,
+                    DistrictId = OrderModel.Delivery.DistrictId ?? 0,
+                    CommuneId = OrderModel.Delivery.CommuneId ?? 0,
+                    ConsigneeAddress = OrderModel.Delivery.ConsigneeAddress,
+                    ConsigneeNote = OrderModel.Delivery.ConsigneeNote
+                } : null,
+                Items = Products.Select(p => new MeoMeo.Contract.DTOs.Order.CreatePosOrderItemDTO
+                {
+                    ProductDetailId = p.ProductDetailId,
+                    Quantity = p.Quantity,
+                    UnitPrice = p.Price
+                }).ToList()
+            };
+
+            var resp = await OrderClientService.CreatePosOrderAsync(dto);
+            if (resp != null && resp.ResponseStatus == MeoMeo.Contract.Commons.BaseStatus.Success)
+            {
+                MessageService.Success($"Tạo đơn thành công: {resp.Code}");
+                Navigation.NavigateTo($"/orders");
+            }
+            else
+            {
+                MessageService.Error(resp?.Message ?? "Tạo đơn thất bại");
+            }
+        }
+        catch
+        {
+            MessageService.Error("Không thể lưu đơn hàng");
+        }
     }
     private async Task HandlePrintOrder()
     {
+        MessageService.Info("Tính năng in đơn đang được phát triển");
     }
     private async Task HandleGoBack()
     {
+        Navigation.NavigateTo("/orders");
     }
     private async Task HandleTypeChange(SelectOption selectedOption)
     {
@@ -464,10 +558,63 @@ new() { Label = "Giao hàng", Value = 2 }
     private async Task HandleAddNewCustomer()
     {
         AddCustomerModalVisible = true;
+        newCustomerModel = new MeoMeo.Contract.DTOs.CreateOrUpdateCustomerDTO();
     }
     private async Task HandleCloseAddCustomerModal()
     {
         AddCustomerModalVisible = false;
+    }
+    private async Task CreateCustomerAsync()
+    {
+        if (string.IsNullOrWhiteSpace(newCustomerModel.Name) || string.IsNullOrWhiteSpace(newCustomerModel.PhoneNumber))
+        {
+            MessageService.Warning("Vui lòng nhập đầy đủ họ tên và số điện thoại");
+            return;
+        }
+        try
+        {
+            creatingCustomer = true;
+            var resp = await CustomerClientService.CreateCustomersAsync(newCustomerModel);
+            if (resp != null && resp.ResponseStatus == MeoMeo.Contract.Commons.BaseStatus.Success)
+            {
+                MessageService.Success(resp.Message ?? "Tạo khách hàng thành công");
+                // Reload a small page of customers including the new one
+                var custReq = new MeoMeo.Contract.DTOs.GetListCustomerRequestDTO { PageIndex = 1, PageSize = 20, PhoneNumberFilter = newCustomerModel.PhoneNumber };
+                var custResp = await CustomerClientService.GetAllCustomersAsync(custReq);
+                var list = (custResp.Items ?? new List<MeoMeo.Contract.DTOs.CustomerDTO>())
+                    .Select(c => new Customer
+                    {
+                        Id = 0,
+                        Name = c.Name,
+                        Phone = c.PhoneNumber,
+                        UserId = c.UserId.GetHashCode(),
+                        MembershipName = string.Empty,
+                        RemainingPoint = 0
+                    })
+                    .ToList();
+                if (list.Any())
+                {
+                    // Merge or replace
+                    Customers = list;
+                    SelectedCustomer = Customers.First();
+                    OrderModel.CustomerId = SelectedCustomer.Id;
+                }
+                AddCustomerModalVisible = false;
+            }
+            else
+            {
+                MessageService.Error(resp?.Message ?? "Tạo khách hàng thất bại");
+            }
+        }
+        catch
+        {
+            MessageService.Error("Không thể tạo khách hàng");
+        }
+        finally
+        {
+            creatingCustomer = false;
+            StateHasChanged();
+        }
     }
     private void OnProvinceSearch(string searchText) { }
     private void HandleProvinceChange(Province province)
@@ -478,6 +625,7 @@ new() { Label = "Giao hàng", Value = 2 }
         OrderModel.Delivery.DistrictId = null;
         OrderModel.Delivery.CommuneId = null;
         StateHasChanged();
+        _ = LoadDistrictsAsync(SelectedProvinceId);
     }
     private void OnDistrictSearch(string searchText) { }
     private void HandleDistrictChange(District district)
@@ -486,6 +634,7 @@ new() { Label = "Giao hàng", Value = 2 }
         Communes.Clear();
         OrderModel.Delivery.CommuneId = null;
         StateHasChanged();
+        _ = LoadCommunesAsync(SelectedDistrictId);
     }
     private void OnCommuneSearch(string searchText) { }
     private void HandleCommuneChange(Commune commune)
@@ -499,6 +648,41 @@ new() { Label = "Giao hàng", Value = 2 }
     }
     private async Task OnProductSearch(string searchText)
     {
+        try
+        {
+            SearchingProduct = true;
+            ProductSearchKeyword = searchText?.Trim() ?? string.Empty;
+            var request = new MeoMeo.Contract.DTOs.ProductDetail.GetListProductDetailRequestDTO
+            {
+                PageIndex = 1,
+                PageSize = 10,
+                ProductNameFilter = ProductSearchKeyword,
+                SKUFilter = ProductSearchKeyword
+            };
+            var result = await ProductDetailClientService.GetAllProductDetailAsync(request);
+            var items = result.Items ?? new List<MeoMeo.Contract.DTOs.ProductDetail.ProductDetailDTO>();
+            Products = items.Select(x => new Product
+            {
+                ProductDetailId = x.Id,
+                Sku = x.Sku ?? string.Empty,
+                Name = x.ProductName ?? string.Empty,
+                ImageUrl = string.IsNullOrWhiteSpace(x.Thumbnail) ? string.Empty : ($"{ApiBaseUrl}{x.Thumbnail}"),
+                SizeName = x.SizeValue ?? string.Empty,
+                ColourName = x.ColourName ?? string.Empty,
+                Price = (decimal)x.Price,
+                Quantity = 1
+            }).ToList();
+            SearchDropdownVisible = false;
+        }
+        catch
+        {
+            MessageService.Error("Không thể tìm sản phẩm");
+        }
+        finally
+        {
+            SearchingProduct = false;
+            StateHasChanged();
+        }
     }
     private async Task OnSearchClear()
     {
@@ -544,22 +728,8 @@ new() { Label = "Giao hàng", Value = 2 }
     private decimal CalculateTotal()
     {
         var subTotal = CalculateSubTotal();
-        var total = subTotal + ShippingFee - DiscountCodeAmount - MinusMembership;
-        if (UsePoint && SelectedCustomer != null)
-        {
-            total -= CalcPointUse() * AmountPayRate;
-        }
+        var total = subTotal + ShippingFee - DiscountCodeAmount;
         return Math.Max(0, total);
-    }
-    private int CalcPointCanUse()
-    {
-        if (SelectedCustomer == null) return 0;
-        var availableAmount = CalculateSubTotal() + ShippingFee - MinusMembership;
-        return Math.Min(SelectedCustomer.RemainingPoint, (int)(availableAmount / RateAmountPay));
-    }
-    private int CalcPointUse()
-    {
-        return UsePoint ? CalcPointCanUse() : 0;
     }
     private bool HasPermission(string permission)
     {
@@ -567,11 +737,93 @@ new() { Label = "Giao hàng", Value = 2 }
     }
     private async Task LoadInitialData()
     {
+        try
+        {
+            CustomersLoading = true;
+            ProvincesLoading = true;
+
+            // Load some customers (first page)
+            var custReq = new MeoMeo.Contract.DTOs.GetListCustomerRequestDTO
+            {
+                PageIndex = 1,
+                PageSize = 20
+            };
+            var custResp = await CustomerClientService.GetAllCustomersAsync(custReq);
+            Customers = (custResp.Items ?? new List<MeoMeo.Contract.DTOs.CustomerDTO>())
+                .Select(c => new Customer
+                {
+                    Id = 0,
+                    Name = c.Name,
+                    Phone = c.PhoneNumber,
+                    UserId = c.UserId.GetHashCode(),
+                    MembershipName = string.Empty,
+                    RemainingPoint = 0
+                })
+                .ToList();
+
+            // Load provinces via GHN
+            var ghnProvinces = await GhnService.GetProvincesAsync();
+            Provinces = (ghnProvinces ?? new List<MeoMeo.Shared.DTOs.GhnLocationItem>())
+                .Select(p => new Province { Id = p.Id, Name = p.Name })
+                .ToList();
+        }
+        catch
+        {
+            MessageService.Warning("Không thể tải dữ liệu ban đầu");
+        }
+        finally
+        {
+            CustomersLoading = false;
+            ProvincesLoading = false;
+            StateHasChanged();
+        }
     }
     private async Task OnFinish()
     {
     }
     private async Task OnFinishFailed()
     {
+    }
+
+    private async Task LoadDistrictsAsync(int provinceId)
+    {
+        try
+        {
+            DistrictsLoading = true;
+            var ghnDistricts = await GhnService.GetDistrictsAsync(provinceId);
+            Districts = (ghnDistricts ?? new List<MeoMeo.Shared.DTOs.GhnLocationItem>())
+                .Select(d => new District { Id = d.Id, Name = d.Name })
+                .ToList();
+        }
+        catch
+        {
+            MessageService.Error("Không thể tải danh sách quận/huyện");
+        }
+        finally
+        {
+            DistrictsLoading = false;
+            StateHasChanged();
+        }
+    }
+
+    private async Task LoadCommunesAsync(int districtId)
+    {
+        try
+        {
+            CommunesLoading = true;
+            var ghnWards = await GhnService.GetWardsAsync(districtId);
+            Communes = (ghnWards ?? new List<MeoMeo.Shared.DTOs.GhnLocationItem>())
+                .Select(w => new Commune { Id = w.Id, Name = w.Name })
+                .ToList();
+        }
+        catch
+        {
+            MessageService.Error("Không thể tải danh sách phường/xã");
+        }
+        finally
+        {
+            CommunesLoading = false;
+            StateHasChanged();
+        }
     }
 }

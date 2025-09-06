@@ -125,7 +125,7 @@ namespace MeoMeo.Application.Services
                     {
                         ProductId = mappedProduct.Id,
                         CategoryId = categoryId
-                    }).ToList();                    await _productCategoryRepository.AddRangeAsync(categoryEntities);
+                    }).ToList(); await _productCategoryRepository.AddRangeAsync(categoryEntities);
                 }
 
                 // Create product-season relationships
@@ -135,7 +135,7 @@ namespace MeoMeo.Application.Services
                     {
                         ProductId = mappedProduct.Id,
                         SeasonId = seasonId
-                    }).ToList();               
+                    }).ToList();
                     await _productSeasonRepository.AddRangeAsync(seasonEntities);
                 }
 
@@ -148,7 +148,7 @@ namespace MeoMeo.Application.Services
                         var mappedImage = new Image();
                         mappedImage.Id = Guid.NewGuid();
                         mappedImage.ProductId = createdProduct.Id;
-                        mappedImage.URL =uploadedFile.RelativePath;
+                        mappedImage.URL = uploadedFile.RelativePath;
                         mappedImage.Name = uploadedFile.FileName;
                         mappedImage.Type = uploadedFile.FileType ?? 0;
                         images.Add(mappedImage);
@@ -188,10 +188,10 @@ namespace MeoMeo.Application.Services
                 string thumbNail = "";
                 if (uploadedFiles != null && uploadedFiles.Any())
                 {
-                     thumbNail = uploadedFiles.FirstOrDefault(c => c.FileType == 0).RelativePath;
+                    thumbNail = uploadedFiles.FirstOrDefault(c => c.FileType == 0).RelativePath;
                 }
-                existingProduct.Thumbnail= string.IsNullOrEmpty(thumbNail) ? existingProduct.Thumbnail : thumbNail;
-                _mapper.Map(productDto,existingProduct);
+                existingProduct.Thumbnail = string.IsNullOrEmpty(thumbNail) ? existingProduct.Thumbnail : thumbNail;
+                _mapper.Map(productDto, existingProduct);
                 await _repository.UpdateAsync(existingProduct);
                 // Xử lý cập nhật biến thể sản phẩm với logic so sánh đầy đủ
                 if (productDto.ProductVariants.Any())
@@ -206,19 +206,19 @@ namespace MeoMeo.Application.Services
 
                     // Tìm các biến thể cần xóa (có trong DB nhưng không có trong danh sách mới)
                     var variantsToDelete = existingVariants
-                        .Where(existing => !newVariants.Any(newVariant => 
+                        .Where(existing => !newVariants.Any(newVariant =>
                             newVariant.Id.HasValue && newVariant.Id.Value == existing.Id))
                         .ToList();
 
                     // Tìm các biến thể cần cập nhật (có trong cả DB và danh sách mới)
                     var variantsToUpdate = existingVariants
-                        .Where(existing => newVariants.Any(newVariant => 
+                        .Where(existing => newVariants.Any(newVariant =>
                             newVariant.Id.HasValue && newVariant.Id.Value == existing.Id))
                         .ToList();
 
                     // Tìm các biến thể cần thêm mới (có trong danh sách mới nhưng không có trong DB)
                     var variantsToAdd = newVariants
-                        .Where(newVariant => !newVariant.Id.HasValue || 
+                        .Where(newVariant => !newVariant.Id.HasValue ||
                             !existingVariants.Any(existing => existing.Id == newVariant.Id.Value))
                         .ToList();
 
@@ -291,7 +291,7 @@ namespace MeoMeo.Application.Services
                         foreach (var existingVariant in variantsToUpdate)
                         {
                             // Tìm dữ liệu mới tương ứng với biến thể hiện tại
-                            var newVariantData = newVariants.First(nv => 
+                            var newVariantData = newVariants.First(nv =>
                                 nv.Id.HasValue && nv.Id.Value == existingVariant.Id);
                             // Cập nhật các trường thông tin nhưng giữ nguyên dữ liệu quan trọng
                             existingVariant.SizeId = newVariantData.SizeId;
@@ -302,16 +302,16 @@ namespace MeoMeo.Application.Services
                             existingVariant.ClosureType = newVariantData.ClosureType;
                             existingVariant.AllowReturn = newVariantData.AllowReturn;
                             existingVariant.Status = newVariantData.Status;
-                            
+
                             // Cập nhật thông tin vận chuyển
                             existingVariant.Weight = newVariantData.Weight;
                             existingVariant.Length = newVariantData.Length;
                             existingVariant.Width = newVariantData.Width;
                             existingVariant.Height = newVariantData.Height;
-                            
+
                             // Cập nhật giới hạn mua hàng
                             existingVariant.MaxBuyPerOrder = newVariantData.MaxBuyPerOrder;
-                            
+
                             existingVariant.LastModificationTime = DateTime.Now;
                             await _productDetailRepository.UpdateProductDetailAsync(existingVariant);
                         }
@@ -345,7 +345,7 @@ namespace MeoMeo.Application.Services
                     }
                 }
                 // Xử lý ảnh: xóa ảnh cũ không còn, thêm ảnh mới
-                var oldImages = (await _imageRepository.GetAllImage()).Where(x => x.ProductId==  existingProduct.Id).ToList();
+                var oldImages = (await _imageRepository.GetAllImage()).Where(x => x.ProductId == existingProduct.Id).ToList();
                 var newImageIds =
                     productDto.MediaUploads?.Where(i => i.Id != null).Select(i => i.Id.Value).ToList() ??
                     new List<Guid>();
@@ -364,7 +364,7 @@ namespace MeoMeo.Application.Services
                     List<Image> images = new List<Image>();
                     foreach (var uploadedFile in uploadedFiles)
                     {
-                        
+
                         var mappedImage = new Image();
                         mappedImage.Id = Guid.NewGuid();
                         mappedImage.ProductId = existingProduct.Id;
@@ -620,7 +620,7 @@ namespace MeoMeo.Application.Services
                         .ToListAsync();
                     productQuery = productQuery.Where(p => productIdsWithClosureType.Contains(p.Id));
                 }
-                
+
                 // Main query with joins
                 var mainQuery = from product in productQuery
                                 join brand in brandQuery on product.BrandId equals brand.Id
@@ -911,6 +911,7 @@ namespace MeoMeo.Application.Services
                                             product.BrandId,
                                             BrandName = brand.Name,
                                             product.Thumbnail,
+                                            product.Description,
                                             product.CreationTime,
                                             product.LastModificationTime,
                                             product.CreatedBy,
@@ -973,6 +974,7 @@ namespace MeoMeo.Application.Services
                     BrandId = mainResult.BrandId,
                     BrandName = mainResult.BrandName,
                     Thumbnail = mainResult.Thumbnail,
+                    Description = mainResult.Description,
                     CreationTime = mainResult.CreationTime,
                     LastModificationTime = mainResult.LastModificationTime,
                     CreatedBy = mainResult.CreatedBy,
@@ -996,6 +998,41 @@ namespace MeoMeo.Application.Services
                 // Set variants and media using AutoMapper
                 response.ProductVariants = _mapper.Map<List<ProductDetailGrid>>(variants);
                 response.Media = _mapper.Map<List<ProductMediaUpload>>(images);
+
+                // Set min/max prices and discount
+                if (variants.Any())
+                {
+                    response.MinPrice = variants.Min(v => v.Price);
+                    response.MaxPrice = variants.Max(v => v.Price);
+                    // TODO: Calculate discount from promotions
+                    response.MaxDiscount = 0;
+                    response.SaleNumber = variants.Sum(v => v.SellNumber ?? 0);
+                }
+
+                // Calculate rating and rating breakdown from reviews
+                var variantIds = variants.Select(v => v.Id).ToList();
+                var reviews = await _reviewRepository.Query()
+                    .Where(r => variantIds.Contains(r.ProductDetailId) && !r.IsHidden)
+                    .ToListAsync();
+
+                if (reviews.Any())
+                {
+                    response.Rating = (decimal)reviews.Average(r => r.Rating);
+                    response.Rating1 = reviews.Count(r => Math.Round(r.Rating) == 1);
+                    response.Rating2 = reviews.Count(r => Math.Round(r.Rating) == 2);
+                    response.Rating3 = reviews.Count(r => Math.Round(r.Rating) == 3);
+                    response.Rating4 = reviews.Count(r => Math.Round(r.Rating) == 4);
+                    response.Rating5 = reviews.Count(r => Math.Round(r.Rating) == 5);
+                }
+                else
+                {
+                    response.Rating = 0;
+                    response.Rating1 = 0;
+                    response.Rating2 = 0;
+                    response.Rating3 = 0;
+                    response.Rating4 = 0;
+                    response.Rating5 = 0;
+                }
 
                 return response;
             }
@@ -1127,8 +1164,8 @@ namespace MeoMeo.Application.Services
 
         private async Task UpdateProductRelationships(Guid productId, CreateOrUpdateProductDTO productDto)
         {
-            
-            
+
+
             // Update materials
             var existingMaterials = await _productMaterialRepository.Query()
                 .Where(pm => pm.ProductId == productId)
@@ -1223,13 +1260,13 @@ namespace MeoMeo.Application.Services
                         SellNumber = v.SellNumber,
                         OutOfStock = v.OutOfStock,
                         StockHeight = v.StockHeight,
-                        
+
                         // Thông tin vận chuyển
                         Weight = v.Weight,
                         Length = v.Length,
                         Width = v.Width,
                         Height = v.Height,
-                        
+
                         // Giới hạn mua hàng
                         MaxBuyPerOrder = v.MaxBuyPerOrder
                     }).ToList(),
@@ -1245,6 +1282,194 @@ namespace MeoMeo.Application.Services
             return result;
         }
 
-        
+        public async Task<List<TopRatedProductDTO>> GetTopRatedProductsAsync(int take = 12)
+        {
+            // Aggregate average rating by product via ProductDetail
+            var ratingStats = await _reviewRepository.Query()
+                .Include(r => r.ProductDetail)
+                .Where(r => !r.IsHidden && r.ProductDetail != null)
+                .GroupBy(r => r.ProductDetail.ProductId)
+                .Select(g => new
+                {
+                    ProductId = g.Key,
+                    AverageRating = g.Average(x => x.Rating),
+                    ReviewCount = g.Count()
+                })
+                .OrderByDescending(x => x.AverageRating)
+                .ThenByDescending(x => x.ReviewCount)
+                .Take(take)
+                .ToListAsync();
+
+            var productIds = ratingStats.Select(x => x.ProductId).ToList();
+            if (!productIds.Any()) return new List<TopRatedProductDTO>();
+
+            var products = await _repository.Query()
+                .Where(p => productIds.Contains(p.Id))
+                .ToDictionaryAsync(p => p.Id, p => p);
+
+            var minMaxPrices = await _productDetailRepository.Query()
+                .Where(pd => productIds.Contains(pd.ProductId))
+                .GroupBy(pd => pd.ProductId)
+                .Select(g => new { ProductId = g.Key, MinPrice = g.Min(x => x.Price), MaxPrice = g.Max(x => x.Price) })
+                .ToListAsync();
+            var priceDict = minMaxPrices.ToDictionary(x => x.ProductId, x => (Min: (float?)x.MinPrice, Max: (float?)x.MaxPrice));
+
+            var result = new List<TopRatedProductDTO>();
+            foreach (var stat in ratingStats)
+            {
+                if (products.TryGetValue(stat.ProductId, out var product))
+                {
+                    result.Add(new TopRatedProductDTO
+                    {
+                        ProductId = product.Id,
+                        Name = product.Name,
+                        Thumbnail = product.Thumbnail,
+                        AverageRating = (float)Math.Round(stat.AverageRating, 2),
+                        ReviewCount = stat.ReviewCount,
+                        MinPrice = priceDict.ContainsKey(product.Id) ? priceDict[product.Id].Min : null,
+                        MaxPrice = priceDict.ContainsKey(product.Id) ? priceDict[product.Id].Max : null
+                    });
+                }
+            }
+
+            // Ensure the original order by rating is preserved
+            var orderMap = ratingStats.Select((x, idx) => new { x.ProductId, idx }).ToDictionary(x => x.ProductId, x => x.idx);
+            result = result.OrderBy(r => orderMap.ContainsKey(r.ProductId) ? orderMap[r.ProductId] : int.MaxValue).ToList();
+            return result;
+        }
+
+        public async Task<Dictionary<Guid, List<ProductResponseDTO>>> GetHeaderProductsAsync()
+        {
+            // Lấy tất cả categories
+            var categories = await _categoryRepository.Query()
+                .Where(c => c.Status == true)
+                .Take(5) // Chỉ lấy 5 categories đầu tiên
+                .ToListAsync();
+
+            var result = new Dictionary<Guid, List<ProductResponseDTO>>();
+
+            foreach (var category in categories)
+            {
+                // Lấy 4 sản phẩm đầu tiên của mỗi category với thông tin brand
+                var mainQuery = from product in _repository.Query()
+                                join brand in _brandRepository.Query() on product.BrandId equals brand.Id
+                                join productCategory in _productCategoryRepository.Query() on product.Id equals productCategory.ProductId
+                                where productCategory.CategoryId == category.Id
+                                select new
+                                {
+                                    product.Id,
+                                    product.Name,
+                                    product.BrandId,
+                                    BrandName = brand.Name,
+                                    product.Thumbnail,
+                                    product.CreationTime,
+                                    product.LastModificationTime,
+                                    product.CreatedBy,
+                                    product.UpdatedBy
+                                };
+
+                var mainResults = await mainQuery
+                    .OrderByDescending(x => x.CreationTime)
+                    .Take(4)
+                    .ToListAsync();
+
+                var productIds = mainResults.Select(x => x.Id).ToList();
+
+                if (!productIds.Any())
+                {
+                    result[category.Id] = new List<ProductResponseDTO>();
+                    continue;
+                }
+
+                // Batch queries for related data (giống như GetPagedProductsAsync)
+                var variantsDict = await _productDetailRepository.Query()
+                    .Where(pd => productIds.Contains(pd.ProductId))
+                    .Include(pd => pd.Size)
+                    .Include(pd => pd.Colour)
+                    .GroupBy(pd => pd.ProductId)
+                    .ToDictionaryAsync(g => g.Key, g => g.ToList());
+
+                var materialIdsDict = await _productMaterialRepository.Query()
+                    .Where(pm => productIds.Contains(pm.ProductId))
+                    .GroupBy(pm => pm.ProductId)
+                    .ToDictionaryAsync(g => g.Key, g => g.Select(pm => pm.MaterialId).ToList());
+
+                var categoryIdsDict = await _productCategoryRepository.Query()
+                    .Where(pc => productIds.Contains(pc.ProductId))
+                    .GroupBy(pc => pc.ProductId)
+                    .ToDictionaryAsync(g => g.Key, g => g.Select(pc => pc.CategoryId).ToList());
+
+                var seasonIdsDict = await _productSeasonRepository.Query()
+                    .Where(ps => productIds.Contains(ps.ProductId))
+                    .GroupBy(ps => ps.ProductId)
+                    .ToDictionaryAsync(g => g.Key, g => g.Select(ps => ps.SeasonId).ToList());
+
+                var imageIdsDict = await _imageRepository.Query()
+                    .Where(i => productIds.Contains(i.ProductId))
+                    .GroupBy(i => i.ProductId)
+                    .ToDictionaryAsync(g => g.Key, g => g.ToList());
+
+                var allMaterialIds = materialIdsDict.Values.SelectMany(x => x).Distinct().ToList();
+                var allCategoryIds = categoryIdsDict.Values.SelectMany(x => x).Distinct().ToList();
+                var allSeasonIds = seasonIdsDict.Values.SelectMany(x => x).Distinct().ToList();
+
+                var materialsDict = await _materialRepository.Query()
+                    .Where(m => allMaterialIds.Contains(m.Id))
+                    .ToDictionaryAsync(m => m.Id, m => m.Name);
+
+                var categoriesDict = await _categoryRepository.Query()
+                    .Where(c => allCategoryIds.Contains(c.Id))
+                    .ToDictionaryAsync(c => c.Id, c => c.Name);
+
+                var seasonsDict = await _seasonRepository.Query()
+                    .Where(s => allSeasonIds.Contains(s.Id))
+                    .ToDictionaryAsync(s => s.Id, s => s.Name);
+
+                // Build response (giống như GetPagedProductsAsync)
+                var productDtos = mainResults.Select(main =>
+                {
+                    var variants = variantsDict.TryGetValue(main.Id, out var variantList) ? variantList : new List<ProductDetail>();
+                    var materialIds = materialIdsDict.TryGetValue(main.Id, out var matIds) ? matIds : new List<Guid>();
+                    var categoryIds = categoryIdsDict.TryGetValue(main.Id, out var catIds) ? catIds : new List<Guid>();
+                    var seasonIds = seasonIdsDict.TryGetValue(main.Id, out var seaIds) ? seaIds : new List<Guid>();
+                    var images = imageIdsDict.TryGetValue(main.Id, out var imgList) ? imgList : new List<Image>();
+
+                    return new ProductResponseDTO
+                    {
+                        Id = main.Id,
+                        Name = main.Name,
+                        BrandId = main.BrandId,
+                        BrandName = main.BrandName,
+                        Thumbnail = main.Thumbnail,
+                        CreationTime = main.CreationTime,
+                        LastModificationTime = main.LastModificationTime,
+                        CreatedBy = main.CreatedBy,
+                        UpdatedBy = main.UpdatedBy,
+
+                        // Set related collections
+                        SizeIds = variants.Select(v => v.SizeId).Distinct().ToList(),
+                        SizeValues = variants.Select(v => v.Size?.Value ?? string.Empty).Distinct().ToList(),
+                        ColourIds = variants.Select(v => v.ColourId).Distinct().ToList(),
+                        ColourNames = variants.Select(v => v.Colour?.Name ?? string.Empty).Distinct().ToList(),
+                        MaterialIds = materialIds,
+                        MaterialNames = materialIds.Select(id => materialsDict.GetValueOrDefault(id, string.Empty)).ToList(),
+                        CategoryIds = categoryIds,
+                        CategoryNames = categoryIds.Select(id => categoriesDict.GetValueOrDefault(id, string.Empty)).ToList(),
+                        SeasonIds = seasonIds,
+                        SeasonNames = seasonIds.Select(id => seasonsDict.GetValueOrDefault(id, string.Empty)).ToList(),
+                        // Set variants
+                        ProductVariants = variants.Select(v => _mapper.Map<ProductDetailGrid>(v)).ToList(),
+                        Media = _mapper.Map<List<ProductMediaUpload>>(images),
+                        // Set min/max prices
+                        MinPrice = variants.Any() ? variants.Min(v => v.Price) : null,
+                        MaxPrice = variants.Any() ? variants.Max(v => v.Price) : null
+                    };
+                }).ToList();
+
+                result[category.Id] = productDtos;
+            }
+
+            return result;
+        }
     }
 }

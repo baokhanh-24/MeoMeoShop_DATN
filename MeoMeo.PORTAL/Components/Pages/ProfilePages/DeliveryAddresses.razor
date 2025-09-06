@@ -1,0 +1,432 @@
+@page "/profile/addresses"
+@using MeoMeo.Shared.IServices
+@using MeoMeo.Contract.DTOs
+@using MeoMeo.Shared.Services
+@using Microsoft.AspNetCore.Components.Authorization
+@using System.Security.Claims
+@using MeoMeo.PORTAL.Components.Layout
+@using MeoMeo.Shared.Utilities
+@using MeoMeo.Shared.DTOs
+@using ButtonType = AntDesign.ButtonType
+@using ButtonSize = AntDesign.ButtonSize
+@using AntDesign
+@inject IDeliveryAddressClientService DeliveryAddressService
+@inject IGhnClientService GhnService
+@inject CustomAuthStateProvider AuthStateProvider
+@inject NavigationManager NavigationManager
+@inject MessageService MessageService
+@layout ProfileLayout
+
+<div class="delivery-addresses-container">
+    <div class="page-header">
+        <Title Level="2">
+            <Icon Type="environment" />
+            Sổ địa chỉ
+        </Title>
+        <p class="page-subtitle">Quản lý địa chỉ giao hàng của bạn</p>
+    </div>
+
+    <div class="addresses-content">
+        <!-- Add New Address Button -->
+        <div class="add-address-section">
+            <Button Type="@ButtonType.Primary" Icon="plus" @onclick="ShowCreateAddressModal" Size="@ButtonSize.Large">
+                Thêm địa chỉ mới
+            </Button>
+        </div>
+
+        <!-- Addresses List -->
+        @if (isLoading)
+        {
+            <div class="loading-section">
+                <Spin Size="SpinSize.Large"/>
+                <p>Đang tải danh sách địa chỉ...</p>
+            </div>
+        }
+        else if (addresses.Any())
+        {
+            <GridRow Gutter="16">
+                @foreach (var address in addresses)
+                {
+                    <GridCol Span="12" Xs="24" Sm="24" Md="12" Lg="12" Xl="12">
+                        <Card Class="address-card" Actions="@GetAddressActions(address)">
+                            <div class="address-content">
+                                <div class="address-header">
+                                    <div class="address-name">
+                                        <Icon Type="user"/>
+                                        @address.Name
+                                    </div>
+                                    <div class="address-phone">
+                                        <Icon Type="phone"/>
+                                        @address.PhoneNumber
+                                    </div>
+                                </div>
+                                <div class="address-detail">
+                                    <Icon Type="environment"/>
+                                    @address.FullAddress
+                                </div>
+                            </div>
+                        </Card>
+                    </GridCol>
+                }
+            </GridRow>
+        }
+        else
+        {
+            <div class="empty-state">
+                <Empty>
+                    <Button Type="@ButtonType.Primary" Icon="plus" @onclick="ShowCreateAddressModal">
+                        Thêm địa chỉ đầu tiên
+                    </Button>
+                </Empty>
+            </div>
+        }
+    </div>
+</div>
+
+<!-- Create/Edit Address Modal -->
+<Modal Title="@(editingAddress.Id == Guid.Empty ? "Thêm địa chỉ mới" : "Chỉnh sửa địa chỉ")"
+       Visible="@showCreateOrUpdateModal" OnOk="SaveAddress" OnCancel="@(() => showCreateOrUpdateModal = false)"
+       Width="600">
+
+    <Form Model="@editingAddress" Layout="FormLayout.Vertical">
+        <GridRow Gutter="16">
+            <GridCol Span="12">
+                <FormItem Label="Họ tên người nhận" Name="Name" Rules="@nameRules">
+                    <Input @bind-Value="@editingAddress.Name" Placeholder="Nhập họ tên"/>
+                </FormItem>
+            </GridCol>
+            <GridCol Span="12">
+                <FormItem Label="Số điện thoại" Name="PhoneNumber" Rules="@phoneRules">
+                    <Input @bind-Value="@editingAddress.PhoneNumber" Placeholder="Nhập số điện thoại"/>
+                </FormItem>
+            </GridCol>
+        </GridRow>
+
+        <GridRow Gutter="16">
+            <GridCol Span="8">
+                <FormItem Label="Tỉnh/Thành phố" Name="ProvinceId" Rules="@provinceRules">
+                    <Select @bind-Value="@selectedProvinceId" TItem="GhnLocationItem" TItemValue="int?" Placeholder="Chọn tỉnh/thành phố"
+                            OnSelectedItemChanged="OnProvinceChanged" Loading="@loadingProvinces"
+                            DataSource="provinces" ValueName="Id" LabelName="Name">
+                    </Select>
+                </FormItem>
+            </GridCol>
+            <GridCol Span="8">
+                <FormItem Label="Quận/Huyện" Name="DistrictId"  Rules="@districtRules">
+                    <Select @bind-Value="@selectedDistrictId" TItem="GhnLocationItem" TItemValue="int?" Placeholder="Chọn quận/huyện"
+                            OnSelectedItemChanged="OnDistrictChanged" Loading="@loadingDistricts"
+                            Disabled="@(!selectedProvinceId.HasValue)"  DataSource="districts" ValueName="Id" LabelName="Name">
+        
+                    </Select>
+                </FormItem>
+            </GridCol>
+            <GridCol Span="8">
+                <FormItem Label="Phường/Xã" Name="CommuneId" Rules="@communeRules">
+                    <Select TItem="GhnLocationItem" TItemValue="int?" @bind-Value="selectedCommuneId"
+                            Placeholder="Chọn phường/xã" Loading="@loadingCommunes"
+                            Disabled="@(!selectedDistrictId.HasValue)" DataSource="wards" ValueName="Id" LabelName="Name">
+            
+                    </Select>
+                </FormItem>
+            </GridCol>
+        </GridRow>
+
+        <FormItem Label="Địa chỉ chi tiết" Name="Address" Rules="@addressRules">
+            <TextArea @bind-Value="@editingAddress.Address" Rows="3" Placeholder="Số nhà, tên đường..."></TextArea>
+        </FormItem>
+    </Form>
+</Modal>
+
+@code {
+    private List<DeliveryAddressDTO> addresses = new();
+    private bool isLoading = true;
+    private bool showCreateOrUpdateModal = false;
+    private CreateOrUpdateDeliveryAddressDTO editingAddress = new();
+
+    // GHN Location data
+    private List<GhnLocationItem> provinces = new();
+    private List<GhnLocationItem> districts = new();
+    private List<GhnLocationItem> wards = new();
+
+    // Selected location IDs
+    private int? selectedProvinceId;
+    private int? selectedDistrictId;
+    private int? selectedCommuneId;
+
+    // Loading states
+    private bool loadingProvinces = false;
+    private bool loadingDistricts = false;
+    private bool loadingCommunes = false;
+
+    // Form validation rules
+    private FormValidationRule[] nameRules = new[]
+    {
+        new FormValidationRule { Required = true, Message = "Vui lòng nhập họ tên" }
+    };
+
+    private FormValidationRule[] phoneRules = new[]
+    {
+        new FormValidationRule { Required = true, Message = "Vui lòng nhập số điện thoại" },
+        new FormValidationRule { Pattern = @"^[0-9]{10,11}$", Message = "Số điện thoại không hợp lệ" }
+    };
+
+    private FormValidationRule[] provinceRules = new[]
+    {
+        new FormValidationRule { Required = true, Message = "Vui lòng chọn tỉnh/thành phố" }
+    };
+
+    private FormValidationRule[] districtRules = new[]
+    {
+        new FormValidationRule { Required = true, Message = "Vui lòng chọn quận/huyện" }
+    };
+
+    private FormValidationRule[] communeRules = new[]
+    {
+        new FormValidationRule { Required = true, Message = "Vui lòng chọn phường/xã" }
+    };
+
+    private FormValidationRule[] addressRules = new[]
+    {
+        new FormValidationRule { Required = true, Message = "Vui lòng nhập địa chỉ chi tiết" }
+    };
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadAddresses();
+        await LoadProvinces();
+    }
+
+    private async Task LoadAddresses()
+    {
+        try
+        {
+            isLoading = true;
+            var authState = await AuthStateProvider.GetAuthenticationStateAsync();
+            var userIdClaim = authState.User.FindFirst("CustomerId");
+
+            if (userIdClaim != null && Guid.TryParse(userIdClaim.Value, out var customerId))
+            {
+                // Use the correct method name from the service
+                var result = await DeliveryAddressService.GetMyAddressesAsync();
+                addresses = result?.ToList() ?? new List<DeliveryAddressDTO>();
+            }
+        }
+        catch (Exception ex)
+        {
+            MessageService.Error("Không thể tải danh sách địa chỉ!");
+            Console.WriteLine($"Error loading addresses: {ex.Message}");
+        }
+        finally
+        {
+            isLoading = false;
+            StateHasChanged();
+        }
+    }
+
+    private async Task LoadProvinces()
+    {
+        try
+        {
+            loadingProvinces = true;
+            var result = await GhnService.GetProvincesAsync();
+            provinces = result?.ToList() ?? new List<GhnLocationItem>();
+        }
+        catch (Exception ex)
+        {
+            MessageService.Error("Không thể tải danh sách tỉnh/thành phố!");
+            Console.WriteLine($"Error loading provinces: {ex.Message}");
+        }
+        finally
+        {
+            loadingProvinces = false;
+            StateHasChanged();
+        }
+    }
+
+    private async void OnProvinceChanged(GhnLocationItem province)
+    {
+        selectedProvinceId = province.Id;
+        selectedDistrictId = null;
+        selectedCommuneId = null;
+        districts.Clear();
+        wards.Clear();
+        
+        await LoadDistricts(province.Id);
+    }
+
+    private async Task LoadDistricts(int provinceId)
+    {
+        try
+        {
+            loadingDistricts = true;
+            var result = await GhnService.GetDistrictsAsync(provinceId);
+            districts = result?.ToList() ?? new List<GhnLocationItem>();
+        }
+        catch (Exception ex)
+        {
+            MessageService.Error("Không thể tải danh sách quận/huyện!");
+            Console.WriteLine($"Error loading districts: {ex.Message}");
+        }
+        finally
+        {
+            loadingDistricts = false;
+            StateHasChanged();
+        }
+    }
+
+    private async void OnDistrictChanged(GhnLocationItem district)
+    {
+        selectedDistrictId = district.Id;
+        selectedCommuneId = null;
+        wards.Clear();
+
+        await LoadCommunes(district.Id);
+    }
+
+    private async Task LoadCommunes(int districtId)
+    {
+        try
+        {
+            loadingCommunes = true;
+            var result = await GhnService.GetWardsAsync(districtId);
+            wards = result?.ToList() ?? new List<GhnLocationItem>();
+        }
+        catch (Exception ex)
+        {
+            MessageService.Error("Không thể tải danh sách phường/xã!");
+            Console.WriteLine($"Error loading communes: {ex.Message}");
+        }
+        finally
+        {
+            loadingCommunes = false;
+            StateHasChanged();
+        }
+    }
+
+    private void ShowCreateAddressModal()
+    {
+        editingAddress = new CreateOrUpdateDeliveryAddressDTO();
+        selectedProvinceId = null;
+        selectedDistrictId = null;
+        selectedCommuneId = null;
+        districts.Clear();
+        wards.Clear();
+        showCreateOrUpdateModal = true;
+    }
+
+    private async Task EditAddress(DeliveryAddressDTO address)
+    {
+        editingAddress = new CreateOrUpdateDeliveryAddressDTO
+        {
+            Id = address.Id,
+            Name = address.Name,
+            PhoneNumber = address.PhoneNumber,
+            Address = address.Address,
+            ProvinceId = address.ProvinceId,
+            DistrictId = address.DistrictId,
+            CommuneId = address.CommuneId
+        };
+
+        selectedProvinceId = address.ProvinceId;
+        selectedDistrictId = address.DistrictId;
+        selectedCommuneId = address.CommuneId;
+
+        // Load location data for editing
+        if (address.ProvinceId != -1)
+        {
+            await LoadDistricts(address.ProvinceId);
+            if (address.DistrictId != -1)
+            {
+                await LoadCommunes(address.DistrictId);
+            }
+        }
+
+        showCreateOrUpdateModal = true;
+    }
+
+    private async Task SaveAddress()
+    {
+        try
+        {
+            // Set location IDs
+            editingAddress.ProvinceId = selectedProvinceId ?? -1;
+            editingAddress.DistrictId = selectedDistrictId ?? -1;
+            editingAddress.CommuneId = selectedCommuneId ?? -1;
+
+            // Build full address
+            var provinceName = provinces.FirstOrDefault(p => p.GhnProvinceId == selectedProvinceId).Name ?? "";
+            var districtName = districts.FirstOrDefault(d => d.GhnDistrictId == selectedDistrictId).Name ?? "";
+            var wardName = wards.FirstOrDefault(w => w.Id == selectedCommuneId).Name ?? "";
+
+            editingAddress.FullAddress = $"{editingAddress.Address}, {wardName}, {districtName}, {provinceName}";
+
+            var result = await DeliveryAddressService.CreateOrUpdateAsync(editingAddress);
+
+            if (result.HasValue)
+            {
+                MessageService.Success(editingAddress.Id == Guid.Empty ? "Thêm địa chỉ thành công!" : "Cập nhật địa chỉ thành công!");
+                showCreateOrUpdateModal = false;
+                await LoadAddresses();
+            }
+            else
+            {
+                MessageService.Error(editingAddress.Id == Guid.Empty ? "Thêm địa chỉ thất bại!" : "Cập nhật địa chỉ thất bại!");
+            }
+        }
+        catch (Exception ex)
+        {
+            MessageService.Error("Có lỗi xảy ra khi lưu địa chỉ!");
+            Console.WriteLine($"Error saving address: {ex.Message}");
+        }
+    }
+
+    private async Task DeleteAddress(DeliveryAddressDTO address)
+    {
+        try
+        {
+            var result = await DeliveryAddressService.DeleteAsync(address.Id);
+            if (result)
+            {
+                MessageService.Success("Xóa địa chỉ thành công!");
+                await LoadAddresses();
+            }
+            else
+            {
+                MessageService.Error("Xóa địa chỉ thất bại!");
+            }
+        }
+        catch (Exception ex)
+        {
+            MessageService.Error("Có lỗi xảy ra khi xóa địa chỉ!");
+            Console.WriteLine($"Error deleting address: {ex.Message}");
+        }
+    }
+
+    private RenderFragment CreateAction(string icon, string text, EventCallback onclick, bool danger = false)
+    {
+        return builder =>
+        {
+            builder.OpenComponent<Button>(0);
+            builder.AddAttribute(1, "Type", ButtonType.Link);
+            builder.AddAttribute(2, "Icon", icon);
+            if (danger)
+            {
+                builder.AddAttribute(3, "Danger", true);
+            }
+
+            builder.AddAttribute(4, "onclick", onclick);
+            builder.AddContent(5, text);
+            builder.CloseComponent();
+        };
+    }
+
+    private RenderFragment[] GetAddressActions(DeliveryAddressDTO address)
+    {
+        return new RenderFragment[]
+        {
+            CreateAction("edit", "Sửa", EventCallback.Factory.Create(this, () => EditAddress(address))),
+            CreateAction("delete", "Xóa", EventCallback.Factory.Create(this, () => DeleteAddress(address)), true)
+        };
+    }
+
+}

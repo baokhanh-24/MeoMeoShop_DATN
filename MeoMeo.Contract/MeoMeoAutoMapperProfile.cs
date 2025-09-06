@@ -7,6 +7,7 @@ using MeoMeo.Contract.DTOs.OrderDetail;
 using MeoMeo.Contract.DTOs.InventoryBatch;
 using MeoMeo.Contract.DTOs.Product;
 using MeoMeo.Contract.DTOs.ProductDetail;
+using MeoMeo.Contract.DTOs.ProductReview;
 using MeoMeo.Contract.DTOs.Promotion;
 using MeoMeo.Contract.DTOs.PromotionDetail;
 using MeoMeo.Contract.DTOs.Size;
@@ -26,8 +27,8 @@ namespace MeoMeo.Contract
             CreateMap<CreateOrUpdateProductDetailDTO, ProductDetail>();
             CreateMap<ProductDetail, CreateOrUpdateProductDetailResponseDTO>();
             CreateMap<ProductDetail, ProductDetailDTO>();
-            CreateMap<ProductDetailGrid,ProductDetail>();
-            CreateMap<Product,CreateOrUpdateProductDTO>();
+            CreateMap<ProductDetailGrid, ProductDetail>();
+            CreateMap<Product, CreateOrUpdateProductDTO>();
             // Legacy mappings for backward compatibility
             CreateMap<CartDTO, Cart>();
             CreateMap<CartDetailDTO, CartDetail>();
@@ -51,8 +52,8 @@ namespace MeoMeo.Contract
             CreateMap<SizeDTO, Size>();
             CreateMap<CreateOrUpdateOrderDetailDTO, OrderDetail>();
             CreateMap<CreateOrUpdateDeliveryAddressDTO, DeliveryAddress>();
-            CreateMap<DeliveryAddress,DeliveryAddressDTO>();
-            CreateMap<Commune,CommuneDTO>();
+            CreateMap<DeliveryAddress, DeliveryAddressDTO>();
+            CreateMap<Commune, CommuneDTO>();
             CreateMap<CreateOrUpdateProvinceDTO, Province>();
             CreateMap<InventoryBatch, InventoryBatchDTO>();
             CreateMap<InventoryBatchDTO, InventoryBatch>();
@@ -70,8 +71,8 @@ namespace MeoMeo.Contract
             CreateMap<Employee, CreateOrUpdateEmployeeResponseDTO>();
             CreateMap<CreateOrUpdateDistrictDTO, District>();
             CreateMap<Order, CreateOrUpdateOrderResponse>();
-            CreateMap<Customers,CreateOrUpdateCustomerResponse>();
-            CreateMap<Customers,CustomerDTO>();
+            CreateMap<Customers, CreateOrUpdateCustomerResponse>();
+            CreateMap<Customers, CustomerDTO>();
             CreateMap<Brand, BrandDTO>();
             CreateMap<Brand, CreateOrUpdateBrandResponseDTO>();
             CreateMap<Season, SeasonDTO>();
@@ -79,7 +80,7 @@ namespace MeoMeo.Contract
             CreateMap<CreateOrUpdateSeasonDTO, Season>();
             CreateMap<Customers, CreateOrUpdateCustomerResponse>();
             CreateMap<Customers, CustomerDTO>();
-            CreateMap<Bank,BankDTO>();
+            CreateMap<Bank, BankDTO>();
             CreateMap<Material, CreateOrUpdateMaterialDTO>();
             CreateMap<Material, CreateOrUpdateMaterialResponse>();
             CreateMap<Size, SizeDTO>();
@@ -88,8 +89,10 @@ namespace MeoMeo.Contract
             CreateMap<CreateOrUpdateEmployeeDTO, Employee>();
             CreateMap<CreateOrUpdateEmployeeResponseDTO, Employee>();
             CreateMap<Employee, CreateOrUpdateEmployeeResponseDTO>();
-            CreateMap<Order,OrderDTO>();
-            CreateMap<OrderDetail,OrderDetailDTO>();
+            CreateMap<Order, OrderDTO>();
+            CreateMap<OrderDetail, OrderDetailDTO>()
+                .ForMember(dest => dest.SizeName, opt => opt.MapFrom(src => src.ProductDetail.Size.Value))
+                .ForMember(dest => dest.ColourName, opt => opt.MapFrom(src => src.ProductDetail.Colour.Name));
             CreateMap<SystemConfig, SystemConfigDTO>();
             CreateMap<CreateOrUpdateSystemConfigDTO, SystemConfig>();
             CreateMap<CreateOrUpdateSystemConfigResponseDTO, SystemConfig>();
@@ -100,8 +103,8 @@ namespace MeoMeo.Contract
             CreateMap<SystemConfigDTO, CreateOrUpdateSystemConfigResponseDTO>();
             CreateMap<SystemConfigDTO, CreateOrUpdateSystemConfigDTO>();
             CreateMap<SystemConfigDTO, SystemConfig>();
-            CreateMap<User,UserDTO>();
-            CreateMap<ProductDetail,ProductDetailGrid>().IgnoreAllNonExisting();
+            CreateMap<User, UserDTO>();
+            CreateMap<ProductDetail, ProductDetailGrid>().IgnoreAllNonExisting();
             CreateMap<Image, ProductMediaUpload>()
                 .ForMember(dest => dest.ImageUrl, opt => opt.MapFrom(src => src.URL))
                 .ForMember(dest => dest.FileName, opt => opt.MapFrom(src => src.Name))
@@ -111,6 +114,9 @@ namespace MeoMeo.Contract
             CreateMap<CategoryDTO, Category>();
             CreateMap<Category, CategoryResponseDTO>();
             CreateMap<Category, CategoryDTO>();
-        }
+
+         
+          
+    }
     }
 }

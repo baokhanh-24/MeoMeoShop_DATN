@@ -36,6 +36,13 @@ namespace MeoMeo.API.Controllers
             return Ok(result);
         }
 
+        [HttpGet("get-header-products")]
+        public async Task<IActionResult> GetHeaderProducts()
+        {
+            var result = await _productServices.GetHeaderProductsAsync();
+            return Ok(result);
+        }
+
         [HttpGet("get-product-for-create-update/{id}")]
         public async Task<IActionResult> GetProductById(Guid id)
         {
@@ -188,6 +195,13 @@ namespace MeoMeo.API.Controllers
         public async Task<IActionResult> GetWeeklyBestSellers([FromQuery] int take = 10)
         {
             var result = await _productServices.GetWeeklyBestSellersAsync(take);
+            return Ok(result);
+        }
+
+        [HttpGet("top-rated")]
+        public async Task<IActionResult> GetTopRated([FromQuery] int take = 12)
+        {
+            var result = await _productServices.GetTopRatedProductsAsync(take);
             return Ok(result);
         }
 

@@ -1,0 +1,315 @@
+@page "/profile/wishlist"
+@using MeoMeo.Shared.IServices
+@using MeoMeo.Contract.DTOs
+@using MeoMeo.Shared.Services
+@using Microsoft.AspNetCore.Components.Authorization
+@using System.Security.Claims
+@using MeoMeo.PORTAL.Components.Layout
+@using MeoMeo.Shared.Utilities
+@using MeoMeo.Contract.DTOs.Wishlist
+@using ButtonType = AntDesign.ButtonType
+@using AntDesign
+@using MeoMeo.PORTAL.Components.Pages.ProductCard
+@using MeoMeo.Contract.DTOs.Product
+@inject IWishlistClientService WishlistService
+@inject ICartClientService CartService
+@inject CustomAuthStateProvider AuthStateProvider
+@inject NavigationManager NavigationManager
+@inject MessageService MessageService
+@inject IProductClientService ProductClientService
+@layout ProfileLayout
+
+<div class="wishlist-container">
+    <div class="page-header">
+        <Title Level="2">
+            <Icon Type="heart" />
+            Sản phẩm yêu thích
+        </Title>
+        <p class="page-subtitle">Danh sách sản phẩm bạn đã thêm vào yêu thích</p>
+    </div>
+
+    <!-- Search and Filter Section -->
+    <div class="search-filter-section">
+        <GridRow Gutter="16" Justify="RowJustify.SpaceBetween" Align="RowAlign.Middle">
+            <GridCol>
+                <Search Placeholder="Tìm tên sản phẩm..." EnterButton="@("Tìm")" @bind-Value="searchTerm"
+                    OnSearch="SearchProducts" Style="max-width: 400px;" />
+            </GridCol>
+            <GridCol>
+                <Space>
+                    <Button Type="@ButtonType.Default" Icon="@(viewMode == "grid" ? "appstore" : "bars")"
+                        @onclick="ToggleViewMode">
+                        @(viewMode == "grid" ? "Lưới" : "Danh sách")
+                    </Button>
+                    <Button Type="@ButtonType.Primary" Icon="shopping-cart" @onclick="AddAllToCart"
+                        Disabled="@(isLoading || !filteredItems.Any(i => i.IsAvailable))">
+                        Thêm tất cả vào giỏ
+                    </Button>
+                </Space>
+            </GridCol>
+        </GridRow>
+    </div>
+
+    <!-- Wishlist Content -->
+    <div class="wishlist-content">
+        @if (isLoading)
+        {
+            <div class="loading-section">
+                <Spin Size="SpinSize.Large" />
+                <p>Đang tải danh sách yêu thích...</p>
+            </div>
+        }
+        else if (wishlistProducts.Any())
+        {
+            <GridRow Gutter="16">
+                <GridCol Span="24">
+                    <ProductCard LstProduct="@wishlistProducts" IsGridSelected="true" />
+                </GridCol>
+            </GridRow>
+        }
+        else
+        {
+            <div class="empty-state">
+                <Empty >
+                    <Button Type="@ButtonType.Primary" Icon="shopping" @onclick="GoToProducts">
+                        Khám phá sản phẩm
+                    </Button>
+                </Empty>
+            </div>
+        }
+    </div>
+</div>
+
+@code {
+    private List<WishlistDTO> wishlistItems = new();
+    private List<WishlistDTO> filteredItems = new();
+    private List<ProductResponseDTO> wishlistProducts = new();
+    private bool isLoading = true;
+    private string searchTerm = "";
+    private string viewMode = "grid"; // "grid" or "list"
+
+    // Pagination
+    private int currentPage = 1;
+    private int pageSize = 12;
+    private int totalItems = 0;
+    private int totalPages = 0;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadWishlist();
+    }
+
+    private async Task LoadWishlist()
+    {
+        try
+        {
+            isLoading = true;
+            var authState = await AuthStateProvider.GetAuthenticationStateAsync();
+            var userIdClaim = authState.User.FindFirst("CustomerId");
+
+            if (userIdClaim != null && Guid.TryParse(userIdClaim.Value, out var customerId))
+            {
+                var result = await WishlistService.GetMyWishlistAsync();
+                if (result != null)
+                {
+                    wishlistItems = result.ToList();
+                    totalItems = wishlistItems.Count;
+                    totalPages = (int)Math.Ceiling((double)totalItems / pageSize);
+                    ApplyFilters();
+                    await LoadWishlistProducts();
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            MessageService.Error("Không thể tải danh sách yêu thích!");
+            Console.WriteLine($"Error loading wishlist: {ex.Message}");
+        }
+        finally
+        {
+            isLoading = false;
+            StateHasChanged();
+        }
+    }
+
+    private async Task LoadWishlistProducts()
+    {
+        try
+        {
+            var ids = filteredItems.Select(i => i.ProductId).Distinct().ToList();
+            if (ids.Count == 0)
+            {
+                wishlistProducts = new();
+                return;
+            }
+            wishlistProducts = await ProductClientService.GetByIdsAsync(ids);
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error loading wishlist products: {ex.Message}");
+            wishlistProducts = new();
+        }
+    }
+
+    private void ApplyFilters()
+    {
+        filteredItems = wishlistItems.ToList();
+
+        if (!string.IsNullOrEmpty(searchTerm))
+        {
+            filteredItems = filteredItems.Where(item =>
+            item.ProductName.Contains(searchTerm, StringComparison.OrdinalIgnoreCase)).ToList();
+        }
+    }
+
+    private async Task SearchProducts()
+    {
+        ApplyFilters();
+        StateHasChanged();
+    }
+
+    private void ToggleViewMode()
+    {
+        viewMode = viewMode == "grid" ? "list" : "grid";
+    }
+
+    private async Task OnPageChanged(PaginationEventArgs args)
+    {
+        currentPage = args.Page;
+        pageSize = args.PageSize;
+        await LoadWishlist();
+    }
+
+    private async Task AddToCart(Guid productId)
+    {
+        try
+        {
+            var result = await CartService.AddToCartAsync(new AddToCartDTO { ProductDetailId = productId, Quantity = 1 });
+            if (result != null)
+            {
+                MessageService.Success("Đã thêm sản phẩm vào giỏ hàng!");
+            }
+            else
+            {
+                MessageService.Error("Không thể thêm sản phẩm vào giỏ hàng!");
+            }
+        }
+        catch (Exception ex)
+        {
+            MessageService.Error("Có lỗi xảy ra khi thêm vào giỏ hàng!");
+            Console.WriteLine($"Error adding to cart: {ex.Message}");
+        }
+    }
+
+    private async Task AddAllToCart()
+    {
+        try
+        {
+            var availableItems = filteredItems.Where(i => i.IsAvailable).ToList();
+            var successCount = 0;
+
+            foreach (var item in availableItems)
+            {
+                var result = await CartService.AddToCartAsync(new AddToCartDTO { ProductDetailId = item.ProductId, Quantity = 1 });
+                if (result != null) successCount++;
+            }
+
+            if (successCount > 0)
+            {
+                MessageService.Success($"Đã thêm {successCount} sản phẩm vào giỏ hàng!");
+            }
+            else
+            {
+                MessageService.Warning("Không có sản phẩm nào có thể thêm vào giỏ hàng!");
+            }
+        }
+        catch (Exception ex)
+        {
+            MessageService.Error("Có lỗi xảy ra khi thêm sản phẩm vào giỏ hàng!");
+            Console.WriteLine($"Error adding all to cart: {ex.Message}");
+        }
+    }
+
+    private async Task RemoveFromWishlist(Guid wishlistId)
+    {
+        try
+        {
+            var result = await WishlistService.RemoveFromWishlistAsync(wishlistId);
+            if (result)
+            {
+                MessageService.Success("Đã xóa sản phẩm khỏi yêu thích!");
+                await LoadWishlist();
+            }
+            else
+            {
+                MessageService.Error("Không thể xóa sản phẩm khỏi yêu thích!");
+            }
+        }
+        catch (Exception ex)
+        {
+            MessageService.Error("Có lỗi xảy ra khi xóa sản phẩm!");
+            Console.WriteLine($"Error removing from wishlist: {ex.Message}");
+        }
+    }
+
+    private void ViewProduct(Guid productId)
+    {
+        NavigationManager.NavigateTo($"/product/{productId}");
+    }
+
+    private void GoToProducts()
+    {
+        NavigationManager.NavigateTo("/products");
+    }
+
+    private string GetProductDescription(WishlistDTO item)
+    {
+        var description = "";
+        if (item.ProductPrice > 0)
+        {
+            description += $"Price: {item.ProductPrice:N0} ₫";
+        }
+        return description;
+    }
+
+    private string FormatPrice(decimal price)
+    {
+        return price.ToString("N0") + " ₫";
+    }
+
+    private RenderFragment<PaginationTotalContext> ShowTotal => context =>
+    @<span>@($"{context.Range.from}-{context.Range.to} of {context.Total} products")</span>;
+
+    private RenderFragment[] GetProductActions(WishlistDTO item)
+    {
+        return new RenderFragment[]
+        {
+builder => {
+builder.OpenComponent<Button>(0);
+builder.AddAttribute(1, "Type", ButtonType.Link);
+builder.AddAttribute(2, "Icon", "eye");
+builder.AddAttribute(3, "onclick", EventCallback.Factory.Create(this, () => ViewProduct(item.ProductId)));
+builder.AddContent(4, "Xem");
+builder.CloseComponent();
+},
+builder => {
+builder.OpenComponent<Button>(5);
+builder.AddAttribute(6, "Type", ButtonType.Link);
+builder.AddAttribute(7, "Icon", "shopping-cart");
+builder.AddAttribute(8, "onclick", EventCallback.Factory.Create(this, () => AddToCart(item.ProductId)));
+builder.AddAttribute(9, "Disabled", !item.IsAvailable);
+builder.AddContent(10, "Mua");
+builder.CloseComponent();
+},
+builder => {
+builder.OpenComponent<Button>(11);
+builder.AddAttribute(12, "Type", ButtonType.Link);
+builder.AddAttribute(13, "Icon", "delete");
+builder.AddAttribute(14, "Danger", true);
+builder.AddAttribute(15, "onclick", EventCallback.Factory.Create(this, () => RemoveFromWishlist(item.Id)));
+builder.AddContent(16, "Xóa");
+builder.CloseComponent();
+}
+        };
+    }
+}

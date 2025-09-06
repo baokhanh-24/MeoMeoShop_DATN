@@ -6,8 +6,10 @@
 @using System.Linq
 @using MeoMeo.Contract.DTOs.Product
 @using MeoMeo.Contract.DTOs
+@using MeoMeo.Contract.DTOs.Material
 @using MeoMeo.Contract.DTOs.Size
 @using MeoMeo.Domain.Commons
+@using MeoMeo.Domain.Commons.Enums
 @using MeoMeo.PORTAL.Components.Pages.ProductCard
 @using ButtonType = AntDesign.ButtonType
 @inject IProductClientService ProductClientService
@@ -15,6 +17,10 @@
 @inject IColourClientService ColourClientService
 @inject IJSRuntime JS
 @inject IConfiguration Configuration
+@inject ICategoryClientService CategoryClientService
+@inject IBrandClientService BrandClientService
+@inject IMaterialClientService MaterialClientService
+@inject ISeasonClientService SeasonClientService
 
 <video autoplay muted loop playsinline >
                 <source src="videos/background.mp4" type="video/mp4">
@@ -118,17 +124,66 @@
 </GridRow>
 
 <GridRow Class="product-store position-relative padding-large no-padding-top" Id="product" Gutter="16">
+    <GridCol Span="24" Class="mb-3">
+        <Menu Mode="MenuMode.Horizontal">
+            @if (categories.Any())
+            {
+                @foreach (var c in categories)
+                {
+                    <MenuItem Key="@c.Id.ToString()" Title="@c.Name" OnClick="@(async _ => await OnCategorySelected(c.Id))" />
+                }
+                <MenuItem Key="all" Title="Tất cả" OnClick="@(async _ => await OnCategorySelected(null))" />
+            }
+        </Menu>
+    </GridCol>
     <GridCol Span="4" Md="4" Sm="24">
         <div class="space-coverage">
             <Title Level="4">Bộ lọc</Title>
             <Divider />
             <Form TModel="GetListProductRequestDTO" Model="filter">
                 <FormItem Label="Từ khóa">
-                    <Search Placeholder="Tìm theo tên" @bind-Value="filter.NameFilter" OnSearch="_ => ApplyFilter()" />
+                    <Search Placeholder="Tìm theo tên" @bind-Value="filter.NameFilter" OnSearch="async _ => await ApplyFilter()" />
+                </FormItem>
+                <FormItem Label="Mã SKU">
+                    <Input Placeholder="SKU" @bind-Value="filter.SKUFilter" @onblur="async _ => await ApplyFilter()" />
+                </FormItem>
+                <FormItem Label="Thương hiệu">
+                    <Select TItem="BrandDTO" TItemValue="Guid?"
+                            @bind-Value="filter.BrandFilter"
+                            OnSelectedItemChanged="async _ => await ApplyFilter()"
+                            DataSource="brands"
+                            ValueName="Id"
+                            LabelName="Name"
+                            AllowClear
+                            Placeholder="Chọn thương hiệu">
+                    </Select>
+                </FormItem>
+                <FormItem Label="Chất liệu">
+                    <Select TItem="CreateOrUpdateMaterialDTO" TItemValue="Guid?"
+                            @bind-Value="filter.MaterialFilter"
+                            OnSelectedItemChanged="async _ => await ApplyFilter()"
+                            DataSource="materials"
+                            ValueName="Id"
+                            LabelName="Name"
+                            AllowClear
+                            Placeholder="Chọn chất liệu">
+                    </Select>
+                </FormItem>
+                <FormItem Label="Mùa vụ">
+                    <Select TItem="SeasonDTO" TItemValue="Guid?"
+                            @bind-Value="filter.SeasonFilter"
+                            OnSelectedItemChanged="ApplyFilter"
+                            DataSource="seasons"
+                            ValueName="Id"
+                            LabelName="Name"
+                            AllowClear
+                            Placeholder="Chọn mùa">
+                    </Select>
                 </FormItem>
                 <FormItem Label="Màu sắc">
                     <Select TItem="ColourDTO" TItemValue="Guid?" 
                             @bind-Value="filter.ColourFilter"
+                            OnSelectedItemChanged="async _ => await ApplyFilter()"
                             DataSource="colours"
                             ValueName="Id" 
                             LabelName="Name"
@@ -139,6 +194,7 @@
                 <FormItem Label="Size">
                     <Select TItem="SizeDTO" TItemValue="Guid?" 
                             @bind-Value="filter.SizeFilter"
+                            OnSelectedItemChanged="async _ => await ApplyFilter()"
                             DataSource="sizes"
                             ValueName="Id" 
                             LabelName="Value"
@@ -149,14 +205,49 @@
                 <FormItem Label="Khoảng giá">
                     <Select TItem="PriceRangeOption" TItemValue="int?" 
                             @bind-Value="selectedPriceRange"
-                            OnChange="OnPriceRangeChanged"
+                            OnSelectedItemChanged="OnPriceRangeChanged"
                             AllowClear Placeholder="Chọn mức giá"
                             ValueName="Id" LabelName="Label"
                             DataSource="priceRanges">
                     </Select>
                 </FormItem>
+                <FormItem Label="Kiểu đóng">
+                    <Select TItem="EnumOption<EClosureType>" TItemValue="EClosureType?"
+                            @bind-Value="filter.ClosureTypeFilter"
+                            OnSelectedItemChanged="async _ => await ApplyFilter()"
+                            DataSource="closureTypes"
+                            ValueName="Value" LabelName="Label"
+                            AllowClear Placeholder="Chọn kiểu đóng">
+                    </Select>
+                </FormItem>
+                <FormItem Label="Cho phép đổi trả">
+                    <Select TItem="BoolOption" TItemValue="bool?"
+                            @bind-Value="filter.AllowReturnFilter"
+                            OnSelectedItemChanged="async _ => await ApplyFilter()"
+                            DataSource="boolOptions"
+                            ValueName="Value" LabelName="Label"
+                            AllowClear Placeholder="Tất cả">
+                    </Select>
+                </FormItem>
+                <FormItem Label="Sắp xếp theo">
+                    <Select TItem="EnumOption<EProductSortField>" TItemValue="EProductSortField"
+                            @bind-Value="filter.SortField"
+                            OnSelectedItemChanged="async _ => await ApplyFilter()"
+                            DataSource="sortFields"
+                            ValueName="Value" LabelName="Label"
+                            Placeholder="Chọn trường sắp xếp">
+                    </Select>
+                </FormItem>
+                <FormItem Label="Chiều sắp xếp">
+                    <Select TItem="EnumOption<ESortDirection>" TItemValue="ESortDirection"
+                            @bind-Value="filter.SortDirection"
+                            OnSelectedItemChanged="async _ => await ApplyFilter()"
+                            DataSource="sortDirections"
+                            ValueName="Value" LabelName="Label"
+                            Placeholder="Chọn chiều">
+                    </Select>
+                </FormItem>
                 <FormItem>
-                    <Button Type="@ButtonType.Primary" OnClick="ApplyFilter">Áp dụng</Button>
                     <Button Class="ms-2" OnClick="ResetFilter">Xóa lọc</Button>
                 </FormItem>
             </Form>
@@ -165,25 +256,10 @@
     <GridCol Span="20" Md="20" Sm="24">
         <ProductCard LstProduct="@products" IsGridSelected="true" />
         <div class="mt-4 d-flex justify-content-center">
-            <Pagination Total="@totalRecords" PageSize="@filter.PageSize" Current="@filter.PageIndex" OnChange="OnPageChanged" />
+            <Pagination Total="@totalRecords" PageSize="@filter.PageSize" Current="@filter.PageIndex" OnSelectedItemChanged="OnPageChanged" />
         </div>
     </GridCol>
 </GridRow>
-    </GridCol>
-</GridRow>
-<GridRow Class="bg-light-blue overflow-hidden mt-5 padding-xlarge"
-     style="background-image: url('images/single-image1.png');background-position: right; background-repeat: no-repeat;">
-    <GridCol Md="12" Sm="24">
-    <div class="text-content offset-4 padding-medium">
-        <Title Level="3">Giảm 10%</Title>
-        <Title Level="2" Class="display-2 pb-5 text-uppercase text-dark">New year sale</Title>
-        <Button Type="@ButtonType.Dashed" Class="btn-medium btn-dark text-uppercase btn-rounded"
-                OnClick="@(() => NavigateToShop())">
-            Mua ngay
-        </Button>
-    </div>
-    </GridCol>
-    <GridCol Md="12" Sm="24">
     </GridCol>
 </GridRow>
 
@@ -291,6 +367,7 @@
 </GridRow>
 @code {
     private List<ProductResponseDTO> products { get; set; } = new();
+    private List<MeoMeo.Domain.Entities.Category> categories { get; set; } = new();
     private List<BestSellerItemDTO> bestSellers { get; set; } = new();
     private List<ProductResponseDTO> recentlyViewed { get; set; } = new();
     private List<Testimonial> Testimonials { get; set; } = new();
@@ -298,6 +375,18 @@
     private GetListProductRequestDTO filter = new() { PageIndex = 1, PageSize = 12 };
     private List<SizeDTO> sizes = new();
     private List<ColourDTO> colours = new();
+    private List<BrandDTO> brands = new();
+    private List<CreateOrUpdateMaterialDTO> materials = new();
+    private List<SeasonDTO> seasons = new();
+    private List<EnumOption<EClosureType>> closureTypes = new();
+    private List<EnumOption<EProductStatus>> productStatuses = new();
+    private List<EnumOption<EProductSortField>> sortFields = new();
+    private List<EnumOption<ESortDirection>> sortDirections = new();
+    private List<BoolOption> boolOptions = new()
+    {
+        new BoolOption { Value = true, Label = "Có" },
+        new BoolOption { Value = false, Label = "Không" }
+    };
     public class PriceRangeOption
     {
         public int Id { get; set; }   // dùng cho bind
@@ -323,21 +412,24 @@
 
     protected override async Task OnInitializedAsync()
     {
+        await LoadCategoriesAsync();
         await LoadFilterOptions();
         await LoadProductsAsync();
         await LoadBestSellersAsync();
         await LoadRecentlyViewedAsync();
 
-        // Initialize testimonials
-        Testimonials = new List<Testimonial>
+        
+        
+    }
+
+    private async Task LoadCategoriesAsync()
+    {
+        try
         {
-            new Testimonial
-            {
-                AuthorName = "Emma Chamberlin",
-                Comment = "The product is amazing, I am really satisfied with the quality and service. I will continue to shop here and recommend it to my friends.",
-                Rating = 4
-            }
-        };
+            var data = await CategoryClientService.GetAllCategoriesAsync();
+            categories = data?.ToList() ?? new();
+        }
+        catch { categories = new(); }
     }
 
     private async Task AddToCart(ProductResponseDTO product)
@@ -366,6 +458,28 @@
         colours = (colourResp ?? Enumerable.Empty<MeoMeo.Domain.Entities.Colour>())
             .Select(c => new ColourDTO { Id = c.Id, Name = c.Name, Code = c.Code, Status = c.Status })
             .ToList();
+        // brands
+        var brandResp = await BrandClientService.GetAllBrandAsync(new GetListBrandRequestDTO { PageIndex = 1, PageSize = 200 });
+        brands = brandResp.Items ?? new List<BrandDTO>();
+        // materials
+        var materialResp = await MaterialClientService.GetAllMaterialsAsync(new GetListMaterialRequest { PageIndex = 1, PageSize = 200 });
+        materials = materialResp.Items ?? new List<CreateOrUpdateMaterialDTO>();
+        // seasons
+        var seasonResp = await SeasonClientService.GetAllSeasonsAsync(new GetListSeasonRequestDTO { PageIndex = 1, PageSize = 100 });
+        seasons = seasonResp.Items ?? new List<SeasonDTO>();
+        // enums
+        closureTypes = Enum.GetValues(typeof(EClosureType)).Cast<EClosureType>()
+            .Select(v => new EnumOption<EClosureType> { Value = v, Label = v.ToString() })
+            .ToList();
+        productStatuses = Enum.GetValues(typeof(EProductStatus)).Cast<EProductStatus>()
+            .Select(v => new EnumOption<EProductStatus> { Value = v, Label = v.ToString() })
+            .ToList();
+        sortFields = Enum.GetValues(typeof(EProductSortField)).Cast<EProductSortField>()
+            .Select(v => new EnumOption<EProductSortField> { Value = v, Label = v.ToString() })
+            .ToList();
+        sortDirections = Enum.GetValues(typeof(ESortDirection)).Cast<ESortDirection>()
+            .Select(v => new EnumOption<ESortDirection> { Value = v, Label = v.ToString() })
+            .ToList();
     }
 
     private async Task LoadProductsAsync()
@@ -374,6 +488,13 @@
         products = response.Items ?? new List<ProductResponseDTO>();
         totalRecords = response.TotalRecords;
         StateHasChanged();
+    }
+
+    private async Task OnCategorySelected(Guid? categoryId)
+    {
+        filter.PageIndex = 1;
+        filter.CategoryFilter = categoryId;
+        await LoadProductsAsync();
     }
 
     private async Task LoadBestSellersAsync()
@@ -437,10 +558,11 @@
         _ = LoadProductsAsync();
     }
 
-    private void OnPriceRangeChanged(int? value)
+
+    private async Task OnPriceRangeChanged()
     {
-        selectedPriceRange = value;
-        switch (value)
+
+        switch (selectedPriceRange)
         {
             case 1: filter.MinPriceFilter = 0; filter.MaxPriceFilter = 500_000; break;
             case 2: filter.MinPriceFilter = 500_000; filter.MaxPriceFilter = 1_000_000; break;
@@ -451,6 +573,7 @@
             case 7: filter.MinPriceFilter = 5_000_000; filter.MaxPriceFilter = null; break;
             default: filter.MinPriceFilter = null; filter.MaxPriceFilter = null; break;
         }
+        await ApplyFilter();
     }
 
     public class Testimonial
@@ -465,6 +588,16 @@
         [Required(ErrorMessage = "Email is required")]
         [EmailAddress(ErrorMessage = "Invalid email format")]
         public string Email { get; set; }
+    }
+    public class EnumOption<T>
+    {
+        public T Value { get; set; }
+        public string Label { get; set; }
+    }
+    public class BoolOption
+    {
+        public bool Value { get; set; }
+        public string Label { get; set; }
     }
     
 }

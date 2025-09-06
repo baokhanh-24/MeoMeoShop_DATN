@@ -10,9 +10,12 @@ namespace MeoMeo.Application.IServices
     {
         Task<PagingExtensions.PagedResult<OrderDTO, GetListOrderResponseDTO>> GetListOrderAsync(
             GetListOrderRequestDTO request);
+        Task<PagingExtensions.PagedResult<OrderDTO, GetListOrderResponseDTO>> GetListOrderByCustomerAsync(
+            GetListOrderRequestDTO request, Guid customerId);
         Task<BaseResponse> UpdateStatusOrderAsync(UpdateStatusOrderRequestDTO request);
         Task<GetListOrderHistoryResponseDTO> GetListOrderHistoryAsync(Guid orderId);
         Task<CreateOrderResultDTO> CreateOrderAsync(Guid customerId, Guid userId, CreateOrderDTO request);
         Task<bool> DeleteOrderAsync(Guid id);
+        Task<CreatePosOrderResultDTO> CreatePosOrderAsync(Guid? customerId, Guid? userId, CreatePosOrderDTO request);
     }
 }

@@ -53,6 +53,7 @@ namespace MeoMeo.EntityFrameworkCore.Configurations.Contexts
         public DbSet<RolePermission> rolePermissions { get; set; }
         public DbSet<UserRole> userRoles { get; set; }
         public DbSet<UserToken> userTokens { get; set; }
+        public DbSet<Wishlist> wishlists { get; set; }
 
         protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
         {
@@ -107,6 +108,7 @@ namespace MeoMeo.EntityFrameworkCore.Configurations.Contexts
             modelBuilder.ApplyConfiguration(new UserTokenConfiguration());
             modelBuilder.ApplyConfiguration(new ProductMaterialConfiguration());
             modelBuilder.ApplyConfiguration(new ProductReviewConfiguration());
+            modelBuilder.ApplyConfiguration(new WishlistConfiguration());
 
         }
     }

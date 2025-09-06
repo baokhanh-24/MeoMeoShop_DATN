@@ -55,6 +55,12 @@ builder.Services.AddScoped<IOrderClientService, OrderClientService>();
 builder.Services.AddScoped<IOrderReturnClientService, OrderReturnClientService>();
 builder.Services.AddScoped<IProductReviewClientService, ProductReviewClientService>();
 builder.Services.AddScoped<IGhnClientService, GhnClientService>();
+builder.Services.AddScoped<IWishlistClientService, WishlistClientService>();
+builder.Services.AddScoped<ICategoryClientService, CategoryClientService>();
+builder.Services.AddScoped<ISeasonClientService, SeasonClientService>();
+builder.Services.AddScoped<IMaterialClientService, MaterialClientService>();
+builder.Services.AddScoped<IBrandClientService, BrandClientService>();
+builder.Services.AddScoped<ICartStateService, CartStateService>();
 
 //builder.WebHost.ConfigureKestrel(options =>
 //{

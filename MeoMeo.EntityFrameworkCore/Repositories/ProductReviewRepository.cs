@@ -42,5 +42,7 @@ namespace MeoMeo.EntityFrameworkCore.Repositories
             var items = await GetAllAsync();
             return items.ToList();
         }
+
+        
     }
-} 
+}

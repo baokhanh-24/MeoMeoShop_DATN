@@ -4,6 +4,8 @@ using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using MeoMeo.Shared.Utilities;
+using MeoMeo.Contract.DTOs.ProductReview;
+using MeoMeo.Domain.Commons;
 
 namespace MeoMeo.Shared.Services
 {
@@ -30,6 +32,37 @@ namespace MeoMeo.Shared.Services
             {
                 _logger.LogError(ex, "Error fetching product reviews: {Message}", ex.Message);
                 return Array.Empty<ProductReviewDTO>();
+            }
+        }
+
+        public async Task<PagingExtensions.PagedResult<ProductReviewDTO>> GetByProductDetailIdsAsync(GetListProductReviewDTO request)
+        {
+            try
+            {
+                var queryString = BuildQuery.ToQueryString(request);
+                var url = $"/api/ProductReviews/product-detail?{queryString}";
+                var response = await _httpClient.GetAsync<PagingExtensions.PagedResult<ProductReviewDTO>>(url);
+                return response;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error fetching product reviews by product detail id: {Message}", ex.Message);
+                return  new PagingExtensions.PagedResult<ProductReviewDTO>();
+            }
+        }
+
+        public async Task<ProductReviewDTO> CreateAsync(ProductReviewCreateOrUpdateDTO dto)
+        {
+            try
+            {
+                var url = "/api/ProductReviews";
+                var response = await _httpClient.PostAsync<ProductReviewCreateOrUpdateDTO, ProductReviewDTO>(url, dto);
+                return response ?? new ProductReviewDTO();
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error creating product review: {Message}", ex.Message);
+                throw;
             }
         }
     }

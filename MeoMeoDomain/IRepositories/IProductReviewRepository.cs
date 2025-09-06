@@ -13,4 +13,4 @@ namespace MeoMeo.Domain.IRepositories
         Task<ProductReview> GetProductReviewByIdAsync(Guid id);
         Task<IEnumerable<ProductReview>> GetAllProductReviewsAsync();
     }
-} 
+}

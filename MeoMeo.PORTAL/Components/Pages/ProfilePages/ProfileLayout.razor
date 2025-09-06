@@ -1,0 +1,147 @@
+@using MeoMeo.Shared.Services
+@using MeoMeo.Shared.IServices
+@using MeoMeo.Contract.DTOs
+@using Microsoft.AspNetCore.Components.Authorization
+@using System.Security.Claims
+@using MeoMeo.Shared.Utilities
+@using AntDesign
+@inject ICustomerClientService CustomerService
+@inject IAuthClientService AuthService
+@inject CustomAuthStateProvider AuthStateProvider
+@inject NavigationManager NavigationManager
+
+<AuthorizeView>
+    <Authorized Context="context">
+        <div class="content-background">
+            <GridRow Gutter="16">
+                <GridCol Span="22" Offset="1">
+                    <!-- Breadcrumb -->
+                    <Breadcrumb Class="mb-3">
+                        <BreadcrumbItem>
+                            <a href="/">Trang chủ</a>
+                        </BreadcrumbItem>
+                        <BreadcrumbItem>
+                            <a class="current">@GetPageTitle()</a>
+                        </BreadcrumbItem>
+                    </Breadcrumb>
+
+                    <GridRow Gutter="16">
+                        <!-- Left Sidebar -->
+                        <GridCol Span="6">
+                            <Card Class="profile-sidebar-card">
+                                <div class="user-info-section">
+                                    <div class="user-avatar">
+                                        <Avatar Size="AvatarSize.Large" Icon="user" />
+                                    </div>
+                                    <div class="user-details">
+                                        <h4 class="user-name">@GetUserFullName(context.User)</h4>
+                                        <p class="user-phone">@GetUserPhone(context.User)</p>
+                                    </div>
+                                </div>
+
+                                <Divider />
+
+                                <Menu Mode="MenuMode.Inline" SelectedKeys="@GetSelectedKeys()">
+                                    <MenuItem Key="profile" Icon="user">
+                                    <a href="/profile">Thông tin cá nhân</a>
+                                    </MenuItem>
+                                    <MenuItem Key="orders" Icon="shopping">
+                                    <a href="/orders">Đơn hàng của tôi</a>
+                                    </MenuItem>
+                                    <MenuItem Key="addresses" Icon="environment">
+                                    <a href="/profile/addresses">Sổ địa chỉ</a>
+                                    </MenuItem>
+                                    <MenuItem Key="wishlist" Icon="heart">
+                                    <a href="/profile/wishlist">Sản phẩm yêu thích</a>
+                                    </MenuItem>
+                                    <MenuItem Key="reviews" Icon="star">
+                                    <a href="/profile/reviews">Đánh giá sản phẩm</a>
+                                    </MenuItem>
+                                </Menu>
+                            </Card>
+                        </GridCol>
+
+                        <!-- Main Content -->
+                        <GridCol Span="18">
+                            <Card Class="profile-main-card">
+                            </Card>
+                        </GridCol>
+                    </GridRow>
+                </GridCol>
+            </GridRow>
+        </div>
+    </Authorized>
+</AuthorizeView>
+
+@code {
+    private CustomerDTO? userInfo;
+    private string[] selectedKeys = new string[0];
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadUserInfo();
+        SetSelectedKeys();
+    }
+
+    private async Task LoadUserInfo()
+    {
+        try
+        {
+            var authState = await AuthStateProvider.GetAuthenticationStateAsync();
+            var userIdClaim = authState.User.FindFirst("CustomerId");
+
+            if (userIdClaim != null && Guid.TryParse(userIdClaim.Value, out var customerId))
+            {
+                userInfo = await CustomerService.GetCustomersByIdAsync(customerId);
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error loading user info: {ex.Message}");
+        }
+    }
+
+    private string GetUserFullName(ClaimsPrincipal user) =>
+    user?.FindFirst("FullName")?.Value
+    ?? user?.FindFirst("UserName")?.Value
+    ?? userInfo?.Name
+    ?? "User";
+
+    private string GetUserPhone(ClaimsPrincipal user) =>
+    user?.FindFirst("PhoneNumber")?.Value
+    ?? userInfo?.PhoneNumber
+    ?? "";
+
+    private string[] GetSelectedKeys()
+    {
+        return selectedKeys;
+    }
+
+    private void SetSelectedKeys()
+    {
+        var currentPath = NavigationManager.ToBaseRelativePath(NavigationManager.Uri);
+        selectedKeys = currentPath switch
+        {
+            "profile" => new[] { "profile" },
+            "orders" => new[] { "orders" },
+            "profile/addresses" => new[] { "addresses" },
+            "profile/wishlist" => new[] { "wishlist" },
+            "profile/reviews" => new[] { "reviews" },
+            _ => new[] { "profile" }
+        };
+    }
+
+    private string GetPageTitle()
+    {
+        var currentPath = NavigationManager.ToBaseRelativePath(NavigationManager.Uri);
+        return currentPath switch
+        {
+            "profile" => "Thông tin cá nhân",
+            "orders" => "Đơn hàng của tôi",
+            "profile/addresses" => "Sổ địa chỉ",
+            "profile/wishlist" => "Sản phẩm yêu thích",
+            "profile/reviews" => "Đánh giá sản phẩm",
+            _ => "Thông tin cá nhân"
+        };
+    }
+}

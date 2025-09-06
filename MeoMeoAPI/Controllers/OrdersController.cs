@@ -2,12 +2,14 @@
 using MeoMeo.Contract.Commons;
 using MeoMeo.Contract.DTOs.Order;
 using MeoMeo.Domain.Commons;
+using MeoMeo.Domain.Commons.Enums;
 using MeoMeo.Shared.Utilities;
 using MeoMeo.Shared.VnPay;
 using MeoMeo.Shared.VnPay.Enums;
 using MeoMeo.Shared.VnPay.Models;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Options;
+using MeoMeo.API.Extensions;
 
 namespace MeoMeo.API.Controllers
 {
@@ -27,6 +29,7 @@ namespace MeoMeo.API.Controllers
             _paymentOptions = paymentOptions.Value;
             _vnpay.Initialize(_paymentOptions.Vnpay.TmnCode, _paymentOptions.Vnpay.HashSecret, _paymentOptions.Vnpay.BaseUrl, _paymentOptions.Vnpay.PaymentBackReturnUrl);
         }
+        
         [HttpPost("take-vn-pay")]
         public async Task<string> CreatePaymentUrlAsync([FromBody] CreatePaymentUrlDTO input)
         {
@@ -70,29 +73,87 @@ namespace MeoMeo.API.Controllers
             
             
         }
+        
         [HttpGet("get-list-order-async")]
         public async Task<PagingExtensions.PagedResult<OrderDTO, GetListOrderResponseDTO>> GetAllCustomersAsync([FromQuery] GetListOrderRequestDTO request)
         {
             var result = await _orderService.GetListOrderAsync(request);
             return result;
-        }   
+        }
+        
+        // API lấy danh sách đơn hàng của user hiện tại
+        [HttpGet("get-my-orders")]
+        public async Task<IActionResult> GetMyOrdersAsync([FromQuery] GetListOrderRequestDTO request)
+        {
+            var customerId = _httpContextAccessor.HttpContext.GetCurrentCustomerId();
+            if (customerId == Guid.Empty)
+            {
+                return BadRequest(new BaseResponse
+                {
+                    ResponseStatus = BaseStatus.Error,
+                    Message = "Vui lòng đăng nhập để xem đơn hàng"
+                });
+            }
+            
+            var result = await _orderService.GetListOrderByCustomerAsync(request, customerId);
+            return Ok(result);
+        }
+        
         [HttpPut("update-status-order-async")]
         public async Task<BaseResponse> UpdateStatusOrderAsync([FromBody] UpdateStatusOrderRequestDTO request)
         {
             var result = await _orderService.UpdateStatusOrderAsync(request);
             return result;
         }   
+        
         [HttpGet("history/{orderId}")]
         public async Task<GetListOrderHistoryResponseDTO> GetOrderHistoryAsync(Guid orderId)
         {
             var result = await _orderService.GetListOrderHistoryAsync(orderId);
             return result;
         }
+        
         [HttpDelete("delete-order/{id}")]
         public async Task<IActionResult> DeleteOrder(Guid id)
         {
             var result = await _orderService.DeleteOrderAsync(id);
             return Ok(result);
+        }
+        
+        // API hủy đơn hàng
+        [HttpPut("cancel-order/{orderId}")]
+        public async Task<IActionResult> CancelOrderAsync(Guid orderId)
+        {
+            var customerId = _httpContextAccessor.HttpContext.GetCurrentCustomerId();
+            if (customerId == Guid.Empty)
+            {
+                return BadRequest(new BaseResponse
+                {
+                    ResponseStatus = BaseStatus.Error,
+                    Message = "Vui lòng đăng nhập để hủy đơn hàng"
+                });
+            }
+            
+            // Tạo request để hủy đơn hàng
+            var cancelRequest = new UpdateStatusOrderRequestDTO
+            {
+                OrderIds = new List<Guid> { orderId },
+                Status = EOrderStatus.Canceled,
+                Reason = "Đơn hàng bị hủy bởi khách hàng"
+            };
+            
+            var result = await _orderService.UpdateStatusOrderAsync(cancelRequest);
+            return Ok(result);
+        }
+
+        [HttpPost("create-pos-order")]
+        public async Task<CreatePosOrderResultDTO> CreatePosOrder([FromBody] CreatePosOrderDTO input)
+        {
+            var customerId = _httpContextAccessor.HttpContext.GetCurrentCustomerId();
+            var userId = _httpContextAccessor.HttpContext.GetCurrentUserId();
+            Guid? cid = customerId == Guid.Empty ? null : customerId;
+            Guid? uid = userId == Guid.Empty ? null : userId;
+            return await _orderService.CreatePosOrderAsync(cid, uid, input);
         }
     }
 }

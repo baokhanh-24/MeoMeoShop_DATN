@@ -1,9 +1,16 @@
 ﻿@using ButtonType = AntDesign.ButtonType
 @inject IJSRuntime JS
 @inject NavigationManager Navigation
+@inject MeoMeo.Shared.IServices.ICategoryClientService CategoryClientService
+@inject MeoMeo.Shared.IServices.IProductClientService ProductClientService
+@inject MeoMeo.Shared.IServices.ICartStateService CartStateService
+@inject MeoMeo.Shared.IServices.ICartClientService CartClientService
+@inject IConfiguration Configuration
+@using MeoMeo.Contract.DTOs.Product
+@using MeoMeo.PORTAL.Components.Pages.ProductCard
 
 <header id="header" class="site-header fixed-top">
-    <GridRow>
+    <GridRow Class="bg-header-root">
         <GridCol Span="22" Offset="1">
             <nav id="header-nav" class="navbar navbar-expand-lg ">
                 <div class="container-fluid d-flex justify-content-between align-items-center ">
@@ -36,29 +43,12 @@
                                 <span @onclick="() => NavigateToPage(6)" class="me-4 custom-link">Bài viết</span>
                                 <span @onclick="() => NavigateToPage(7)" class="me-4 custom-link">Chính sách bảo
                                     hành</span>
-                                <li class="nav-item dropdown">
-                                    <a class="nav-link me-4 dropdown-toggle link-dark" data-bs-toggle="dropdown"
-                                        href="#" role="button" aria-expanded="false">Xem thêm</a>
-                                    <ul class="dropdown-menu">
-                                        <li>
-                                            <a class="dropdown-item">Về chúng tôi</a>
-                                        </li>
-                                        <li><a class="dropdown-item">Bài viết</a></li>
-                                        <li><a class="dropdown-item">Cửa hàng</a></li>
-                                        <li><a class="dropdown-item">Giỏ hàng</a></li>
-                                        <li><a class="dropdown-item">Thanh toán</a></li>
-                                        <li>
-                                            <a class="dropdown-item">Tư vấn</a>
-                                        </li>
-                                        <li>
-                                            <a class="dropdown-item">Sản phẩm</a>
-                                        </li>
-                                        <li><a class="dropdown-item">Liên hệ</a></li>
-                                    </ul>
-                                </li>
+
                             </ul>
+
                         </div>
                     </div>
+
                     <div class="user-items d-flex">
                         <Button Type="@ButtonType.Text" Class="search-button ">
                             <svg class="search w-24 h-24">
@@ -66,10 +56,15 @@
                             </svg>
                         </Button>
 
-                        <Button Type="@ButtonType.Link" @onclick="() => NaViToCart()">
+                        <Button Type="@ButtonType.Link" @onclick="() => NaViToCart()"
+                            Class="cart-button position-relative">
                             <svg class="cart w-24 h-24">
                                 <use xlink:href="#cart"></use>
                             </svg>
+                            @if (cartItemCount > 0)
+                            {
+                                <span class="cart-badge">@cartItemCount</span>
+                            }
                         </Button>
                         <UserMenu />
                     </div>
@@ -122,11 +117,67 @@
                     </div>
                 </div>
             </nav>
+
+        </GridCol>
+    </GridRow>
+    <GridRow Class="modal-category">
+        <GridCol Span="22" Offset="1">
+            <div class="d-flex justify-content-center">
+                <Menu Mode="MenuMode.Horizontal" Class="category-menu">
+                    @if (categories.Any())
+                    {
+                        @foreach (var c in visibleCategories)
+                        {
+                            <div class="category-submenu" @onmouseenter="@(() => OnCategoryHover(c.Id))"
+                                @onmouseleave="@(() => OnCategoryLeave())">
+                                <SubMenu Title="@c.Name" OnTitleClick="@(() => OnCategoryClick(c.Id))">
+                                    <div class="category-dropdown "
+                                        style="display: @(hoveredCategory == c.Id ? "block" : "none")"
+                                        @onmouseenter="@(() => OnCategoryHover(c.Id))"
+                                        @onmouseleave="@(() => OnCategoryLeave())">
+                                        <div class="category-products">
+                                            @if (hoveredCategoryProducts.ContainsKey(c.Id))
+                                            {
+                                                <ProductCard LstProduct="hoveredCategoryProducts[c.Id]" IsGridSelected="true" />
+                                            }
+                                            else
+                                            {
+                                                <div class="loading-products">Đang tải...</div>
+                                            }
+                                        </div>
+                                        <div class="view-all-link">
+                                            <a href="@($"/Shop?categoryId={c.Id}")">Xem tất cả sản phẩm</a>
+                                        </div>
+                                    </div>
+                                </SubMenu>
+                            </div>
+                        }
+                        @if (overflowCategories.Any())
+                        {
+                            <SubMenu Title="Khác">
+                                @foreach (var c in overflowCategories)
+                                {
+                                    <MenuItem Key="@c.Id.ToString()" Title="@c.Name" OnClick="@(() => OnCategoryClick(c.Id))" />
+                                }
+                            </SubMenu>
+                        }
+                    }
+                </Menu>
+            </div>
+
         </GridCol>
     </GridRow>
 </header>
 @code {
     private IJSObjectReference? _module;
+    private List<MeoMeo.Domain.Entities.Category> categories = new();
+    private List<MeoMeo.Domain.Entities.Category> visibleCategories = new();
+    private List<MeoMeo.Domain.Entities.Category> overflowCategories = new();
+    private Dictionary<Guid, List<ProductResponseDTO>> hoveredCategoryProducts = new();
+    private Guid? hoveredCategory = null;
+    private int cartItemCount = 0;
+    private bool isSubscribed = false;
+
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
         if (firstRender)
@@ -139,6 +190,17 @@
                 await _module.InvokeVoidAsync("searchPopup");
                 await _module.InvokeVoidAsync("initProductQty");
 
+                await LoadCategories();
+                SplitCategories();
+                await LoadCartCount();
+
+                // Subscribe to cart count changes
+                if (!isSubscribed)
+                {
+                    CartStateService.OnCartCountChanged += OnCartCountChanged;
+                    isSubscribed = true;
+                }
+
             }
             catch (JSDisconnectedException exception)
             {
@@ -147,10 +209,83 @@
         }
     }
 
+
+
     private void NaViToCart()
     {
         Navigation.NavigateTo("/cart");
     }
+
+    private async Task LoadCartCount()
+    {
+        try
+        {
+            var cart = await CartClientService.GetCurrentCartAsync();
+            if (cart?.Items != null)
+            {
+                cartItemCount = cart.Items.Count; // Đếm số bản ghi, không phải tổng số lượng
+                CartStateService.UpdateCartCount(cartItemCount);
+            }
+        }
+        catch
+        {
+            cartItemCount = 0;
+        }
+    }
+
+    private void OnCartCountChanged(int newCount)
+    {
+        cartItemCount = newCount;
+        InvokeAsync(StateHasChanged);
+    }
+    private async Task LoadCategories()
+    {
+        try
+        {
+            var data = await CategoryClientService.GetAllCategoriesAsync();
+            categories = data?.ToList() ?? new();
+
+            // Load sản phẩm cho header ngay khi load categories
+            await LoadHeaderProducts();
+        }
+        catch { categories = new(); }
+    }
+
+    private async Task LoadHeaderProducts()
+    {
+        try
+        {
+            hoveredCategoryProducts = await ProductClientService.GetHeaderProductsAsync();
+        }
+        catch
+        {
+            hoveredCategoryProducts = new Dictionary<Guid, List<ProductResponseDTO>>();
+        }
+    }
+    private void SplitCategories()
+    {
+        var maxVisible = 5;
+        visibleCategories = categories.Take(maxVisible).ToList();
+        overflowCategories = categories.Skip(maxVisible).ToList();
+        StateHasChanged();
+    }
+    private void OnCategoryClick(Guid id)
+    {
+        Navigation.NavigateTo($"/Shop?categoryId={id}");
+    }
+
+    private void OnCategoryHover(Guid categoryId)
+    {
+        hoveredCategory = categoryId;
+        StateHasChanged();
+    }
+
+    private void OnCategoryLeave()
+    {
+        hoveredCategory = null;
+        StateHasChanged();
+    }
+
     private void NavigateToPage(int page)
     {
         switch (page)

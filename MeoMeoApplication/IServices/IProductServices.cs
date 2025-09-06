@@ -26,8 +26,12 @@ namespace MeoMeo.Application.IServices
         // Extended endpoints used by API controllers
         Task<List<BestSellerItemDTO>> GetWeeklyBestSellersAsync(int take = 10);
         Task<CategoryHoverResponseDTO> GetCategoryHoverPreviewAsync(Guid categoryId, int take = 6);
+        Task<Dictionary<Guid, List<ProductResponseDTO>>> GetHeaderProductsAsync();
 
         // Recently viewed support
         Task<List<ProductResponseDTO>> GetProductsByIdsAsync(List<Guid> ids);
+
+        // Featured products by rating
+        Task<List<TopRatedProductDTO>> GetTopRatedProductsAsync(int take = 12);
     }
 }

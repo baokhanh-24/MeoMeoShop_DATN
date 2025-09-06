@@ -8,6 +8,8 @@ using System.Linq;
 using System.Threading.Tasks;
 using MeoMeo.Contract.Commons;
 using AutoMapper;
+using MeoMeo.Domain.Commons;
+using Microsoft.EntityFrameworkCore;
 
 namespace MeoMeo.Application.Services
 {
@@ -22,13 +24,13 @@ namespace MeoMeo.Application.Services
             _fileRepo = fileRepo;
             _mapper = mapper;
         }
-        public async Task<BaseResponse> CreateProductReviewAsync(ProductReviewCreateOrUpdateDTO dto,List<FileUploadResult> filesUpload)
+        public async Task<BaseResponse> CreateProductReviewAsync(ProductReviewCreateOrUpdateDTO dto, List<FileUploadResult> filesUpload)
         {
             var review = new ProductReview
             {
                 Id = Guid.NewGuid(),
                 Content = dto.Content,
-                Rating = dto.Rating,
+                Rating = (float)dto.Rating,
                 IsHidden = dto.IsHidden,
                 CustomerId = dto.CustomerId,
                 OrderId = dto.OrderId,
@@ -54,6 +56,54 @@ namespace MeoMeo.Application.Services
         }
 
 
+        public async Task<PagingExtensions.PagedResult<ProductReviewDTO>> GetProductReviewsByProductDetailIdAsync(GetListProductReviewDTO  request)
+        {
+            var listIds = request.ListProductDetailIds.Split(',').Select(c=> Guid.Parse(c)).ToList();
+            var query = _reviewRepo.Query()
+                .Where(pr => listIds.Contains(pr.ProductDetailId) && !pr.IsHidden)
+                .Include(pr => pr.Customer)
+                    .ThenInclude(c => c.User)
+                .Include(pr => pr.ProductReviewFiles)
+                .OrderByDescending(pr => pr.CreationTime);
+
+            var totalRecords = await query.CountAsync();
+            var mainResults = await query
+                .Skip((request.PageIndex - 1) * request.PageSize)
+                .Take(request.PageSize).OrderByDescending(c => c.CreationTime)
+                .ToListAsync();
+            var result = mainResults.Select(review => new ProductReviewDTO
+            {
+                Id = review.Id,
+                Content = review.Content,
+                Rating = (decimal)review.Rating,
+                IsHidden = review.IsHidden,
+                CustomerId = review.CustomerId,
+                OrderId = review.OrderId,
+                ProductDetailId = review.ProductDetailId,
+                Answer = review.Answer,
+                ReplyDate = review.ReplyDate,
+                CreationTime = review.CreationTime,
+                CustomerName = review.Customer?.Name ?? string.Empty,
+                CustomerPhone = review.Customer?.PhoneNumber ?? string.Empty,
+                CustomerAvatar = review.Customer?.User?.Avatar ?? string.Empty,
+                ProductReviewFiles = review.ProductReviewFiles?.Select(f => new ProductReviewFileDTO
+                {
+                    Id = f.Id,
+                    ProductReviewId = f.ProductReviewId,
+                    FileName = f.FileName,
+                    FileUrl = f.FileUrl,
+                    FileType = f.FileType
+                }).ToList() ?? new List<ProductReviewFileDTO>()
+            }).ToList();
+
+            return new PagingExtensions.PagedResult<ProductReviewDTO>
+            {
+                TotalRecords = totalRecords,
+                PageIndex = 1,
+                PageSize = 10,
+                Items = result
+            };
+        }
 
         public async Task<List<ProductReviewFile>> GetOldFilesAsync(Guid reviewId)
         {
@@ -92,7 +142,7 @@ namespace MeoMeo.Application.Services
                 }
             }
             await _reviewRepo.UpdateProductReviewAsync(review);
-            return  new  BaseResponse();
+            return new BaseResponse();
         }
         public async Task<BaseResponse> DeleteProductReviewAsync(Guid id)
         {
@@ -104,13 +154,12 @@ namespace MeoMeo.Application.Services
             await _reviewRepo.DeleteProductReviewAsync(id);
             return new BaseResponse();
         }
-        public async Task<ProductReview> GetProductReviewByIdAsync(Guid id)
-        {
-            return await _reviewRepo.GetProductReviewByIdAsync(id);
-        }
+
         public async Task<IEnumerable<ProductReview>> GetAllProductReviewsAsync()
         {
             return await _reviewRepo.GetAllProductReviewsAsync();
         }
+
+
     }
-} 
+}

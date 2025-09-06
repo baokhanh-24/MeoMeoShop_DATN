@@ -35,6 +35,18 @@ namespace MeoMeo.Contract.DTOs.Product
         
         // Media
         public List<ProductMediaUpload> Media { get; set; } = new List<ProductMediaUpload>();
+        
+        // Additional fields for product detail page
+        public string? Description { get; set; }
+        public decimal Rating { get; set; }
+        public int SaleNumber { get; set; }
+        
+        // Rating breakdown
+        public int Rating1 { get; set; }
+        public int Rating2 { get; set; }
+        public int Rating3 { get; set; }
+        public int Rating4 { get; set; }
+        public int Rating5 { get; set; }
     }
     
     

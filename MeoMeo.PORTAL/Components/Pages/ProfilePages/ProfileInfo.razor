@@ -1,0 +1,228 @@
+@page "/profile"
+@using MeoMeo.Shared.IServices
+@using MeoMeo.Contract.DTOs
+@using MeoMeo.Shared.Utilities
+@using ButtonType = AntDesign.ButtonType
+@inject ICustomerClientService CustomerService
+@inject IAuthClientService AuthService
+@inject CustomAuthStateProvider AuthStateProvider
+@inject NavigationManager NavigationManager
+@inject MessageService MessageService
+@layout ProfileLayout
+
+<div class="profile-info-container">
+    <div class="profile-header">
+        <Title Level="2">
+            <Icon Type="user" />
+            Thông tin cá nhân
+        </Title>
+        <div class="join-info">
+            <Tag >Tham gia từ: @GetJoinDate()</Tag>
+            <Tag>@GetMemberDays() ngày</Tag>
+        </div>
+    </div>
+
+    <GridRow Gutter="24">
+        <!-- Avatar Section -->
+        <GridCol Span="6">
+            <Card Title="Ảnh đại diện" Class="avatar-card">
+                <div class="avatar-container">
+                    <Avatar Size="AvatarSize.Large" Icon="user" Class="profile-avatar" />
+                </div>
+                <div class="avatar-actions">
+                    <Button Type="@ButtonType.Primary" Icon="camera" Block="true">
+                        Thay đổi ảnh
+                    </Button>
+                    <p class="avatar-note">JPG, PNG hoặc GIF. Tối đa 2MB.</p>
+                </div>
+            </Card>
+        </GridCol>
+
+        <!-- Form Section -->
+        <GridCol Span="18">
+            <Card Title="Thông tin cá nhân" Class="form-card">
+                <Form Model="@model" OnFinish="HandleSubmit" Layout="FormLayout.Vertical" class="profile-form">
+                    <GridRow Gutter="16">
+                        <GridCol Span="12">
+                            <FormItem Label="Họ tên" Name="Name" Rules="@nameRules">
+                                <Input @bind-Value="@context.Name" Placeholder="Nhập họ và tên" />
+                            </FormItem>
+                        </GridCol>
+                        <GridCol Span="12">
+                            <FormItem Label="Điện thoại" Name="PhoneNumber" Rules="@phoneRules">
+                                <Input @bind-Value="@context.PhoneNumber" Placeholder="Nhập số điện thoại" />
+                            </FormItem>
+                        </GridCol>
+                    </GridRow>
+
+                    <GridRow Gutter="16">
+                        <GridCol Span="12">
+                            <FormItem Label="Email" Name="Email">
+                                <Input @bind-Value="@context.Email" Placeholder="Nhập email" Disabled="true" />
+                            </FormItem>
+                        </GridCol>
+                        <GridCol Span="12">
+                            <FormItem Label="Ngày sinh" Name="DateOfBirth">
+                                <DatePicker @bind-Value="@context.DateOfBirth" Style="width: 100%" />
+                            </FormItem>
+                        </GridCol>
+                    </GridRow>
+
+                    <FormItem Label="Giới tính" Name="Gender">
+                        @* <RadioGroup @bind-Value="selectedGender" TValue="string"> *@
+                        @*     <Radio RadioButton Value=>Nam</Radio> *@
+                        @*     <Radio RadioButton Value="Female">Nữ</Radio> *@
+                        @*     <Radio RadioButton Value="Other">Chưa xác định</Radio> *@
+                        @* </RadioGroup> *@
+                    </FormItem>
+
+                    <FormItem Label="Địa chỉ" Name="Address">
+                        <TextArea @bind-Value="@context.Address" Rows="3" Placeholder="Nhập địa chỉ của bạn"></TextArea>
+                    </FormItem>
+
+                    <FormItem>
+                        <Space>
+                            <Button Type="@ButtonType.Default" OnClick="HandleCancel" Icon="close">
+                                Huỷ
+                            </Button>
+                            <Button Type="@ButtonType.Primary" HtmlType="submit" Icon="save" Loading="@isLoading">
+                                Lưu thay đổi
+                            </Button>
+                        </Space>
+                    </FormItem>
+                </Form>
+            </Card>
+
+            <!-- Security Section -->
+            <Card Title="Bảo mật" Class="security-card" Style="margin-top: 16px;">
+                <Button Type="@ButtonType.Primary" Icon="lock">
+                    Đổi mật khẩu
+                </Button>
+            </Card>
+        </GridCol>
+    </GridRow>
+</div>
+
+@code {
+    private CreateOrUpdateCustomerDTO model = new();
+    private string selectedGender = "Male";
+    private bool isLoading = false;
+    private bool hasChanges = false;
+    private CustomerDTO? originalData;
+
+    // Form validation rules
+    private FormValidationRule[] nameRules = new[]
+    {
+new FormValidationRule { Required = true, Message = "Vui lòng nhập họ tên" },
+new FormValidationRule { Min = 2, Message = "Họ tên phải có ít nhất 2 ký tự" }
+};
+
+    private FormValidationRule[] phoneRules = new[]
+    {
+new FormValidationRule { Required = true, Message = "Vui lòng nhập số điện thoại" },
+new FormValidationRule { Pattern = @"^[0-9]{10,11}$", Message = "Số điện thoại không hợp lệ" }
+};
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadUserData();
+    }
+
+    private async Task LoadUserData()
+    {
+        try
+        {
+            var authState = await AuthStateProvider.GetAuthenticationStateAsync();
+            var userIdClaim = authState.User.FindFirst("CustomerId");
+
+            if (userIdClaim != null && Guid.TryParse(userIdClaim.Value, out var customerId))
+            {
+                originalData = await CustomerService.GetCustomersByIdAsync(customerId);
+                if (originalData != null)
+                {
+                    model.Id = originalData.Id;
+                    model.UserId = originalData.UserId;
+                    model.Name = originalData.Name;
+                    model.PhoneNumber = originalData.PhoneNumber;
+                    model.Address = originalData.Address ?? "";
+                    model.DateOfBirth = originalData.DateOfBirth;
+                    model.Status = originalData.Status;
+
+                    var emailClaim = authState.User.FindFirst("Email");
+                    model.Email = emailClaim?.Value ?? "";
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            MessageService.Error("Không thể tải thông tin người dùng!");
+            Console.WriteLine($"Error loading user data: {ex.Message}");
+        }
+    }
+
+    private async Task HandleSubmit()
+    {
+        try
+        {
+            isLoading = true;
+            StateHasChanged();
+
+            var response = await CustomerService.UpdateCustomersAsync(model);
+
+            if (response != null)
+            {
+                MessageService.Success("Cập nhật thông tin thành công!");
+                hasChanges = false;
+                await LoadUserData();
+            }
+            else
+            {
+                MessageService.Error("Cập nhật thông tin thất bại!");
+            }
+        }
+        catch (Exception ex)
+        {
+            MessageService.Error("Có lỗi xảy ra khi cập nhật thông tin!");
+            Console.WriteLine($"Error updating profile: {ex.Message}");
+        }
+        finally
+        {
+            isLoading = false;
+            StateHasChanged();
+        }
+    }
+
+    private void HandleCancel()
+    {
+        if (hasChanges)
+        {
+            if (originalData != null)
+            {
+                model.Name = originalData.Name;
+                model.PhoneNumber = originalData.PhoneNumber;
+                model.Address = originalData.Address ?? "";
+                model.DateOfBirth = originalData.DateOfBirth;
+                hasChanges = false;
+            }
+        }
+    }
+
+    private string GetJoinDate()
+    {
+        if (originalData != null)
+        {
+            return originalData.CreationTime.ToString("dd/MM/yyyy");
+        }
+        return DateTime.Now.ToString("dd/MM/yyyy");
+    }
+
+    private string GetMemberDays()
+    {
+        if (originalData != null)
+        {
+            var days = (DateTime.Now - originalData.CreationTime).Days;
+            return days.ToString();
+        }
+        return "0";
+    }
+}

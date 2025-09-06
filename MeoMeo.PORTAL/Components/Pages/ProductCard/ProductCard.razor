@@ -10,7 +10,8 @@
 @inject NavigationManager Navigation
 @inject IMessageService Message
 @inject MeoMeo.Shared.IServices.ICartClientService CartClient
-@inject IAuthClientService AuthClient;
+@inject IAuthClientService AuthClient
+@inject MeoMeo.Shared.IServices.ICartStateService CartStateService
 
 
 
@@ -55,7 +56,7 @@
                         <div class="card-detail d-flex justify-content-between align-items-baseline pt-2">
                             <div class="card-title text-uppercase product-name">
                                 <Tooltip Title=@product.Name>
-                                    <a href="#">@product.Name</a>
+                                    <a href="#" @onclick="@(() => NavigateToProductDetail(product.Id))">@product.Name</a>
                                 </Tooltip>
                             </div>
                         </div>
@@ -162,7 +163,7 @@
 
     // Modal properties
     private bool variantModalVisible = false;
-    private ProductResponseDTO selectedProductForModal;
+    private ProductResponseDTO? selectedProductForModal;
 
     // Cache for size and color names
     private Dictionary<Guid, string> sizeNameCache = new();
@@ -223,7 +224,7 @@
             var newItem = new AddToCartDTO()
             {
                 PromotionId = Guid.NewGuid(),
-                ProductDetailId = Guid.Parse(variant.Id.ToString()),
+                ProductDetailId = variant.Id ?? Guid.Empty,
                 Quantity = quantity
             };
             var result = await CartClient.AddToCartAsync(
@@ -233,6 +234,8 @@
             if (result != null && (int)result.ResponseStatus == 1) // Success = 1
             {
                 Message.Success($"Đã thêm sản phẩm vào giỏ hàng thành công!");
+                // Reload cart to get accurate item count
+                await ReloadCartCount();
             }
             else
             {
@@ -339,6 +342,31 @@
     }
 
     // Methods to get size and color names
+    private void NavigateToProductDetail(Guid productId)
+    {
+        Navigation.NavigateTo($"/san-pham/{productId}");
+    }
+
+    private async Task ReloadCartCount()
+    {
+        try
+        {
+            var cart = await CartClient.GetCurrentCartAsync();
+            if (cart?.Items != null)
+            {
+                var itemCount = cart.Items.Count;
+                CartStateService.UpdateCartCount(itemCount);
+            }
+            else
+            {
+                CartStateService.UpdateCartCount(0);
+            }
+        }
+        catch
+        {
+            // Ignore errors
+        }
+    }
 
 
 }

@@ -148,6 +148,149 @@ namespace MeoMeo.Application.Services
                 var listOrderIds = dtoItems.Select(c => c.Id).ToList();
 
                 var listOrderDetails = await _orderDetailRepository.Query()
+                    .Include(c => c.ProductDetail)
+                        .ThenInclude(pd => pd.Size)
+                    .Include(c => c.ProductDetail)
+                        .ThenInclude(pd => pd.Colour)
+                    .Where(c => listOrderIds.Contains(c.OrderId))
+                    .ToListAsync();
+                var groupedOrderDetails = listOrderDetails
+                    .GroupBy(d => d.OrderId)
+                    .ToDictionary(g => g.Key, g => _mapper.Map<List<OrderDetailDTO>>(g.ToList()));
+                foreach (var order in dtoItems)
+                {
+                    if (groupedOrderDetails.TryGetValue(order.Id, out var details))
+                    {
+                        order.OrderDetails = details;
+                        foreach (var detail in order.OrderDetails)
+                        {
+                            var finalPrice = detail.Discount > 100
+                                ? detail.Price - detail.Discount
+                                : detail.Price * (1 - detail.Discount / 100);
+                            detail.GrandTotal = finalPrice * detail.Quantity;
+                        }
+                    }
+                    else
+                    {
+                        order.OrderDetails = new List<OrderDetailDTO>();
+                    }
+                }
+
+                metaDataValue.ResponseStatus = BaseStatus.Success;
+                return new PagingExtensions.PagedResult<OrderDTO, GetListOrderResponseDTO>
+                {
+                    TotalRecords = pagedOrders.TotalRecords,
+                    PageIndex = pagedOrders.PageIndex,
+                    PageSize = pagedOrders.PageSize,
+                    Items = dtoItems,
+                    Metadata = metaDataValue,
+                };
+            }
+            catch (Exception ex)
+            {
+                metaDataValue.ResponseStatus = BaseStatus.Error;
+                metaDataValue.Message = ex.Message;
+                return new PagingExtensions.PagedResult<OrderDTO, GetListOrderResponseDTO>
+                {
+                    TotalRecords = 0,
+                    PageIndex = request.PageIndex,
+                    PageSize = request.PageSize,
+                    Items = new List<OrderDTO>(),
+                    Metadata = metaDataValue,
+                };
+            }
+        }
+
+        public async Task<PagingExtensions.PagedResult<OrderDTO, GetListOrderResponseDTO>> GetListOrderByCustomerAsync(
+            GetListOrderRequestDTO request, Guid customerId)
+        {
+            var metaDataValue = new GetListOrderResponseDTO();
+            try
+            {
+                var query = _orderRepository.Query().Where(o => o.CustomerId == customerId);
+                
+                var statusCounts = await _orderRepository.Query()
+                    .Where(o => o.CustomerId == customerId)
+                    .GroupBy(o => o.Status)
+                    .Select(g => new
+                    {
+                        Status = g.Key,
+                        Count = g.Count()
+                    })
+                    .ToListAsync();
+                metaDataValue.TotalAll = statusCounts.Sum(s => s.Count);
+                metaDataValue.Pending = statusCounts.FirstOrDefault(s => s.Status == EOrderStatus.Pending)?.Count ?? 0;
+                metaDataValue.Confirmed =
+                    statusCounts.FirstOrDefault(s => s.Status == EOrderStatus.Confirmed)?.Count ?? 0;
+                metaDataValue.InTransit =
+                    statusCounts.FirstOrDefault(s => s.Status == EOrderStatus.InTransit)?.Count ?? 0;
+                metaDataValue.Canceled =
+                    statusCounts.FirstOrDefault(s => s.Status == EOrderStatus.Canceled)?.Count ?? 0;
+                metaDataValue.Completed =
+                    statusCounts.FirstOrDefault(s => s.Status == EOrderStatus.Completed)?.Count ?? 0;
+
+                if (!string.IsNullOrEmpty(request.CodeFilter))
+                {
+                    query = query.Where(o => EF.Functions.Like(o.Code, $"%{request.CodeFilter}%"));
+                }
+
+                if (!string.IsNullOrEmpty(request.CustomerNameFilter))
+                {
+                    query = query.Where(o => EF.Functions.Like(o.CustomerName, $"%{request.CustomerNameFilter}%"));
+                }
+
+                if (!string.IsNullOrEmpty(request.CustomerPhoneNumberFilter))
+                {
+                    query = query.Where(o =>
+                        EF.Functions.Like(o.CustomerPhoneNumber, $"%{request.CustomerPhoneNumberFilter}%"));
+                }
+
+                if (!string.IsNullOrEmpty(request.CustomerEmailFilter))
+                {
+                    query = query.Where(o => EF.Functions.Like(o.CustomerEmail, $"%{request.CustomerEmailFilter}%"));
+                }
+
+                if (request.CreationDateStartFilter.HasValue)
+                {
+                    query = query.Where(o => o.CreationTime >= request.CreationDateStartFilter.Value);
+                }
+
+                if (request.CreationDateEndFilter.HasValue)
+                {
+                    query = query.Where(o => o.CreationTime <= request.CreationDateEndFilter.Value);
+                }
+
+                if (request.ShippingDateStartFilter.HasValue)
+                {
+                    query = query.Where(o => o.DeliveryDate >= request.ShippingDateStartFilter.Value);
+                }
+
+                if (request.ShippingDateEndFilter.HasValue)
+                {
+                    query = query.Where(o => o.DeliveryDate <= request.ShippingDateEndFilter.Value);
+                }
+
+                if (request.PaymentMethodFilter.HasValue)
+                {
+                    query = query.Where(o => o.PaymentMethod == request.PaymentMethodFilter.Value);
+                }
+
+                if (request.OrderStatusFilter.HasValue)
+                {
+                    query = query.Where(o => o.Status == request.OrderStatusFilter.Value);
+                }
+
+                query = query.OrderByDescending(o => o.LastModifiedTime ?? o.CreationTime);
+                var pagedOrders = await _orderRepository.GetPagedAsync(query, request.PageIndex, request.PageSize);
+
+                var dtoItems = _mapper.Map<List<OrderDTO>>(pagedOrders.Items);
+                var listOrderIds = dtoItems.Select(c => c.Id).ToList();
+
+                var listOrderDetails = await _orderDetailRepository.Query()
+                    .Include(c => c.ProductDetail)
+                        .ThenInclude(pd => pd.Size)
+                    .Include(c => c.ProductDetail)
+                        .ThenInclude(pd => pd.Colour)
                     .Where(c => listOrderIds.Contains(c.OrderId))
                     .ToListAsync();
                 var groupedOrderDetails = listOrderDetails
@@ -555,6 +698,161 @@ namespace MeoMeo.Application.Services
             }
         }
 
+        public async Task<CreatePosOrderResultDTO> CreatePosOrderAsync(Guid? customerId, Guid? userId, CreatePosOrderDTO request)
+        {
+            try
+            {
+                await _unitOfWork.BeginTransactionAsync();
+
+                // Validate items
+                if (request.Items == null || !request.Items.Any())
+                {
+                    return new CreatePosOrderResultDTO
+                    {
+                        Message = "Không có sản phẩm trong đơn",
+                        ResponseStatus = BaseStatus.Error
+                    };
+                }
+
+                // Create customer if needed
+                Guid finalCustomerId = customerId ?? Guid.Empty;
+                if (finalCustomerId == Guid.Empty)
+                {
+                    if (request.NewCustomer == null || string.IsNullOrWhiteSpace(request.NewCustomer.Name) || string.IsNullOrWhiteSpace(request.NewCustomer.PhoneNumber))
+                    {
+                        return new CreatePosOrderResultDTO { Message = "Thiếu thông tin khách hàng", ResponseStatus = BaseStatus.Error };
+                    }
+                    var newCustomer = new Customers
+                    {
+                        Id = Guid.NewGuid(),
+                        Name = request.NewCustomer.Name,
+                        PhoneNumber = request.NewCustomer.PhoneNumber,
+                        Code = $"CUS-{DateTime.Now:yyyyMMddHHmmss}",
+                        CreationTime = DateTime.Now,
+                        Status = Domain.Commons.Enums.ECustomerStatus.Enabled
+                    };
+                    await _customerRepository.AddAsync(newCustomer);
+                    finalCustomerId = newCustomer.Id;
+                }
+
+                // Validate inventory
+                var groupedByVariant = request.Items
+                    .GroupBy(x => x.ProductDetailId)
+                    .Select(g => new { ProductDetailId = g.Key, TotalQty = g.Sum(x => x.Quantity) })
+                    .ToList();
+
+                foreach (var g in groupedByVariant)
+                {
+                    var available = await _inventoryRepository.Query()
+                        .Where(x => x.ProductDetailId == g.ProductDetailId && x.Status == EInventoryBatchStatus.Aprroved)
+                        .SumAsync(x => (int?)x.Quantity) ?? 0;
+                    if (g.TotalQty > available)
+                    {
+                        return new CreatePosOrderResultDTO
+                        {
+                            Message = $"Không đủ tồn kho cho biến thể {g.ProductDetailId}. Cần {g.TotalQty}, còn {available}",
+                            ResponseStatus = BaseStatus.Error
+                        };
+                    }
+                }
+
+                // Create order
+                var orderCode = await GenerateUniqueOrderCodeAsync();
+                var order = new Order
+                {
+                    Id = Guid.NewGuid(),
+                    Code = orderCode,
+                    CustomerId = finalCustomerId,
+                    CustomerName = request.NewCustomer?.Name ?? string.Empty,
+                    CustomerPhoneNumber = request.NewCustomer?.PhoneNumber ?? string.Empty,
+                    VoucherId = null,
+                    DeliveryAddressId = null,
+                    Note = request.Note,
+                    PaymentMethod = request.PaymentMethod,
+                    Type = request.Type,
+                    Status = EOrderStatus.Confirmed,
+                    ShippingFee = request.ShippingFee,
+                    CreationTime = DateTime.Now
+                };
+                if (request.Type == EOrderType.Online && request.Delivery != null)
+                {
+                    order.DeliveryAddress = request.Delivery.ConsigneeAddress;
+                }
+                await _orderRepository.AddAsync(order);
+
+                decimal totalPrice = 0m;
+                foreach (var item in request.Items)
+                {
+                    var productDetail = await _productsDetailRepository.Query().FirstOrDefaultAsync(c => c.Id == item.ProductDetailId);
+                    if (productDetail == null) continue;
+                    var product = await _productRepository.Query().FirstOrDefaultAsync(c => c.Id == productDetail.ProductId);
+
+                    var lineTotal = item.UnitPrice * item.Quantity;
+                    totalPrice += lineTotal;
+
+                    var orderDetail = new OrderDetail
+                    {
+                        Id = Guid.NewGuid(),
+                        OrderId = order.Id,
+                        ProductName = product?.Name ?? string.Empty,
+                        Sku = productDetail.Sku,
+                        ProductDetailId = item.ProductDetailId,
+                        Image = product?.Thumbnail ?? string.Empty,
+                        Quantity = item.Quantity,
+                        Price = (float)item.UnitPrice,
+                        OriginalPrice = (float)item.UnitPrice,
+                        Discount = 0
+                    };
+                    await _orderDetailRepository.AddAsync(orderDetail);
+                }
+
+                order.TotalPrice = totalPrice + (order.ShippingFee ?? 0);
+                await _orderRepository.UpdateAsync(order);
+
+                // Deduct inventory immediately (POS confirm)
+                foreach (var item in request.Items)
+                {
+                    var requiredQuantity = item.Quantity;
+                    var availableBatches = await _inventoryRepository.Query()
+                        .Where(x => x.ProductDetailId == item.ProductDetailId && x.Quantity > 0 && x.Status == EInventoryBatchStatus.Aprroved)
+                        .OrderBy(x => x.CreationTime)
+                        .ToListAsync();
+                    foreach (var batch in availableBatches)
+                    {
+                        if (requiredQuantity <= 0) break;
+                        var deductedQuantity = Math.Min(batch.Quantity, requiredQuantity);
+                        batch.Quantity -= deductedQuantity;
+                        requiredQuantity -= deductedQuantity;
+                        await _inventoryRepository.UpdateAsync(batch);
+                        await _inventoryTransactionRepository.AddAsync(new InventoryTransaction
+                        {
+                            InventoryBatchId = batch.Id,
+                            Quantity = deductedQuantity,
+                            CreationTime = DateTime.Now,
+                            Type = EInventoryTranctionType.Export,
+                        });
+                    }
+                }
+
+                await _unitOfWork.CommitAsync();
+                return new CreatePosOrderResultDTO
+                {
+                    ResponseStatus = BaseStatus.Success,
+                    Message = "Tạo đơn POS thành công",
+                    OrderId = order.Id,
+                    Code = order.Code
+                };
+            }
+            catch (Exception ex)
+            {
+                await _unitOfWork.RollbackAsync();
+                return new CreatePosOrderResultDTO
+                {
+                    Message = ex.Message,
+                    ResponseStatus = BaseStatus.Error
+                };
+            }
+        }
 
         public async Task<bool> DeleteOrderAsync(Guid id)
         {

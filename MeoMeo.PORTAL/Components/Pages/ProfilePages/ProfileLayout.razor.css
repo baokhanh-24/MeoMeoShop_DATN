@@ -1,0 +1,70 @@
+.profile-sidebar-card {
+    position: sticky;
+    top: 20px;
+}
+
+.user-info-section {
+    text-align: center;
+    padding: 20px 0;
+}
+
+.user-avatar {
+    margin-bottom: 16px;
+}
+
+.user-details {
+    margin-bottom: 16px;
+}
+
+.user-name {
+    margin: 0 0 8px 0;
+    font-size: 18px;
+    font-weight: 600;
+    color: #262626;
+}
+
+.user-phone {
+    margin: 0;
+    font-size: 14px;
+    color: #8c8c8c;
+}
+
+.profile-main-card {
+    min-height: 600px;
+}
+
+/* Override Ant Design Menu styles for better appearance */
+.profile-sidebar-card .ant-menu {
+    border-right: none;
+}
+
+.profile-sidebar-card .ant-menu-item {
+    margin: 4px 0;
+    border-radius: 6px;
+}
+
+.profile-sidebar-card .ant-menu-item-selected {
+    background-color: #e6f7ff;
+    color: #1890ff;
+}
+
+.profile-sidebar-card .ant-menu-item:hover {
+    background-color: #f5f5f5;
+}
+
+.profile-sidebar-card .ant-menu-item a {
+    color: inherit;
+    text-decoration: none;
+}
+
+.profile-sidebar-card .ant-menu-item-selected a {
+    color: #1890ff;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .profile-sidebar-card {
+        position: static;
+        margin-bottom: 16px;
+    }
+}

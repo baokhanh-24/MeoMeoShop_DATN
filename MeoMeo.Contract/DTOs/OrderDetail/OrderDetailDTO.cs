@@ -16,4 +16,8 @@ public class OrderDetailDTO
     public float Discount { get; set; }
     public string Note { get; set; }
     public string Image { get; set; }
+    
+    // Thêm thông tin size và color
+    public string SizeName { get; set; }
+    public string ColourName { get; set; }
 }

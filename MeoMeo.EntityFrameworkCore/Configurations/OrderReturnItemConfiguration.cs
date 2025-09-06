@@ -10,8 +10,8 @@ namespace MeoMeo.EntityFrameworkCore.Configurations
         {
             builder.ToTable("OrderReturnItems");
             builder.HasKey(x => x.Id);
-            builder.HasOne(x => x.OrderReturn).WithMany(x => x.Items).HasForeignKey(x => x.OrderReturnId);
-            builder.HasOne(x => x.OrderDetail).WithMany().HasForeignKey(x => x.OrderDetailId);
+            builder.HasOne(x => x.OrderReturn).WithMany(x => x.Items).HasForeignKey(x => x.OrderReturnId).OnDelete(DeleteBehavior.NoAction);
+            builder.HasOne(x => x.OrderDetail).WithMany().HasForeignKey(x => x.OrderDetailId).OnDelete(DeleteBehavior.NoAction);
         }
     }
 }

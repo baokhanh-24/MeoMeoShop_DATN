@@ -1,0 +1,414 @@
+@page "/profile/reviews"
+@using MeoMeo.Shared.IServices
+@using MeoMeo.Contract.DTOs
+@using MeoMeo.Shared.Services
+@using Microsoft.AspNetCore.Components.Authorization
+@using System.Security.Claims
+@using MeoMeo.Contract.DTOs.Order
+@using MeoMeo.Contract.DTOs.OrderDetail
+@using MeoMeo.PORTAL.Components.Layout
+@using MeoMeo.Shared.Utilities
+@using AntDesign
+@using MeoMeo.Contract.DTOs.ProductReview
+@using ButtonType = AntDesign.ButtonType
+@inject IProductReviewClientService ProductReviewService
+@inject IProductClientService ProductService
+@inject IOrderClientService OrderService
+@inject CustomAuthStateProvider AuthStateProvider
+@inject NavigationManager NavigationManager
+@inject MessageService MessageService
+@layout ProfileLayout
+
+<div class="product-reviews-container">
+    <div class="page-header">
+        <Title Level="2">
+            <Icon Type="star" />
+            Đánh giá sản phẩm
+        </Title>
+        <p class="page-subtitle">Xem và quản lý đánh giá sản phẩm của bạn</p>
+    </div>
+
+    <!-- Tabs -->
+    <Tabs ActiveKey="@activeTab" OnTabClick="OnTabClick">
+        <TabPane Key="pending" Tab="Chờ đánh giá">
+            <div class="pending-reviews-section">
+                @if (isLoading)
+                {
+                    <div class="loading-section">
+                        <Spin Size="SpinSize.Large" />
+                        <p>Đang tải đơn hàng...</p>
+                    </div>
+                }
+                else if (pendingOrders.Any())
+                {
+                    <div class="orders-list">
+                        @foreach (var order in pendingOrders)
+                        {
+                            <Card Class="order-review-card" Style="margin-bottom: 16px;">
+                                <div class="order-header">
+                                    <div class="order-info">
+                                        <Title Level="4">Đơn hàng #@order.Code</Title>
+                                        <p class="order-date">Ngày đặt: @order.CreationTime.ToString("dd/MM/yyyy HH:mm")</p>
+                                    </div>
+                                    <Button Type="@ButtonType.Primary" Icon="star" @onclick="() => OpenReviewModal(order)">
+                                        Đánh giá
+                                    </Button>
+                                </div>
+
+                                <Divider />
+
+                                <div class="order-items">
+                                    @foreach (var item in order.OrderDetails ?? new List<OrderDetailDTO>())
+                                    {
+                                        <div class="order-item">
+                                            <div class="item-image">
+                                                <img src="@GetProductImage(item.ProductDetailId)"
+                                                    alt="@GetProductName(item.ProductDetailId)" />
+                                            </div>
+                                            <div class="item-info">
+                                                <h5 class="item-name">@GetProductName(item.ProductDetailId)</h5>
+                                                <p class="item-details">
+                                                    Số lượng: @item.Quantity |
+                                                    Đơn vị tính: @GetProductUnit(item.ProductDetailId)
+                                                </p>
+                                            </div>
+                                        </div>
+                                    }
+                                </div>
+                            </Card>
+                        }
+                    </div>
+                }
+                else
+                {
+                    <div class="empty-state">
+                        <Empty >
+                            <Button Type="@ButtonType.Primary" Icon="shopping" @onclick="GoToProducts">
+                                Mua sắm ngay
+                            </Button>
+                        </Empty>
+                    </div>
+                }
+            </div>
+        </TabPane>
+
+        <TabPane Key="completed" Tab="Đã đánh giá">
+            <div class="completed-reviews-section">
+                @if (isLoading)
+                {
+                    <div class="loading-section">
+                        <Spin Size="SpinSize.Large" />
+                        <p>Đang tải đánh giá...</p>
+                    </div>
+                }
+                else if (userReviews.Any())
+                {
+                    <div class="reviews-list">
+                        @foreach (var review in userReviews)
+                        {
+                            <Card Class="review-card" Style="margin-bottom: 16px;">
+                                <div class="review-header">
+                                    <div class="product-info">
+                                        <div class="product-image">
+                                            <img src="@GetProductImage(review.ProductDetailId)"
+                                                alt="@GetProductName(review.ProductDetailId)" />
+                                        </div>
+                                        <div class="product-details">
+                                            <Title Level="5">@GetProductName(review.ProductDetailId)</Title>
+                                            <p class="review-date">@review.CreationTime.ToString("dd/MM/yyyy HH:mm")</p>
+                                        </div>
+                                    </div>
+                                    <div class="review-rating">
+                                        <Rate Value="@review.Rating" Disabled="true" />
+                                    </div>
+                                </div>
+
+                                <Divider />
+
+                                <div class="review-content">
+                                    <p>@review.Content</p>
+                                    @if (review.ProductReviewFiles?.Any() == true)
+                                    {
+                                        <div class="review-images">
+                                            <ImagePreviewGroup>
+                                                @foreach (var image in review.ProductReviewFiles)
+                                                {
+                                                    <Image Width="80" Height="80" Src="@image.FileUrl" />
+                                                }
+                                            </ImagePreviewGroup>
+                                        </div>
+                                    }
+                                </div>
+
+                                <div class="review-actions">
+                                    <Space>
+                                        <Button Type="@ButtonType.Link" Icon="edit" @onclick="() => EditReview(review)">
+                                            Chỉnh sửa
+                                        </Button>
+                                        <Button Type="@ButtonType.Link" Icon="delete" Danger="true"
+                                            @onclick="() => DeleteReview(review.Id)">
+                                            Xóa
+                                        </Button>
+                                    </Space>
+                                </div>
+                            </Card>
+                        }
+                    </div>
+                }
+                else
+                {
+                    <div class="empty-state">
+                        <Empty >
+                            <Button Type="@ButtonType.Primary" Icon="star">
+                                Xem đơn hàng cần đánh giá
+                            </Button>
+                        </Empty>
+                    </div>
+                }
+            </div>
+        </TabPane>
+    </Tabs>
+</div>
+
+<!-- Review Modal -->
+<Modal Title="Đánh giá sản phẩm" Visible="@showReviewModal" OnOk="SubmitReview"
+    OnCancel="@(() => showReviewModal = false)" Width="600" >
+
+    @if (selectedOrder != null)
+    {
+        <div class="review-modal-content">
+            <div class="selected-product">
+                <div class="product-image">
+                    <img src="@GetProductImage(selectedProductId)" alt="@GetProductName(selectedProductId)" />
+                </div>
+                <div class="product-info">
+                    <Title Level="5">@GetProductName(selectedProductId)</Title>
+                    <p>Đơn hàng: #@selectedOrder.Code</p>
+                </div>
+            </div>
+
+            <Divider />
+
+            <Form Model="@reviewModel" Layout="FormLayout.Vertical">
+                <FormItem Label="Đánh giá" Name="Rating" Rules="@ratingRules">
+                    <Rate Value="@(reviewModel.Rating)"
+                        OnValueChanged="@((float value) => reviewModel.Rating = (int)value)" />
+                </FormItem>
+
+                <FormItem Label="Nội dung đánh giá" Name="Content" Rules="@contentRules">
+                    <TextArea @bind-Value="@reviewModel.Content" Rows="4"
+                        Placeholder="Chia sẻ trải nghiệm của bạn về sản phẩm..." />
+                </FormItem>
+
+                <FormItem Label="Hình ảnh (tùy chọn)" Name="Images">
+                    <Upload ListType="UploadListType.PictureCard" FileList="@uploadedFiles" OnChange="OnImagesSelected"
+                        Accept="image/*" Multiple="true" MaxCount="5">
+                        <div>
+                            <Icon Type="plus" />
+                            <div>Tải lên</div>
+                        </div>
+                    </Upload>
+                </FormItem>
+            </Form>
+        </div>
+    }
+</Modal>
+
+@code {
+    private string activeTab = "pending";
+    private bool isLoading = true;
+    private bool showReviewModal = false;
+    private List<OrderDTO> pendingOrders = new();
+    private List<ProductReviewDTO> userReviews = new();
+    private OrderDTO? selectedOrder = null;
+    private Guid selectedProductId = Guid.Empty;
+    private ProductReviewCreateOrUpdateDTO reviewModel = new();
+    private List<UploadFileItem> uploadedFiles = new();
+
+    // Form validation rules
+    private FormValidationRule[] ratingRules = new[]
+    {
+new FormValidationRule { Required = true, Message = "Vui lòng chọn đánh giá" }
+};
+
+    private FormValidationRule[] contentRules = new[]
+    {
+new FormValidationRule { Required = true, Message = "Vui lòng nhập nội dung đánh giá" },
+new FormValidationRule { Min = 10, Message = "Nội dung đánh giá phải có ít nhất 10 ký tự" }
+};
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadData();
+    }
+
+    private async Task LoadData()
+    {
+        try
+        {
+            isLoading = true;
+            var authState = await AuthStateProvider.GetAuthenticationStateAsync();
+            var userIdClaim = authState.User.FindFirst("CustomerId");
+
+            if (userIdClaim != null && Guid.TryParse(userIdClaim.Value, out var customerId))
+            {
+                if (activeTab == "pending")
+                {
+                    await LoadPendingOrders(customerId);
+                }
+                else
+                {
+                    await LoadUserReviews(customerId);
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            MessageService.Error("Không thể tải dữ liệu!");
+            Console.WriteLine($"Error loading data: {ex.Message}");
+        }
+        finally
+        {
+            isLoading = false;
+            StateHasChanged();
+        }
+    }
+
+    private async Task LoadPendingOrders(Guid customerId)
+    {
+        try
+        {
+            var result = await OrderService.GetMyOrdersAsync(new GetListOrderRequestDTO
+            {
+                OrderStatusFilter = Domain.Commons.Enums.EOrderStatus.Completed,
+                PageIndex = 1,
+                PageSize = 50
+            });
+
+            pendingOrders = result?.Items?.ToList() ?? new List<OrderDTO>();
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error loading pending orders: {ex.Message}");
+        }
+    }
+
+    private async Task LoadUserReviews(Guid customerId)
+    {
+        try
+        {
+            var result = await ProductReviewService.GetAllAsync();
+            userReviews = result?.ToList() ?? new List<ProductReviewDTO>();
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error loading user reviews: {ex.Message}");
+        }
+    }
+
+    private async Task OnTabClick(string key)
+    {
+        activeTab = key;
+        await LoadData();
+    }
+
+    private void OpenReviewModal(OrderDTO order)
+    {
+        selectedOrder = order;
+        selectedProductId = order.OrderDetails?.FirstOrDefault()?.ProductDetailId ?? Guid.Empty;
+        reviewModel = new ProductReviewCreateOrUpdateDTO
+        {
+            ProductDetailId = selectedProductId,
+            OrderId = order.Id,
+            Rating = 5,
+            Content = ""
+        };
+        uploadedFiles.Clear();
+        showReviewModal = true;
+    }
+
+    private async Task SubmitReview()
+    {
+        try
+        {
+            if (reviewModel.Rating <= 0)
+            {
+                MessageService.Error("Vui lòng chọn đánh giá!");
+                return;
+            }
+
+            if (string.IsNullOrWhiteSpace(reviewModel.Content))
+            {
+                MessageService.Error("Vui lòng nhập nội dung đánh giá!");
+                return;
+            }
+
+            // Note: CreateOrUpdateAsync method doesn't exist in the service interface
+            // This would need to be implemented in the backend
+            MessageService.Info("Tính năng đánh giá sản phẩm đang được phát triển!");
+            showReviewModal = false;
+        }
+        catch (Exception ex)
+        {
+            MessageService.Error("Có lỗi xảy ra khi gửi đánh giá!");
+            Console.WriteLine($"Error submitting review: {ex.Message}");
+        }
+    }
+
+    private void EditReview(ProductReviewDTO review)
+    {
+        reviewModel = new ProductReviewCreateOrUpdateDTO
+        {
+            Id = review.Id,
+            ProductDetailId = review.ProductDetailId,
+            Rating = review.Rating,
+            Content = review.Content
+        };
+        showReviewModal = true;
+    }
+
+    private async Task DeleteReview(Guid reviewId)
+    {
+        try
+        {
+            // Note: DeleteAsync method doesn't exist in the service interface
+            // This would need to be implemented in the backend
+            MessageService.Info("Tính năng xóa đánh giá đang được phát triển!");
+        }
+        catch (Exception ex)
+        {
+            MessageService.Error("Có lỗi xảy ra khi xóa đánh giá!");
+            Console.WriteLine($"Error deleting review: {ex.Message}");
+        }
+    }
+
+    private void OnImagesSelected(UploadInfo fileInfo)
+    {
+        // Handle image upload logic here
+        // This would typically involve uploading to a file service
+    }
+
+    private void GoToProducts()
+    {
+        NavigationManager.NavigateTo("/products");
+    }
+
+    // Helper methods
+    private string GetProductName(Guid productId)
+    {
+        // This would typically fetch from a product service
+        return "Tên sản phẩm";
+    }
+
+    private string GetProductImage(Guid productId)
+    {
+        // This would typically fetch from a product service
+        return "/images/placeholder.jpg";
+    }
+
+    private string GetProductUnit(Guid productId)
+    {
+        // This would typically fetch from a product service
+        return "Cái";
+    }
+}

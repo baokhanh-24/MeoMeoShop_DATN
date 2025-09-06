@@ -5,6 +5,8 @@ namespace MeoMeo.Domain.Entities;
 public class ProductReview:BaseEntityAudited
 {
     public string Content { get; set; }
+    public string? Answer { get; set; }
+    public DateTime? ReplyDate { get; set; }
     public float Rating { get; set; }
     public bool IsHidden { get; set; }
     public Guid CustomerId { get; set; }

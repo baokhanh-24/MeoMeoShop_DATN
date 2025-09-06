@@ -7,7 +7,6 @@
 @using MeoMeo.Contract.DTOs
 @using MeoMeo.Contract.Commons
 @using MeoMeo.Contract.DTOs.Order
-@using MeoMeo.Contract.DTOs
 @using MeoMeo.Domain.Commons.Enums
 @using MeoMeo.Shared.DTOs
 @using ButtonSize = AntDesign.ButtonSize
@@ -24,6 +23,7 @@
 @inject ICommuneClientService CommuneClient
 @inject IApiCaller ApiCaller
 @inject IGhnClientService GhnService
+@inject ICartStateService CartStateService
 <div class="content-background">
     <GridRow Gutter="16">
         <GridCol Span="22" Offset="1">
@@ -94,7 +94,7 @@
                                     <Column TData="float" Title="Đơn giá" Align="ColumnAlign.Center" Width="15%">
                                         <div class="text-center d-flex flex-column align-items-center">
                                             <div class="discount-price">@FormatCurrency(CalcPriceAfterDiscount(item.Price,
-                                                                                            item.Discount))
+                                                item.Discount))
                                         </div>
                                         @if (item.Discount > 0)
                                             {
@@ -569,6 +569,13 @@
         if (cart?.Items != null)
         {
             selectedRows = cart.Items.ToList();
+            // Update cart state with current item count (number of different products)
+            var itemCount = cart.Items.Count;
+            CartStateService.UpdateCartCount(itemCount);
+        }
+        else
+        {
+            CartStateService.UpdateCartCount(0);
         }
         await CalculateFinalTotalAsync();
     }
@@ -667,6 +674,8 @@
         {
             item.Quantity = newQuantity;
             await LoadCart();
+
+            // LoadCart() will automatically update cart state with correct item count
         }
         else
         {
@@ -680,6 +689,8 @@
         {
             await LoadCart();
             MessageService.Success("Đã xóa sản phẩm khỏi giỏ hàng");
+
+            // LoadCart() will automatically update cart state with correct item count
         }
         else
         {
