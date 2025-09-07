@@ -6,7 +6,7 @@
 ::deep .ant-menu-horizontal {
     display: flex !important;
 }
-.bg-header-root {
+::deep .bg-header-root {
     background: aliceblue !important;
 }
 .category-dropdown {

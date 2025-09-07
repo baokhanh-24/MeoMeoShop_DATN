@@ -280,8 +280,9 @@
         StateHasChanged();
     }
 
-    private void OnCategoryLeave()
+    private async Task OnCategoryLeave()
     {
+        await Task.Delay(100); // Thêm độ trễ để tránh việc menu biến mất quá nhanh khi di chuột
         hoveredCategory = null;
         StateHasChanged();
     }

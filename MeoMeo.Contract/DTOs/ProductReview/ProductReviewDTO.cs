@@ -9,6 +9,8 @@ namespace MeoMeo.Contract.DTOs.ProductReview
         public Guid Id { get; set; }
         public string Content { get; set; } = string.Empty;
         public string? Answer { get; set; }
+        public string? ColourName { get; set; }
+        public string? SizeName { get; set; }
         public DateTime? ReplyDate { get; set; }
         public decimal Rating { get; set; }
         public bool IsHidden { get; set; }

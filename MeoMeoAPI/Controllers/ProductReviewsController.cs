@@ -21,18 +21,27 @@ namespace MeoMeo.API.Controllers
     {
         private readonly IProductReviewService _service;
         private readonly IWebHostEnvironment _env;
-        private readonly IMapper _mapper;
-        public ProductReviewsController(IProductReviewService service, IWebHostEnvironment env, IMapper mapper)
+        private readonly IHttpContextAccessor _httpContextAccessor;
+        public ProductReviewsController(IProductReviewService service, IWebHostEnvironment env, IHttpContextAccessor httpContextAccessor)
         {
             _service = service;
             _env = env;
-            _mapper = mapper;
+            _httpContextAccessor = httpContextAccessor;
         }
         [HttpPost]
+        [RequestSizeLimit(200 * 1024 * 1024)] // 200MB limit
         public async Task<IActionResult> Create([FromForm] ProductReviewCreateOrUpdateDTO request)
         {
+            Console.WriteLine("Files count: " + Request.Form.Files.Count);
+
+            var customerId = _httpContextAccessor.HttpContext.GetCurrentCustomerId();
+            if (customerId == Guid.Empty)
+            {
+                return BadRequest();
+            }
+            request.CustomerId = customerId;
             var reviewId = Guid.NewGuid();
-            var lstMediaToUpload = request.Files.Where(c => c.UploadFile != null).Select(c => c.UploadFile!).ToList();
+            var lstMediaToUpload = request.MediaUploads.Where(c => c.UploadFile != null).Select(c => c.UploadFile!).ToList();
             var listFileUploaded = await FileUploadHelper.UploadFilesAsync(_env, lstMediaToUpload, "Reviews", reviewId);
             var result = await _service.CreateProductReviewAsync(request, listFileUploaded);
             if (result.ResponseStatus == BaseStatus.Error)
@@ -42,16 +51,23 @@ namespace MeoMeo.API.Controllers
             return Ok(result);
         }
         [HttpPut("{id}")]
+        [RequestSizeLimit(200 * 1024 * 1024)] // 200MB limit
         public async Task<IActionResult> Update([FromForm] ProductReviewCreateOrUpdateDTO request)
         {
-            var newFiles = request.Files?.Where(f => f.Id == null && f.UploadFile != null).Select(f => f.UploadFile!).ToList();
+            var customerId = _httpContextAccessor.HttpContext.GetCurrentCustomerId();
+            if (customerId == Guid.Empty)
+            {
+                return BadRequest();
+            }
+            request.CustomerId = customerId;
+            var newFiles = request.MediaUploads?.Where(f => f.Id == null && f.UploadFile != null).Select(f => f.UploadFile!).ToList();
             List<FileUploadResult> uploadedFiles = new List<FileUploadResult>();
             if (newFiles != null && newFiles.Count > 0)
             {
                 uploadedFiles = await FileUploadHelper.UploadFilesAsync(_env, newFiles, "ReviewFiles", request.Id!.Value);
             }
             var oldFiles = await _service.GetOldFilesAsync(request.Id!.Value);
-            var keepFileIds = request.Files?.Where(f => f.Id.HasValue).Select(f => f.Id!.Value).ToList() ?? new List<Guid>();
+            var keepFileIds = request.MediaUploads?.Where(f => f.Id.HasValue).Select(f => f.Id!.Value).ToList() ?? new List<Guid>();
             var filesToDelete = oldFiles.Where(f => !keepFileIds.Contains(f.Id)).ToList();
             foreach (var img in filesToDelete)
             {

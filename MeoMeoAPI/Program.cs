@@ -72,6 +72,7 @@ builder.Services.AddScoped<IVoucherService, VoucherServices>();
 builder.Services.AddScoped<ICommuneService, CommuneService>();
 builder.Services.AddScoped<IUserRepository, UserRepository>();
 builder.Services.AddScoped<IUserService, UserService>();
+builder.Services.AddScoped<IProductReviewService, ProductReviewService>();
 builder.Services.AddScoped<IOrderDetailInventoryBatchRepository, OrderDetailInventoryBatchRepository>();
 builder.Services.AddScoped<IOrderHistoryRepository, OrderHistoryRepository>();
 builder.Services.AddScoped<IProductMaterialRepository, ProductMaterialRepository>();
@@ -99,7 +100,9 @@ builder.Services.AddScoped<IProductReviewRepository, ProductReviewRepository>();
 builder.Services.AddScoped<IOrderReturnRepository, OrderReturnRepository>();
 builder.Services.AddScoped<IOrderReturnItemRepository, OrderReturnItemRepository>();
 builder.Services.AddScoped<IOrderReturnFileRepository, OrderReturnFileRepository>();
+builder.Services.AddScoped<IProductReviewFileRepository, ProductReviewFileRepository>();
 builder.Services.AddScoped<IOrderReturnService, OrderReturnService>();
+
 
 // Auth Service Dependencies
 builder.Services.AddScoped<IRefreshTokenRepository, RefreshTokenRepository>();

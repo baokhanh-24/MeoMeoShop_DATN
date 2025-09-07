@@ -1095,9 +1095,8 @@ figure.instagram-item img.insta-image {
     cursor: pointer !important;
 }
 .content-background {
-    margin-top: 99.5px;
+    margin-top: 83px;
     background: rgb(237 240 243);
-    height: 100vh;
 }
 .space-coverage {
     padding: 16px;
@@ -1289,4 +1288,7 @@ figure.instagram-item img.insta-image {
 }
 ::deep .ant-layout-footer {
     background: #fff !important;
+}
+::deep .ant-card-bordered {
+    border-radius: 8px !important;
 }

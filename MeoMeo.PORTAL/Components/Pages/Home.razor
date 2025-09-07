@@ -83,7 +83,7 @@
             <Icon Type="shopping-cart" Class="cart-outline"/>
         </div>
         <div class="icon-box-content">
-            <Title Level="3" Class="card-title text-uppercase text-dark">Giao hàng miễn phí</Title>
+            <Title Level="3" Class="card-title text-uppercase text-dark">Giao hàng nhanh chóng</Title>
             <Paragraph>Chúng tôi luôn sẵn sàng phục vụ bạn với dịch vụ tốt nhất.</Paragraph>
         </div>
     </div>
@@ -91,7 +91,7 @@
     <GridCol Span="6" Class="pb-3">
     <div class="icon-box d-flex">
         <div class="icon-box-icon pe-3 pb-3">
-            <Icon Type="quality" Class="quality"/>
+            <Icon Type="star" Class="star-outline"/>
         </div>
         <div class="icon-box-content">
             <Title Level="3" Class="card-title text-uppercase text-dark">Đảm bảo chất lượng</Title>
@@ -340,31 +340,6 @@
     </GridCol>
 </GridRow>
 
-<!-- Subscribe Section -->
-<GridRow Class="container-grid padding-large position-relative overflow-hidden">
-    <GridCol Span="24">
-    <div class="subscribe-content bg-dark d-flex flex-wrap justify-content-center align-items-center padding-medium">
-        <GridCol Md="12" Sm="24">
-        <div class="display-header pe-3">
-            <Title Level="2" Class="display-7 text-uppercase text-light">Đăng ký ngay</Title>
-            <Paragraph Class="text-light">
-                Nhận thông tin mới nhất, cập nhật và ưu đãi trực tiếp vào hộp thư của bạn.
-            </Paragraph>
-        </div>
-        </GridCol>
-        <GridCol Md="11" Sm="24">
-            @* <Form TModel="SubscriptionModel"  *@
-            @*       Model="subscriptionModel"  *@
-            @*       OnFinish="@HandleSubscribe"  *@
-            @*       Class="subscription-form validate"> *@
-            @*     <FormItem Label="Email" Name="@nameof(SubscriptionModel.Email)"> *@
-            @*         <Input @bind-Value="subscriptionModel.Email" /> *@
-            @*     </FormItem> *@
-            @* </Form> *@
-        </GridCol>
-    </div>
-    </GridCol>
-</GridRow>
 @code {
     private List<ProductResponseDTO> products { get; set; } = new();
     private List<MeoMeo.Domain.Entities.Category> categories { get; set; } = new();

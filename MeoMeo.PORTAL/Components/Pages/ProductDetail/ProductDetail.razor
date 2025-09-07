@@ -1,8 +1,12 @@
 @page "/san-pham/{ProductId:guid}" 
+@using MeoMeo.Contract.Commons
 @using MeoMeo.Shared.IServices 
 @using MeoMeo.Contract.DTOs.Product 
 @using MeoMeo.Contract.DTOs 
 @using MeoMeo.Contract.DTOs.ProductReview
+@using MeoMeo.Contract.DTOs.Order
+@using MeoMeo.Contract.DTOs.OrderDetail
+@using MeoMeo.Domain.Commons.Enums
 @using ButtonType = AntDesign.ButtonType
 @inject NavigationManager NavigationManager 
 @inject IMessageService MessageService 
@@ -12,513 +16,577 @@
 @inject ICartClientService CartClientService
 @inject ICartStateService CartStateService
 @inject IWishlistClientService WishlistClientService
+@inject IOrderClientService OrderClientService
 
-
-    <div class="content-background"> 
-       
-            <Breadcrumb> 
-                <BreadcrumbItem> 
-                    <a href="/">Trang chủ</a> 
-                </BreadcrumbItem> 
-                <BreadcrumbItem> 
-                    <span class="current">@productDetail.Name</span> 
-                </BreadcrumbItem> 
-            </Breadcrumb> 
+<div class="content-background"> 
+     <GridRow Gutter="16">
+        <GridCol Span="22" Offset="1">
+        <Breadcrumb> 
+            <BreadcrumbItem> 
+                <a href="/">Trang chủ</a> 
+            </BreadcrumbItem> 
+            <BreadcrumbItem> 
+                <span class="current">@productDetail.Name</span> 
+            </BreadcrumbItem> 
+        </Breadcrumb> 
 
             <div class="product-main-content"> 
-                <GridRow Gutter="(24, 24)"> 
-                    <GridCol Xs="24" Sm="24" Md="12" Lg="12" Xl="12"> 
-                        <Card Class="product-gallery-card"> 
-                            <div class="product-gallery">
-                                @if (productDetail.Media.Any())
-                                {
-                                    <Carousel @ref="imageCarousel" Autoplay="@TimeSpan.FromSeconds(3)">
-                                        @foreach (var image in productDetail.Media) 
-                                        { 
-                                            <CarouselSlick>
-                                                <div class="gallery-slide"> 
-                                                    @if (image.ContentType.StartsWith("video/")) 
+                <GridRow Gutter="16">
+                <GridCol Xs="24" Sm="24" Md="12" Lg="12" Xl="12"> 
+                    <Card Class="product-gallery-card"> 
+                        <div class="product-gallery">
+                            @if (productDetail.Media.Any())
+                            {
+                                <Carousel @ref="imageCarousel" Autoplay="@TimeSpan.FromSeconds(3)">
+                                    @foreach (var image in productDetail.Media) 
+                                    { 
+                                        <CarouselSlick>
+                                            <div class="gallery-slide"> 
+                                                @if (image.ContentType.StartsWith("video/")) 
+                                                { 
+                                                    <video controls class="gallery-video">
+                                                        <source src="@image.ImageUrl" type="video/mp4" />
+                                                    </video> 
+                                             
+                                                } 
+                                                else 
+                                                { 
+                                                    <div class="gallery-image-container">
+                                                        <img src="@image.ImageUrl" 
+                                                             class="gallery-image" />
+                                                        <div class="gallery-overlay">
+                                                            <Icon Type="@IconType.Outline.ZoomIn" Class="gallery-zoom-icon" />
+                                                        </div>
+                                                    </div>
+                                                } 
+                                            </div>
+                                        </CarouselSlick>
+                                    } 
+                                </Carousel>
+                                
+                                @if (productDetail.Media.Count > 1) 
+                                { 
+                                    <div class="thumbnail-gallery"> 
+                                        <div class="thumbnail-scroll">
+                                            @for (int i = 0; i < productDetail.Media.Count; i++) 
+                                            { 
+                                                var index = i;
+                                                <div class="thumbnail-item @(activeIndex == index ? "active" : "")"  
+                                                     @onclick="() => GoToSlide(index)"> 
+                                                    @if (productDetail.Media[index].ContentType.StartsWith("video/")) 
                                                     { 
-                                                        <video controls class="gallery-video">
-                                                            <source src="@image.ImageUrl" type="video/mp4" />
-                                                        </video> 
-                                                 
-                                                    } 
-                                                    else 
-                                                    { 
-                                                        <div class="gallery-image-container">
-                                                            <img src="@image.ImageUrl" 
-                                                                 class="gallery-image" />
-                                                            <div class="gallery-overlay">
-                                                                <Icon Type="@IconType.Outline.ZoomIn" Class="gallery-zoom-icon" />
+                                                        <div class="video-thumbnail">
+                                                            <video muted class="thumbnail-video">
+                                                                <source src="@productDetail.Media[index].ImageUrl" type="video/mp4" />
+                                                            </video>
+                                                            <div class="video-play-icon">
+                                                                <Icon Type="@IconType.Outline.PlayCircle" />
                                                             </div>
                                                         </div>
                                                     } 
-                                                </div>
-                                            </CarouselSlick>
-                                        } 
-                                    </Carousel>
-                                    
-                                    @if (productDetail.Media.Count > 1) 
+                                                    else 
+                                                    { 
+                                                        <img src="@productDetail.Media[index].ImageUrl" class="thumbnail-image" /> 
+
+                                                    } 
+                                                </div> 
+                                            } 
+                                        </div>
+                                    </div>
+                                }
+                            }
+                            else
+                            {
+                                <div class="no-image-placeholder">
+                                    <Icon Type="@IconType.Outline.Picture" Style="font-size: 48px; color: #ccc;" />
+                                    <div>Không có hình ảnh</div>
+                                </div>
+                            }
+                        </div>
+                    </Card> 
+                </GridCol> 
+
+                <GridCol Xs="24" Sm="24" Md="12" Lg="12" Xl="12"> 
+                    <Card Class="product-info-card">
+                        <div class="product-info">
+                            <!-- Product Title -->
+                            <div class="product-title">
+                                <h1>@productDetail.Name</h1>
+                            </div>
+
+                            <!-- Rating and Sales -->
+                            <div class="product-rating-sales">
+                                <div class="rating-section">
+                                    @if (productDetail.Rating > 0) 
                                     { 
-                                        <div class="thumbnail-gallery"> 
-                                            <div class="thumbnail-scroll">
-                                                @for (int i = 0; i < productDetail.Media.Count; i++) 
+                                        <Rate  Value="@((decimal)productDetail.Rating)" Disabled="true" />
+                                        <span class="rating-text">(@(productDetail.Rating.ToString("F2"))/5)</span>
+                                    } 
+                                    else 
+                                    { 
+                                        <span class="no-rating">Chưa có đánh giá</span> 
+                                    }
+                                </div>
+                                <div class="sales-info">
+                                    <Icon Type="@IconType.Outline.ShoppingCart" />
+                                    <span>@productDetail.SaleNumber lượt bán</span>
+                                </div>
+                            </div>
+
+                            <div class="product-category">
+                                <span class="label">Danh mục:</span>
+                                @foreach (var cate in @productDetail.CategoryNames)
+                                {
+                                    <Tag >@cate</Tag>
+                                }
+                            </div>
+
+                            <!-- Price -->
+                            <div class="product-price">
+                                <div class="current-price">
+                                    @* @CalcPriceAfterDiscount(productDetail.Price, productDetail.Discount).ToString("C0", new System.Globalization.CultureInfo("vi-VN")) *@
+                                </div>
+                                @* @if (productDetail.Discount > 0)  *@
+                                @* {  *@
+                                @*     <div class="original-price"> *@
+                                @*         @productDetail.Price.ToString("C0", new System.Globalization.CultureInfo("vi-VN")) *@
+                                @*     </div> *@
+                                @*     <div class="discount-badge"> *@
+                                @*         -@productDetail.Discount% *@
+                                @*     </div> *@
+                                @* } *@
+                            </div>
+
+                            
+
+                            <!-- Quantity -->
+                            <div class="quantity-section">
+                                <div class="quantity-label">Số lượng:</div>
+                                <div class="quantity-controls">
+                                    <Button Class="quantity-btn" 
+                                            OnClick="DecreaseQuantity" 
+                                            Disabled="@(productQuantity <= 1 || isAddingToCart)">
+                                        <Icon Type="@IconType.Outline.Minus" />
+                                    </Button>
+                                    <AntDesign.InputNumber TValue="int" 
+                                                           @bind-Value="productQuantity"  
+                                                           Min="1"  
+                                                           Max="@maxPurchasableQuantity"
+                                                           Class="quantity-input"
+                                                           Disabled="@isAddingToCart" />
+                                    <Button Class="quantity-btn" 
+                                            OnClick="IncreaseQuantity" 
+                                            Disabled="@(productQuantity >= maxPurchasableQuantity || isAddingToCart)">
+                                        <Icon Type="@IconType.Outline.Plus" />
+                                    </Button>
+                                </div>
+                            </div>
+
+                            <!-- Action Buttons -->
+                            <div class="action-buttons">
+                                <div class="wishlist-section">
+                                    @if (isFavorited) 
+                                    { 
+                                        <Button Class="wishlist-btn favorited" 
+                                                OnClick="() => ToggleWishlist(false)"
+                                                Icon="@IconType.Fill.Heart"
+                                                Disabled="@isTogglingWishlist">
+                                            Đã yêu thích
+                                        </Button>
+                                    } 
+                                    else 
+                                    { 
+                                        <Button Class="wishlist-btn" 
+                                                OnClick="() => ToggleWishlist(true)"
+                                                Icon="@IconType.Outline.Heart"
+                                                Disabled="@isTogglingWishlist">
+                                            Yêu thích
+                                        </Button>
+                                    }
+                                </div>
+                                
+                                <div class="purchase-buttons">
+                                    <Button Class="add-to-cart-btn" 
+                                           
+                                            Loading="@isAddingToCart"
+                                            Disabled="@(maxPurchasableQuantity <= 0 || isAddingToCart)"
+                                            Icon="@IconType.Outline.ShoppingCart">
+                                        Thêm vào giỏ hàng
+                                    </Button>
+                                    <Button Class="buy-now-btn" 
+                                            Type="@ButtonType.Primary"
+                                          
+                                            Loading="@isAddingToCart"
+                                            Disabled="@(maxPurchasableQuantity <= 0 || isAddingToCart)"
+                                            Icon="@IconType.Outline.Thunderbolt">
+                                        Mua ngay
+                                    </Button>
+                                </div>
+                            </div>
+                        </div>
+                    </Card>
+            </GridCol> 
+            </GridRow>
+    </div> 
+
+    <!-- Product Description Section --> 
+    <div class="w-100"> 
+        <GridRow> 
+            <GridCol Span="24" Class="mt-4"> 
+                <div class="space-coverage"> 
+                    <div class="title-description mb-2">Mô tả sản phẩm</div> 
+                    <div class="@("description-view-all")"> 
+                        @((MarkupString)productDetail.Description) 
+                    </div> 
+                </div> 
+            </GridCol> 
+
+            <!-- Reviews Section --> 
+            <GridCol Span="24" Class="mt-4"> 
+                <div class="space-coverage"> 
+                    <div class="title-description mb-2"> 
+                        Đánh giá sản phẩm <span class="total-vote ms-2">(@totalComment đánh giá)</span> 
+                    </div> 
+                     
+                    @if (totalComment == 0) 
+                    { 
+                        <div class="text-center"> 
+                            <img class="empty-vote" src="/images/products/empty-vote.svg" alt="" /> 
+                            <div class="title-vote-empty">Hiện chưa có đánh giá nào.</div> 
+                            <div class="title-vote-empty">Bạn sẽ là người đầu tiên đánh giá sản phẩm này chứ?</div> 
+                            @if (canComment) 
+                            { 
+                                <div class="d-flex justify-content-center mt-3 mb-7"> 
+                                    <Button Class="vote-now" OnClick="ShowCommentModal" Type="@ButtonType.Primary">Đánh giá ngay</Button> 
+                                </div> 
+                            } 
+                        </div> 
+                    } 
+                    else 
+                    { 
+                        <Divider /> 
+                        <GridRow> 
+                            <GridCol Span="6" Class="text-center"> 
+                                <div class="grand-vote-score"> 
+                                    @productDetail.Rating.ToString("F2") 
+                                    <Rate Disabled DefaultValue="1" />
+                                </div> 
+                                @if (canComment) 
+                                { 
+                                    <Button Class="btn-sen-comment" OnClick="ShowCommentModal" Type="@ButtonType.Primary">Gửi đánh giá</Button> 
+                                } 
+                            </GridCol> 
+                            <GridCol Span="18"> 
+                                <div class="rating-row">
+    <Rate Disabled DefaultValue="5" />
+    <Progress Percent="@((double)productDetail.Rating5 / totalComment * 100)" ShowInfo="false"></Progress>
+    <span class="progress-value">@productDetail.Rating5 lượt</span>
+</div>
+
+<div class="rating-row">
+    <Rate Disabled DefaultValue="4" />
+    <Progress Percent="@((double)productDetail.Rating4 / totalComment * 100)" ShowInfo="false"></Progress>
+    <span class="progress-value">@productDetail.Rating4 lượt</span>
+</div>
+
+<div class="rating-row">
+    <Rate Disabled DefaultValue="3" />
+    <Progress Percent="@((double)productDetail.Rating3 / totalComment * 100)" ShowInfo="false"></Progress>
+    <span class="progress-value">@productDetail.Rating3 lượt</span>
+</div>
+
+<div class="rating-row">
+    <Rate Disabled DefaultValue="2" />
+    <Progress Percent="@((double)productDetail.Rating2 / totalComment * 100)" ShowInfo="false"></Progress>
+    <span class="progress-value">@productDetail.Rating2 lượt</span>
+</div>
+
+<div class="rating-row">
+    <Rate Disabled DefaultValue="1" />
+    <Progress Percent="@((double)productDetail.Rating1 / totalComment * 100)" ShowInfo="false"></Progress>
+    <span class="progress-value">@productDetail.Rating1 lượt</span>
+</div>
+                            </GridCol> 
+                        </GridRow> 
+
+                        <Divider /> 
+                         
+                        <!-- Filter Section --> 
+                        <div class="d-flex gap-3 align-items-center"> 
+                            <span class="filter">Lọc theo:</span> 
+                            <div class="list-number-stars"> 
+                                <div class="d-flex align-items-center gap-3"> 
+                                     <span class="@GetFilterClass(5)" @onclick="() => FilterCommentByCondition(5)">5 sao</span> 
+                                     <span class="@GetFilterClass(4)" @onclick="() => FilterCommentByCondition(4)">4 sao</span> 
+                                     <span class="@GetFilterClass(3)" @onclick="() => FilterCommentByCondition(3)">3 sao</span> 
+                                     <span class="@GetFilterClass(2)" @onclick="() => FilterCommentByCondition(2)">2 sao</span> 
+                                     <span class="@GetFilterClass(1)" @onclick="() => FilterCommentByCondition(1)">1 sao</span> 
+                                </div> 
+                            </div> 
+                        </div> 
+                        
+
+                        <Divider /> 
+
+                        <!-- Comments List --> 
+                        @foreach (var comment in lstComment) 
+                        { 
+                            <div class="comment w-100"> 
+                                <div class="d-flex gap-4 w-100"> 
+                                    @if (string.IsNullOrEmpty(comment.CustomerAvatar)) 
+                                    { 
+                                        <div class="avatar text-center"> 
+                                            @GetAvatarWhenNull(comment.CustomerName) 
+                                        </div> 
+                                    } 
+                                    else 
+                                    { 
+                                        <Avatar  Src="@(backendUrl + "/Images/fallback.jpeg")" Style="border: 1px solid #000;" /> 
+                                    } 
+
+                                    <div class="comment-info"> 
+                                        <div class="d-flex justify-item-center gap-2"> 
+                                            <div class="phone-number">@comment.CustomerPhone</div> 
+                                           <i class="far fa-clock"></i>
+                                            <div class="date-comment"> 
+                                                @comment.CreationTime.ToString("HH:mm - dd/MM/yyyy") 
+                                            </div> 
+                                            <span> | </span>
+                                            <div>
+                                              Size: @comment.SizeName - Màu sắc: @comment.ColourName    
+                                            </div>
+                                            
+                                        </div> 
+                                         
+                                        <div class="voted-star mb-3 d-flex"> 
+                                            <Rate Disabled DefaultValue="comment.Rating" />
+                                        </div> 
+                                         
+                                        <div class="txt-comment">@comment.Content</div> 
+
+                                        <!-- Comment Media --> 
+                                        <div class="review-container" style="margin-top: 8px; margin-bottom: 10px;"> 
+                                            <div class="d-flex gap-1 align-items-center"> 
+                                                @foreach (var file in comment.ProductReviewFiles.OrderByDescending(f => f.FileName?.EndsWith(".mp4") == true)) 
                                                 { 
-                                                    var index = i;
-                                                    <div class="thumbnail-item @(activeIndex == index ? "active" : "")"  
-                                                         @onclick="() => GoToSlide(index)"> 
-                                                        @if (productDetail.Media[index].ContentType.StartsWith("video/")) 
+                                                    <div class=" me-2 mb-2"> 
+                                                        @if (file.FileName?.EndsWith(".mp4") == true) 
                                                         { 
-                                                            <div class="video-thumbnail">
-                                                                <video muted class="thumbnail-video">
-                                                                    <source src="@productDetail.Media[index].ImageUrl" type="video/mp4" />
-                                                                </video>
-                                                                <div class="video-play-icon">
+                                                            <div class="position-relative pointer"> 
+                                                                <video  style="width: 140px; height: 140px; object-fit: cover; border-radius: 8px; border: 1px solid #eee;" > 
+                                                                    <source src="@(backendUrl+'/'+ file.FileUrl)" type="video/mp4" /> 
+                                                                </video> 
+                                                                
+                                                                <div class="video-play-icon"  @onclick="()=>HandlePreviewVideo(backendUrl+'/'+ file.FileUrl)">
                                                                     <Icon Type="@IconType.Outline.PlayCircle" />
                                                                 </div>
-                                                            </div>
+                                                            </div> 
                                                         } 
                                                         else 
                                                         { 
-                                                            <img src="@productDetail.Media[index].ImageUrl" class="thumbnail-image" /> 
-
+                                                            <div > 
+                                                                <Image   Style="width: 140px; height: 140px; object-fit: cover; border-radius: 8px; border: 1px solid #eee;" Src="@(backendUrl +'/'+  file.FileUrl)" /> 
+                                                            </div> 
                                                         } 
                                                     </div> 
                                                 } 
-                                            </div>
-                                        </div>
-                                    }
-                                }
-                                else
-                                {
-                                    <div class="no-image-placeholder">
-                                        <Icon Type="@IconType.Outline.Picture" Style="font-size: 48px; color: #ccc;" />
-                                        <div>Không có hình ảnh</div>
-                                    </div>
-                                }
-                            </div>
-                        </Card> 
-                    </GridCol> 
+                                            </div> 
+                                        </div> 
 
-                    <GridCol Xs="24" Sm="24" Md="12" Lg="12" Xl="12"> 
-                        <Card Class="product-info-card">
-                            <div class="product-info">
-                                <!-- Product Title -->
-                                <div class="product-title">
-                                    <h1>@productDetail.Name</h1>
-                                </div>
-
-                                <!-- Rating and Sales -->
-                                <div class="product-rating-sales">
-                                    <div class="rating-section">
-                                        @if (productDetail.Rating > 0) 
+                                        <!-- Reply Content --> 
+                                        @if (!string.IsNullOrEmpty(comment.Answer)) 
                                         { 
-                                            <Rate TValue="decimal" Value="@((decimal)productDetail.Rating)" Disabled="true" />
-                                            <span class="rating-text">(@productDetail.Rating/5)</span>
+                                            <div class="reply-content"> 
+                                                <i class="fas fa-reply-all"></i>
+                                                <div class="d-flex justify-item-center gap-2"> 
+                                                    <Avatar  Src="@(backendUrl + "/Images/fallback.jpeg")"  /> 
+                                                    <div class="reply-content-body"> 
+                                                     <div class="d-flex justify-item-center gap-2"> 
+                                                            <div class="reply-content-brand">Meo Meo Shop</div> 
+                                                            <i class="far fa-clock"></i>                                                    
+                                                                <div class="reply-content-date"> 
+                                                                @comment.ReplyDate?.ToString("HH:mm - dd/MM/yyyy") 
+                                                            </div> 
+                                                        </div> 
+                                                        <div style="white-space: pre-wrap;">@comment.Answer</div> 
+                                                    </div> 
+                                                </div> 
+                                            </div> 
                                         } 
-                                        else 
-                                        { 
-                                            <span class="no-rating">Chưa có đánh giá</span> 
-                                        }
-                                    </div>
-                                    <div class="sales-info">
-                                        <Icon Type="@IconType.Outline.ShoppingCart" />
-                                        <span>@productDetail.SaleNumber lượt bán</span>
-                                    </div>
-                                </div>
+                                    </div> 
+                                </div> 
+                                <Divider /> 
+                            </div> 
+                        } 
 
-                                <div class="product-category">
-                                    <span class="label">Danh mục:</span>
-                                    @foreach (var cate in @productDetail.CategoryNames)
-                                    {
-                                        <Tag >cate</Tag>
-                                    }
-                                </div>
-
-                                <!-- Price -->
-                                <div class="product-price">
-                                    <div class="current-price">
-                                        @* @CalcPriceAfterDiscount(productDetail.Price, productDetail.Discount).ToString("C0", new System.Globalization.CultureInfo("vi-VN")) *@
-                                    </div>
-                                    @* @if (productDetail.Discount > 0)  *@
-                                    @* {  *@
-                                    @*     <div class="original-price"> *@
-                                    @*         @productDetail.Price.ToString("C0", new System.Globalization.CultureInfo("vi-VN")) *@
-                                    @*     </div> *@
-                                    @*     <div class="discount-badge"> *@
-                                    @*         -@productDetail.Discount% *@
-                                    @*     </div> *@
-                                    @* } *@
-                                </div>
-
-                                
-
-                                <!-- Quantity -->
-                                <div class="quantity-section">
-                                    <div class="quantity-label">Số lượng:</div>
-                                    <div class="quantity-controls">
-                                        <Button Class="quantity-btn" 
-                                                OnClick="DecreaseQuantity" 
-                                                Disabled="@(productQuantity <= 1 || isAddingToCart)">
-                                            <Icon Type="@IconType.Outline.Minus" />
-                                        </Button>
-                                        <AntDesign.InputNumber TValue="int" 
-                                                               @bind-Value="productQuantity"  
-                                                               Min="1"  
-                                                               Max="@maxPurchasableQuantity"
-                                                               Class="quantity-input"
-                                                               Disabled="@isAddingToCart" />
-                                        <Button Class="quantity-btn" 
-                                                OnClick="IncreaseQuantity" 
-                                                Disabled="@(productQuantity >= maxPurchasableQuantity || isAddingToCart)">
-                                            <Icon Type="@IconType.Outline.Plus" />
-                                        </Button>
-                                    </div>
-                                    <div class="stock-info">
-                                        @if (maxPurchasableQuantity > 0)
-                                        {
-                                            <span>Còn @maxPurchasableQuantity sản phẩm</span>
-                                        }
-                                        else
-                                        {
-                                            <span class="out-of-stock">Hết hàng</span>
-                                        }
-                                    </div>
-                                </div>
-
-                                <!-- Action Buttons -->
-                                <div class="action-buttons">
-                                    <div class="wishlist-section">
-                                        @if (isFavorited) 
-                                        { 
-                                            <Button Class="wishlist-btn favorited" 
-                                                    OnClick="() => ToggleWishlist(false)"
-                                                    Icon="@IconType.Fill.Heart"
-                                                    Disabled="@isTogglingWishlist">
-                                                Đã yêu thích
-                                            </Button>
-                                        } 
-                                        else 
-                                        { 
-                                            <Button Class="wishlist-btn" 
-                                                    OnClick="() => ToggleWishlist(true)"
-                                                    Icon="@IconType.Outline.Heart"
-                                                    Disabled="@isTogglingWishlist">
-                                                Yêu thích
-                                            </Button>
-                                        }
-                                    </div>
-                                    
-                                    <div class="purchase-buttons">
-                                        <Button Class="add-to-cart-btn" 
-                                                OnClick="() => AddToCart(false)" 
-                                                Loading="@isAddingToCart"
-                                                Disabled="@(maxPurchasableQuantity <= 0 || isAddingToCart)"
-                                                Icon="@IconType.Outline.ShoppingCart">
-                                            Thêm vào giỏ hàng
-                                        </Button>
-                                        <Button Class="buy-now-btn" 
-                                                Type="@ButtonType.Primary"
-                                                OnClick="() => AddToCart(true)" 
-                                                Loading="@isAddingToCart"
-                                                Disabled="@(maxPurchasableQuantity <= 0 || isAddingToCart)"
-                                                Icon="@IconType.Outline.Thunderbolt">
-                                            Mua ngay
-                                        </Button>
-                                    </div>
-                                </div>
-                            </div>
-                        </Card>
-                    </GridCol> 
-            </GridRow> 
-        </div> 
-
-        <!-- Product Description Section --> 
-        <div class="w-100"> 
-            <GridRow> 
-                <GridCol Span="24" Class="mt-4"> 
-                    <div class="space-coverage"> 
-                        <div class="title-description mb-2">Mô tả sản phẩm</div> 
-                        <div class="@(viewMoreDescription ? "description-short" : "description-view-all")"> 
-                            @((MarkupString)productDetail.Description) 
-                        </div> 
-                        @if (viewMoreDescription) 
+                        <!-- View More Comments --> 
+                        @if (totalComment - requestComment.PageSize>0) 
                         { 
-                            <div class="text-center pointer"> 
-                                <img @onclick="ToggleDescription"  
-                                     class="star-vote"  
-                                     src="@(viewMoreDescription ? "/images/products/droparrrow.svg" : "/images/products/uparrow.svg")"  
-                                     alt="" /> 
-                                <span class="view-more" @onclick="ToggleDescription"> 
-                                    @(viewMoreDescription ? " Xem thêm" : "Thu gọn") 
+                            <div class="text-center"> 
+                                 <i class="fas fa-chevron-down" @onclick="HandleViewMore"></i>
+                                <span class="view-more" @onclick="HandleViewMore"> 
+                                    @(totalComment - requestComment.PageSize>0 ? $"Xem thêm {totalComment - requestComment.PageSize} đánh giá" : "Thu gọn") 
                                 </span> 
                             </div> 
                         } 
-                    </div> 
-                </GridCol> 
-
-                <!-- Reviews Section --> 
-                <GridCol Span="24" Class="mt-4"> 
-                    <div class="space-coverage"> 
-                        <div class="title-description mb-2"> 
-                            Đánh giá sản phẩm <span class="total-vote ms-2">(@totalComment đánh giá)</span> 
-                        </div> 
-                         
-                        @if (totalComment == 0) 
-                        { 
-                            <div class="text-center"> 
-                                <img class="empty-vote" src="/images/products/empty-vote.svg" alt="" /> 
-                                <div class="title-vote-empty">Hiện chưa có đánh giá nào.</div> 
-                                <div class="title-vote-empty">Bạn sẽ là người đầu tiên đánh giá sản phẩm này chứ?</div> 
-                                @if (canComment) 
-                                { 
-                                    <div class="d-flex justify-content-center mt-3 mb-7"> 
-                                        <Button Class="vote-now" OnClick="ShowCommentModal" Type="@ButtonType.Primary">Đánh giá ngay</Button> 
-                                    </div> 
-                                } 
-                            </div> 
-                        } 
-                        else 
-                        { 
-                            <Divider /> 
-                            <GridRow> 
-                                <GridCol Span="6" Class="text-center"> 
-                                    <div class="grand-vote-score"> 
-                                        @productDetail.Rating 
-                                        <img class="grand-star-vote ms-1" src="/images/products/star_vote.svg" alt="" /> 
-                                    </div> 
-                                    @if (canComment) 
-                                    { 
-                                        <Button Class="btn-sen-comment" OnClick="ShowCommentModal" Type="@ButtonType.Primary">Gửi đánh giá</Button> 
-                                    } 
-                                </GridCol> 
-                                <GridCol Span="10"> 
-                                    <div class="d-flex"> 
-                                        <img class="grand-star" src="/images/products/5star.png" alt="" /> 
-                                         <Progress Percent="@((double)productDetail.Rating5 / totalComment * 100)"  
-                                                  ShowInfo="false"></Progress> 
-                                        <span class="progress-value">@productDetail.Rating5</span> 
-                                    </div> 
-                                    <div class="d-flex"> 
-                                        <img class="grand-star" src="/images/products/4star.png" alt="" /> 
-                                         <Progress Percent="@((double)productDetail.Rating4 / totalComment * 100)"  
-                                                  ShowInfo="false"></Progress> 
-                                        <span class="progress-value">@productDetail.Rating4</span> 
-                                    </div> 
-                                    <div class="d-flex"> 
-                                        <img class="grand-star" src="/images/products/3star.png" alt="" /> 
-                                         <Progress Percent="@((double)productDetail.Rating3 / totalComment * 100)"  
-                                                  ShowInfo="false"></Progress> 
-                                        <span class="progress-value">@productDetail.Rating3</span> 
-                                    </div> 
-                                    <div class="d-flex"> 
-                                        <img class="grand-star" src="/images/products/2star.png" alt="" /> 
-                                         <Progress Percent="@((double)productDetail.Rating2 / totalComment * 100)"  
-                                                  ShowInfo="false"></Progress> 
-                                        <span class="progress-value">@productDetail.Rating2</span> 
-                                    </div> 
-                                    <div class="d-flex"> 
-                                        <img class="grand-star" src="/images/products/1star.png" alt="" /> 
-                                         <Progress Percent="@((double)productDetail.Rating1 / totalComment * 100)"  
-                                                  ShowInfo="false"></Progress> 
-                                        <span class="progress-value">@productDetail.Rating1</span> 
-                                    </div> 
-                                </GridCol> 
-                            </GridRow> 
-
-                            <Divider /> 
-                             
-                            <!-- Filter Section --> 
-                            <div class="d-flex gap-3 align-items-center"> 
-                                <span class="filter">Lọc theo:</span> 
-                                <div class="list-number-stars"> 
-                                    <div class="d-flex align-items-center gap-3"> 
-                                         <span class="@GetFilterClass(6)" @onclick="() => FilterCommentByCondition(6)">Hình ảnh/ Video</span> 
-                                         <span class="@GetFilterClass(null)" @onclick="() => FilterCommentByCondition(null)">Tất cả</span> 
-                                         <span class="@GetFilterClass(5)" @onclick="() => FilterCommentByCondition(5)">5 sao</span> 
-                                         <span class="@GetFilterClass(4)" @onclick="() => FilterCommentByCondition(4)">4 sao</span> 
-                                         <span class="@GetFilterClass(3)" @onclick="() => FilterCommentByCondition(3)">3 sao</span> 
-                                         <span class="@GetFilterClass(2)" @onclick="() => FilterCommentByCondition(2)">2 sao</span> 
-                                         <span class="@GetFilterClass(1)" @onclick="() => FilterCommentByCondition(1)">1 sao</span> 
-                                    </div> 
-                                </div> 
-                            </div> 
-                            
-
-                            <Divider /> 
-
-                            <!-- Comments List --> 
-                            @foreach (var comment in lstComment) 
-                            { 
-                                <div class="comment w-100"> 
-                                    <div class="d-flex gap-4 w-100"> 
-                                        @if (string.IsNullOrEmpty(comment.CustomerAvatar)) 
-                                        { 
-                                            <div class="avatar text-center"> 
-                                                @GetAvatarWhenNull(comment.CustomerName) 
-                                            </div> 
-                                        } 
-                                        else 
-                                        { 
-                                            <Avatar Src="@($"{cdnImage}{comment.CustomerAvatar}")" Style="border: 1px solid #000;" /> 
-                                        } 
-
-                                        <div class="comment-info"> 
-                                            <div class="d-flex"> 
-                                                <div class="phone-number">@comment.CustomerPhone</div> 
-                                                <img class="history-action" src="/images/actions/history-action.svg" /> 
-                                                <div class="date-comment"> 
-                                                    @comment.CreationTime.ToString("HH:mm - dd/MM/yyyy") 
-                                                </div> 
-                                            </div> 
-                                             
-                                            <div class="voted-star mb-3 d-flex"> 
-                                                @for (int i = 0; i < comment.Rating; i++) 
-                                                { 
-                                                    <img class="star-vote ms-1" src="/images/products/star_vote.svg" alt="star" /> 
-                                                } 
-                                            </div> 
-                                             
-                                            <div class="txt-comment">@comment.Content</div> 
-
-                                            <!-- Comment Media --> 
-                                            <div class="review-container" style="margin-top: 8px; margin-bottom: 10px;"> 
-                                                <div class="d-flex gap-1 align-items-center"> 
-                                                    @foreach (var file in comment.ProductReviewFiles.OrderByDescending(f => f.FileName?.EndsWith(".mp4") == true)) 
-                                                    { 
-                                                        <div class="card-img me-2 mb-2 cursor-pointer"> 
-                                                            @if (file.FileName?.EndsWith(".mp4") == true) 
-                                                            { 
-                                                                <div class="position-relative pointer"> 
-                                                                    <video style="max-height: 79.19px; border: 1px solid #d9d9d9; border-radius: 8px;"> 
-                                                                        <source src="@file.FileUrl" type="video/mp4" /> 
-                                                                    </video> 
-                                                                    <div class="position-absolute" style="top: 50%; left: 50%; transform: translate(-50%, -50%);"> 
-                                                                        <img src="/images/actions/play-video.svg" alt="Play" style="width: 24px; height: 24px;" /> 
-                                                                    </div> 
-                                                                </div> 
-                                                            } 
-                                                            else 
-                                                            { 
-                                                                <div style="padding: 8px; border: 1px solid #d9d9d9; border-radius: 8px;"> 
-                                                                    <Image Width="102" Style="aspect-ratio: 5/3; object-fit: contain;" Src="@file.FileUrl" /> 
-                                                                </div> 
-                                                            } 
-                                                        </div> 
-                                                    } 
-                                                </div> 
-                                            </div> 
-
-                                            <!-- Reply Content --> 
-                                            @if (!string.IsNullOrEmpty(comment.Answer)) 
-                                            { 
-                                                <div class="reply-content"> 
-                                                    <div class="d-flex"> 
-                                                        <Avatar Src="/images/logo/logo.svg"  /> 
-                                                        <div class="reply-content-body"> 
-                                                            <div class="d-flex"> 
-                                                                <div class="reply-content-brand">Solas Farm</div> 
-                                                                <img class="history-action" src="/images/actions/history-action.svg" /> 
-                                                                <div class="reply-content-date"> 
-                                                                    @comment.ReplyDate?.ToString("HH:mm - dd/MM/yyyy") 
-                                                                </div> 
-                                                            </div> 
-                                                            <div style="white-space: pre-wrap;">@comment.Answer</div> 
-                                                        </div> 
-                                                    </div> 
-                                                </div> 
-                                            } 
-                                        </div> 
-                                    </div> 
-                                    <Divider /> 
-                                </div> 
-                            } 
-
-                            <!-- View More Comments --> 
-                            @if (viewMoreVote.HasValue) 
-                            { 
-                                <div class="text-center"> 
-                                    <img @onclick="HandleViewMore"  
-                                         class="star-vote"  
-                                         src="@(viewMoreVote.Value ? "/images/products/droparrrow.svg" : "/images/products/uparrow.svg")"  
-                                         alt="" /> 
-                                    <span class="view-more" @onclick="HandleViewMore"> 
-                                        @(viewMoreVote.Value ? $"Xem thêm {totalComment - pageSize} đánh giá" : "Thu gọn") 
-                                    </span> 
-                                </div> 
-                            } 
-                        } 
-                    </div> 
-                </GridCol> 
-            </GridRow> 
-
-        </div>
-
-        <!-- Related Products Section -->
-        @if (relatedProducts.Any())
-        {
-            <div class="related-products-section">
-                <div class="section-title">
-                    <h3>Sản phẩm liên quan</h3>
-                </div>
-                <GridRow Gutter="(16, 16)">
-                    @foreach (var product in relatedProducts.Take(4))
-                    {
-                        <GridCol Xs="12" Sm="8" Md="6" Lg="6" Xl="6">
-                            <Card Class="related-product-card" @onclick="() => NavigateToProduct(product.Id)">
-                                <div class="related-product-image">
-                                    <img src="@($"{cdnImage}/{product.Thumbnail}")" alt="@product.Name" />
-                                    <div class="related-product-overlay">
-                                        <Icon Type="@IconType.Outline.Eye" Class="related-product-icon" />
-                                    </div>
-                                </div>
-                                <div class="related-product-info">
-                                    <div class="related-product-name">@product.Name</div>
-                                    <div class="related-product-price">
-                                        @if (product.MaxDiscount > 0)
-                                        {
-                                            var discountedPrice = product.MaxPrice * (1 - product.MaxDiscount / 100);
-                                            <span class="current-price">@discountedPrice ₫</span>
-                                            <span class="original-price">@product.MaxPrice  ₫</span>
-                                        }
-                                        else
-                                        {
-                                            <span class="current-price">@product.MaxPrice ₫</span>
-                                        }
-                                    </div>
-                                </div>
-                            </Card>
-                        </GridCol>
-                    }
-                </GridRow>
-            </div>
-        }
-    </div>
-
-
-<!-- Comment Modal --> 
-<Modal Title="Đánh giá sản phẩm"  
-       @bind-Visible="modalVisible"  
-       Width="600" 
-       OnCancel="CancelComment" 
-       Footer="null"> 
-
-        <GridRow Gutter="(16, 16)" Align="RowAlign.Middle"> 
-            <GridCol Span="4"> 
-                <img class="combo-img-thumbnail" src="@($"{cdnImage}{productDetail.Thumbnail}")" alt="product" /> 
-            </GridCol> 
-            <GridCol Span="20"> 
-                <div class="combo-name">@productDetail.Name</div>
+                    } 
+                </div> 
             </GridCol> 
         </GridRow> 
 
-        <Rate TValue="decimal" @bind-Value="rating" Style="font-size: 48px; margin: 16px 0;" /> 
+    </div>
+    <!-- Related Products Section -->
+    @if (relatedProducts.Any())
+    {
+        <div class="related-products-section">
+            <div class="section-title">
+                <h3>Sản phẩm liên quan</h3>
+            </div>
+            <GridRow Gutter="(16, 16)">
+                @foreach (var product in relatedProducts.Take(4))
+                {
+                    <GridCol Xs="12" Sm="8" Md="6" Lg="6" Xl="6">
+                        <Card Class="related-product-card">
+                            <div class="related-product-image">
+                                <img src="@($"{backendUrl}/{product.Thumbnail}")" alt="@product.Name"/>
+                                <div class="related-product-overlay">
+                                    <Icon Type="@IconType.Outline.Eye" Class="related-product-icon"/>
+                                </div>
+                            </div>
+                            <div class="related-product-info">
+                                <div class="related-product-name">@product.Name</div>
+                                <div class="related-product-price">
+                                    @if (product.MaxDiscount > 0)
+                                    {
+                                        var discountedPrice = product.MaxPrice * (1 - product.MaxDiscount / 100);
+                                        <span class="current-price">@discountedPrice ₫</span>
+                                        <span class="original-price">@product.MaxPrice ₫</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="current-price">@product.MaxPrice ₫</span>
+                                    }
+                                </div>
+                            </div>
+                        </Card>
+                    </GridCol>
+                }
+            </GridRow>
+        </div>
+    }
+        </GridCol>
+        </GridRow>
+        </div>
 
+
+<Modal Title="@("Đánh giá sản phẩm " + productDetail.Name)"  
+       @bind-Visible="modalVisible"  
+       Width="800" 
+       OnCancel="CancelComment" 
+       Footer="null"> 
+
+    <GridRow Gutter="(16, 16)" Align="RowAlign.Middle"> 
+        <GridCol Span="4"> 
+            <Image Width="100%"
+                   Class="product-img" Fallback="@(backendUrl+"/Images/fallback.jpeg")"
+                   Src="@(productDetail.Thumbnail)" />
+        </GridCol> 
+        <GridCol Span="20"> 
+               
+            <div >
+                <div class="d-flex justify-content-between align-items-center">
+                    <label>Chọn biến thể để đánh giá:</label>
+                    <div class="mt-2 text-muted" style="font-size:12px;">
+                        <Icon Type="@IconType.Outline.InfoCircle" style="margin-right: 4px;" />
+                        Chọn biến thể bạn đã mua để gửi đánh giá cụ thể cho biến thể đó.
+                    </div>
+                    
+
+                        
+                    <!-- Phần còn lại của modal giữ nguyên như cũ -->
+                </div>
+                @if (reviewSelectedProductDetailId != null && selectedOrderForReview != null)
+                {
+                    <!-- Thông tin đơn hàng được chọn -->
+                    <div style="margin-top: 12px; padding: 12px; background: #f6ffed; border-radius: 6px; border-left: 4px solid #52c41a;">
+                        <div style="font-size: 13px; color: #666; display: flex; align-items: center; gap: 8px;">
+                            <Icon Type="@IconType.Outline.ShoppingCart" style="color: #52c41a;" />
+                            <span>Đánh giá từ đơn hàng: <strong>@selectedOrderForReview.OrderCode</strong></span>
+                            <span>•</span>
+                            <span>Ngày đặt: @selectedOrderForReview.OrderDate.ToString("dd/MM/yyyy")</span>
+                        </div>
+                    </div>
+                }
+
+                <!-- Variant selection: có thể click để chọn -->
+                <div class="variant-list d-flex flex-wrap" style="gap:8px; margin-top:8px;" >
+                    @foreach (var pv in productDetail.ProductVariants)
+                    {
+                        <div Class="@(reviewSelectedProductDetailId==pv.Id ? "variant-chip selected" : "variant-chip")" @onclick="()=>SelectVariantForReview(pv.Id)">
+                            <div style="display:flex; flex-direction:column; align-items:flex-start;">
+                                <div style="font-weight:500; color: @(reviewSelectedProductDetailId==pv.Id ? "#1890ff" : "#000");">
+                                    @if (!string.IsNullOrWhiteSpace(pv.SizeName) && !string.IsNullOrWhiteSpace(pv.ColourName))
+                                    {
+                                        <span>@pv.SizeName - @pv.ColourName</span>
+                                    }
+                                    else if (!string.IsNullOrWhiteSpace(pv.ColourName))
+                                    {
+                                        <span>@pv.ColourName</span>
+                                    }
+                                    else if (!string.IsNullOrWhiteSpace(pv.SizeName))
+                                    {
+                                        <span>@pv.SizeName</span>
+                                    }
+                                    
+                                </div>
+                                @if (!string.IsNullOrWhiteSpace(pv.Sku))
+                                {
+                                    <div class="text-muted" style="font-size:11px; color: @(reviewSelectedProductDetailId==pv.Id ? "#1890ff" : "#666");">SKU: @pv.Sku</div>
+                                }
+                                @if (pv.Price > 0)
+                                {
+                                    <div class="text-muted" style="font-size:11px; color: @(reviewSelectedProductDetailId==pv.Id ? "#1890ff" : "#666");">
+                                        Giá:   @pv.Price.ToString("C0", new System.Globalization.CultureInfo("vi-VN"))
+                                    </div>
+                                }
+                            </div>
+                        </div> 
+                    }
+                </div>
+
+           
+
+                @if (reviewSelectedProductDetailId == null)
+                {
+                    <Alert Type="@AlertType.Warning" 
+                           Message="Vui lòng chọn một biến thể để đánh giá" 
+                           ShowIcon="true"
+                           Style="margin-top: 8px;" />
+                }
+            </div>
+                
+        </GridCol> 
+    </GridRow> 
+    @if (reviewSelectedProductDetailId != null)
+    {
+        <Divider />
+            
+        <div style="text-align: center; margin: 16px 0;">
+            <div style="margin-bottom: 8px; font-weight: 500;">Đánh giá của bạn:</div>
+            <Rate @bind-Value="rating" Style="font-size: 48px;" />
+            @if (rating > 0)
+            {
+                <div class="rating-text" style="margin-top: 8px; color: #666;">
+                    @GetRatingText(rating)
+                </div>
+            }
+        </div>
+
+        <!-- File upload section -->
         <GridRow Gutter="16"> 
             <GridCol Span="24"> 
                 <div class="image-upload-container" style="position: relative;"> 
-                    <div class="image-upload-area @(isProcessingReview ? "processing" : "")" style="cursor: pointer;"> 
+                    <div class="image-upload-area @(isProcessingReview ? "processing" : "")" style="cursor: pointer; border: 2px dashed #d9d9d9; padding: 20px; text-align: center; border-radius: 8px;"> 
                         @if (isProcessingReview)
                         {
                             <div style="display: flex; flex-direction: column; align-items: center;">
@@ -535,14 +603,14 @@
                     </div>
 
                     <InputFile @ref="fileInputReview" OnChange="OnFileSelectedReview" multiple accept="image/*,video/*" disabled="@isProcessingReview" style="
-                           position: absolute;
-                           top: 0;
-                           left: 0;
-                           width: 100%;
-                           height: 100%;
-                           opacity: 0;
-                           cursor: pointer;
-                       "/>
+                               position: absolute;
+                               top: 0;
+                               left: 0;
+                               width: 100%;
+                               height: 100%;
+                               opacity: 0;
+                               cursor: pointer;
+                           "/>
                 </div>
 
                 @if (reviewUploads != null && reviewUploads.Any())
@@ -576,83 +644,69 @@
             </GridCol> 
         </GridRow> 
 
+        <!-- Comment section -->
         <div class="comment-lbl" style="margin-top: 16px;"> 
-            Nhận xét: <span>(Ý kiến của bạn sẽ giúp chúng tôi nâng cao chất lượng sản phẩm và dịch vụ)</span> 
+            <strong>Nhận xét:</strong> <span style="color: #666; font-size: 12px;">(Ý kiến của bạn sẽ giúp chúng tôi nâng cao chất lượng sản phẩm và dịch vụ)</span> 
         </div> 
         <TextArea @bind-Value="comment"  
-                  MaxLength="500"  
-                  Rows="5"  
-                  Placeholder="Hãy chia sẻ nhận xét của bạn về sản phẩm này nhé!"  
-                  Style="margin-top: 12px;" /> 
+                      MaxLength="500"  
+                      Rows="5"  
+                      Placeholder="Hãy chia sẻ nhận xét của bạn về sản phẩm này nhé!"  
+                      Style="margin-top: 12px;"></TextArea> 
 
-        <GridRow Gutter="(8, 8)" Style="margin-top: 16px;"> 
-            @for (int i = 0; i < tags.Count; i++) 
-            { 
-                var index = i; 
-                var tag = tags[i]; 
-                <GridCol> 
-                     <div @onclick="() => HandleChooseQuickTag(index, tag)"  
-                          class="@(selectedTag.Contains(index) ? "selected-tag" : "tag")"> 
-                         <span>@tag</span> 
-                     </div> 
-                </GridCol> 
-            } 
-        </GridRow> 
+        <!-- Quick tags -->
+        <div style="margin-top: 16px;">
+            <div style="margin-bottom: 8px; font-weight: 500;">Chọn nhanh:</div>
+            <GridRow Gutter="(8, 8)"> 
+                @for (int i = 0; i < tags.Count; i++) 
+                { 
+                    var index = i; 
+                    var tag = tags[i];
+                    <GridCol> 
+                        <div @onclick="() => HandleChooseQuickTag(index, tag)"  Class="@(selectedTag.Contains(index) ? "selected tag-comment" : "tag-comment")"> 
+                            <span>@tag</span> 
+                        </div>
+                    </GridCol> 
+                } 
+            </GridRow> 
+        </div>
 
-        <div class="shout-out">MeoMeo Shop xin chân thành cảm ơn!</div> 
-
-        <div style="margin-top: 16px; text-align: right;"> 
-            <Button Class="btn-cancel" OnClick="CancelComment" Icon="@IconType.Outline.Close">Hủy</Button> 
-            <Button Class="btn-save"  
-                    OnClick="HandleSubmitComment"  
-                    Loading="@disabledButtonComment"  
-                    Icon="@IconType.Outline.Check"  
-                    Type="@ButtonType.Primary"
-                    Style="margin-left: 8px;"> 
-                Gửi 
-            </Button> 
+        <div class="shout-out" style="text-align: center; margin: 16px 0; color: #1890ff; font-weight: 500;">
+            MeoMeo Shop xin chân thành cảm ơn!
         </div> 
-</Modal> 
+    }
 
-<!-- Media Preview Modal --> 
-<Modal Title="@(previewType == "video" ? "Xem video" : "Xem ảnh")"  
-       @bind-Visible="previewOpen"  
+    <!-- Action buttons -->
+    <div style="margin-top: 16px; text-align: right; border-top: 1px solid #f0f0f0; padding-top: 16px;"> 
+        <Button Class="btn-cancel" OnClick="CancelComment" Icon="@IconType.Outline.Close">Hủy</Button> 
+        <Button Class="btn-save"  
+                OnClick="HandleSubmitComment"  
+                Loading="@disabledButtonComment"  
+                Icon="@IconType.Outline.Check"  
+                Type="@ButtonType.Primary"
+                Disabled="@(reviewSelectedProductDetailId == null || rating <= 0)"
+                Style="margin-left: 8px;"> 
+            Gửi đánh giá
+        </Button> 
+    </div> 
+</Modal>
+
+<Modal Title="Xem video đánh giá"  
+       @bind-Visible="previewOpen"
        Footer="null"  
        Centered="true" 
-       Width="800"> 
-        @if (previewType == "video") 
-        { 
+       Width="400"> 
             <div class="w-100 d-flex justify-content-center"> 
-                <video controls src="@(previewImage ?? "")" style="max-height: 500px; width: 100%;"></video> 
+                <video controls src="@(previewUrl)" style="max-height: 500px; width: 100%;"></video> 
             </div> 
-        } 
-        else 
-        { 
-            <Image Src="@(previewImage ?? "")" Style="width: 100%;" /> 
-        } 
 </Modal>
-
-<!-- Variant Selection Modal -->
-<!-- Commented out until VariantSelectionModal component is created
-<Modal Title="Chọn biến thể sản phẩm"
-        @bind-Visible="variantModalVisible"
-        Footer="null"
-        Width="900">
-    @if (currentProduct != null)
-    {
-                <MeoMeo.PORTAL.Components.Pages.ProductDetail.VariantSelectionModal Product="currentProduct" OnVariantSelected="@(new Action<MeoMeo.Contract.DTOs.Product.VariantSelectionResult>(HandleVariantSelected))" />
-    }
-</Modal>
--->
-
-
 
 @code {
     
     [Parameter] public Guid ProductId { get; set; }
 
     // Component state
-    private string cdnImage = string.Empty;
+    private string backendUrl = string.Empty;
     private int activeIndex = 0;
     private AntDesign.Carousel? imageCarousel;
     private bool isLoading = true;
@@ -669,28 +723,38 @@
     private bool isTogglingWishlist = false;
 
     // Product variants
-    private Dictionary<string, string> selectedVariants = new();
     private Guid? selectedProductDetailId = null;
     private bool variantModalVisible = false;
-    private ProductResponseDTO? currentProduct = null;
+
+    private Dictionary<Guid, List<EligibleVariantFromOrder>> eligibleVariantsFromOrders = new();
+    private EligibleVariantFromOrder? selectedOrderForReview = null;
 
     // Related products
     private List<ProductResponseDTO> relatedProducts = new(); 
+    
 
-    // Description and HTML content 
-    private bool viewMoreDescription = false; 
-
-    // Comments state (basic placeholders) 
-    private int totalComment = 0; 
-    private bool canComment = false; 
-    private bool? viewMoreVote = null; 
-    private int pageSize = 5; 
+    // Comments state (basic placeholders)
+    private int totalComment = 0;
+    private bool canComment = true;
+    
     // Upload and preview 
     private bool modalVisible = false; 
     private decimal rating = 0; 
     private InputFile? fileInputReview; 
     private bool isProcessingReview = false; 
     private List<ProductMediaUpload> reviewUploads = new();
+    private string comment = string.Empty; 
+    private List<string> tags = new() { "Đóng gói đẹp", "Giao nhanh", "Chất lượng tốt", "Đáng tiền" }; 
+    private HashSet<int> selectedTag = new(); 
+    private bool disabledButtonComment = false; 
+    private bool previewOpen = false; 
+    private string previewUrl = ""; 
+
+    // New fields for review eligibility
+    private List<Guid> eligibleProductDetailIds = new();
+    private Guid? reviewSelectedProductDetailId = null;
+    
+    
 
     private GetListProductReviewDTO requestComment = new GetListProductReviewDTO()
     {
@@ -698,21 +762,64 @@
         PageSize = 10,
         Rating = null
     };
-    private string comment = string.Empty; 
-    private List<string> tags = new() { "Đóng gói đẹp", "Giao nhanh", "Chất lượng tốt", "Đáng tiền" }; 
-    private HashSet<int> selectedTag = new(); 
-    private bool disabledButtonComment = false; 
-    private bool previewOpen = false; 
-    private string previewImage = string.Empty; 
-    private string previewType = "image"; 
-    
+    private void CancelComment()
+    {
+        modalVisible = false;
+        rating = 0;
+        comment = string.Empty;
+        selectedTag.Clear();
+        reviewUploads.Clear();
+        reviewSelectedProductDetailId = eligibleProductDetailIds.FirstOrDefault();
+        if (reviewSelectedProductDetailId == Guid.Empty) 
+            reviewSelectedProductDetailId = null;
+        UpdateSelectedOrderForVariant();
+        disabledButtonComment = false;
+        isProcessingReview = false;
+        StateHasChanged();
+    }
+    private string GetSelectedOrderInfo()
+    {
+        if (selectedOrderForReview == null) return "";
+        return $"Đơn hàng: {selectedOrderForReview.OrderCode} - Ngày: {selectedOrderForReview.OrderDate:dd/MM/yyyy}";
+    }
 
+    
+    private void SelectVariantForReview(Guid? variantId)
+    {
+        if (variantId.HasValue && eligibleProductDetailIds.Contains(variantId.Value))
+        {
+            reviewSelectedProductDetailId = variantId.Value;
+            UpdateSelectedOrderForVariant();
+            StateHasChanged();
+        }
+    }
+
+    private void HandlePreviewVideo(string url)
+    {
+        previewUrl = url;
+        previewOpen = true;
+        StateHasChanged();
+    }
+
+// Method để lấy text mô tả rating
+    private string GetRatingText(decimal rating)
+    {
+        return rating switch
+        {
+            1 => "Rất không hài lòng",
+            2 => "Không hài lòng", 
+            3 => "Bình thường",
+            4 => "Hài lòng",
+            5 => "Rất hài lòng",
+            _ => ""
+        };
+    }
     protected override async Task OnParametersSetAsync() 
     { 
         try
         {
             isLoading = true;
-            cdnImage = (Configuration["ApiSettings:BaseUrl"] ?? string.Empty).TrimEnd('/'); 
+            backendUrl = (Configuration["ApiSettings:BaseUrl"] ?? string.Empty).TrimEnd('/'); 
             await LoadProductAsync(); 
             await LoadReviewsAsync(); 
             await CheckWishlistStatus();
@@ -736,11 +843,11 @@
             productDetail = await ProductClientService.GetProductWithDetailsAsync(ProductId); 
             if (!string.IsNullOrEmpty(productDetail.Thumbnail))
             {
-                productDetail.Thumbnail = $"{cdnImage}/{productDetail.Thumbnail}";
+                productDetail.Thumbnail = $"{backendUrl}/{productDetail.Thumbnail}";
             } 
             foreach (var m in productDetail.Media)
             {
-                m.ImageUrl = $"{cdnImage}/{m.ImageUrl}";
+                m.ImageUrl = $"{backendUrl}/{m.ImageUrl}";
             } 
         } 
         catch (Exception ex) 
@@ -811,78 +918,178 @@
             StateHasChanged();
         }
     }
-
-    private async Task AddToCart(bool buyNow) 
-    { 
-        try
-        {
-            if (selectedProductDetailId == null)
-            {
-                MessageService.Warning("Vui lòng chọn biến thể sản phẩm");
-                return;
-            }
-
-            isAddingToCart = true;
-            StateHasChanged();
-
-            var addToCartRequest = new AddToCartDTO
-            {
-                ProductDetailId = selectedProductDetailId.Value,
-                Quantity = productQuantity
-            };
-
-            var result = await CartClientService.AddToCartAsync(addToCartRequest);
-            
-            if (result?.ResponseStatus == MeoMeo.Contract.Commons.BaseStatus.Success)
-            {
-                CartStateService.IncrementCartCount(productQuantity);
-                MessageService.Success(buyNow ? "Đã thêm vào giỏ hàng" : "Đã thêm vào giỏ hàng");
-                
-                if (buyNow)
-                {
-                    NavigationManager.NavigateTo("/gio-hang");
-                }
-            }
-            else
-            {
-                MessageService.Error(result?.Message ?? "Có lỗi xảy ra khi thêm vào giỏ hàng");
-            }
-        }
-        catch (Exception ex)
-        {
-            MessageService.Error($"Có lỗi xảy ra: {ex.Message}");
-        }
-        finally
-        {
-            isAddingToCart = false;
-            StateHasChanged();
-        }
-    } 
-
-    private void ToggleDescription() 
-    { 
-        viewMoreDescription = !viewMoreDescription; 
-    } 
+    
 
     private void ShowCommentModal() 
     { 
+        // When opening modal, ensure we compute eligible variants (awaitable)
+        _ = EnsureEligibleVariantsAsync();
         modalVisible = true; 
     } 
 
-    private void CancelComment() 
-    { 
-        modalVisible = false; 
-        rating = 0; 
-        comment = string.Empty; 
-        selectedTag.Clear(); 
-    } 
+    // New: load user's completed orders and compute purchased-but-not-reviewed productDetailIds
+    private async Task EnsureEligibleVariantsAsync()
+    {
+       
+        
+        try
+        {
 
+            if (!productDetail.ProductVariants.Any())
+            {
+                eligibleProductDetailIds = new List<Guid>();
+                eligibleVariantsFromOrders = new Dictionary<Guid, List<EligibleVariantFromOrder>>();
+                canComment = false;
+                return;
+            }
+
+            var variantProductIds = productDetail.ProductVariants
+                .Where(v => v.Id.HasValue)
+                .Select(v => v.Id!.Value)
+                .ToList();
+
+            // Lấy tất cả đơn hàng hoàn thành
+            var orderRequest = new GetListOrderRequestDTO
+            {
+                PageIndex = 1,
+                PageSize = int.MaxValue,
+                OrderStatusFilter = EOrderStatus.Completed
+            };
+
+            var ordersResult = await OrderClientService.GetMyOrdersAsync(orderRequest);
+            var completedOrders = ordersResult?.Items ?? new List<OrderDTO>();
+
+            // Lấy tất cả OrderDetail chứa variants của sản phẩm này
+            var eligibleOrderDetails = completedOrders
+                .SelectMany(order => order.OrderDetails?
+                    .Where(od => variantProductIds.Contains(od.ProductDetailId))
+                    .Select(od => new EligibleVariantFromOrder
+                    {
+                        OrderId = order.Id,
+                        ProductDetailId = od.ProductDetailId,
+                        OrderCode = order.Code ?? "",
+                        OrderDate = order.CreationTime
+                    }) ?? new List<EligibleVariantFromOrder>())
+                .ToList();
+
+            if (!eligibleOrderDetails.Any())
+            {
+                eligibleProductDetailIds = new List<Guid>();
+                eligibleVariantsFromOrders = new Dictionary<Guid, List<EligibleVariantFromOrder>>();
+                canComment = false;
+                selectedOrderForReview = null;
+                StateHasChanged();
+                return;
+            }
+
+            // Kiểm tra những OrderDetail nào đã được đánh giá (theo cặp OrderId + ProductDetailId)
+            var reviewCheckRequest = new GetListProductReviewDTO
+            {
+                PageIndex = 1,
+                PageSize = int.MaxValue,
+                ListProductDetailIds = string.Join(",", variantProductIds)
+            };
+
+            var existingReviews = await ProductReviewClientService.GetByProductDetailIdsAsync(reviewCheckRequest);
+            var reviewedOrderVariants = existingReviews?.Items?
+                .Where(r =>  r.ProductDetailId != Guid.Empty)
+                .Select(r => $"{r.OrderId}_{r.ProductDetailId}")
+                .ToHashSet() ?? new HashSet<string>();
+
+            // Lọc ra những variant chưa được đánh giá
+            var availableOrderDetails = eligibleOrderDetails
+                .Where(item => !reviewedOrderVariants.Contains($"{item.OrderId}_{item.ProductDetailId}"))
+                .ToList();
+
+            // Group theo ProductDetailId để hiển thị trong UI cũ
+            eligibleVariantsFromOrders = availableOrderDetails
+                .GroupBy(x => x.ProductDetailId)
+                .ToDictionary(g => g.Key, g => g.OrderByDescending(x => x.OrderDate).ToList());
+
+            // Tạo list ProductDetailId để tương thích với UI cũ
+            eligibleProductDetailIds = eligibleVariantsFromOrders.Keys.ToList();
+
+            canComment = eligibleProductDetailIds.Any();
+            reviewSelectedProductDetailId = eligibleProductDetailIds.FirstOrDefault();
+            if (reviewSelectedProductDetailId == Guid.Empty) 
+                reviewSelectedProductDetailId = null;
+
+            // Set default order cho variant được chọn
+            UpdateSelectedOrderForVariant();
+            
+            StateHasChanged();
+        }
+        catch (Exception ex)
+        {
+            eligibleProductDetailIds = new List<Guid>();
+            eligibleVariantsFromOrders = new Dictionary<Guid, List<EligibleVariantFromOrder>>();
+            canComment = false;
+            selectedOrderForReview = null;
+            MessageService.Error($"Không thể kiểm tra quyền đánh giá: {ex.Message}");
+        }
+    }
+    private void UpdateSelectedOrderForVariant()
+    {
+        if (reviewSelectedProductDetailId.HasValue && 
+            eligibleVariantsFromOrders.ContainsKey(reviewSelectedProductDetailId.Value))
+        {
+            selectedOrderForReview = eligibleVariantsFromOrders[reviewSelectedProductDetailId.Value].First();
+        }
+        else
+        {
+            selectedOrderForReview = null;
+        }
+    }
+
+    // bind handler for HTML select change
+    private void OnSelectReviewVariant(ChangeEventArgs e)
+    {
+        if (Guid.TryParse(e?.Value?.ToString(), out var gid))
+        {
+            reviewSelectedProductDetailId = gid;
+        }
+        else
+        {
+            reviewSelectedProductDetailId = null;
+        }
+    }
+
+    private async Task<IFormFile> ConvertBase64ToFormFile(string base64Data, string fileName, string contentType)
+    {
+        var bytes = Convert.FromBase64String(base64Data);
+        var stream = new MemoryStream(bytes);
+
+        return new FormFile(stream, 0, bytes.Length, fileName, fileName)
+        {
+            Headers = new HeaderDictionary(),
+            ContentType = contentType
+        };
+    }
+    // Update HandleSubmitComment to use reviewSelectedProductDetailId if set
     private async Task HandleSubmitComment() 
     { 
         try
         {
             disabledButtonComment = true; 
             StateHasChanged();
+
+            if (!canComment)
+            {
+                MessageService.Warning("Bạn không thể đánh giá sản phẩm này.");
+                return;
+            }
+
+            if (reviewSelectedProductDetailId == null)
+            {
+                MessageService.Warning("Vui lòng chọn biến thể sản phẩm để đánh giá");
+                return;
+            }
+
+            if (selectedOrderForReview == null)
+            {
+                MessageService.Warning("Không tìm thấy thông tin đơn hàng để đánh giá");
+                return;
+            }
 
             if (rating <= 0)
             {
@@ -896,40 +1103,37 @@
                 return;
             }
 
-            if (selectedProductDetailId == null)
+            // Tạo request với đầy đủ thông tin Order và ProductDetail
+            var lstFile = new List<ProductReviewFileUpload>();
+            foreach (var image in reviewUploads)
             {
-                MessageService.Warning("Vui lòng chọn biến thể sản phẩm");
-                return;
+                var uploadFile = new ProductReviewFileUpload();
+                uploadFile.UploadFile = await ConvertBase64ToFormFile(image.Base64Data, image.FileName, image.ContentType);
+                lstFile.Add(uploadFile);
             }
-
-            // Create review request
             var reviewRequest = new ProductReviewCreateOrUpdateDTO
             {
-                ProductDetailId = selectedProductDetailId.Value,
+                ProductDetailId = reviewSelectedProductDetailId.Value,
+                OrderId = selectedOrderForReview.OrderId,
                 Rating = rating,
-                Content = comment,
-                CustomerId = Guid.Empty, // TODO: Get from current user
-                OrderId = Guid.Empty, // TODO: Get from current order if available
-                Files = reviewUploads.Select(u => new ProductReviewFileUpload
-                {
-                    UploadFile = null // TODO: Handle file upload properly
-                }).ToList()
+                Content = comment.Trim(),
+                MediaUploads =lstFile
             };
 
-            // Submit review
             var result = await ProductReviewClientService.CreateAsync(reviewRequest);
-            
-            MessageService.Success("Gửi đánh giá thành công"); 
-            modalVisible = false;
-            
-            // Reset form
-            rating = 0;
-            comment = string.Empty;
-            reviewUploads.Clear();
-            selectedTag.Clear();
-            
-            // Reload reviews
-            await LoadReviewsAsync();
+            if (result?.ResponseStatus == BaseStatus.Success)
+            {
+                MessageService.Success($"Gửi đánh giá thành công cho đơn hàng {selectedOrderForReview.OrderCode}"); 
+                modalVisible = false;
+                CancelComment();
+                // Reload reviews và re-check eligibility
+                await LoadReviewsAsync();
+                await EnsureEligibleVariantsAsync();
+            }
+            else
+            {
+                MessageService.Error(result?.Message ?? "Có lỗi xảy ra khi gửi đánh giá");
+            }
         }
         catch (Exception ex)
         {
@@ -940,7 +1144,8 @@
             disabledButtonComment = false;
             StateHasChanged();
         }
-    } 
+    }
+
     
 
     private void OnFileSelectedReview(InputFileChangeEventArgs e) 
@@ -983,15 +1188,13 @@
                         }
                     }
 
-                    // var base64Data = await ConvertToBase64(file);
-                    await Task.Delay(1); // Add await to fix warning
-
+                    var base64Data = await ConvertToBase64(file);
                     reviewUploads.Add(new ProductMediaUpload
                     {
                         Id = null,
                         UploadFile = null,
                         ImageUrl = string.Empty,
-                        Base64Data = "base64Data",
+                        Base64Data = base64Data,
                         FileName = file.Name,
                         ContentType = file.ContentType
                     });
@@ -1016,7 +1219,7 @@
         {
             return $"data:{image.ContentType};base64,{image.Base64Data}";
         }
-        return cdnImage + "/" + (image.ImageUrl ?? string.Empty);
+        return backendUrl + "/" + (image.ImageUrl ?? string.Empty);
     }
 
     private void RemoveReviewFile(int index)
@@ -1028,9 +1231,10 @@
         }
     }
 
-    private void HandleViewMore() 
+    private async Task HandleViewMore() 
     { 
-        viewMoreVote = !(viewMoreVote ?? true); 
+        requestComment.PageSize+=10;
+         await LoadReviewsAsync();
     } 
 
     private void GoToSlide(int index)
@@ -1040,6 +1244,15 @@
             activeIndex = index;
             imageCarousel?.GoTo(index);
         }
+    }
+    private async Task<string> ConvertToBase64(IBrowserFile file)
+    {
+        var maxSize = file.ContentType.StartsWith("video/") ? 10 * 1024 * 1024 : 10 * 1024 * 1024;
+        using var stream = file.OpenReadStream(maxAllowedSize: maxSize);
+        using var memoryStream = new MemoryStream();
+        await stream.CopyToAsync(memoryStream);
+        var bytes = memoryStream.ToArray();
+        return Convert.ToBase64String(bytes);
     }
     
 
@@ -1059,7 +1272,7 @@
 
     private string GetFilterClass(int? rating)
     {
-        return "filter-option";
+        return "filter-option " + (requestComment.Rating == rating ? "selected" : "");
     }
 
     private async Task FilterCommentByCondition(int? rating)
@@ -1067,21 +1280,27 @@
         requestComment.Rating = rating;
         await LoadReviewsAsync();
     }
-
     private void HandleChooseQuickTag(int index, string tag)
     {
         if (selectedTag.Contains(index))
         {
+            // Bỏ chọn
             selectedTag.Remove(index);
         }
         else
         {
+            // Chọn thêm
             selectedTag.Add(index);
         }
+        var chosenTags = selectedTag
+            .Select(i => tags[i]) // lấy text từ index
+            .ToList();
+
+        comment = string.Join(", ", chosenTags);
+
         StateHasChanged();
     }
     
-
     private async Task LoadRelatedProducts()
     {
         try
@@ -1138,7 +1357,6 @@
             var reviews=await ProductReviewClientService.GetByProductDetailIdsAsync(requestComment);
             lstComment = reviews.Items;
             totalComment = reviews.TotalRecords;
-            viewMoreVote = totalComment > pageSize;
             StateHasChanged(); 
         } 
         catch (Exception ex)
@@ -1146,6 +1364,12 @@
             MessageService.Error($"Không thể tải đánh giá: {ex.Message}");
         } 
     } 
-
+    public class EligibleVariantFromOrder
+    {
+        public Guid OrderId { get; set; }
+        public Guid ProductDetailId { get; set; }
+        public string OrderCode { get; set; } = string.Empty;
+        public DateTime OrderDate { get; set; }
+    }
     
 }

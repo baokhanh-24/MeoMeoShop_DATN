@@ -2,7 +2,9 @@ using MeoMeo.Shared.IServices;
 using Microsoft.Extensions.Logging;
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.Threading.Tasks;
+using MeoMeo.Contract.Commons;
 using MeoMeo.Shared.Utilities;
 using MeoMeo.Contract.DTOs.ProductReview;
 using MeoMeo.Domain.Commons;
@@ -35,7 +37,8 @@ namespace MeoMeo.Shared.Services
             }
         }
 
-        public async Task<PagingExtensions.PagedResult<ProductReviewDTO>> GetByProductDetailIdsAsync(GetListProductReviewDTO request)
+        public async Task<PagingExtensions.PagedResult<ProductReviewDTO>> GetByProductDetailIdsAsync(
+            GetListProductReviewDTO request)
         {
             try
             {
@@ -47,8 +50,51 @@ namespace MeoMeo.Shared.Services
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error fetching product reviews by product detail id: {Message}", ex.Message);
-                return  new PagingExtensions.PagedResult<ProductReviewDTO>();
+                return new PagingExtensions.PagedResult<ProductReviewDTO>();
             }
+        }
+
+        private MultipartFormDataContent ConvertReviewToFormData(ProductReviewCreateOrUpdateDTO review)
+        {
+            var formData = new MultipartFormDataContent();
+
+            // Basic fields
+            if (review.Id.HasValue)
+                formData.Add(new StringContent(review.Id.Value.ToString()), "Id");
+
+            formData.Add(new StringContent(review.ProductDetailId.ToString()), "ProductDetailId");
+
+            formData.Add(new StringContent(review.OrderId.ToString()), "OrderId");
+
+            if (review.CustomerId.HasValue && review.CustomerId != Guid.Empty)
+                formData.Add(new StringContent(review.CustomerId.Value.ToString()), "CustomerId");
+
+            formData.Add(new StringContent(review.Rating.ToString(CultureInfo.InvariantCulture)), "Rating");
+
+            formData.Add(new StringContent(string.IsNullOrEmpty(review.Content) ? "" : review.Content), "Content");
+
+            // Files
+            if (review.MediaUploads != null && review.MediaUploads.Any())
+            {
+                for (int i = 0; i < review.MediaUploads.Count; i++)
+                {
+                    var file = review.MediaUploads[i];
+                    if (file.Id.HasValue)
+                        formData.Add(new StringContent(file.Id.Value.ToString()), $"MediaUploads[{i}].Id");
+
+                    if (file.UploadFile != null)
+                    {
+                        var streamContent = new StreamContent(file.UploadFile.OpenReadStream());
+                        streamContent.Headers.ContentType =
+                            new System.Net.Http.Headers.MediaTypeHeaderValue(file.UploadFile.ContentType);
+                        formData.Add(streamContent, $"MediaUploads[{i}].UploadFile", file.UploadFile.FileName);
+                        formData.Add(new StringContent(""), $"MediaUploads[{i}].FileName");
+                        formData.Add(new StringContent(""), $"MediaUploads[{i}].ContentType");
+                    }
+                }
+            }
+
+            return formData;
         }
 
         public async Task<ProductReviewDTO> CreateAsync(ProductReviewCreateOrUpdateDTO dto)
@@ -56,8 +102,9 @@ namespace MeoMeo.Shared.Services
             try
             {
                 var url = "/api/ProductReviews";
-                var response = await _httpClient.PostAsync<ProductReviewCreateOrUpdateDTO, ProductReviewDTO>(url, dto);
-                return response ?? new ProductReviewDTO();
+                var formData = ConvertReviewToFormData(dto);
+                var result = await _httpClient.PostFormAsync<ProductReviewDTO>(url, formData);
+                return result ?? new ProductReviewDTO();
             }
             catch (Exception ex)
             {
@@ -67,5 +114,3 @@ namespace MeoMeo.Shared.Services
         }
     }
 }
-
-

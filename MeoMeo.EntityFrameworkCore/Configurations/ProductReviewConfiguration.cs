@@ -26,7 +26,7 @@ namespace MeoMeo.EntityFrameworkCore.Configurations
             builder.HasOne(x => x.ProductDetail)
                 .WithMany()
                 .HasForeignKey(x => x.ProductDetailId)
-                .OnDelete(DeleteBehavior.Cascade);
+                .OnDelete(DeleteBehavior.Restrict);
         }
     }
 } 
