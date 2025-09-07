@@ -10,4 +10,6 @@ public interface ICustomerClientService
     Task<CreateOrUpdateCustomerResponse> CreateCustomersAsync(CreateOrUpdateCustomerDTO customer);
     Task<CreateOrUpdateCustomerResponse> UpdateCustomersAsync(CreateOrUpdateCustomerDTO customer);
     Task<bool> DeleteCustomersAsync(Guid id);
+    Task<bool> UploadAvatarAsync(Guid customerId, MultipartFormDataContent content);
+    Task<bool> ChangePasswordAsync(ChangePasswordDTO model);
 }

@@ -56,3 +56,25 @@
         align-items: flex-start;
     }
 }
+.profile-avatar {
+    width: 128px !important;
+    height: 128px !important;
+    line-height: 128px !important;
+    font-size: 64px !important;
+}
+
+.avatar-container {
+    display: flex;
+    justify-content: center;
+    margin-bottom: 16px;
+}
+
+.avatar-actions {
+    text-align: center;
+}
+
+.avatar-note {
+    margin-top: 8px;
+    color: #999;
+    font-size: 12px;
+}

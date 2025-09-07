@@ -17,7 +17,7 @@
             Thông tin cá nhân
         </Title>
         <div class="join-info">
-            <Tag >Tham gia từ: @GetJoinDate()</Tag>
+            <Tag>Tham gia từ: @GetJoinDate()</Tag>
             <Tag>@GetMemberDays() ngày</Tag>
         </div>
     </div>
@@ -27,7 +27,7 @@
         <GridCol Span="6">
             <Card Title="Ảnh đại diện" Class="avatar-card">
                 <div class="avatar-container">
-                    <Avatar Size="AvatarSize.Large" Icon="user" Class="profile-avatar" />
+                    <Avatar Size="AvatarSize.Large" Icon="user" Class="profile-avatar"/>
                 </div>
                 <div class="avatar-actions">
                     <Button Type="@ButtonType.Primary" Icon="camera" Block="true">
@@ -45,12 +45,12 @@
                     <GridRow Gutter="16">
                         <GridCol Span="12">
                             <FormItem Label="Họ tên" Name="Name" Rules="@nameRules">
-                                <Input @bind-Value="@context.Name" Placeholder="Nhập họ và tên" />
+                                <Input @bind-Value="@context.Name" Placeholder="Nhập họ và tên"/>
                             </FormItem>
                         </GridCol>
                         <GridCol Span="12">
                             <FormItem Label="Điện thoại" Name="PhoneNumber" Rules="@phoneRules">
-                                <Input @bind-Value="@context.PhoneNumber" Placeholder="Nhập số điện thoại" />
+                                <Input @bind-Value="@context.PhoneNumber" Placeholder="Nhập số điện thoại"/>
                             </FormItem>
                         </GridCol>
                     </GridRow>
@@ -58,22 +58,22 @@
                     <GridRow Gutter="16">
                         <GridCol Span="12">
                             <FormItem Label="Email" Name="Email">
-                                <Input @bind-Value="@context.Email" Placeholder="Nhập email" Disabled="true" />
+                                <Input @bind-Value="@context.Email" Placeholder="Nhập email" Disabled="true"/>
                             </FormItem>
                         </GridCol>
                         <GridCol Span="12">
                             <FormItem Label="Ngày sinh" Name="DateOfBirth">
-                                <DatePicker @bind-Value="@context.DateOfBirth" Style="width: 100%" />
+                                <DatePicker @bind-Value="@context.DateOfBirth" Style="width: 100%"/>
                             </FormItem>
                         </GridCol>
                     </GridRow>
 
                     <FormItem Label="Giới tính" Name="Gender">
-                        @* <RadioGroup @bind-Value="selectedGender" TValue="string"> *@
-                        @*     <Radio RadioButton Value=>Nam</Radio> *@
-                        @*     <Radio RadioButton Value="Female">Nữ</Radio> *@
-                        @*     <Radio RadioButton Value="Other">Chưa xác định</Radio> *@
-                        @* </RadioGroup> *@
+                        <RadioGroup @bind-Value="selectedGender" >
+                            <Radio RadioButton Value="1">Nam</Radio>
+                            <Radio RadioButton Value="2">Nữ</Radio>
+                            <Radio RadioButton Value="3">Chưa xác định</Radio>
+                        </RadioGroup>
                     </FormItem>
 
                     <FormItem Label="Địa chỉ" Name="Address">
@@ -95,7 +95,7 @@
 
             <!-- Security Section -->
             <Card Title="Bảo mật" Class="security-card" Style="margin-top: 16px;">
-                <Button Type="@ButtonType.Primary" Icon="lock">
+                <Button Type="@ButtonType.Primary" Icon="lock" OnClick="ShowChangePasswordModal">>
                     Đổi mật khẩu
                 </Button>
             </Card>
@@ -103,25 +103,96 @@
     </GridRow>
 </div>
 
+
+<Modal Title="Đổi mật khẩu"
+       Visible="@isChangePasswordVisible"
+       OnOk="@HandleChangePassword"
+       OnCancel="@HandlePasswordModalCancel">
+    <Form Model="@passwordModel" Layout="FormLayout.Vertical">
+        <FormItem Label="Mật khẩu hiện tại" Required>
+            <InputPassword @bind-Value="@passwordModel.CurrentPassword"/>
+        </FormItem>
+        <FormItem Label="Mật khẩu mới" Required>
+            <InputPassword @bind-Value="@passwordModel.NewPassword"/>
+        </FormItem>
+        <FormItem Label="Xác nhận mật khẩu mới" Required>
+            <InputPassword @bind-Value="@passwordModel.ConfirmPassword"/>
+        </FormItem>
+    </Form>
+</Modal>
+
 @code {
     private CreateOrUpdateCustomerDTO model = new();
-    private string selectedGender = "Male";
+    private string selectedGender = "1";
     private bool isLoading = false;
     private bool hasChanges = false;
     private CustomerDTO? originalData;
+    private bool isChangePasswordVisible = false;
+    private ChangePasswordDTO passwordModel = new();
 
     // Form validation rules
     private FormValidationRule[] nameRules = new[]
     {
-new FormValidationRule { Required = true, Message = "Vui lòng nhập họ tên" },
-new FormValidationRule { Min = 2, Message = "Họ tên phải có ít nhất 2 ký tự" }
-};
+        new FormValidationRule { Required = true, Message = "Vui lòng nhập họ tên" },
+        new FormValidationRule { Min = 2, Message = "Họ tên phải có ít nhất 2 ký tự" }
+    };
 
     private FormValidationRule[] phoneRules = new[]
     {
-new FormValidationRule { Required = true, Message = "Vui lòng nhập số điện thoại" },
-new FormValidationRule { Pattern = @"^[0-9]{10,11}$", Message = "Số điện thoại không hợp lệ" }
-};
+        new FormValidationRule { Required = true, Message = "Vui lòng nhập số điện thoại" },
+        new FormValidationRule { Pattern = @"^[0-9]{10,11}$", Message = "Số điện thoại không hợp lệ" }
+    };
+
+    
+
+    private void ShowChangePasswordModal()
+    {
+        passwordModel = new ChangePasswordDTO { CustomerId = model.Id };
+        isChangePasswordVisible = true;
+    }
+
+    private void HandlePasswordModalCancel()
+    {
+        isChangePasswordVisible = false;
+        passwordModel = new();
+    }
+
+    private async Task HandleChangePassword()
+    {
+        if (string.IsNullOrEmpty(passwordModel.CurrentPassword) ||
+            string.IsNullOrEmpty(passwordModel.NewPassword) ||
+            string.IsNullOrEmpty(passwordModel.ConfirmPassword))
+        {
+            MessageService.Error("Vui lòng điền đầy đủ thông tin!");
+            return;
+        }
+
+        if (passwordModel.NewPassword != passwordModel.ConfirmPassword)
+        {
+            MessageService.Error("Mật khẩu xác nhận không khớp!");
+            return;
+        }
+
+        try
+        {
+            var success = await CustomerService.ChangePasswordAsync(passwordModel);
+            if (success)
+            {
+                MessageService.Success("Đổi mật khẩu thành công!");
+                isChangePasswordVisible = false;
+                passwordModel = new();
+            }
+            else
+            {
+                MessageService.Error("Đổi mật khẩu thất bại!");
+            }
+        }
+        catch (Exception ex)
+        {
+            MessageService.Error("Có lỗi xảy ra khi đổi mật khẩu!");
+            Console.WriteLine($"Error changing password: {ex.Message}");
+        }
+    }
 
     protected override async Task OnInitializedAsync()
     {
@@ -213,6 +284,7 @@ new FormValidationRule { Pattern = @"^[0-9]{10,11}$", Message = "Số điện th
         {
             return originalData.CreationTime.ToString("dd/MM/yyyy");
         }
+
         return DateTime.Now.ToString("dd/MM/yyyy");
     }
 
@@ -223,6 +295,8 @@ new FormValidationRule { Pattern = @"^[0-9]{10,11}$", Message = "Số điện th
             var days = (DateTime.Now - originalData.CreationTime).Days;
             return days.ToString();
         }
+
         return "0";
     }
+
 }

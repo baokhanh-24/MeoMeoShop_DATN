@@ -105,5 +105,15 @@ namespace MeoMeo.Shared.Services
                 return false;
             }
         }
+
+        public Task<bool> UploadAvatarAsync(Guid customerId, MultipartFormDataContent content)
+        {
+            throw new NotImplementedException();
+        }
+
+        public Task<bool> ChangePasswordAsync(ChangePasswordDTO model)
+        {
+            throw new NotImplementedException();
+        }
     }
 }

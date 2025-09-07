@@ -10,6 +10,8 @@
 @inject CustomAuthStateProvider AuthStateProvider
 @inject NavigationManager NavigationManager
 
+@inherits LayoutComponentBase
+
 <AuthorizeView>
     <Authorized Context="context">
         <div class="content-background">
@@ -64,6 +66,7 @@
                         <!-- Main Content -->
                         <GridCol Span="18">
                             <Card Class="profile-main-card">
+                                @Body
                             </Card>
                         </GridCol>
                     </GridRow>
