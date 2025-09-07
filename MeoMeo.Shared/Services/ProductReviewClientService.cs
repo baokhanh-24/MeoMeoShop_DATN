@@ -112,5 +112,35 @@ namespace MeoMeo.Shared.Services
                 throw;
             }
         }
+
+        public async Task<List<OrderItemForReviewDTO>> GetUnreviewedOrderItemsAsync()
+        {
+            try
+            {
+                var url = "/api/ProductReviews/unreviewed-items";
+                var response = await _httpClient.GetAsync<List<OrderItemForReviewDTO>>(url);
+                return response ?? new List<OrderItemForReviewDTO>();
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Có lỗi xảy ra khi lấy danh sách sản phẩm chưa đánh giá: {Message}", ex.Message);
+                return new List<OrderItemForReviewDTO>();
+            }
+        }
+
+        public async Task<List<ProductReviewDTO>> GetMyReviewsAsync()
+        {
+            try
+            {
+                var url = "/api/ProductReviews/my-reviews";
+                var response = await _httpClient.GetAsync<List<ProductReviewDTO>>(url);
+                return response ?? new List<ProductReviewDTO>();
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Có lỗi xảy ra khi lấy danh sách đánh giá của tôi: {Message}", ex.Message);
+                return new List<ProductReviewDTO>();
+            }
+        }
     }
 }

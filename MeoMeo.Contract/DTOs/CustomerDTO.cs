@@ -14,5 +14,6 @@ public class CustomerDTO
     public string? TaxCode { get; set; }
     public string? Address { get; set; }
     public ECustomerStatus Status { get; set; }
-    public string? AvatarUrl { get; set; }
+    public string? Avatar { get; set; }
+    public int? Gender { get; set; }
 }

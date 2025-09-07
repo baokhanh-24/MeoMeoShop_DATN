@@ -16,5 +16,9 @@ namespace MeoMeo.Application.IServices
         Task<IEnumerable<ProductReview>> GetAllProductReviewsAsync();
         Task<PagingExtensions.PagedResult<ProductReviewDTO>> GetProductReviewsByProductDetailIdAsync(GetListProductReviewDTO request);
         Task<List<ProductReviewFile>> GetOldFilesAsync(Guid id);
+        
+        // New methods for customer review management
+        Task<List<OrderItemForReviewDTO>> GetUnreviewedOrderItemsAsync(Guid customerId);
+        Task<List<ProductReviewDTO>> GetCustomerReviewsAsync(Guid customerId);
     }
 }

@@ -214,3 +214,69 @@
         text-align: center;
     }
 }
+
+/* Copy CSS từ ProductDetail.razor.css */
+.tag-comment {
+    padding: 8px 12px;
+    border: 1px solid #f0f0f0;
+    border-radius: 16px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.tag-comment:hover {
+    border-color: #1890ff;
+    box-shadow: 0 2px 8px rgba(24, 144, 255, 0.1);
+}
+
+.tag-comment.selected {
+    border-color: #1890ff;
+    background: #f6ffed;
+    box-shadow: 0 2px 8px rgba(24, 144, 255, 0.2);
+}
+
+.image-preview-container {
+    display: flex;
+}
+
+.image-upload-area.processing {
+    background-color: #f5f5f5;
+    border-color: #1890ff;
+}
+
+.image-preview-item {
+    position: relative;
+    display: inline-block;
+    margin: 4px;
+}
+
+.image-actions {
+    position: absolute;
+    top: 4px;
+    right: 4px;
+}
+
+.btn-cancel {
+    margin-right: 8px;
+}
+
+.btn-save {
+    margin-left: 8px;
+}
+
+.rating-text {
+    margin-top: 8px;
+    color: #666;
+    font-size: 14px;
+}
+
+.comment-lbl {
+    margin-top: 16px;
+}
+
+.shout-out {
+    text-align: center;
+    margin: 16px 0;
+    color: #1890ff;
+    font-weight: 500;
+}

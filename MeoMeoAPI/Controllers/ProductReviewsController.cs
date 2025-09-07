@@ -95,5 +95,61 @@ namespace MeoMeo.API.Controllers
             var result = await _service.GetProductReviewsByProductDetailIdAsync(request);
             return Ok(result);
         }
+
+        [HttpGet("unreviewed-items")]
+        public async Task<IActionResult> GetUnreviewedOrderItems()
+        {
+            var customerId = _httpContextAccessor.HttpContext.GetCurrentCustomerId();
+            if (customerId == Guid.Empty)
+            {
+                return BadRequest(new BaseResponse
+                {
+                    ResponseStatus = BaseStatus.Error,
+                    Message = "Vui lòng đăng nhập để xem đánh giá"
+                });
+            }
+
+            try
+            {
+                var result = await _service.GetUnreviewedOrderItemsAsync(customerId);
+                return Ok(result);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new BaseResponse
+                {
+                    ResponseStatus = BaseStatus.Error,
+                    Message = $"Có lỗi xảy ra: {ex.Message}"
+                });
+            }
+        }
+
+        [HttpGet("my-reviews")]
+        public async Task<IActionResult> GetMyReviews()
+        {
+            var customerId = _httpContextAccessor.HttpContext.GetCurrentCustomerId();
+            if (customerId == Guid.Empty)
+            {
+                return BadRequest(new BaseResponse
+                {
+                    ResponseStatus = BaseStatus.Error,
+                    Message = "Vui lòng đăng nhập để xem đánh giá"
+                });
+            }
+
+            try
+            {
+                var result = await _service.GetCustomerReviewsAsync(customerId);
+                return Ok(result);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new BaseResponse
+                {
+                    ResponseStatus = BaseStatus.Error,
+                    Message = $"Có lỗi xảy ra: {ex.Message}"
+                });
+            }
+        }
     }
 }

@@ -106,14 +106,56 @@ namespace MeoMeo.Shared.Services
             }
         }
 
-        public Task<bool> UploadAvatarAsync(Guid customerId, MultipartFormDataContent content)
+        public async Task<bool> UploadAvatarAsync(Guid customerId, IFormFile file)
         {
-            throw new NotImplementedException();
+            try
+            {
+                var url = $"/api/Customers/upload-avatar-async/{customerId}";
+                
+                using var content = new MultipartFormDataContent();
+                var fileContent = new StreamContent(file.OpenReadStream());
+                fileContent.Headers.ContentType = new System.Net.Http.Headers.MediaTypeHeaderValue(file.ContentType);
+                content.Add(fileContent, "file", file.FileName);
+                
+                var response = await _httpClient.PostAsync(url, content);
+                if (response.IsSuccessStatusCode)
+                {
+                    return true;
+                }
+                else
+                {
+                    _logger.LogWarning("Upload avatar thất bại cho Customer {CustomerId}", customerId);
+                    return false;
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Có lỗi xảy ra khi upload avatar cho Customer {CustomerId}: {Message}", customerId, ex.Message);
+                return false;
+            }
         }
 
-        public Task<bool> ChangePasswordAsync(ChangePasswordDTO model)
+        public async Task<bool> ChangePasswordAsync(ChangePasswordDTO model)
         {
-            throw new NotImplementedException();
+            try
+            {
+                var url = "/api/Customers/change-password-async";
+                var response = await _httpClient.PutAsync(url, model);
+                if (response.IsSuccessStatusCode)
+                {
+                    return true;
+                }
+                else
+                {
+                    _logger.LogWarning("Đổi mật khẩu thất bại cho Customer {CustomerId}", model.CustomerId);
+                    return false;
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Có lỗi xảy ra khi đổi mật khẩu cho Customer {CustomerId}: {Message}", model.CustomerId, ex.Message);
+                return false;
+            }
         }
     }
 }

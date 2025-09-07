@@ -8,6 +8,7 @@
 @inject CustomAuthStateProvider AuthStateProvider
 @inject NavigationManager NavigationManager
 @inject MessageService MessageService
+@inject IConfiguration Configuration
 @layout ProfileLayout
 
 <div class="profile-info-container">
@@ -27,13 +28,33 @@
         <GridCol Span="6">
             <Card Title="Ảnh đại diện" Class="avatar-card">
                 <div class="avatar-container">
-                    <Avatar Size="AvatarSize.Large" Icon="user" Class="profile-avatar"/>
+                    @if (!string.IsNullOrEmpty(currentAvatarUrl))
+                    {
+                        <Avatar Size="AvatarSize.Large" Src="@currentAvatarUrl" Class="profile-avatar"/>
+                    }
+                    else
+                    {
+                        <Avatar Size="AvatarSize.Large" Icon="user" Class="profile-avatar"/>
+                    }
                 </div>
                 <div class="avatar-actions">
-                    <Button Type="@ButtonType.Primary" Icon="camera" Block="true">
-                        Thay đổi ảnh
-                    </Button>
-                    <p class="avatar-note">JPG, PNG hoặc GIF. Tối đa 2MB.</p>
+                    @if (isUploadingAvatar)
+                    {
+                        <Button Type="@ButtonType.Primary" Block="true" Loading="true">
+                            Đang tải...
+                        </Button>
+                    }
+                    else
+                    {
+                        <div class="avatar-upload-container" style="position: relative;">
+                            <Button Type="@ButtonType.Primary" Icon="camera" Block="true">
+                                Thay đổi ảnh
+                            </Button>
+                            <InputFile @ref="avatarInput" OnChange="OnAvatarSelected" accept="image/*" 
+                                       style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; opacity: 0; cursor: pointer;"/>
+                        </div>
+                    }
+                    <p class="avatar-note">JPG, PNG hoặc GIF. Tối đa 5MB.</p>
                 </div>
             </Card>
         </GridCol>
@@ -69,7 +90,7 @@
                     </GridRow>
 
                     <FormItem Label="Giới tính" Name="Gender">
-                        <RadioGroup @bind-Value="selectedGender" >
+                        <RadioGroup @bind-Value="selectedGender">
                             <Radio RadioButton Value="1">Nam</Radio>
                             <Radio RadioButton Value="2">Nữ</Radio>
                             <Radio RadioButton Value="3">Chưa xác định</Radio>
@@ -95,7 +116,7 @@
 
             <!-- Security Section -->
             <Card Title="Bảo mật" Class="security-card" Style="margin-top: 16px;">
-                <Button Type="@ButtonType.Primary" Icon="lock" OnClick="ShowChangePasswordModal">>
+                <Button Type="@ButtonType.Primary" Icon="lock" OnClick="ShowChangePasswordModal">
                     Đổi mật khẩu
                 </Button>
             </Card>
@@ -103,11 +124,11 @@
     </GridRow>
 </div>
 
-
 <Modal Title="Đổi mật khẩu"
        Visible="@isChangePasswordVisible"
        OnOk="@HandleChangePassword"
-       OnCancel="@HandlePasswordModalCancel">
+       OnCancel="@HandlePasswordModalCancel"
+       ConfirmLoading="@isChangingPassword">
     <Form Model="@passwordModel" Layout="FormLayout.Vertical">
         <FormItem Label="Mật khẩu hiện tại" Required>
             <InputPassword @bind-Value="@passwordModel.CurrentPassword"/>
@@ -128,7 +149,14 @@
     private bool hasChanges = false;
     private CustomerDTO? originalData;
     private bool isChangePasswordVisible = false;
+    private bool isChangingPassword = false;
     private ChangePasswordDTO passwordModel = new();
+    
+    // Avatar upload
+    private InputFile? avatarInput;
+    private bool isUploadingAvatar = false;
+    private string currentAvatarUrl = string.Empty;
+    private string backendUrl = string.Empty;
 
     // Form validation rules
     private FormValidationRule[] nameRules = new[]
@@ -143,59 +171,9 @@
         new FormValidationRule { Pattern = @"^[0-9]{10,11}$", Message = "Số điện thoại không hợp lệ" }
     };
 
-    
-
-    private void ShowChangePasswordModal()
-    {
-        passwordModel = new ChangePasswordDTO { CustomerId = model.Id };
-        isChangePasswordVisible = true;
-    }
-
-    private void HandlePasswordModalCancel()
-    {
-        isChangePasswordVisible = false;
-        passwordModel = new();
-    }
-
-    private async Task HandleChangePassword()
-    {
-        if (string.IsNullOrEmpty(passwordModel.CurrentPassword) ||
-            string.IsNullOrEmpty(passwordModel.NewPassword) ||
-            string.IsNullOrEmpty(passwordModel.ConfirmPassword))
-        {
-            MessageService.Error("Vui lòng điền đầy đủ thông tin!");
-            return;
-        }
-
-        if (passwordModel.NewPassword != passwordModel.ConfirmPassword)
-        {
-            MessageService.Error("Mật khẩu xác nhận không khớp!");
-            return;
-        }
-
-        try
-        {
-            var success = await CustomerService.ChangePasswordAsync(passwordModel);
-            if (success)
-            {
-                MessageService.Success("Đổi mật khẩu thành công!");
-                isChangePasswordVisible = false;
-                passwordModel = new();
-            }
-            else
-            {
-                MessageService.Error("Đổi mật khẩu thất bại!");
-            }
-        }
-        catch (Exception ex)
-        {
-            MessageService.Error("Có lỗi xảy ra khi đổi mật khẩu!");
-            Console.WriteLine($"Error changing password: {ex.Message}");
-        }
-    }
-
     protected override async Task OnInitializedAsync()
     {
+        backendUrl = (Configuration["ApiSettings:BaseUrl"] ?? string.Empty).TrimEnd('/');
         await LoadUserData();
     }
 
@@ -218,6 +196,15 @@
                     model.Address = originalData.Address ?? "";
                     model.DateOfBirth = originalData.DateOfBirth;
                     model.Status = originalData.Status;
+                    
+                    // Set avatar URL
+                    if (!string.IsNullOrEmpty(originalData.Avatar))
+                    {
+                        currentAvatarUrl = $"{backendUrl}/{originalData.Avatar}";
+                    }
+
+                    // Set gender
+                    selectedGender = originalData.Gender?.ToString() ?? "1";
 
                     var emailClaim = authState.User.FindFirst("Email");
                     model.Email = emailClaim?.Value ?? "";
@@ -231,12 +218,128 @@
         }
     }
 
+    private async Task OnAvatarSelected(InputFileChangeEventArgs e)
+    {
+        var file = e.File;
+        if (file == null) return;
+
+        if (!file.ContentType.StartsWith("image/"))
+        {
+            MessageService.Error("Vui lòng chọn file ảnh!");
+            return;
+        }
+
+        if (file.Size > 5 * 1024 * 1024) // 5MB
+        {
+            MessageService.Error("File ảnh không được vượt quá 5MB!");
+            return;
+        }
+
+        try
+        {
+            isUploadingAvatar = true;
+            StateHasChanged();
+
+            var success = await CustomerService.UploadAvatarAsync(model.Id, file);
+            
+            if (success)
+            {
+                MessageService.Success("Cập nhật ảnh đại diện thành công!");
+                await LoadUserData(); // Reload to get new avatar URL
+            }
+            else
+            {
+                MessageService.Error("Cập nhật ảnh đại diện thất bại!");
+            }
+        }
+        catch (Exception ex)
+        {
+            MessageService.Error("Có lỗi xảy ra khi tải ảnh!");
+            Console.WriteLine($"Error uploading avatar: {ex.Message}");
+        }
+        finally
+        {
+            isUploadingAvatar = false;
+            StateHasChanged();
+        }
+    }
+
+    private void ShowChangePasswordModal()
+    {
+        passwordModel = new ChangePasswordDTO { CustomerId = model.Id };
+        isChangePasswordVisible = true;
+    }
+
+    private void HandlePasswordModalCancel()
+    {
+        isChangePasswordVisible = false;
+        isChangingPassword = false;
+        passwordModel = new();
+    }
+
+    private async Task HandleChangePassword()
+    {
+        if (string.IsNullOrEmpty(passwordModel.CurrentPassword) ||
+            string.IsNullOrEmpty(passwordModel.NewPassword) ||
+            string.IsNullOrEmpty(passwordModel.ConfirmPassword))
+        {
+            MessageService.Error("Vui lòng điền đầy đủ thông tin!");
+            return;
+        }
+
+        if (passwordModel.NewPassword != passwordModel.ConfirmPassword)
+        {
+            MessageService.Error("Mật khẩu xác nhận không khớp!");
+            return;
+        }
+
+        if (passwordModel.NewPassword.Length < 6)
+        {
+            MessageService.Error("Mật khẩu mới phải có ít nhất 6 ký tự!");
+            return;
+        }
+
+        try
+        {
+            isChangingPassword = true;
+            StateHasChanged();
+
+            var success = await CustomerService.ChangePasswordAsync(passwordModel);
+            if (success)
+            {
+                MessageService.Success("Đổi mật khẩu thành công!");
+                isChangePasswordVisible = false;
+                passwordModel = new();
+            }
+            else
+            {
+                MessageService.Error("Đổi mật khẩu thất bại!");
+            }
+        }
+        catch (Exception ex)
+        {
+            MessageService.Error("Có lỗi xảy ra khi đổi mật khẩu!");
+            Console.WriteLine($"Error changing password: {ex.Message}");
+        }
+        finally
+        {
+            isChangingPassword = false;
+            StateHasChanged();
+        }
+    }
+
     private async Task HandleSubmit()
     {
         try
         {
             isLoading = true;
             StateHasChanged();
+
+            // Map gender
+            if (int.TryParse(selectedGender, out var genderValue))
+            {
+                model.Gender = genderValue;
+            }
 
             var response = await CustomerService.UpdateCustomersAsync(model);
 
@@ -273,6 +376,7 @@
                 model.PhoneNumber = originalData.PhoneNumber;
                 model.Address = originalData.Address ?? "";
                 model.DateOfBirth = originalData.DateOfBirth;
+                selectedGender = originalData.Gender?.ToString() ?? "1";
                 hasChanges = false;
             }
         }
@@ -298,5 +402,4 @@
 
         return "0";
     }
-
 }

@@ -29,7 +29,7 @@
     <div class="addresses-content">
         <!-- Add New Address Button -->
         <div class="add-address-section">
-            <Button Type="@ButtonType.Primary" Icon="plus" Onclick="ShowCreateAddressModal" Size="@ButtonSize.Large">
+            <Button Type="@ButtonType.Primary" Icon="plus" OnClick="ShowCreateAddressModal" Size="@ButtonSize.Large">
                 Thêm địa chỉ mới
             </Button>
         </div>
@@ -44,37 +44,48 @@
         }
         else if (addresses.Any())
         {
-            <GridRow Gutter="16">
+            <div class="address-list">
                 @foreach (var address in addresses)
                 {
-                    <GridCol Span="12" Xs="24" Sm="24" Md="12" Lg="12" Xl="12">
-                        <Card Class="address-card" Actions="@GetAddressActions(address)">
+                    <div class="address-item">
+                        <div class="d-flex justify-content-between">
                             <div class="address-content">
-                                <div class="address-header">
-                                    <div class="address-name">
-                                        <Icon Type="user"/>
-                                        @address.Name
+                                <div class="address-info">
+                                    <div class="d-flex gap-1 justify-items-center">
+                                        <div class="address-name">
+                                            <i class="fas fa-user"></i> @address.Name
+                                        </div>
+                                        <div class=""> | </div>
+                                        <div class="address-phone">
+                                            <i class="fas fa-phone"></i> @address.PhoneNumber
+                                        </div>
                                     </div>
-                                    <div class="address-phone">
-                                        <Icon Type="phone"/>
-                                        @address.PhoneNumber
+                                    <div class="d-flex gap-1 justify-items-center">
+                                        <div class="address-detail">
+                                            <i class="fas fa-location-arrow"></i>
+                                            @address.FullAddress
+                                        </div>
                                     </div>
-                                </div>
-                                <div class="address-detail">
-                                    <Icon Type="environment"/>
-                                    @address.FullAddress
                                 </div>
                             </div>
-                        </Card>
-                    </GridCol>
+                            <div class="address-actions">
+                                <Button Type="@ButtonType.Link" Icon="edit" OnClick="() => EditAddress(address)">
+                                    Sửa
+                                </Button>
+                                <Button Type="@ButtonType.Link" Icon="delete" Danger="true" OnClick="() => DeleteAddress(address)">
+                                    Xóa
+                                </Button>
+                            </div>
+                        </div>
+                    </div>
                 }
-            </GridRow>
+            </div>
         }
         else
         {
             <div class="empty-state">
                 <Empty>
-                    <Button Type="@ButtonType.Primary" Icon="plus" Onclick="ShowCreateAddressModal">
+                    <Button Type="@ButtonType.Primary" Icon="plus" OnClick="ShowCreateAddressModal">
                         Thêm địa chỉ đầu tiên
                     </Button>
                 </Empty>
@@ -84,55 +95,41 @@
 </div>
 
 <!-- Create/Edit Address Modal -->
-<Modal Title="@(editingAddress.Id == Guid.Empty ? "Thêm địa chỉ mới" : "Chỉnh sửa địa chỉ")"
-       Visible="@showCreateOrUpdateModal" OnOk="SaveAddress" OnCancel="@(() => showCreateOrUpdateModal = false)"
+<Modal Title="@(editingAddress.Id == Guid.Empty ? "Thêm địa chỉ mới" : "Sửa địa chỉ")"
+       Visible="@showCreateOrUpdateModal" 
+       OnOk="HandleOkAddress" 
+       OnCancel="HandleCancelAddress"
        Width="600">
-
-    <Form Model="@editingAddress" Layout="FormLayout.Vertical">
-        <GridRow Gutter="16">
-            <GridCol Span="12">
-                <FormItem Label="Họ tên người nhận" Name="Name" Rules="@nameRules">
-                    <Input @bind-Value="@editingAddress.Name" Placeholder="Nhập họ tên"/>
-                </FormItem>
-            </GridCol>
-            <GridCol Span="12">
-                <FormItem Label="Số điện thoại" Name="PhoneNumber" Rules="@phoneRules">
-                    <Input @bind-Value="@editingAddress.PhoneNumber" Placeholder="Nhập số điện thoại"/>
-                </FormItem>
-            </GridCol>
-        </GridRow>
-
-        <GridRow Gutter="16">
-            <GridCol Span="8">
-                <FormItem Label="Tỉnh/Thành phố" Name="ProvinceId" Rules="@provinceRules">
-                    <Select @bind-Value="@selectedProvinceId" TItem="GhnLocationItem" TItemValue="int?" Placeholder="Chọn tỉnh/thành phố"
-                            OnSelectedItemChanged="OnProvinceChanged" Loading="@loadingProvinces"
-                            DataSource="provinces" ValueName="Id" LabelName="Name">
-                    </Select>
-                </FormItem>
-            </GridCol>
-            <GridCol Span="8">
-                <FormItem Label="Quận/Huyện" Name="DistrictId"  Rules="@districtRules">
-                    <Select @bind-Value="@selectedDistrictId" TItem="GhnLocationItem" TItemValue="int?" Placeholder="Chọn quận/huyện"
-                            OnSelectedItemChanged="OnDistrictChanged" Loading="@loadingDistricts"
-                            Disabled="@(!selectedProvinceId.HasValue)"  DataSource="districts" ValueName="Id" LabelName="Name">
-        
-                    </Select>
-                </FormItem>
-            </GridCol>
-            <GridCol Span="8">
-                <FormItem Label="Phường/Xã" Name="CommuneId" Rules="@communeRules">
-                    <Select TItem="GhnLocationItem" TItemValue="int?" @bind-Value="selectedCommuneId"
-                            Placeholder="Chọn phường/xã" Loading="@loadingCommunes"
-                            Disabled="@(!selectedDistrictId.HasValue)" DataSource="wards" ValueName="Id" LabelName="Name">
-            
-                    </Select>
-                </FormItem>
-            </GridCol>
-        </GridRow>
-
-        <FormItem Label="Địa chỉ chi tiết" Name="Address" Rules="@addressRules">
-            <TextArea @bind-Value="@editingAddress.Address" Rows="3" Placeholder="Số nhà, tên đường..."></TextArea>
+    <Form Model="@editingAddress" LabelAlign="AntLabelAlignType.Left" LabelColSpan="6" WrapperColSpan="18">
+        <FormItem Label="Họ tên" Required>
+            <Input @bind-Value="editingAddress.Name" MaxLength="255" Placeholder="Nhập họ tên..." />
+        </FormItem>
+        <FormItem Label="Điện thoại" Required>
+            <Input @bind-Value="editingAddress.PhoneNumber" MaxLength="11" Placeholder="SĐT..." 
+                   inputmode="numeric" pattern="[0-9]*" />
+        </FormItem>
+        <FormItem Label="Tỉnh/Thành phố" Required>
+            <Select TItem="GhnLocationItem" TItemValue="int?" @bind-Value="selectedProvinceId"
+                    Placeholder="Chọn tỉnh/thành phố..." OnSelectedItemChanged="OnProvinceChange"
+                    DataSource="provinces" ValueName="Id" LabelName="Name">
+            </Select>
+        </FormItem>
+        <FormItem Label="Quận/Huyện" Required>
+            <Select TItem="GhnLocationItem" TItemValue="int?" @bind-Value="selectedDistrictId"
+                    Placeholder="Chọn quận/huyện..." OnSelectedItemChanged="OnDistrictChange"
+                    Disabled="@(!selectedProvinceId.HasValue)" DataSource="districts" ValueName="Id"
+                    LabelName="Name">
+            </Select>
+        </FormItem>
+        <FormItem Label="Phường/Xã" Required>
+            <Select TItem="GhnLocationItem" TItemValue="int?" @bind-Value="selectedCommuneId"
+                    Placeholder="Chọn phường/xã..." OnSelectedItemChanged="OnCommuneChange"
+                    Disabled="@(!selectedProvinceId.HasValue)" DataSource="wards" ValueName="Id"
+                    LabelName="Name">
+            </Select>
+        </FormItem>
+        <FormItem Label="Địa chỉ chi tiết" Required>
+            <Input @bind-Value="editingAddress.Address" MaxLength="255" Placeholder="Số nhà, đường..." />
         </FormItem>
     </Form>
 </Modal>
@@ -153,43 +150,6 @@
     private int? selectedDistrictId;
     private int? selectedCommuneId;
 
-    // Loading states
-    private bool loadingProvinces = false;
-    private bool loadingDistricts = false;
-    private bool loadingCommunes = false;
-
-    // Form validation rules
-    private FormValidationRule[] nameRules = new[]
-    {
-        new FormValidationRule { Required = true, Message = "Vui lòng nhập họ tên" }
-    };
-
-    private FormValidationRule[] phoneRules = new[]
-    {
-        new FormValidationRule { Required = true, Message = "Vui lòng nhập số điện thoại" },
-        new FormValidationRule { Pattern = @"^[0-9]{10,11}$", Message = "Số điện thoại không hợp lệ" }
-    };
-
-    private FormValidationRule[] provinceRules = new[]
-    {
-        new FormValidationRule { Required = true, Message = "Vui lòng chọn tỉnh/thành phố" }
-    };
-
-    private FormValidationRule[] districtRules = new[]
-    {
-        new FormValidationRule { Required = true, Message = "Vui lòng chọn quận/huyện" }
-    };
-
-    private FormValidationRule[] communeRules = new[]
-    {
-        new FormValidationRule { Required = true, Message = "Vui lòng chọn phường/xã" }
-    };
-
-    private FormValidationRule[] addressRules = new[]
-    {
-        new FormValidationRule { Required = true, Message = "Vui lòng nhập địa chỉ chi tiết" }
-    };
-
     protected override async Task OnInitializedAsync()
     {
         await LoadAddresses();
@@ -201,15 +161,8 @@
         try
         {
             isLoading = true;
-            var authState = await AuthStateProvider.GetAuthenticationStateAsync();
-            var userIdClaim = authState.User.FindFirst("CustomerId");
-
-            if (userIdClaim != null && Guid.TryParse(userIdClaim.Value, out var customerId))
-            {
-                // Use the correct method name from the service
-                var result = await DeliveryAddressService.GetMyAddressesAsync();
-                addresses = result?.ToList() ?? new List<DeliveryAddressDTO>();
-            }
+            var result = await DeliveryAddressService.GetMyAddressesAsync();
+            addresses = result?.ToList() ?? new List<DeliveryAddressDTO>();
         }
         catch (Exception ex)
         {
@@ -227,7 +180,6 @@
     {
         try
         {
-            loadingProvinces = true;
             var result = await GhnService.GetProvincesAsync();
             provinces = result?.ToList() ?? new List<GhnLocationItem>();
         }
@@ -236,30 +188,30 @@
             MessageService.Error("Không thể tải danh sách tỉnh/thành phố!");
             Console.WriteLine($"Error loading provinces: {ex.Message}");
         }
-        finally
-        {
-            loadingProvinces = false;
-            StateHasChanged();
-        }
     }
 
-    private async void OnProvinceChanged(GhnLocationItem province)
+    private async void OnProvinceChange(GhnLocationItem province)
     {
         selectedProvinceId = province.Id;
+        editingAddress.ProvinceId = province.Id;
+
+        // Reset dependent selections
         selectedDistrictId = null;
         selectedCommuneId = null;
+        editingAddress.DistrictId = null;
+        editingAddress.CommuneId = null;
+
         districts.Clear();
         wards.Clear();
-        
-        await LoadDistricts(province.Id);
+
+        await LoadDistricts(province.GhnProvinceId);
     }
 
-    private async Task LoadDistricts(int provinceId)
+    private async Task LoadDistricts(int ghnProvinceId)
     {
         try
         {
-            loadingDistricts = true;
-            var result = await GhnService.GetDistrictsAsync(provinceId);
+            var result = await GhnService.GetDistrictsAsync(ghnProvinceId);
             districts = result?.ToList() ?? new List<GhnLocationItem>();
         }
         catch (Exception ex)
@@ -267,28 +219,27 @@
             MessageService.Error("Không thể tải danh sách quận/huyện!");
             Console.WriteLine($"Error loading districts: {ex.Message}");
         }
-        finally
-        {
-            loadingDistricts = false;
-            StateHasChanged();
-        }
     }
 
-    private async void OnDistrictChanged(GhnLocationItem district)
+    private async void OnDistrictChange(GhnLocationItem district)
     {
         selectedDistrictId = district.Id;
+        editingAddress.DistrictId = district.Id;
+
+        // Reset dependent selections
         selectedCommuneId = null;
+        editingAddress.CommuneId = null;
+
         wards.Clear();
 
-        await LoadCommunes(district.Id);
+        await LoadCommunes(district.GhnDistrictId);
     }
 
-    private async Task LoadCommunes(int districtId)
+    private async Task LoadCommunes(int ghnDistrictId)
     {
         try
         {
-            loadingCommunes = true;
-            var result = await GhnService.GetWardsAsync(districtId);
+            var result = await GhnService.GetWardsAsync(ghnDistrictId);
             wards = result?.ToList() ?? new List<GhnLocationItem>();
         }
         catch (Exception ex)
@@ -296,11 +247,12 @@
             MessageService.Error("Không thể tải danh sách phường/xã!");
             Console.WriteLine($"Error loading communes: {ex.Message}");
         }
-        finally
-        {
-            loadingCommunes = false;
-            StateHasChanged();
-        }
+    }
+
+    private async void OnCommuneChange(GhnLocationItem commune)
+    {
+        selectedCommuneId = commune.Id;
+        editingAddress.CommuneId = commune.Id;
     }
 
     private void ShowCreateAddressModal()
@@ -334,31 +286,72 @@
         // Load location data for editing
         if (address.ProvinceId != -1)
         {
-            await LoadDistricts(address.ProvinceId);
-            if (address.DistrictId != -1)
+            var province = provinces.FirstOrDefault(p => p.Id == address.ProvinceId);
+            if (province != null)
             {
-                await LoadCommunes(address.DistrictId);
+                await LoadDistricts(province.GhnProvinceId);
+                if (address.DistrictId != -1)
+                {
+                    var district = districts.FirstOrDefault(d => d.Id == address.DistrictId);
+                    if (district != null)
+                    {
+                        await LoadCommunes(district.GhnDistrictId);
+                    }
+                }
             }
         }
 
         showCreateOrUpdateModal = true;
     }
 
-    private async Task SaveAddress()
+    private async Task HandleOkAddress()
     {
         try
         {
+            // Normalize inputs
+            editingAddress.Name = editingAddress.Name?.Trim();
+            editingAddress.PhoneNumber = editingAddress.PhoneNumber?.Trim();
+            editingAddress.Address = editingAddress.Address?.Trim();
+
+            // Basic validations
+            if (string.IsNullOrWhiteSpace(editingAddress.Name))
+            {
+                MessageService.Warning("Vui lòng nhập họ tên");
+                return;
+            }
+            if (editingAddress.Name!.Length < 2)
+            {
+                MessageService.Warning("Họ tên quá ngắn");
+                return;
+            }
+            if (string.IsNullOrWhiteSpace(editingAddress.PhoneNumber))
+            {
+                MessageService.Warning("Vui lòng nhập số điện thoại");
+                return;
+            }
+            if (!IsValidVietnamPhone(editingAddress.PhoneNumber!))
+            {
+                MessageService.Warning("Số điện thoại không hợp lệ (10-11 số, bắt đầu bằng 0)");
+                return;
+            }
+            if (!selectedProvinceId.HasValue || !selectedDistrictId.HasValue || !selectedCommuneId.HasValue)
+            {
+                MessageService.Warning("Vui lòng chọn đủ Tỉnh/Thành, Quận/Huyện, Phường/Xã");
+                return;
+            }
+            if (string.IsNullOrWhiteSpace(editingAddress.Address))
+            {
+                MessageService.Warning("Vui lòng nhập địa chỉ chi tiết (số nhà, đường...)");
+                return;
+            }
+
             // Set location IDs
-            editingAddress.ProvinceId = selectedProvinceId ?? -1;
-            editingAddress.DistrictId = selectedDistrictId ?? -1;
-            editingAddress.CommuneId = selectedCommuneId ?? -1;
+            editingAddress.ProvinceId = selectedProvinceId;
+            editingAddress.DistrictId = selectedDistrictId;
+            editingAddress.CommuneId = selectedCommuneId;
 
             // Build full address
-            var provinceName = provinces.FirstOrDefault(p => p.GhnProvinceId == selectedProvinceId).Name ?? "";
-            var districtName = districts.FirstOrDefault(d => d.GhnDistrictId == selectedDistrictId).Name ?? "";
-            var wardName = wards.FirstOrDefault(w => w.Id == selectedCommuneId).Name ?? "";
-
-            editingAddress.FullAddress = $"{editingAddress.Address}, {wardName}, {districtName}, {provinceName}";
+            editingAddress.FullAddress = BuildFullAddress(editingAddress.Address);
 
             var result = await DeliveryAddressService.CreateOrUpdateAsync(editingAddress);
 
@@ -378,6 +371,11 @@
             MessageService.Error("Có lỗi xảy ra khi lưu địa chỉ!");
             Console.WriteLine($"Error saving address: {ex.Message}");
         }
+    }
+
+    private void HandleCancelAddress()
+    {
+        showCreateOrUpdateModal = false;
     }
 
     private async Task DeleteAddress(DeliveryAddressDTO address)
@@ -402,31 +400,25 @@
         }
     }
 
-    private RenderFragment CreateAction(string icon, string text, EventCallback onclick, bool danger = false)
+    private string BuildFullAddress(string detail)
     {
-        return builder =>
-        {
-            builder.OpenComponent<Button>(0);
-            builder.AddAttribute(1, "Type", ButtonType.Link);
-            builder.AddAttribute(2, "Icon", icon);
-            if (danger)
-            {
-                builder.AddAttribute(3, "Danger", true);
-            }
+        var wardName = wards.FirstOrDefault(x => x.Id == (selectedCommuneId ?? -1))?.Name ?? string.Empty;
+        var districtName = districts.FirstOrDefault(x => x.Id == (selectedDistrictId ?? -1))?.Name ?? string.Empty;
+        var provinceName = provinces.FirstOrDefault(x => x.Id == (selectedProvinceId ?? -1))?.Name ?? string.Empty;
 
-            builder.AddAttribute(4, "onclick", onclick);
-            builder.AddContent(5, text);
-            builder.CloseComponent();
-        };
+        var parts = new List<string>();
+        if (!string.IsNullOrWhiteSpace(detail)) parts.Add(detail.Trim());
+        if (!string.IsNullOrWhiteSpace(wardName)) parts.Add(wardName.Trim());
+        if (!string.IsNullOrWhiteSpace(districtName)) parts.Add(districtName.Trim());
+        if (!string.IsNullOrWhiteSpace(provinceName)) parts.Add(provinceName.Trim());
+        return string.Join(", ", parts);
     }
 
-    private RenderFragment[] GetAddressActions(DeliveryAddressDTO address)
+    private static bool IsValidVietnamPhone(string phone)
     {
-        return new RenderFragment[]
-        {
-            CreateAction("edit", "Sửa", EventCallback.Factory.Create(this, () => EditAddress(address))),
-            CreateAction("delete", "Xóa", EventCallback.Factory.Create(this, () => DeleteAddress(address)), true)
-        };
+        // Accept 10-11 digits starting with 0; strips spaces and dashes before check
+        var digits = new string(phone.Where(char.IsDigit).ToArray());
+        if (!digits.StartsWith("0")) return false;
+        return digits.Length == 10 || digits.Length == 11;
     }
-
 }

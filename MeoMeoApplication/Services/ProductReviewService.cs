@@ -190,6 +190,89 @@ namespace MeoMeo.Application.Services
             return await _reviewRepo.GetAllProductReviewsAsync();
         }
 
+        public async Task<List<OrderItemForReviewDTO>> GetUnreviewedOrderItemsAsync(Guid customerId)
+        {
+            try
+            {
+                // Lấy tất cả đơn hàng đã hoàn thành của customer
+                var completedOrders = await _orderRepository.Query()
+                    .Where(o => o.CustomerId == customerId && o.Status == EOrderStatus.Completed)
+                    .Include(o => o.OrderDetails)
+                        .ThenInclude(od => od.ProductDetail)
+                            .ThenInclude(pd => pd.Product)
+                    .Include(o => o.OrderDetails)
+                        .ThenInclude(od => od.ProductDetail)
+                            .ThenInclude(pd => pd.Size)
+                    .Include(o => o.OrderDetails)
+                        .ThenInclude(od => od.ProductDetail)
+                            .ThenInclude(pd => pd.Colour)
+                    .ToListAsync();
+
+                // Lấy tất cả ProductDetailId đã được review bởi customer này
+                var reviewedProductDetailIds = await _reviewRepo.Query()
+                    .Where(r => r.CustomerId == customerId)
+                    .Select(r => r.ProductDetailId)
+                    .ToListAsync();
+
+                var unreviewedItems = new List<OrderItemForReviewDTO>();
+
+                foreach (var order in completedOrders)
+                {
+                    foreach (var orderDetail in order.OrderDetails)
+                    {
+                        // Chỉ lấy những sản phẩm chưa được review
+                        if (!reviewedProductDetailIds.Contains(orderDetail.ProductDetailId))
+                        {
+                            unreviewedItems.Add(new OrderItemForReviewDTO
+                            {
+                                OrderId = order.Id,
+                                OrderCode = order.Code,
+                                OrderDate = order.CreationTime,
+                                ProductDetailId = orderDetail.ProductDetailId,
+                                ProductName = orderDetail.ProductDetail?.Product?.Name ?? "N/A",
+                                ProductImage = orderDetail.ProductDetail?.Product?.Thumbnail ?? "",
+                                SizeName = orderDetail.ProductDetail?.Size?.Name ?? "N/A",
+                                ColorName = orderDetail.ProductDetail?.Colour?.Name ?? "N/A",
+                                Quantity = orderDetail.Quantity,
+                                Price = orderDetail.Price,
+                                Discount = orderDetail.Discount
+                            });
+                        }
+                    }
+                }
+
+                return unreviewedItems.OrderByDescending(x => x.OrderDate).ToList();
+            }
+            catch (Exception ex)
+            {
+                throw new Exception($"Error getting unreviewed order items: {ex.Message}");
+            }
+        }
+
+        public async Task<List<ProductReviewDTO>> GetCustomerReviewsAsync(Guid customerId)
+        {
+            try
+            {
+                var reviews = await _reviewRepo.Query()
+                    .Where(r => r.CustomerId == customerId)
+                    .Include(r => r.ProductDetail)
+                        .ThenInclude(pd => pd.Product)
+                    .Include(r => r.ProductDetail)
+                        .ThenInclude(pd => pd.Size)
+                    .Include(r => r.ProductDetail)
+                        .ThenInclude(pd => pd.Colour)
+                    .Include(r => r.ProductReviewFiles)
+                    .OrderByDescending(r => r.CreationTime)
+                    .ToListAsync();
+
+                return _mapper.Map<List<ProductReviewDTO>>(reviews);
+            }
+            catch (Exception ex)
+            {
+                throw new Exception($"Error getting customer reviews: {ex.Message}");
+            }
+        }
+
 
     }
 }
