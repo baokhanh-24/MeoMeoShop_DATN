@@ -5,6 +5,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using MeoMeo.Contract.Commons;
 using MeoMeo.Domain.Commons;
 
 namespace MeoMeo.Application.IServices
@@ -16,5 +17,8 @@ namespace MeoMeo.Application.IServices
         Task<CreateOrUpdateCustomerResponse> CreateCustomersAsync(CreateOrUpdateCustomerDTO customer);
         Task<CreateOrUpdateCustomerResponse> UpdateCustomersAsync(CreateOrUpdateCustomerDTO customer);
         Task<bool> DeleteCustomersAsync(Guid id);
+        Task<BaseResponse> UploadAvatarAsync(Guid userId, FileUploadResult file);
+        Task<BaseResponse> ChangePasswordAsync(Guid userId, ChangePasswordDTO request);
+        Task<string> GetOldUrlAvatar(Guid userId);
     }
 }

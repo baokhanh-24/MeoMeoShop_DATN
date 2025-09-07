@@ -22,18 +22,23 @@ namespace MeoMeo.Shared.Services
             _logger = logger;
         }
 
-        public async Task<IEnumerable<ProductReviewDTO>> GetAllAsync()
+        public Task<BaseResponse> DeleteAsync(Guid id)
+        {
+            throw new NotImplementedException();
+        }
+
+        public async Task<List<ProductReviewDTO>> GetAllAsync()
         {
             try
             {
                 var url = "/api/ProductReviews";
-                var response = await _httpClient.GetAsync<IEnumerable<ProductReviewDTO>>(url);
-                return response ?? Array.Empty<ProductReviewDTO>();
+                var response = await _httpClient.GetAsync<List<ProductReviewDTO>>(url);
+                return response ?? new List<ProductReviewDTO>();
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error fetching product reviews: {Message}", ex.Message);
-                return Array.Empty<ProductReviewDTO>();
+                return new List<ProductReviewDTO>();
             }
         }
 
@@ -97,20 +102,25 @@ namespace MeoMeo.Shared.Services
             return formData;
         }
 
-        public async Task<ProductReviewDTO> CreateAsync(ProductReviewCreateOrUpdateDTO dto)
+        public async Task<BaseResponse> CreateAsync(ProductReviewCreateOrUpdateDTO dto)
         {
             try
             {
                 var url = "/api/ProductReviews";
                 var formData = ConvertReviewToFormData(dto);
                 var result = await _httpClient.PostFormAsync<ProductReviewDTO>(url, formData);
-                return result ?? new ProductReviewDTO();
+                return result ?? new BaseResponse();
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error creating product review: {Message}", ex.Message);
                 throw;
             }
+        }
+
+        public Task<BaseResponse> UpdateAsync(ProductReviewCreateOrUpdateDTO dto)
+        {
+            throw new NotImplementedException();
         }
 
         public async Task<List<OrderItemForReviewDTO>> GetUnreviewedOrderItemsAsync()

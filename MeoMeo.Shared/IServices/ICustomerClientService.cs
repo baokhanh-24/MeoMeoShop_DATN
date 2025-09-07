@@ -1,5 +1,7 @@
+using MeoMeo.Contract.Commons;
 using MeoMeo.Contract.DTOs;
 using MeoMeo.Domain.Commons;
+using Microsoft.AspNetCore.Http;
 
 namespace MeoMeo.Shared.IServices;
 
@@ -9,7 +11,7 @@ public interface ICustomerClientService
     Task<CustomerDTO> GetCustomersByIdAsync(Guid id);
     Task<CreateOrUpdateCustomerResponse> CreateCustomersAsync(CreateOrUpdateCustomerDTO customer);
     Task<CreateOrUpdateCustomerResponse> UpdateCustomersAsync(CreateOrUpdateCustomerDTO customer);
-    Task<bool> DeleteCustomersAsync(Guid id);
-    Task<bool> UploadAvatarAsync(Guid customerId, IFormFile file);
-    Task<bool> ChangePasswordAsync(ChangePasswordDTO model);
+    Task<BaseResponse> DeleteCustomersAsync(Guid id);
+    Task<BaseResponse> UploadAvatarAsync(IFormFile file);
+    Task<BaseResponse> ChangePasswordAsync(ChangePasswordDTO model);
 }

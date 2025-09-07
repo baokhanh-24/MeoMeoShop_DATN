@@ -324,8 +324,8 @@
 
     async Task deleteCustomer(Guid id)
     {
-        var success = await CustomerClientService.DeleteCustomersAsync(id);
-        if (success)
+        var response = await CustomerClientService.DeleteCustomersAsync(id);
+        if (response.ResponseStatus==BaseStatus.Success)
         {
             listOfData.RemoveAll(x => x.Id == id);
             editCache.Remove(id);

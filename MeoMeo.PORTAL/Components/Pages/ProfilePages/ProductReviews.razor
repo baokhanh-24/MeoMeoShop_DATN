@@ -9,6 +9,8 @@
 @using MeoMeo.PORTAL.Components.Layout
 @using MeoMeo.Shared.Utilities
 @using AntDesign
+@using MeoMeo.Contract.Commons
+@using MeoMeo.Contract.DTOs.Product
 @using MeoMeo.Contract.DTOs.ProductReview
 @using ButtonType = AntDesign.ButtonType
 @inject IProductReviewClientService ProductReviewService
@@ -345,7 +347,6 @@
     // New properties for review modal (giống ProductDetail)
     private InputFile? fileInputReview;
     private bool isProcessingReview = false;
-    private List<ProductMediaUpload> reviewUploads = new();
     private List<string> tags = new() { "Đóng gói đẹp", "Giao nhanh", "Chất lượng tốt", "Đáng tiền" };
     private HashSet<int> selectedTag = new();
     private bool disabledButtonComment = false;
@@ -574,7 +575,6 @@
                         FileName = file.Name,
                         ContentType = file.ContentType,
                         Base64Data = base64,
-                        FileSize = file.Size,
                         ImageUrl = $"temp/{Guid.NewGuid()}_{file.Name}"
                     };
 
@@ -666,14 +666,4 @@
         
         return $"{backendUrl}/{imagePath}";
     }
-}
-
-// Class cần thiết cho upload
-public class ProductMediaUpload
-{
-    public string FileName { get; set; } = string.Empty;
-    public string ContentType { get; set; } = string.Empty;
-    public string Base64Data { get; set; } = string.Empty;
-    public long FileSize { get; set; }
-    public string ImageUrl { get; set; } = string.Empty;
 }

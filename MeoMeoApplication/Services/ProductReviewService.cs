@@ -9,6 +9,7 @@ using System.Threading.Tasks;
 using MeoMeo.Contract.Commons;
 using AutoMapper;
 using MeoMeo.Domain.Commons;
+using MeoMeo.Domain.Commons.Enums;
 using Microsoft.EntityFrameworkCore;
 
 namespace MeoMeo.Application.Services
@@ -17,12 +18,14 @@ namespace MeoMeo.Application.Services
     {
         private readonly IProductReviewRepository _reviewRepo;
         private readonly IProductReviewFileRepository _fileRepo;
+        private readonly IOrderRepository _orderRepository;
         private readonly IMapper _mapper;
-        public ProductReviewService(IProductReviewRepository reviewRepo,IProductReviewFileRepository fileRepo, IMapper mapper)
+        public ProductReviewService(IProductReviewRepository reviewRepo,IProductReviewFileRepository fileRepo, IMapper mapper, IOrderRepository orderRepository)
         {
             _reviewRepo = reviewRepo;
             _fileRepo = fileRepo;
             _mapper = mapper;
+            _orderRepository = orderRepository;
         }
         public async Task<BaseResponse> CreateProductReviewAsync(ProductReviewCreateOrUpdateDTO dto, List<FileUploadResult> filesUpload)
         {
@@ -231,11 +234,11 @@ namespace MeoMeo.Application.Services
                                 ProductDetailId = orderDetail.ProductDetailId,
                                 ProductName = orderDetail.ProductDetail?.Product?.Name ?? "N/A",
                                 ProductImage = orderDetail.ProductDetail?.Product?.Thumbnail ?? "",
-                                SizeName = orderDetail.ProductDetail?.Size?.Name ?? "N/A",
+                                SizeName = orderDetail.ProductDetail?.Size.Value ?? "N/A",
                                 ColorName = orderDetail.ProductDetail?.Colour?.Name ?? "N/A",
                                 Quantity = orderDetail.Quantity,
-                                Price = orderDetail.Price,
-                                Discount = orderDetail.Discount
+                                Price =(decimal) orderDetail.Price,
+                                Discount =(decimal) orderDetail.Discount
                             });
                         }
                     }

@@ -98,6 +98,66 @@ namespace MeoMeo.Application.Services
             await _repository.DeleteCustomersAsync(customerToDelete.Id);
             return true;
         }
+
+        public async Task<string> GetOldUrlAvatar(Guid userId)
+        {
+            var user= await _userRepository.Query().FirstOrDefaultAsync(u => u.Id == userId);
+            if (user == null)
+            {
+                return "";
+            }
+            return user.Avatar;
+        }
+        public async Task<BaseResponse> UploadAvatarAsync(Guid userId, FileUploadResult file)
+        {
+          var user= await _userRepository.Query().FirstOrDefaultAsync(u => u.Id == userId);
+          if (user == null)
+          {
+              return new BaseResponse()
+              {
+                  ResponseStatus = BaseStatus.Error,
+                  Message = "User not found"
+              };
+          }
+          user.Avatar = file.RelativePath;
+          await _userRepository.UpdateAsync(user);
+          return new BaseResponse()
+          {
+              ResponseStatus = BaseStatus.Success,
+              Message = "Cập nhật avatar thành công"
+          };
+        }
+
+        public async Task<BaseResponse> ChangePasswordAsync(Guid userId,ChangePasswordDTO request)
+        {
+            var user= await _userRepository.Query().FirstOrDefaultAsync(u => u.Id == userId);
+            if (user == null)
+            {
+                return new BaseResponse()
+                {
+                    ResponseStatus = BaseStatus.Error,
+                    Message = "User not found"
+                };
+            }
+            var currentPassword=  FunctionHelper.ComputerSha256Hash(request.CurrentPassword);
+            if (user.PasswordHash != currentPassword)
+            {
+                return new BaseResponse()
+                {
+                    ResponseStatus = BaseStatus.Error,
+                    Message = "Mật khẩu hiện tại không chính xác"
+                };
+            }
+            var newPassword=  FunctionHelper.ComputerSha256Hash(request.CurrentPassword);
+            user.PasswordHash = newPassword;
+            await _userRepository.UpdateAsync(user);
+            return new BaseResponse()
+            {
+                ResponseStatus = BaseStatus.Success,
+                Message = "Thay đổi mật khẩu thành công"
+            };
+        }
+
         public async Task<List<Customers>> GetAllCustomersAsync()
         {
             return await _repository.GetAllCustomersAsync();
@@ -181,7 +241,7 @@ namespace MeoMeo.Application.Services
                     ResponseStatus = BaseStatus.Error
                 };
             }
-            var customerToUpdate = await _repository.GetCustomersByIdAsync(customer.Id);
+            var customerToUpdate = await _repository.GetCustomersByIdAsync(customer.Id.Value);
             _mapper.Map(customer, customerToUpdate);
 
             var result = await _repository.UpdateCustomersAsync(customerToUpdate);

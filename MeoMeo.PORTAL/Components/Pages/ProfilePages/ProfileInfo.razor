@@ -1,4 +1,5 @@
 @page "/profile"
+@using MeoMeo.Contract.Commons
 @using MeoMeo.Shared.IServices
 @using MeoMeo.Contract.DTOs
 @using MeoMeo.Shared.Utilities
@@ -217,7 +218,26 @@
             Console.WriteLine($"Error loading user data: {ex.Message}");
         }
     }
+    private async Task<IFormFile> ConvertBase64ToFormFile(string base64Data, string fileName, string contentType)
+    {
+        var bytes = Convert.FromBase64String(base64Data);
+        var stream = new MemoryStream(bytes);
 
+        return new FormFile(stream, 0, bytes.Length, fileName, fileName)
+        {
+            Headers = new HeaderDictionary(),
+            ContentType = contentType
+        };
+    }
+    private async Task<string> ConvertToBase64(IBrowserFile file)
+    {
+        var maxSize = file.ContentType.StartsWith("video/") ? 10 * 1024 * 1024 : 10 * 1024 * 1024;
+        using var stream = file.OpenReadStream(maxAllowedSize: maxSize);
+        using var memoryStream = new MemoryStream();
+        await stream.CopyToAsync(memoryStream);
+        var bytes = memoryStream.ToArray();
+        return Convert.ToBase64String(bytes);
+    }
     private async Task OnAvatarSelected(InputFileChangeEventArgs e)
     {
         var file = e.File;
@@ -239,10 +259,10 @@
         {
             isUploadingAvatar = true;
             StateHasChanged();
-
-            var success = await CustomerService.UploadAvatarAsync(model.Id, file);
-            
-            if (success)
+            var base64 = await ConvertToBase64(file);
+            var fileUpload = await ConvertBase64ToFormFile(base64, file.Name, file.ContentType);
+            var response = await CustomerService.UploadAvatarAsync(fileUpload);
+            if (response.ResponseStatus== BaseStatus.Success)
             {
                 MessageService.Success("Cập nhật ảnh đại diện thành công!");
                 await LoadUserData(); // Reload to get new avatar URL
@@ -304,8 +324,8 @@
             isChangingPassword = true;
             StateHasChanged();
 
-            var success = await CustomerService.ChangePasswordAsync(passwordModel);
-            if (success)
+            var response = await CustomerService.ChangePasswordAsync(passwordModel);
+            if (response.ResponseStatus== BaseStatus.Success)
             {
                 MessageService.Success("Đổi mật khẩu thành công!");
                 isChangePasswordVisible = false;

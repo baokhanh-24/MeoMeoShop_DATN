@@ -3,6 +3,7 @@ using MeoMeo.Contract.Commons;
 using MeoMeo.Contract.DTOs;
 using MeoMeo.Domain.Commons;
 using MeoMeo.Shared.Utilities;
+using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Logging;
 
 namespace MeoMeo.Shared.Services
@@ -87,7 +88,7 @@ namespace MeoMeo.Shared.Services
             }
         }
 
-        public async Task<bool> DeleteCustomersAsync(Guid id)
+        public async Task<BaseResponse> DeleteCustomersAsync(Guid id)
         {
             try
             {
@@ -95,66 +96,50 @@ namespace MeoMeo.Shared.Services
                 var success = await _httpClient.DeleteAsync(url);
                 if (!success)
                 {
-                    _logger.LogWarning("Xoá Customer thất bại với Id {Id}", id);
+                    return new BaseResponse { ResponseStatus = BaseStatus.Error, Message ="Xoá khách hàng thất bại" };
                 }
-                return success;
+                return new BaseResponse { ResponseStatus = BaseStatus.Success,  Message = "Xóa khách hàng thành công" };
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Có lỗi xảy ra khi xoá Customer {Id}: {Message}", id, ex.Message);
-                return false;
+                return new BaseResponse { ResponseStatus = BaseStatus.Error, Message = ex.Message };
             }
         }
 
-        public async Task<bool> UploadAvatarAsync(Guid customerId, IFormFile file)
+
+
+        public async Task<BaseResponse> UploadAvatarAsync(IFormFile file)
         {
             try
             {
-                var url = $"/api/Customers/upload-avatar-async/{customerId}";
-                
+                var url = $"/api/Customers/upload-avatar-async";
                 using var content = new MultipartFormDataContent();
                 var fileContent = new StreamContent(file.OpenReadStream());
                 fileContent.Headers.ContentType = new System.Net.Http.Headers.MediaTypeHeaderValue(file.ContentType);
                 content.Add(fileContent, "file", file.FileName);
-                
-                var response = await _httpClient.PostAsync(url, content);
-                if (response.IsSuccessStatusCode)
-                {
-                    return true;
-                }
-                else
-                {
-                    _logger.LogWarning("Upload avatar thất bại cho Customer {CustomerId}", customerId);
-                    return false;
-                }
+                var response = await _httpClient.PostFormAsync<BaseResponse>(url, content);
+                return response;
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Có lỗi xảy ra khi upload avatar cho Customer {CustomerId}: {Message}", customerId, ex.Message);
-                return false;
+                return new BaseResponse { ResponseStatus = BaseStatus.Error, Message = ex.Message };
+     
             }
         }
 
-        public async Task<bool> ChangePasswordAsync(ChangePasswordDTO model)
+        public async Task<BaseResponse> ChangePasswordAsync(ChangePasswordDTO model)
         {
             try
             {
                 var url = "/api/Customers/change-password-async";
-                var response = await _httpClient.PutAsync(url, model);
-                if (response.IsSuccessStatusCode)
-                {
-                    return true;
-                }
-                else
-                {
-                    _logger.LogWarning("Đổi mật khẩu thất bại cho Customer {CustomerId}", model.CustomerId);
-                    return false;
-                }
+                var response = await _httpClient.PutAsync<ChangePasswordDTO,BaseResponse>(url, model);
+                return response;
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Có lỗi xảy ra khi đổi mật khẩu cho Customer {CustomerId}: {Message}", model.CustomerId, ex.Message);
-                return false;
+                return new BaseResponse { ResponseStatus = BaseStatus.Error, Message = ex.Message };
             }
         }
     }
