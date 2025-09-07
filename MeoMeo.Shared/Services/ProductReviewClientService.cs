@@ -22,9 +22,22 @@ namespace MeoMeo.Shared.Services
             _logger = logger;
         }
 
-        public Task<BaseResponse> DeleteAsync(Guid id)
+        public async Task<BaseResponse> DeleteAsync(Guid id)
         {
-            throw new NotImplementedException();
+            try
+            {
+                var ok = await _httpClient.DeleteAsync($"/api/ProductReviews/{id}");
+                return new BaseResponse
+                {
+                    ResponseStatus = ok ? BaseStatus.Success : BaseStatus.Error,
+                    Message = ok ? "Xóa đánh giá thành công" : "Xóa đánh giá thất bại"
+                };
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error deleting product review: {Message}", ex.Message);
+                return new BaseResponse { ResponseStatus = BaseStatus.Error, Message = ex.Message };
+            }
         }
 
         public async Task<List<ProductReviewDTO>> GetAllAsync()
@@ -108,19 +121,30 @@ namespace MeoMeo.Shared.Services
             {
                 var url = "/api/ProductReviews";
                 var formData = ConvertReviewToFormData(dto);
-                var result = await _httpClient.PostFormAsync<ProductReviewDTO>(url, formData);
+                var result = await _httpClient.PostFormAsync<BaseResponse>(url, formData);
                 return result ?? new BaseResponse();
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error creating product review: {Message}", ex.Message);
-                throw;
+                return new BaseResponse { ResponseStatus = BaseStatus.Error, Message = ex.Message };
             }
         }
 
-        public Task<BaseResponse> UpdateAsync(ProductReviewCreateOrUpdateDTO dto)
+        public async Task<BaseResponse> UpdateAsync(ProductReviewCreateOrUpdateDTO dto)
         {
-            throw new NotImplementedException();
+            try
+            {
+                var url = $"/api/ProductReviews/{dto.Id}";
+                var formData = ConvertReviewToFormData(dto);
+                var result = await _httpClient.PutFormAsync<BaseResponse>(url, formData);
+                return result ?? new BaseResponse();
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error updating product review: {Message}", ex.Message);
+                return new BaseResponse { ResponseStatus = BaseStatus.Error, Message = ex.Message };
+            }
         }
 
         public async Task<List<OrderItemForReviewDTO>> GetUnreviewedOrderItemsAsync()

@@ -12,6 +12,7 @@
 @using MeoMeo.Contract.Commons
 @using MeoMeo.Contract.DTOs.Product
 @using MeoMeo.Contract.DTOs.ProductReview
+@using Microsoft.AspNetCore.Http
 @using ButtonType = AntDesign.ButtonType
 @inject IProductReviewClientService ProductReviewService
 @inject IProductClientService ProductService
@@ -473,24 +474,20 @@
             disabledButtonComment = true;
             StateHasChanged();
 
-            // Upload files if any
-            var uploadedFiles = new List<FileUploadResult>();
+            // Convert local preview files (base64) to IFormFile and attach to DTO
+            var mediaUploads = new List<ProductReviewFileUpload>();
             if (reviewUploads.Any())
             {
                 foreach (var upload in reviewUploads)
                 {
                     if (!string.IsNullOrEmpty(upload.Base64Data))
                     {
-                        var fileResult = new FileUploadResult
-                        {
-                            FileName = upload.FileName,
-                            FileUrl = upload.ImageUrl,
-                            FileSize = upload.FileSize
-                        };
-                        uploadedFiles.Add(fileResult);
+                        var formFile = await ConvertBase64ToFormFile(upload.Base64Data!, upload.FileName ?? "upload", upload.ContentType ?? "image/jpeg");
+                        mediaUploads.Add(new ProductReviewFileUpload { UploadFile = formFile });
                     }
                 }
             }
+            reviewModel.MediaUploads = mediaUploads;
 
             var result = await ProductReviewService.CreateAsync(reviewModel);
             if (result.ResponseStatus == BaseStatus.Success)
@@ -620,6 +617,17 @@
         await stream.CopyToAsync(memoryStream);
         var bytes = memoryStream.ToArray();
         return Convert.ToBase64String(bytes);
+    }
+
+    private async Task<IFormFile> ConvertBase64ToFormFile(string base64Data, string fileName, string contentType)
+    {
+        var bytes = Convert.FromBase64String(base64Data);
+        var stream = new MemoryStream(bytes);
+        return new FormFile(stream, 0, bytes.Length, fileName, fileName)
+        {
+            Headers = new HeaderDictionary(),
+            ContentType = contentType
+        };
     }
 
     private void HandleChooseQuickTag(int index, string tag)
