@@ -20,5 +20,6 @@ namespace MeoMeo.Application.IServices
         Task<BaseResponse> UploadAvatarAsync(Guid userId, FileUploadResult file);
         Task<BaseResponse> ChangePasswordAsync(Guid userId, ChangePasswordDTO request);
         Task<string> GetOldUrlAvatar(Guid userId);
+        Task<QuickCustomerResponseDTO> CreateQuickCustomerAsync(CreateQuickCustomerDTO request);
     }
 }

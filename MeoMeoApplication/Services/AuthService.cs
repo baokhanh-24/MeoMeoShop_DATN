@@ -5,9 +5,7 @@ using AutoMapper;
 using MeoMeo.Application.IServices;
 using MeoMeo.Contract.Commons;
 using MeoMeo.Contract.DTOs.Auth;
-using MeoMeo.Contract.DTOs.PermissionGroup;
 using MeoMeo.Contract.DTOs.Permission;
-using MeoMeo.Contract.DTOs.RolePermission;
 using MeoMeo.Domain.Entities;
 using MeoMeo.Domain.IRepositories;
 using MeoMeo.Shared.Constants;
@@ -19,7 +17,7 @@ using Microsoft.IdentityModel.Tokens;
 
 namespace MeoMeo.Application.Services;
 
-public class AuthService:IAuthService
+public class AuthService : IAuthService
 {
     private IRefreshTokenRepository _refreshTokenRepository { get; }
     private IRoleRepository _roleRepository { get; }
@@ -47,12 +45,12 @@ public class AuthService:IAuthService
         _employeeRepository = employeeRepository;
         _configuration = configuration;
     }
-    
+
 
     private const int ExpriesIn = 86400 * 365 * 2;
-    
-    
-public async Task<AuthenResponse> LoginAsync(AuthenRequest input)
+
+
+    public async Task<AuthenResponse> LoginAsync(AuthenRequest input)
     {
         try
         {
@@ -60,13 +58,13 @@ public async Task<AuthenResponse> LoginAsync(AuthenRequest input)
             var existedUser = await _userRepository.Query().FirstOrDefaultAsync(c => c.UserName == input.UserName && c.PasswordHash == hashPW);
             if (existedUser is null)
             {
-              return new AuthenResponse()
+                return new AuthenResponse()
                 {
                     Message = "Thông tin tài khoản hoặc mật khẩu không chính xác xin vui lòng thử lại",
                     ResponseStatus = BaseStatus.Error
                 };
             }
-            
+
             if (existedUser.IsLocked)
             {
                 string mess = "Tài khoản đang bị khóa. Vui lòng hiên hệ với quản trị viên";
@@ -74,26 +72,31 @@ public async Task<AuthenResponse> LoginAsync(AuthenRequest input)
                 {
                     mess = $"Tài khoản của bị khóa đến {existedUser.LockedEndDate}";
                 }
-                return new AuthenResponse { ResponseStatus = BaseStatus.Error, Message =mess  };
+                return new AuthenResponse { ResponseStatus = BaseStatus.Error, Message = mess };
             }
             var userRoles = await _userRoleRepository.GetRolesByUserId(existedUser.Id);
-            var roles = await _roleRepository.GetNameByRoleIds(userRoles.Select(c=>c.RoleId));
+            var roles = await _roleRepository.GetNameByRoleIds(userRoles.Select(c => c.RoleId));
             var permissionQuery = await GetListPermissionGroupByArrRoleId(existedUser.Id);
-            var userMapped= _mapper.Map<UserDTO>(existedUser);
+            var userMapped = _mapper.Map<UserDTO>(existedUser);
             if (roles.Count > 0 && roles.Contains("Customer"))
             {
                 var customer = await _customerRepository.Query().FirstOrDefaultAsync(c => c.UserId == userMapped.Id);
-                userMapped.FullName = customer.Name;
-                userMapped.CustomerId = customer.Id;
-
+                if (customer != null)
+                {
+                    userMapped.FullName = customer.Name;
+                    userMapped.CustomerId = customer.Id;
+                }
             }
-            else if  (roles.Count > 0 && roles.Contains("Customer") ||  roles.Contains("Admin") )
+            else if (roles.Count > 0 && (roles.Contains("Admin") || roles.Contains("Employee")))
             {
                 var employee = await _employeeRepository.Query().FirstOrDefaultAsync(c => c.UserId == userMapped.Id);
-                userMapped.FullName = employee.Name;
-                userMapped.EmployeeId = employee.Id;
+                if (employee != null)
+                {
+                    userMapped.FullName = employee.Name;
+                    userMapped.EmployeeId = employee.Id;
+                }
             }
-            
+
             string token = GenerateToken(userMapped, roles, permissionQuery);
             var userToken = new UserToken
             {
@@ -118,9 +121,13 @@ public async Task<AuthenResponse> LoginAsync(AuthenRequest input)
                 RefreshToken = userToken.RefreshToken
             };
         }
-        catch (Exception ex) 
+        catch (Exception ex)
         {
-            return null;
+            return new AuthenResponse
+            {
+                ResponseStatus = BaseStatus.Error,
+                Message = "Có lỗi xảy ra khi đăng nhập"
+            };
         }
     }
 
@@ -131,24 +138,25 @@ public async Task<AuthenResponse> LoginAsync(AuthenRequest input)
             // Find the user token by refresh token
             var userToken = await _userTokenRepository.Query()
                 .FirstOrDefaultAsync(x => x.RefreshToken == input.RefreshToken);
-            
+
             if (userToken != null)
             {
                 if (userToken.IsUsed)
                 {
                     throw new Exception("RefreshTokenUsed");
                 }
-                
+
                 // Delete the user token
                 await _userTokenRepository.DeleteAsync(userToken.Id);
             }
-            
+
             // Revoke the token
             await _userTokenRepository.RevokeTokenAsync(Guid.Parse(input.RefreshToken));
         }
         catch (Exception ex)
         {
             // Log the exception if needed
+            Console.WriteLine($"Logout error: {ex.Message}");
             throw;
         }
     }
@@ -159,40 +167,40 @@ public async Task<AuthenResponse> LoginAsync(AuthenRequest input)
         {
             var refreshToken = await _userTokenRepository.Query()
                 .FirstOrDefaultAsync(x => x.RefreshToken == input.RefreshToken);
-                            
+
             if (refreshToken is null)
             {
-                return new AuthenResponse 
-                { 
+                return new AuthenResponse
+                {
                     ResponseStatus = BaseStatus.Error,
-                    Message = "RefreshTokenInvalid" 
+                    Message = "RefreshTokenInvalid"
                 };
             }
-            
+
             if (refreshToken.IsRevoked && !refreshToken.IsUpdateToken)
             {
-                return new AuthenResponse 
-                { 
+                return new AuthenResponse
+                {
                     ResponseStatus = BaseStatus.Error,
-                    Message = "RefreshTokenRevoked" 
+                    Message = "RefreshTokenRevoked"
                 };
             }
-            
+
             if (refreshToken.ExpiryDate < DateTime.Now)
             {
-                return new AuthenResponse 
-                { 
+                return new AuthenResponse
+                {
                     ResponseStatus = BaseStatus.Error,
-                    Message = "RefreshTokenExpired" 
+                    Message = "RefreshTokenExpired"
                 };
             }
-            
+
             if (!refreshToken.IsRevoked)
             {
-                return new AuthenResponse 
-                { 
+                return new AuthenResponse
+                {
                     ResponseStatus = BaseStatus.Error,
-                    Message = "RefreshTokenIsUsed" 
+                    Message = "RefreshTokenIsUsed"
                 };
             }
 
@@ -200,43 +208,49 @@ public async Task<AuthenResponse> LoginAsync(AuthenRequest input)
             var user = await _userRepository.GetUserByIdAsync(refreshToken.UserId);
             if (user is null)
             {
-                return new AuthenResponse 
-                { 
+                return new AuthenResponse
+                {
                     ResponseStatus = BaseStatus.Error,
-                    Message = "AccountNotFound" 
+                    Message = "AccountNotFound"
                 };
             }
 
             if (user.IsLocked)
             {
-                return new AuthenResponse 
-                { 
+                return new AuthenResponse
+                {
                     ResponseStatus = BaseStatus.Error,
-                    Message = "AccountInActive" 
+                    Message = "AccountInActive"
                 };
             }
-            
+
             // Get user roles and permissions
             var userRoles = await _userRoleRepository.GetRolesByUserId(user.Id);
             var roles = await _roleRepository.GetNameByRoleIds(userRoles.Select(c => c.RoleId));
             var permissionQuery = await GetListPermissionGroupByArrRoleId(user.Id);
-            var userMapped= _mapper.Map<UserDTO>(user);
+            var userMapped = _mapper.Map<UserDTO>(user);
             if (roles.Count > 0 && roles.Contains("Customer"))
             {
                 var customer = await _customerRepository.Query().FirstOrDefaultAsync(c => c.UserId == userMapped.Id);
-                userMapped.FullName = customer.Name;
+                if (customer != null)
+                {
+                    userMapped.FullName = customer.Name;
+                }
             }
-            else if  (roles.Count > 0 && roles.Contains("Customer") ||  roles.Contains("Admin") )
+            else if (roles.Count > 0 && (roles.Contains("Admin") || roles.Contains("Employee")))
             {
                 var employee = await _employeeRepository.Query().FirstOrDefaultAsync(c => c.UserId == userMapped.Id);
-                userMapped.FullName = employee.Name;
+                if (employee != null)
+                {
+                    userMapped.FullName = employee.Name;
+                }
             }
             // Generate new access token
             string accessToken = GenerateToken(userMapped, roles, permissionQuery);
-            
+
             // Create new refresh token
             var newRefreshToken = RandomString(25) + Guid.NewGuid();
-            
+
             // Create new user token
             var userTokenNew = new UserToken
             {
@@ -248,10 +262,10 @@ public async Task<AuthenResponse> LoginAsync(AuthenRequest input)
                 IsUsed = false,
                 IsUpdateToken = false,
             };
-            
+
             // Save the new token
             await _userTokenRepository.SaveAccessTokenAsync(userTokenNew);
-            
+
             return new AuthenResponse
             {
                 ResponseStatus = BaseStatus.Success,
@@ -283,7 +297,7 @@ public async Task<AuthenResponse> LoginAsync(AuthenRequest input)
     private string GenerateToken(UserDTO user, List<string> roles, IEnumerable<PermissionGroupDTO> permissionQuery)
     {
         List<string> listPermission = new List<string>();
-        
+
         // Process permissions if any
         if (permissionQuery != null && permissionQuery.Any())
         {
@@ -291,9 +305,9 @@ public async Task<AuthenResponse> LoginAsync(AuthenRequest input)
             {
                 foreach (var per in x.SubPermissionGroups)
                 {
-                    foreach (var subPer in per.Permissions.Where(c=>c.IsGranted==true))
+                    foreach (var subPer in per.Permissions.Where(c => c.IsGranted == true))
                     {
-                        var permission= FunctionHelper.PermissionHelper
+                        var permission = FunctionHelper.PermissionHelper
                             .GetPermission(subPer.Function, subPer.Command);
                         listPermission.Add(permission);
                     }
@@ -311,12 +325,12 @@ public async Task<AuthenResponse> LoginAsync(AuthenRequest input)
             new Claim(ClaimTypeConst.Email, user.Email ?? ""),
             new Claim(ClaimTypeConst.Avatar, user.Avatar ?? ""),
             new Claim(ClaimTypeConst.FullName, user.FullName ?? ""),
-            new Claim(ClaimTypeConst.CustomerId, user.CustomerId.HasValue ? user.CustomerId.ToString() : ""),
-            new Claim(ClaimTypeConst.EmployeeId, user.EmployeeId.HasValue ? user.EmployeeId.ToString() : ""),
+            new Claim(ClaimTypeConst.CustomerId, user.CustomerId?.ToString() ?? ""),
+            new Claim(ClaimTypeConst.EmployeeId, user.EmployeeId?.ToString() ?? ""),
             new Claim(ClaimTypeConst.FullName, user.FullName ?? ""),
             new Claim(ClaimTypeConst.Permissions, string.Join(";", listPermission))
         };
-        
+
         return GenerateTokenByClaim(claims);
     }
 
@@ -326,10 +340,10 @@ public async Task<AuthenResponse> LoginAsync(AuthenRequest input)
         {
             IEnumerable<RolePermissionDTO> userPermissionDtos = new List<RolePermissionDTO>();
             var permissionGroups = await _permissionGroupRepository.GetAllAsync();
-            
+
             // Get permissions by user ID
             var rolePermissions = await _permissionRepository.GetPermissionByUserId(userId);
-          
+
             userPermissionDtos = rolePermissions.Select(rp => new RolePermissionDTO
             {
                 RoleId = rp.RoleId.GetHashCode(),
@@ -337,18 +351,18 @@ public async Task<AuthenResponse> LoginAsync(AuthenRequest input)
             });
             var response = permissionGroups.Select(pg => new PermissionGroupDTO
             {
-                Id = pg.Id.GetHashCode(),
+                Id = pg.Id,
                 Name = pg.Name,
                 Description = pg.Description,
-                ParentId = pg.ParentId.HasValue ? pg.ParentId.Value.GetHashCode() : null,
-                Order = pg.Order,
+                ParentId = pg.ParentId,
+                Order = pg.Order ?? 0,
                 SubPermissionGroups = new List<SubPermissionGroupDTO>()
             }).ToList();
 
             foreach (var x in response.Where(c => c.ParentId == null))
             {
                 var lstSubPermissionDtos = response.Where(c => c.ParentId == x.Id).ToList();
-                
+
                 x.SubPermissionGroups = new List<SubPermissionGroupDTO>();
                 if (lstSubPermissionDtos.Count() == 0)
                 {
@@ -357,9 +371,9 @@ public async Task<AuthenResponse> LoginAsync(AuthenRequest input)
                     addSubItem.Id = x.Id;
                     addSubItem.Description = x.Description;
                     var permissions = new List<PermissionDTO>();
-                    
+
                     addSubItem.Permissions = permissions;
-                    
+
                     if (userPermissionDtos.Count() > 0)
                     {
                         int index = 0;
@@ -404,9 +418,9 @@ public async Task<AuthenResponse> LoginAsync(AuthenRequest input)
                         addSubItem.Description = subPermission.Description;
                         addSubItem.Id = subPermission.Id;
                         var permissions = new List<PermissionDTO>();
-                        
+
                         addSubItem.Permissions = permissions;
-                        
+
                         if (userPermissionDtos.Count() > 0)
                         {
                             int index = 0;
@@ -435,7 +449,7 @@ public async Task<AuthenResponse> LoginAsync(AuthenRequest input)
                                 }
                             }
                         }
-                        
+
                         x.SubPermissionGroups.Add(addSubItem);
                         if (indexSub == lstSubPermissionDtos.Count())
                         {
@@ -448,7 +462,9 @@ public async Task<AuthenResponse> LoginAsync(AuthenRequest input)
             return response.Where(c => c.ParentId == null).ToList();
         }
         catch (Exception ex)
-        { return new List<PermissionGroupDTO>();
+        {
+            Console.WriteLine($"GetListPermissionGroupByArrRoleId error: {ex.Message}");
+            return new List<PermissionGroupDTO>();
         }
     }
 
@@ -458,7 +474,7 @@ public async Task<AuthenResponse> LoginAsync(AuthenRequest input)
         {
             IEnumerable<RolePermissionDTO> userPermissionDtos = new List<RolePermissionDTO>();
             var permissionGroups = await _permissionGroupRepository.GetAllAsync();
-            
+
             if (RoleIds.Count > 0)
             {
                 // Get role permissions for the given role IDs
@@ -474,18 +490,18 @@ public async Task<AuthenResponse> LoginAsync(AuthenRequest input)
 
             var response = permissionGroups.Select(pg => new PermissionGroupDTO
             {
-                Id = pg.Id.GetHashCode(),
+                Id = pg.Id,
                 Name = pg.Name,
                 Description = pg.Description,
-                ParentId = pg.ParentId.HasValue ? pg.ParentId.Value.GetHashCode() : null,
-                Order = pg.Order,
+                ParentId = pg.ParentId,
+                Order = pg.Order ?? 0,
                 SubPermissionGroups = new List<SubPermissionGroupDTO>()
             }).ToList();
 
             foreach (var x in response.Where(c => c.ParentId == null))
             {
                 var lstSubPermissionDtos = response.Where(c => c.ParentId == x.Id).ToList();
-                
+
                 x.SubPermissionGroups = new List<SubPermissionGroupDTO>();
                 if (lstSubPermissionDtos.Count() == 0)
                 {
@@ -494,9 +510,9 @@ public async Task<AuthenResponse> LoginAsync(AuthenRequest input)
                     addSubItem.Id = x.Id;
                     addSubItem.Description = x.Description;
                     var permissions = new List<PermissionDTO>();
-                    
+
                     addSubItem.Permissions = permissions;
-                    
+
                     if (userPermissionDtos.Count() > 0)
                     {
                         int index = 0;
@@ -541,9 +557,9 @@ public async Task<AuthenResponse> LoginAsync(AuthenRequest input)
                         addSubItem.Description = subPermission.Description;
                         addSubItem.Id = subPermission.Id;
                         var permissions = new List<PermissionDTO>();
-                        
+
                         addSubItem.Permissions = permissions;
-                        
+
                         if (userPermissionDtos.Count() > 0)
                         {
                             int index = 0;
@@ -586,16 +602,17 @@ public async Task<AuthenResponse> LoginAsync(AuthenRequest input)
         }
         catch (Exception ex)
         {
+            Console.WriteLine($"GetListPermissionGroupByArrRoleIdV2 error: {ex.Message}");
             return new List<PermissionGroupDTO>();
         }
     }
-    
+
     private string GenerateTokenByClaim(IEnumerable<Claim> claims)
     {
         var jwtKey = _configuration.GetSection("Jwt:Key").Value ?? throw new InvalidOperationException("JWT Key is not configured");
         var jwtIssuer = _configuration.GetSection("Jwt:Issuer").Value ?? throw new InvalidOperationException("JWT Issuer is not configured");
         var jwtAudience = _configuration.GetSection("Jwt:Audience").Value ?? throw new InvalidOperationException("JWT Audience is not configured");
-        
+
         var securityKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtKey));
         var credentials = new SigningCredentials(securityKey, SecurityAlgorithms.HmacSha256);
         var token = new JwtSecurityToken(jwtIssuer,

@@ -13,7 +13,11 @@ namespace MeoMeo.EntityFrameworkCore.Configurations
             builder.HasOne<Role>()
                 .WithMany(x => x.UserRoles)
                 .HasForeignKey(x => x.RoleId)
-                .OnDelete(DeleteBehavior.Cascade);
+                .OnDelete(DeleteBehavior.NoAction);      
+            builder.HasOne<User>()
+                .WithMany(x => x.UserRoles)
+                .HasForeignKey(x => x.UserId)
+                .OnDelete(DeleteBehavior.NoAction);
         }
     }
 } 

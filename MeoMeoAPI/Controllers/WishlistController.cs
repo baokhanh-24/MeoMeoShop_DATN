@@ -1,95 +1,58 @@
-using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Mvc;
-using MeoMeo.EntityFrameworkCore.Configurations.Contexts;
-using Microsoft.EntityFrameworkCore;
-using MeoMeo.Domain.Entities;
+using MeoMeo.Application.IServices;
 using MeoMeo.Contract.DTOs.Wishlist;
-using System.Security.Claims;
+using Microsoft.AspNetCore.Mvc;
+using MeoMeo.API.Extensions;
 
 namespace MeoMeoAPI.Controllers
 {
     [ApiController]
     [Route("api/[controller]")]
-    [Authorize(Policy = "Customer")]
     public class WishlistController : ControllerBase
     {
-        private readonly MeoMeoDbContext _db;
+        private readonly IWishlistService _wishlistService;
+        private readonly IHttpContextAccessor _httpContextAccessor;
 
-        public WishlistController(MeoMeoDbContext db)
+        public WishlistController(IWishlistService wishlistService, IHttpContextAccessor httpContextAccessor)
         {
-            _db = db;
+            _wishlistService = wishlistService;
+            _httpContextAccessor = httpContextAccessor;
         }
 
         [HttpGet("my-wishlist")]
         public async Task<ActionResult<List<WishlistDTO>>> GetMyWishlist()
         {
-            var customerIdStr = User.FindFirstValue("CustomerId") ?? User.FindFirstValue(ClaimTypes.NameIdentifier);
-            if (!Guid.TryParse(customerIdStr, out var customerId)) return Unauthorized();
-
-            var items = await _db.wishlists
-                .Where(w => w.CustomerId == customerId)
-                .Include(w => w.Product)
-                .Select(w => new WishlistDTO
-                {
-                    Id = w.Id,
-                    CustomerId = w.CustomerId,
-                    ProductId = w.ProductId,
-                    CreationTime = w.CreationTime,
-                    ProductName = w.Product.Name,
-                    ProductThumbnail = w.Product.Thumbnail ?? string.Empty,
-                    ProductPrice = w.Product.ProductDetails.Select(pd => (decimal?)pd.Price).Min() ?? 0,
-                    // ProductStock = w.Product.ProductDetails.Sum(pd => pd.InventoryQuantity),
-                    // IsAvailable = w.Product.ProductDetails.Sum(pd => pd.InventoryQuantity) > 0
-                })
-                .ToListAsync();
-
+            var customerId = _httpContextAccessor.HttpContext.GetCurrentCustomerId();
+            if (customerId == Guid.Empty) return Unauthorized();
+            var items = await _wishlistService.GetMyWishlistAsync(customerId);
             return Ok(items);
         }
 
         [HttpPost("add")]
         public async Task<ActionResult<bool>> Add([FromBody] CreateOrUpdateWishlistDTO dto)
         {
-            var customerIdStr = User.FindFirstValue("CustomerId") ?? User.FindFirstValue(ClaimTypes.NameIdentifier);
-            if (!Guid.TryParse(customerIdStr, out var customerId)) return Unauthorized();
-
-            var exists = await _db.wishlists.AnyAsync(w => w.CustomerId == customerId && w.ProductId == dto.ProductId);
-            if (exists) return Ok(true);
-
-            var entity = new Wishlist
-            {
-                Id = Guid.NewGuid(),
-                CustomerId = customerId,
-                ProductId = dto.ProductId,
-                CreationTime = DateTime.UtcNow
-            };
-            _db.wishlists.Add(entity);
-            await _db.SaveChangesAsync();
-            return Ok(true);
+            var customerId = _httpContextAccessor.HttpContext.GetCurrentCustomerId();
+            if (customerId == Guid.Empty) return Unauthorized();
+            var ok = await _wishlistService.AddAsync(customerId, dto.ProductDetailId);
+            return Ok(ok);
         }
 
-        [HttpDelete("{id}")]
-        public async Task<ActionResult<bool>> Delete(Guid id)
+        [HttpDelete("remove")]
+        public async Task<ActionResult<bool>> Remove([FromQuery] Guid productDetailId)
         {
-            var customerIdStr = User.FindFirstValue("CustomerId") ?? User.FindFirstValue(ClaimTypes.NameIdentifier);
-            if (!Guid.TryParse(customerIdStr, out var customerId)) return Unauthorized();
-
-            var entity = await _db.wishlists.FirstOrDefaultAsync(w => w.Id == id && w.CustomerId == customerId);
-            if (entity == null) return NotFound(false);
-            _db.wishlists.Remove(entity);
-            await _db.SaveChangesAsync();
-            return Ok(true);
+            var customerId = _httpContextAccessor.HttpContext.GetCurrentCustomerId();
+            if (customerId == Guid.Empty) return Unauthorized();
+            var ok = await _wishlistService.RemoveAsync(customerId, productDetailId);
+            return Ok(ok);
         }
 
-        [HttpGet("check/{productId}")]
-        public async Task<ActionResult<bool>> Check(Guid productId)
+        [HttpGet("check/{productDetailId}")]
+        public async Task<ActionResult<bool>> Check(Guid productDetailId)
         {
-            var customerIdStr = User.FindFirstValue("CustomerId") ?? User.FindFirstValue(ClaimTypes.NameIdentifier);
-            if (!Guid.TryParse(customerIdStr, out var customerId)) return Unauthorized();
-
-            var exists = await _db.wishlists.AnyAsync(w => w.CustomerId == customerId && w.ProductId == productId);
+            var customerId = _httpContextAccessor.HttpContext.GetCurrentCustomerId();
+            if (customerId == Guid.Empty) return Unauthorized();
+            var exists = await _wishlistService.IsInWishlistAsync(customerId, productDetailId);
             return Ok(exists);
         }
     }
 }
-
 

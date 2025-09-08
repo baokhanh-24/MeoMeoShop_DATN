@@ -208,7 +208,7 @@ namespace MeoMeo.Application.Services
             try
             {
                 var query = _orderRepository.Query().Where(o => o.CustomerId == customerId);
-                
+
                 var statusCounts = await _orderRepository.Query()
                     .Where(o => o.CustomerId == customerId)
                     .GroupBy(o => o.Status)
@@ -397,7 +397,7 @@ namespace MeoMeo.Application.Services
                         var requiredQuantity = orderDetail.Quantity;
                         var availableBatches = await _inventoryRepository.Query()
                             .Where(x => x.ProductDetailId == orderDetail.ProductDetailId && x.Quantity > 0 &&
-                                        x.Status == EInventoryBatchStatus.Aprroved)
+                                        x.Status == EInventoryBatchStatus.Approved)
                             .OrderBy(x => x.CreationTime)
                             .ToListAsync();
                         foreach (var batch in availableBatches)
@@ -578,7 +578,7 @@ namespace MeoMeo.Application.Services
                     // Chỉ tính các lô đã duyệt
                     var available = await _inventoryRepository.Query()
                         .Where(x => x.ProductDetailId == g.ProductDetailId &&
-                                    x.Status == EInventoryBatchStatus.Aprroved)
+                                    x.Status == EInventoryBatchStatus.Approved)
                         .SumAsync(x => (int?)x.Quantity) ?? 0;
                     if (g.TotalQty > available)
                     {
@@ -698,7 +698,7 @@ namespace MeoMeo.Application.Services
             }
         }
 
-        public async Task<CreatePosOrderResultDTO> CreatePosOrderAsync(Guid? customerId, Guid? userId, CreatePosOrderDTO request)
+        public async Task<CreatePosOrderResultDTO> CreatePosOrderAsync(CreatePosOrderDTO request)
         {
             try
             {
@@ -713,28 +713,6 @@ namespace MeoMeo.Application.Services
                         ResponseStatus = BaseStatus.Error
                     };
                 }
-
-                // Create customer if needed
-                Guid finalCustomerId = customerId ?? Guid.Empty;
-                if (finalCustomerId == Guid.Empty)
-                {
-                    if (request.NewCustomer == null || string.IsNullOrWhiteSpace(request.NewCustomer.Name) || string.IsNullOrWhiteSpace(request.NewCustomer.PhoneNumber))
-                    {
-                        return new CreatePosOrderResultDTO { Message = "Thiếu thông tin khách hàng", ResponseStatus = BaseStatus.Error };
-                    }
-                    var newCustomer = new Customers
-                    {
-                        Id = Guid.NewGuid(),
-                        Name = request.NewCustomer.Name,
-                        PhoneNumber = request.NewCustomer.PhoneNumber,
-                        Code = $"CUS-{DateTime.Now:yyyyMMddHHmmss}",
-                        CreationTime = DateTime.Now,
-                        Status = Domain.Commons.Enums.ECustomerStatus.Enabled
-                    };
-                    await _customerRepository.AddAsync(newCustomer);
-                    finalCustomerId = newCustomer.Id;
-                }
-
                 // Validate inventory
                 var groupedByVariant = request.Items
                     .GroupBy(x => x.ProductDetailId)
@@ -744,7 +722,7 @@ namespace MeoMeo.Application.Services
                 foreach (var g in groupedByVariant)
                 {
                     var available = await _inventoryRepository.Query()
-                        .Where(x => x.ProductDetailId == g.ProductDetailId && x.Status == EInventoryBatchStatus.Aprroved)
+                        .Where(x => x.ProductDetailId == g.ProductDetailId && x.Status == EInventoryBatchStatus.Approved)
                         .SumAsync(x => (int?)x.Quantity) ?? 0;
                     if (g.TotalQty > available)
                     {
@@ -755,16 +733,16 @@ namespace MeoMeo.Application.Services
                         };
                     }
                 }
-
+                var customer= await _customerRepository.Query().FirstOrDefaultAsync(c=>c.Id == request.CustomerId);
                 // Create order
                 var orderCode = await GenerateUniqueOrderCodeAsync();
                 var order = new Order
                 {
                     Id = Guid.NewGuid(),
                     Code = orderCode,
-                    CustomerId = finalCustomerId,
-                    CustomerName = request.NewCustomer?.Name ?? string.Empty,
-                    CustomerPhoneNumber = request.NewCustomer?.PhoneNumber ?? string.Empty,
+                    CustomerId = customer.Id,
+                    CustomerName =customer?.Name ?? string.Empty,
+                    CustomerPhoneNumber = customer?.PhoneNumber ?? string.Empty,
                     VoucherId = null,
                     DeliveryAddressId = null,
                     Note = request.Note,
@@ -772,7 +750,7 @@ namespace MeoMeo.Application.Services
                     Type = request.Type,
                     Status = EOrderStatus.Confirmed,
                     ShippingFee = request.ShippingFee,
-                    CreationTime = DateTime.Now
+                    CreationTime = DateTime.Now,
                 };
                 if (request.Type == EOrderType.Online && request.Delivery != null)
                 {
@@ -814,7 +792,7 @@ namespace MeoMeo.Application.Services
                 {
                     var requiredQuantity = item.Quantity;
                     var availableBatches = await _inventoryRepository.Query()
-                        .Where(x => x.ProductDetailId == item.ProductDetailId && x.Quantity > 0 && x.Status == EInventoryBatchStatus.Aprroved)
+                        .Where(x => x.ProductDetailId == item.ProductDetailId && x.Quantity > 0 && x.Status == EInventoryBatchStatus.Approved)
                         .OrderBy(x => x.CreationTime)
                         .ToListAsync();
                     foreach (var batch in availableBatches)
@@ -907,43 +885,6 @@ namespace MeoMeo.Application.Services
             return code.Length > 20 ? code.Substring(0, 20) : code; // respect max length
         }
 
-        // public async Task<CreateOrUpdateOrderResponse> GetOrderByIdAsync(Guid id)
-        // {
-        //     CreateOrUpdateOrderResponse response = new CreateOrUpdateOrderResponse();
-        //     var result = await _orderRepository.GetOrderByIdAsync(id);
-        //     if (result == null)
-        //     {
-        //         response.Message = "Không tìm thấy đơn hàng này";
-        //         response.ResponseStatus = BaseStatus.Error;
-        //         return response;
-        //     }
-        //     response = _mapper.Map<CreateOrUpdateOrderResponse>(result);
-        //     response.Message = "";
-        //     response.ResponseStatus = BaseStatus.Success;
-        //     return response;
-        // }
-        //
-        // public async Task<CreateOrUpdateOrderResponse> UpdateOrderAsync(CreateOrUpdateOrderDTO order)
-        // {
-        //     CreateOrUpdateOrderResponse response = new CreateOrUpdateOrderResponse();
-        //     Order itemOrder = new Order();
-        //
-        //     var check = await _orderRepository.GetOrderByIdAsync(Guid.Parse(order.Id.ToString()));
-        //     if (check == null)
-        //     {
-        //         response.Message = "Không tìm thấy Order";
-        //         response.ResponseStatus = BaseStatus.Error;
-        //         return response;
-        //         //throw new Exception("Không tìm thấy Order");
-        //     }
-        //     itemOrder = _mapper.Map(order, check);
-        //     var result = await _orderRepository.UpdateOrderAsync(itemOrder);
-        //
-        //     response = _mapper.Map<CreateOrUpdateOrderResponse>(result);
-        //
-        //     response.Message = "";
-        //     response.ResponseStatus = BaseStatus.Success;
-        //     return response;
-        // }
+        
     }
 }

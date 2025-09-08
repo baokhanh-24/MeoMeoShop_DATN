@@ -27,13 +27,13 @@ namespace MeoMeo.Shared.Services
             }
         }
 
-        public async Task<bool> AddToWishlistAsync(Guid productId)
+        public async Task<bool> AddToWishlistAsync(Guid productDetailId)
         {
             try
             {
                 var request = new CreateOrUpdateWishlistDTO
                 {
-                    ProductId = productId
+                    ProductDetailId = productDetailId
                 };
 
                 var response = await _apiCaller.PostAsync<CreateOrUpdateWishlistDTO, bool>("api/wishlist/add", request);
@@ -46,11 +46,11 @@ namespace MeoMeo.Shared.Services
             }
         }
 
-        public async Task<bool> RemoveFromWishlistAsync(Guid wishlistId)
+        public async Task<bool> RemoveFromWishlistAsync(Guid productDetailId)
         {
             try
             {
-                var response = await _apiCaller.DeleteAsync($"api/wishlist/{wishlistId}");
+                var response = await _apiCaller.DeleteAsync($"api/wishlist/remove?productDetailId={productDetailId}");
                 return response;
             }
             catch (Exception ex)
@@ -60,11 +60,11 @@ namespace MeoMeo.Shared.Services
             }
         }
 
-        public async Task<bool> IsInWishlistAsync(Guid productId)
+        public async Task<bool> IsInWishlistAsync(Guid productDetailId)
         {
             try
             {
-                var response = await _apiCaller.GetAsync<bool>($"api/wishlist/check/{productId}");
+                var response = await _apiCaller.GetAsync<bool>($"api/wishlist/check/{productDetailId}");
                 return response;
             }
             catch (Exception ex)

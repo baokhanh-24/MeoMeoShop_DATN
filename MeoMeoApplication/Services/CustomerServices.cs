@@ -19,7 +19,7 @@ namespace MeoMeo.Application.Services
         private readonly IUnitOfWork _unitOfWork;
         private readonly IMapper _mapper;
 
-        public CustomerServices(ICustomerRepository repository, IMapper mapper, IUserRepository userRepository, 
+        public CustomerServices(ICustomerRepository repository, IMapper mapper, IUserRepository userRepository,
             IRoleRepository roleRepository, IUserRoleRepository userRoleRepository, IUnitOfWork unitOfWork)
         {
             _repository = repository;
@@ -35,14 +35,14 @@ namespace MeoMeo.Application.Services
             try
             {
                 await _unitOfWork.BeginTransactionAsync();
-                
+
                 // Tạo tài khoản user mới
                 var userId = Guid.NewGuid();
                 var userToAdd = new User()
                 {
                     Id = userId,
-                    PasswordHash = FunctionHelper.ComputerSha256Hash(customer.Password ?? "Ab@12345"), 
-                    Avatar =  customer.Avatar,
+                    PasswordHash = FunctionHelper.ComputerSha256Hash(customer.Password ?? "Ab@12345"),
+                    Avatar = customer.Avatar,
                     LastLogin = DateTime.Now,
                     CreationTime = DateTime.Now,
                     Email = customer.Email ?? "customer@meomeo.com",
@@ -51,7 +51,7 @@ namespace MeoMeo.Application.Services
                     IsLocked = false
                 };
                 await _userRepository.AddAsync(userToAdd);
-                
+
                 // Tìm role Customer và gán cho user
                 var customerRole = await _roleRepository.GetRoleByName("Customer");
                 if (customerRole != null)
@@ -63,13 +63,13 @@ namespace MeoMeo.Application.Services
                     };
                     await _userRoleRepository.AddUserRole(userRole);
                 }
-                
+
                 // Tạo customer
                 var mappedCustomer = _mapper.Map<Customers>(customer);
                 mappedCustomer.Id = Guid.NewGuid();
                 mappedCustomer.UserId = userId;
                 var response = await _repository.CreateCustomersAsync(mappedCustomer);
-                
+
                 await _unitOfWork.SaveChangesAsync();
                 await _unitOfWork.CommitAsync();
                 return _mapper.Map<CreateOrUpdateCustomerResponse>(response);
@@ -101,7 +101,7 @@ namespace MeoMeo.Application.Services
 
         public async Task<string> GetOldUrlAvatar(Guid userId)
         {
-            var user= await _userRepository.Query().FirstOrDefaultAsync(u => u.Id == userId);
+            var user = await _userRepository.Query().FirstOrDefaultAsync(u => u.Id == userId);
             if (user == null)
             {
                 return "";
@@ -110,27 +110,7 @@ namespace MeoMeo.Application.Services
         }
         public async Task<BaseResponse> UploadAvatarAsync(Guid userId, FileUploadResult file)
         {
-          var user= await _userRepository.Query().FirstOrDefaultAsync(u => u.Id == userId);
-          if (user == null)
-          {
-              return new BaseResponse()
-              {
-                  ResponseStatus = BaseStatus.Error,
-                  Message = "User not found"
-              };
-          }
-          user.Avatar = file.RelativePath;
-          await _userRepository.UpdateAsync(user);
-          return new BaseResponse()
-          {
-              ResponseStatus = BaseStatus.Success,
-              Message = "Cập nhật avatar thành công"
-          };
-        }
-
-        public async Task<BaseResponse> ChangePasswordAsync(Guid userId,ChangePasswordDTO request)
-        {
-            var user= await _userRepository.Query().FirstOrDefaultAsync(u => u.Id == userId);
+            var user = await _userRepository.Query().FirstOrDefaultAsync(u => u.Id == userId);
             if (user == null)
             {
                 return new BaseResponse()
@@ -139,7 +119,27 @@ namespace MeoMeo.Application.Services
                     Message = "User not found"
                 };
             }
-            var currentPassword=  FunctionHelper.ComputerSha256Hash(request.CurrentPassword);
+            user.Avatar = file.RelativePath;
+            await _userRepository.UpdateAsync(user);
+            return new BaseResponse()
+            {
+                ResponseStatus = BaseStatus.Success,
+                Message = "Cập nhật avatar thành công"
+            };
+        }
+
+        public async Task<BaseResponse> ChangePasswordAsync(Guid userId, ChangePasswordDTO request)
+        {
+            var user = await _userRepository.Query().FirstOrDefaultAsync(u => u.Id == userId);
+            if (user == null)
+            {
+                return new BaseResponse()
+                {
+                    ResponseStatus = BaseStatus.Error,
+                    Message = "User not found"
+                };
+            }
+            var currentPassword = FunctionHelper.ComputerSha256Hash(request.CurrentPassword);
             if (user.PasswordHash != currentPassword)
             {
                 return new BaseResponse()
@@ -148,7 +148,7 @@ namespace MeoMeo.Application.Services
                     Message = "Mật khẩu hiện tại không chính xác"
                 };
             }
-            var newPassword=  FunctionHelper.ComputerSha256Hash(request.NewPassword);
+            var newPassword = FunctionHelper.ComputerSha256Hash(request.NewPassword);
             user.PasswordHash = newPassword;
             await _userRepository.UpdateAsync(user);
             return new BaseResponse()
@@ -239,7 +239,7 @@ namespace MeoMeo.Application.Services
                     TaxCode = c.TaxCode,
                     Address = c.Address,
                     Status = c.Status,
-                    Avatar = c.User.Avatar?? "",
+                    Avatar = c.User.Avatar ?? "",
                     Gender = c.Gender
                 })
                 .FirstOrDefaultAsync();
@@ -257,12 +257,94 @@ namespace MeoMeo.Application.Services
                     ResponseStatus = BaseStatus.Error
                 };
             }
-          
+
             var customerToUpdate = await _repository.GetCustomersByIdAsync(customer.Id.Value);
             _mapper.Map(customer, customerToUpdate);
             var result = await _repository.UpdateCustomersAsync(customerToUpdate);
             return _mapper.Map<CreateOrUpdateCustomerResponse>(result);
 
+        }
+
+        public async Task<QuickCustomerResponseDTO> CreateQuickCustomerAsync(CreateQuickCustomerDTO request)
+        {
+            try
+            {
+                // Kiểm tra số điện thoại đã tồn tại chưa
+                var existingCustomer = await _repository.Query()
+                    .FirstOrDefaultAsync(c => c.PhoneNumber == request.PhoneNumber);
+
+                if (existingCustomer != null)
+                {
+                    return new QuickCustomerResponseDTO
+                    {
+                        ResponseStatus = BaseStatus.Error,
+                        Message = "Số điện thoại này đã được sử dụng bởi khách hàng khác"
+                    };
+                }
+
+                // Tạo customer mới (không tạo user account)
+                var customerId = Guid.NewGuid();
+                var customerCode = await GenerateCustomerCodeAsync();
+
+                var newCustomer = new Customers
+                {
+                    Id = customerId,
+                    Code = customerCode,
+                    Name = request.Name,
+                    PhoneNumber = request.PhoneNumber,
+                    Address = request.Address ?? string.Empty,
+                    UserId = null,
+                    Status = Domain.Commons.Enums.ECustomerStatus.Enabled,
+                    Gender = 0, 
+                    CreationTime = DateTime.Now,
+                    LastModificationTime = DateTime.Now
+                };
+
+                var createdCustomer = await _repository.CreateCustomersAsync(newCustomer);
+
+                return new QuickCustomerResponseDTO
+                {
+                    ResponseStatus = BaseStatus.Success,
+                    Message = "Tạo khách hàng nhanh thành công",
+                    CustomerId = createdCustomer.Id,
+                    CustomerCode = createdCustomer.Code,
+                    CustomerName = createdCustomer.Name,
+                    PhoneNumber = createdCustomer.PhoneNumber
+                };
+            }
+            catch (Exception ex)
+            {
+                return new QuickCustomerResponseDTO
+                {
+                    ResponseStatus = BaseStatus.Error,
+                    Message = $"Có lỗi xảy ra khi tạo khách hàng: {ex.Message}"
+                };
+            }
+        }
+
+        private async Task<string> GenerateCustomerCodeAsync()
+        {
+            var today = DateTime.Now;
+            var datePrefix = today.ToString("yyyyMMdd");
+
+            // Tìm số thứ tự lớn nhất trong ngày
+            var lastCustomerToday = await _repository.Query()
+                .Where(c => c.Code.StartsWith($"KH{datePrefix}"))
+                .OrderByDescending(c => c.Code)
+                .FirstOrDefaultAsync();
+
+            int sequence = 1;
+            if (lastCustomerToday != null)
+            {
+                var lastCode = lastCustomerToday.Code;
+                var sequencePart = lastCode.Substring($"KH{datePrefix}".Length);
+                if (int.TryParse(sequencePart, out int lastSequence))
+                {
+                    sequence = lastSequence + 1;
+                }
+            }
+
+            return $"KH{datePrefix}{sequence:D3}"; // Format: KH20240101001
         }
     }
 }

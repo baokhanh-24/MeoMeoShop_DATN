@@ -271,13 +271,14 @@ namespace MeoMeo.EntityFrameworkCore.Migrations
                     b.Property<Guid?>("UpdatedBy")
                         .HasColumnType("uniqueidentifier");
 
-                    b.Property<Guid>("UserId")
+                    b.Property<Guid?>("UserId")
                         .HasColumnType("uniqueidentifier");
 
                     b.HasKey("Id");
 
                     b.HasIndex("UserId")
-                        .IsUnique();
+                        .IsUnique()
+                        .HasFilter("[UserId] IS NOT NULL");
 
                     b.ToTable("Customers", (string)null);
                 });
@@ -1575,9 +1576,14 @@ namespace MeoMeo.EntityFrameworkCore.Migrations
                     b.Property<Guid>("RoleId")
                         .HasColumnType("uniqueidentifier");
 
+                    b.Property<Guid>("RoleId1")
+                        .HasColumnType("uniqueidentifier");
+
                     b.HasKey("UserId", "RoleId");
 
                     b.HasIndex("RoleId");
+
+                    b.HasIndex("RoleId1");
 
                     b.ToTable("UserRoles", (string)null);
                 });
@@ -1684,34 +1690,18 @@ namespace MeoMeo.EntityFrameworkCore.Migrations
 
             modelBuilder.Entity("MeoMeo.Domain.Entities.Wishlist", b =>
                 {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
+                    b.Property<Guid>("CustomerId")
                         .HasColumnType("uniqueidentifier");
 
-                    b.Property<Guid>("CreatedBy")
+                    b.Property<Guid>("ProductDetailId")
                         .HasColumnType("uniqueidentifier");
 
                     b.Property<DateTime>("CreationTime")
                         .HasColumnType("datetime2");
 
-                    b.Property<Guid>("CustomerId")
-                        .HasColumnType("uniqueidentifier");
+                    b.HasKey("CustomerId", "ProductDetailId");
 
-                    b.Property<DateTime?>("LastModificationTime")
-                        .HasColumnType("datetime2");
-
-                    b.Property<Guid>("ProductId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<Guid?>("UpdatedBy")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("ProductId");
-
-                    b.HasIndex("CustomerId", "ProductId")
-                        .IsUnique();
+                    b.HasIndex("ProductDetailId");
 
                     b.ToTable("Wishlist", (string)null);
                 });
@@ -1767,9 +1757,7 @@ namespace MeoMeo.EntityFrameworkCore.Migrations
                 {
                     b.HasOne("MeoMeo.Domain.Entities.User", "User")
                         .WithOne("Customers")
-                        .HasForeignKey("MeoMeo.Domain.Entities.Customers", "UserId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
+                        .HasForeignKey("MeoMeo.Domain.Entities.Customers", "UserId");
 
                     b.Navigation("User");
                 });
@@ -2207,11 +2195,21 @@ namespace MeoMeo.EntityFrameworkCore.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.HasOne("MeoMeo.Domain.Entities.User", null)
+                    b.HasOne("MeoMeo.Domain.Entities.Role", "Role")
+                        .WithMany()
+                        .HasForeignKey("RoleId1")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("MeoMeo.Domain.Entities.User", "User")
                         .WithMany("UserRoles")
                         .HasForeignKey("UserId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
+
+                    b.Navigation("Role");
+
+                    b.Navigation("User");
                 });
 
             modelBuilder.Entity("MeoMeo.Domain.Entities.UserToken", b =>
@@ -2227,21 +2225,21 @@ namespace MeoMeo.EntityFrameworkCore.Migrations
 
             modelBuilder.Entity("MeoMeo.Domain.Entities.Wishlist", b =>
                 {
-                    b.HasOne("MeoMeo.Domain.Entities.Customers", "Customer")
-                        .WithMany()
+                    b.HasOne("MeoMeo.Domain.Entities.Customers", "Customers")
+                        .WithMany("Wishlists")
                         .HasForeignKey("CustomerId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.HasOne("MeoMeo.Domain.Entities.Product", "Product")
-                        .WithMany()
-                        .HasForeignKey("ProductId")
+                    b.HasOne("MeoMeo.Domain.Entities.ProductDetail", "ProductDetails")
+                        .WithMany("Wishlists")
+                        .HasForeignKey("ProductDetailId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.Navigation("Customer");
+                    b.Navigation("Customers");
 
-                    b.Navigation("Product");
+                    b.Navigation("ProductDetails");
                 });
 
             modelBuilder.Entity("MeoMeo.Domain.Entities.Bank", b =>
@@ -2279,6 +2277,8 @@ namespace MeoMeo.EntityFrameworkCore.Migrations
                     b.Navigation("DeliveryAddresses");
 
                     b.Navigation("Orders");
+
+                    b.Navigation("Wishlists");
                 });
 
             modelBuilder.Entity("MeoMeo.Domain.Entities.DeliveryAddress", b =>
@@ -2361,6 +2361,8 @@ namespace MeoMeo.EntityFrameworkCore.Migrations
                     b.Navigation("OrderDetails");
 
                     b.Navigation("PromotionDetails");
+
+                    b.Navigation("Wishlists");
                 });
 
             modelBuilder.Entity("MeoMeo.Domain.Entities.ProductReview", b =>

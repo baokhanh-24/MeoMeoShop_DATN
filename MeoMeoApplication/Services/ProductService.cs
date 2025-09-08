@@ -11,6 +11,7 @@ using Microsoft.AspNetCore.Http;
 using System.Text;
 using MeoMeo.Domain.Commons;
 using MeoMeo.Domain.Commons.Enums;
+using Microsoft.Extensions.Logging;
 
 namespace MeoMeo.Application.Services
 {
@@ -31,8 +32,10 @@ namespace MeoMeo.Application.Services
         private readonly IPromotionDetailRepository _promotionDetailRepository;
         private readonly IProductReviewRepository _reviewRepository;
         private readonly IIventoryBatchReposiory _inventoryBatchRepository;
+        private readonly IInventoryTranSactionRepository _inventoryTransactionRepository;
         private readonly IUnitOfWork _unitOfWork;
         private readonly IMapper _mapper;
+        private readonly ILogger<ProductService> _logger;
 
         public ProductService(
             IProductRepository repository,
@@ -50,8 +53,10 @@ namespace MeoMeo.Application.Services
             IPromotionDetailRepository promotionDetailRepository,
             IProductReviewRepository reviewRepository,
             IIventoryBatchReposiory inventoryBatchRepository,
+            IInventoryTranSactionRepository inventoryTransactionRepository,
             IUnitOfWork unitOfWork,
-            IMapper mapper)
+            IMapper mapper,
+            ILogger<ProductService> logger)
         {
             _repository = repository;
             _productDetailRepository = productDetailRepository;
@@ -68,8 +73,10 @@ namespace MeoMeo.Application.Services
             _promotionDetailRepository = promotionDetailRepository;
             _reviewRepository = reviewRepository;
             _inventoryBatchRepository = inventoryBatchRepository;
+            _inventoryTransactionRepository = inventoryTransactionRepository;
             _unitOfWork = unitOfWork;
             _mapper = mapper;
+            _logger = logger;
         }
 
         public async Task<BaseResponse> CreateProductAsync(CreateOrUpdateProductDTO productDto, List<FileUploadResult> uploadedFiles)
@@ -790,7 +797,7 @@ namespace MeoMeo.Application.Services
                     .ToList();
 
                 var inventoryQuantityByVariantId = await _inventoryBatchRepository.Query()
-                    .Where(b => allVariantIds.Contains(b.ProductDetailId) && b.Status == EInventoryBatchStatus.Aprroved)
+                    .Where(b => allVariantIds.Contains(b.ProductDetailId) && b.Status == EInventoryBatchStatus.Approved)
                     .GroupBy(b => b.ProductDetailId)
                     .ToDictionaryAsync(g => g.Key, g => g.Sum(x => x.Quantity));
 
@@ -1471,5 +1478,320 @@ namespace MeoMeo.Application.Services
 
             return result;
         }
+
+        public async Task<PagingExtensions.PagedResult<ProductSearchResponseDTO>> SearchProductsAsync(ProductSearchRequestDTO request)
+        {
+            try
+            {
+                var query = _productDetailRepository.Query()
+                    .Include(pd => pd.Product)
+                    .Include(pd => pd.Size)
+                    .Include(pd => pd.Colour)
+                    .Include(pd => pd.Product.Brand)
+                    .AsQueryable();
+
+                // Apply filters
+                if (!string.IsNullOrEmpty(request.SearchKeyword))
+                {
+                    var keyword = request.SearchKeyword.ToLower();
+                    query = query.Where(pd =>
+                        pd.Product.Name.ToLower().Contains(keyword) ||
+                        pd.Sku.ToLower().Contains(keyword));
+                }
+
+                if (!string.IsNullOrEmpty(request.SKUFilter))
+                {
+                    query = query.Where(pd => pd.Sku.ToLower().Contains(request.SKUFilter.ToLower()));
+                }
+
+                if (!string.IsNullOrEmpty(request.NameFilter))
+                {
+                    query = query.Where(pd => pd.Product.Name.ToLower().Contains(request.NameFilter.ToLower()));
+                }
+
+                if (request.BrandId.HasValue)
+                {
+                    query = query.Where(pd => pd.Product.BrandId == request.BrandId.Value);
+                }
+
+                if (request.CategoryId.HasValue)
+                {
+                    var productIdsWithCategory = await _productCategoryRepository.Query()
+                        .Where(pc => pc.CategoryId == request.CategoryId.Value)
+                        .Select(pc => pc.ProductId)
+                        .Distinct()
+                        .ToListAsync();
+                    query = query.Where(pd => productIdsWithCategory.Contains(pd.ProductId));
+                }
+
+                if (request.MinPrice.HasValue)
+                {
+                    query = query.Where(pd => pd.Price >= (float)request.MinPrice.Value);
+                }
+
+                if (request.MaxPrice.HasValue)
+                {
+                    query = query.Where(pd => pd.Price <= (float)request.MaxPrice.Value);
+                }
+
+                if (request.SizeId.HasValue)
+                {
+                    query = query.Where(pd => pd.SizeId == request.SizeId.Value);
+                }
+
+                if (request.ColourId.HasValue)
+                {
+                    query = query.Where(pd => pd.ColourId == request.ColourId.Value);
+                }
+
+                // Calculate stock quantity and filter only products with stock > 0
+                var productDetailsWithStock = await (from pd in query
+                                                     select new
+                                                     {
+                                                         ProductDetail = pd,
+                                                         StockQuantity = (from ib in _inventoryBatchRepository.Query()
+                                                                          where ib.ProductDetailId == pd.Id && ib.Status == EInventoryBatchStatus.Approved
+                                                                          select ib.Quantity).Sum() -
+                                                                       (from ib in _inventoryBatchRepository.Query()
+                                                                        join it in _inventoryTransactionRepository.Query() on ib.Id equals it.InventoryBatchId
+                                                                        where ib.ProductDetailId == pd.Id && ib.Status == EInventoryBatchStatus.Approved
+                                                                        select it.Quantity).Sum()
+                                                     }).ToListAsync();
+
+                // Filter only products with stock > 0
+                if (request.InStockOnly == true)
+                {
+                    productDetailsWithStock = productDetailsWithStock.Where(x => x.StockQuantity > 0).ToList();
+                }
+
+                var totalCount = productDetailsWithStock.Count();
+
+                var pagedResults = productDetailsWithStock
+                    .Skip((request.PageIndex - 1) * request.PageSize)
+                    .Take(request.PageSize)
+                    .ToList();
+
+                var mainResults = pagedResults.Select(x => x.ProductDetail).ToList();
+                var stockQuantityDict = pagedResults.ToDictionary(x => x.ProductDetail.Id, x => x.StockQuantity);
+
+                var productIds = mainResults.Select(pd => pd.ProductId).Distinct().ToList();
+                var productDetailIds = mainResults.Select(pd => pd.Id).Distinct().ToList();
+
+                // Batch queries for related data
+                var materialIdsDict = await _productMaterialRepository.Query()
+                    .Where(pm => productIds.Contains(pm.ProductId))
+                    .GroupBy(pm => pm.ProductId)
+                    .ToDictionaryAsync(g => g.Key, g => g.Select(pm => pm.MaterialId).ToList());
+
+                var categoryIdsDict = await _productCategoryRepository.Query()
+                    .Where(pc => productIds.Contains(pc.ProductId))
+                    .GroupBy(pc => pc.ProductId)
+                    .ToDictionaryAsync(g => g.Key, g => g.Select(pc => pc.CategoryId).ToList());
+
+                var seasonIdsDict = await _productSeasonRepository.Query()
+                    .Where(ps => productIds.Contains(ps.ProductId))
+                    .GroupBy(ps => ps.ProductId)
+                    .ToDictionaryAsync(g => g.Key, g => g.Select(ps => ps.SeasonId).ToList());
+
+                var allMaterialIds = materialIdsDict.Values.SelectMany(x => x).Distinct().ToList();
+                var allCategoryIds = categoryIdsDict.Values.SelectMany(x => x).Distinct().ToList();
+                var allSeasonIds = seasonIdsDict.Values.SelectMany(x => x).Distinct().ToList();
+
+                var materialsDict = await _materialRepository.Query()
+                    .Where(m => allMaterialIds.Contains(m.Id))
+                    .ToDictionaryAsync(m => m.Id, m => m.Name);
+
+                var categoriesDict = await _categoryRepository.Query()
+                    .Where(c => allCategoryIds.Contains(c.Id))
+                    .ToDictionaryAsync(c => c.Id, c => c.Name);
+
+                var seasonsDict = await _seasonRepository.Query()
+                    .Where(s => allSeasonIds.Contains(s.Id))
+                    .ToDictionaryAsync(s => s.Id, s => s.Name);
+
+                // Get ProductDetail Images
+                var imageUrlsDict = await _imageRepository.Query()
+                    .Where(i => productIds.Contains(i.ProductId)) // Images liên kết với Product, không phải ProductDetail
+                    .GroupBy(i => i.ProductId)
+                    .ToDictionaryAsync(g => g.Key, g => g.Select(i => i.URL).ToList());
+
+                // Get active promotions for these product details
+                var now = DateTime.Now;
+                var activePromotionsDict = await _promotionDetailRepository.Query()
+                    .Include(pd => pd.Promotion)
+                    .Where(pd => productDetailIds.Contains(pd.ProductDetailId) &&
+                                pd.Promotion.Status == EPromotionStatus.IsGoingOn &&
+                                pd.Promotion.StartDate <= now &&
+                                pd.Promotion.EndDate >= now)
+                    .GroupBy(pd => pd.ProductDetailId)
+                    .ToDictionaryAsync(g => g.Key, g => g.OrderByDescending(pd => pd.Discount).First());
+
+                // Build response
+                var items = mainResults.Select(pd =>
+                {
+                    var materialIds = materialIdsDict.TryGetValue(pd.ProductId, out var matIds) ? matIds : new List<Guid>();
+                    var categoryIds = categoryIdsDict.TryGetValue(pd.ProductId, out var catIds) ? catIds : new List<Guid>();
+                    var seasonIds = seasonIdsDict.TryGetValue(pd.ProductId, out var seaIds) ? seaIds : new List<Guid>();
+                    var imageUrls = imageUrlsDict.TryGetValue(pd.ProductId, out var imgUrls) ? imgUrls : new List<string>();
+
+                    // Get promotion info
+                    var activePromotion = activePromotionsDict.TryGetValue(pd.Id, out var promo) ? promo : null;
+                    var originalPrice = (decimal)pd.Price;
+                    var salePrice = activePromotion != null ? originalPrice * (1 - (decimal)activePromotion.Discount / 100) : (decimal?)null;
+                    var maxDiscount = activePromotion?.Discount;
+
+                    return new ProductSearchResponseDTO
+                    {
+                        ProductDetailId = pd.Id,
+                        ProductId = pd.ProductId,
+                        SKU = pd.Sku,
+                        ProductName = pd.Product.Name,
+                        BrandName = pd.Product.Brand.Name,
+                        SizeValue = pd.Size.Value,
+                        ColourName = pd.Colour.Name,
+                        Price = originalPrice,
+                        SalePrice = salePrice,
+                        StockQuantity = stockQuantityDict.GetValueOrDefault(pd.Id, 0),
+                        OutOfStock = stockQuantityDict.GetValueOrDefault(pd.Id, 0) == 0 ? 1 : 0,
+                        Thumbnail = pd.Product.Thumbnail,
+                        Description = pd.Product.Description ?? string.Empty,
+                        Rating = 0, // Cần tính từ ProductReview
+                        SaleNumber = pd.SellNumber ?? 0,
+                        IsActive = pd.Status == EProductStatus.Selling,
+                        AllowReturn = pd.AllowReturn,
+                        MaxDiscount = maxDiscount != null ? (decimal)maxDiscount : (decimal?)null,
+                        Weight = pd.Weight,
+                        Dimensions = $"{pd.Length}x{pd.Width}x{pd.Height}",
+                        Material = string.Join(", ", materialIds.Select(id => materialsDict.GetValueOrDefault(id, string.Empty))),
+                        Season = string.Join(", ", seasonIds.Select(id => seasonsDict.GetValueOrDefault(id, string.Empty))),
+                        CategoryName = string.Join(", ", categoryIds.Select(id => categoriesDict.GetValueOrDefault(id, string.Empty))),
+                        ImageUrls = imageUrls
+                    };
+                }).ToList();
+
+                return new PagingExtensions.PagedResult<ProductSearchResponseDTO>
+                {
+                    Items = items,
+                    TotalRecords = totalCount,
+                    PageIndex = request.PageIndex,
+                    PageSize = request.PageSize
+                };
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error searching products: {Message}", ex.Message);
+                return new PagingExtensions.PagedResult<ProductSearchResponseDTO>();
+            }
+        }
+
+        public async Task<ProductSearchResponseDTO?> GetProductBySkuAsync(string sku)
+        {
+            try
+            {
+                var productDetail = await _productDetailRepository.Query()
+                    .Include(pd => pd.Product)
+                    .Include(pd => pd.Size)
+                    .Include(pd => pd.Colour)
+                    .Include(pd => pd.Product.Brand)
+                    .FirstOrDefaultAsync(pd => pd.Sku == sku);
+
+                if (productDetail == null) return null;
+
+                // Get related data
+                var materialIds = await _productMaterialRepository.Query()
+                    .Where(pm => pm.ProductId == productDetail.ProductId)
+                    .Select(pm => pm.MaterialId)
+                    .ToListAsync();
+
+                var categoryIds = await _productCategoryRepository.Query()
+                    .Where(pc => pc.ProductId == productDetail.ProductId)
+                    .Select(pc => pc.CategoryId)
+                    .ToListAsync();
+
+                var seasonIds = await _productSeasonRepository.Query()
+                    .Where(ps => ps.ProductId == productDetail.ProductId)
+                    .Select(ps => ps.SeasonId)
+                    .ToListAsync();
+
+                var materials = await _materialRepository.Query()
+                    .Where(m => materialIds.Contains(m.Id))
+                    .ToListAsync();
+
+                var categories = await _categoryRepository.Query()
+                    .Where(c => categoryIds.Contains(c.Id))
+                    .ToListAsync();
+
+                var seasons = await _seasonRepository.Query()
+                    .Where(s => seasonIds.Contains(s.Id))
+                    .ToListAsync();
+
+                // Get Product Images
+                var imageUrls = await _imageRepository.Query()
+                    .Where(i => i.ProductId == productDetail.ProductId)
+                    .Select(i => i.URL)
+                    .ToListAsync();
+
+                // Calculate stock quantity
+                var totalReceived = await _inventoryBatchRepository.Query()
+                    .Where(ib => ib.ProductDetailId == productDetail.Id && ib.Status == EInventoryBatchStatus.Approved)
+                    .SumAsync(ib => ib.Quantity);
+
+                var totalUsed = await _inventoryTransactionRepository.Query()
+                    .Where(it => _inventoryBatchRepository.Query()
+                        .Any(ib => ib.Id == it.InventoryBatchId && ib.ProductDetailId == productDetail.Id && ib.Status == EInventoryBatchStatus.Approved))
+                    .SumAsync(it => it.Quantity);
+
+                var stockQuantity = totalReceived - totalUsed;
+
+                // Get active promotion for this product detail
+                var now = DateTime.Now;
+                var activePromotion = await _promotionDetailRepository.Query()
+                    .Include(pd => pd.Promotion)
+                    .Where(pd => pd.ProductDetailId == productDetail.Id &&
+                                pd.Promotion.Status == EPromotionStatus.IsGoingOn &&
+                                pd.Promotion.StartDate <= now &&
+                                pd.Promotion.EndDate >= now)
+                    .OrderByDescending(pd => pd.Discount)
+                    .FirstOrDefaultAsync();
+
+                var originalPrice = (decimal)productDetail.Price;
+                var salePrice = activePromotion != null ? originalPrice * (1 - (decimal)activePromotion.Discount / 100) : (decimal?)null;
+                var maxDiscount = activePromotion?.Discount;
+
+                return new ProductSearchResponseDTO
+                {
+                    ProductDetailId = productDetail.Id,
+                    ProductId = productDetail.ProductId,
+                    SKU = productDetail.Sku,
+                    ProductName = productDetail.Product.Name,
+                    BrandName = productDetail.Product.Brand.Name,
+                    SizeValue = productDetail.Size.Value,
+                    ColourName = productDetail.Colour.Name,
+                    Price = originalPrice,
+                    SalePrice = salePrice,
+                    StockQuantity = stockQuantity,
+                    OutOfStock = stockQuantity == 0 ? 1 : 0,
+                    Thumbnail = productDetail.Product.Thumbnail,
+                    Description = productDetail.Product.Description ?? string.Empty,
+                    Rating = 0, // Cần tính từ ProductReview
+                    SaleNumber = productDetail.SellNumber ?? 0,
+                    IsActive = productDetail.Status == EProductStatus.Selling,
+                    AllowReturn = productDetail.AllowReturn,
+                    MaxDiscount = maxDiscount != null ? (decimal)maxDiscount : (decimal?)null,
+                    Weight = productDetail.Weight,
+                    Dimensions = $"{productDetail.Length}x{productDetail.Width}x{productDetail.Height}",
+                    Material = string.Join(", ", materials.Select(m => m.Name)),
+                    Season = string.Join(", ", seasons.Select(s => s.Name)),
+                    CategoryName = string.Join(", ", categories.Select(c => c.Name)),
+                    ImageUrls = imageUrls
+                };
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error getting product by SKU {Sku}: {Message}", sku, ex.Message);
+                return null;
+            }
+        }
+
     }
 }

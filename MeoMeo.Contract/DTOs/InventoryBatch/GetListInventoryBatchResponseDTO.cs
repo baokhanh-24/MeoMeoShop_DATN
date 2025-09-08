@@ -7,12 +7,12 @@ using System.Threading.Tasks;
 
 namespace MeoMeo.Contract.DTOs.InventoryBatch
 {
-    public class GetListInventoryBatchResponseDTO:BaseResponse
+    public class GetListInventoryBatchResponseDTO : BaseResponse
     {
         public int TotalAll { get; set; }
         public int Draft { get; set; }
         public int PendingApproval { get; set; }
-        public int Aprroved { get; set; }
+        public int Approved { get; set; }
         public int Rejected { get; set; }
     }
 }

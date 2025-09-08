@@ -17,5 +17,8 @@ namespace MeoMeo.Shared.IServices
         public Task<List<BestSellerItemDTO>> GetWeeklyBestSellersAsync(int take = 10);
         public Task<List<ProductResponseDTO>> GetByIdsAsync(List<Guid> ids);
         public Task<Dictionary<Guid, List<ProductResponseDTO>>> GetHeaderProductsAsync();
+        // Search methods
+        public Task<PagingExtensions.PagedResult<ProductSearchResponseDTO>> SearchProductsAsync(ProductSearchRequestDTO request);
+        public Task<ProductSearchResponseDTO?> GetProductBySkuAsync(string sku);
     }
 }

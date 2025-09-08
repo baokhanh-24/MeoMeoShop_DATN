@@ -247,7 +247,7 @@ namespace MeoMeo.Shared.Services
                     formData.Add(new StringContent(variant.OutOfStock.ToString()), $"ProductVariants[{i}].OutOfStock");
                     if (variant.MaxBuyPerOrder.HasValue)
                     {
-                        formData.Add(new StringContent( variant.MaxBuyPerOrder.Value.ToString()), $"ProductVariants[{i}].MaxBuyPerOrder");
+                        formData.Add(new StringContent(variant.MaxBuyPerOrder.Value.ToString()), $"ProductVariants[{i}].MaxBuyPerOrder");
                     }
                     formData.Add(new StringContent(variant.Weight.ToString()), $"ProductVariants[{i}].Weight");
                     formData.Add(new StringContent(variant.Width.ToString()), $"ProductVariants[{i}].Width");
@@ -305,6 +305,37 @@ namespace MeoMeo.Shared.Services
             {
                 _logger.LogError(ex, "Có lỗi khi lấy sản phẩm cho header: {Message}", ex.Message);
                 return new Dictionary<Guid, List<ProductResponseDTO>>();
+            }
+        }
+
+        public async Task<PagingExtensions.PagedResult<ProductSearchResponseDTO>> SearchProductsAsync(ProductSearchRequestDTO request)
+        {
+            try
+            {
+                var query = BuildQuery.ToQueryString(request);
+                var url = $"/api/Products/search-products-async?{query}";
+                var response = await _httpClient.GetAsync<PagingExtensions.PagedResult<ProductSearchResponseDTO>>(url);
+                return response ?? new PagingExtensions.PagedResult<ProductSearchResponseDTO>();
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Có lỗi xảy ra khi tìm kiếm sản phẩm: {Message}", ex.Message);
+                return new PagingExtensions.PagedResult<ProductSearchResponseDTO>();
+            }
+        }
+
+        public async Task<ProductSearchResponseDTO?> GetProductBySkuAsync(string sku)
+        {
+            try
+            {
+                var url = $"/api/Products/get-product-by-sku-async/{sku}";
+                var response = await _httpClient.GetAsync<ProductSearchResponseDTO>(url);
+                return response;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Có lỗi xảy ra khi lấy sản phẩm theo SKU {Sku}: {Message}", sku, ex.Message);
+                return null;
             }
         }
     }

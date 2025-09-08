@@ -3,7 +3,7 @@
     public enum EResetPasswordHistoryStatus
     {
         PendingApproval,
-        Aprroved,
+        Approved,
         rejected
     }
 }

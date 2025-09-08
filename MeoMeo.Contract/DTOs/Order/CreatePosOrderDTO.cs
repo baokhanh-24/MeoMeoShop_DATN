@@ -11,10 +11,7 @@ namespace MeoMeo.Contract.DTOs.Order
         public string? Note { get; set; }
         public decimal ShippingFee { get; set; }
         public string? DiscountCode { get; set; }
-
-        public Guid? CustomerId { get; set; }
-        public CreatePosCustomerDTO? NewCustomer { get; set; }
-
+        public Guid CustomerId { get; set; }
         public CreatePosDeliveryDTO? Delivery { get; set; }
 
         public List<CreatePosOrderItemDTO> Items { get; set; } = new();
@@ -26,13 +23,6 @@ namespace MeoMeo.Contract.DTOs.Order
         public int Quantity { get; set; }
         public decimal UnitPrice { get; set; }
     }
-
-    public class CreatePosCustomerDTO
-    {
-        public string Name { get; set; } = string.Empty;
-        public string PhoneNumber { get; set; } = string.Empty;
-    }
-
     public class CreatePosDeliveryDTO
     {
         public string ConsigneeName { get; set; } = string.Empty;

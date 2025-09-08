@@ -75,7 +75,7 @@ namespace MeoMeo.Application.Services
                 metaDataValue.TotalAll = statusCounts.Sum(s => s.Count);
                 metaDataValue.Draft = statusCounts.FirstOrDefault(s => s.Status == EInventoryBatchStatus.Draft)?.Count ?? 0;
                 metaDataValue.PendingApproval = statusCounts.FirstOrDefault(s => s.Status == EInventoryBatchStatus.PendingApproval)?.Count ?? 0;
-                metaDataValue.Aprroved = statusCounts.FirstOrDefault(s => s.Status == EInventoryBatchStatus.Aprroved)?.Count ?? 0;
+                metaDataValue.Approved = statusCounts.FirstOrDefault(s => s.Status == EInventoryBatchStatus.Approved)?.Count ?? 0;
                 metaDataValue.Rejected = statusCounts.FirstOrDefault(s => s.Status == EInventoryBatchStatus.Rejected)?.Count ?? 0;
                 if (!string.IsNullOrEmpty(request.CodeFilter))
                 {
@@ -89,7 +89,7 @@ namespace MeoMeo.Application.Services
                 {
                     query = query.Where(c => c.Status == request.StatusFilter);
                 }
-                var filtedInventorryBatch = await _inventoryBatchRepository.GetPagedAsync(query,request.PageIndex,request.PageSize);
+                var filtedInventorryBatch = await _inventoryBatchRepository.GetPagedAsync(query, request.PageIndex, request.PageSize);
                 var dtoItems = _mapper.Map<List<InventoryBatchDTO>>(filtedInventorryBatch.Items);
                 metaDataValue.ResponseStatus = BaseStatus.Success;
                 return new PagingExtensions.PagedResult<InventoryBatchDTO, GetListInventoryBatchResponseDTO>
@@ -101,7 +101,7 @@ namespace MeoMeo.Application.Services
                     Metadata = metaDataValue,
                 };
             }
-            catch (Exception ex) 
+            catch (Exception ex)
             {
                 Console.WriteLine(ex.Message);
                 throw;
@@ -110,8 +110,8 @@ namespace MeoMeo.Application.Services
 
         public async Task<InventoryBatchResponseDTO> GetByIdAsync(Guid id)
         {
-            var inventoryBatch =  await _inventoryBatchRepository.GetByIdAsync(id);
-            if (inventoryBatch == null) 
+            var inventoryBatch = await _inventoryBatchRepository.GetByIdAsync(id);
+            if (inventoryBatch == null)
             {
                 return new InventoryBatchResponseDTO() { ResponseStatus = BaseStatus.Error, Message = "Không tìm thấy Id" };
             }

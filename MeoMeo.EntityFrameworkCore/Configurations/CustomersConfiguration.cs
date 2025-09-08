@@ -15,7 +15,7 @@ namespace MeoMeo.EntityFrameworkCore.Configurations
             builder.Property(x => x.PhoneNumber).HasMaxLength(12).HasColumnType("varchar(12)");
             builder.Property(x => x.TaxCode).HasMaxLength(14).HasColumnType("varchar(14)");
             builder.Property(x => x.Address).HasMaxLength(500).HasColumnType("nvarchar(500)");
-            builder.HasOne(x => x.User).WithOne(x => x.Customers).HasForeignKey<Customers>(x => x.UserId);
+            builder.HasOne(x => x.User).WithOne(x => x.Customers).HasForeignKey<Customers>(x => x.UserId).IsRequired(false);
         }
     }
 }

@@ -1,5 +1,4 @@
-﻿
-<RadzenPanelMenu Style="width: 100%;">
+﻿<RadzenPanelMenu Style="width: 100%;">
     <RadzenPanelMenuItem Text="Quản lý đơn hàng" Path="manage-order" Icon="list" />
     <RadzenPanelMenuItem Text="Đơn hàng tại quầy" Path="order-at-counter" Icon="list" />
     <RadzenPanelMenuItem Text="Quản lý sản phẩm" Path="manage-product" Icon="list" />
@@ -11,4 +10,10 @@
     <RadzenPanelMenuItem Text="Quản lý nhân viên" Path="employees-pages" Icon="list" />
     <RadzenPanelMenuItem Text="Cấu hình hệ thống" Path="manage-systemconfig" Icon="list" />
 
+    <!-- Permission Management -->
+    <RadzenPanelMenuItem Text="Phân quyền" Icon="safety" Expanded="false">
+        <RadzenPanelMenuItem Text="Nhóm quyền" Path="cms/permission-groups" Icon="folder" />
+        <RadzenPanelMenuItem Text="Vai trò" Path="cms/roles" Icon="team" />
+        <RadzenPanelMenuItem Text="Người dùng & Vai trò" Path="cms/user-roles" Icon="user" />
+    </RadzenPanelMenuItem>
 </RadzenPanelMenu>

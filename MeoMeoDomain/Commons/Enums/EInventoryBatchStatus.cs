@@ -9,7 +9,7 @@ namespace MeoMeo.Domain.Commons.Enums
         [Display(Name = "Chờ duyệt")]
         PendingApproval,
         [Display(Name = "Đã phê duyệt")]
-        Aprroved,
+        Approved,
         [Display(Name = "Bị từ chối")]
         Rejected
     }

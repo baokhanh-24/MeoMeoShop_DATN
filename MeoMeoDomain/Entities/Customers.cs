@@ -5,7 +5,7 @@ namespace MeoMeo.Domain.Entities
 {
     public class Customers : BaseEntityAudited
     {
-        public Guid UserId { get; set; }
+        public Guid? UserId { get; set; }
         public string Name { get; set; }
         public string Code { get; set; }
         public string PhoneNumber { get; set; }
@@ -20,5 +20,6 @@ namespace MeoMeo.Domain.Entities
         public virtual ICollection<Order> Orders { get; set; }
         public virtual ICollection<CustomersBank> CustomersBanks { get; set; }
         public virtual ICollection<DeliveryAddress> DeliveryAddresses { get; set; }
+        public virtual ICollection<Wishlist> Wishlists { get; set; }
     }
 }

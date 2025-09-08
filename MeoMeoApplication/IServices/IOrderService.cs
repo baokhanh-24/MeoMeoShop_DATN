@@ -16,6 +16,6 @@ namespace MeoMeo.Application.IServices
         Task<GetListOrderHistoryResponseDTO> GetListOrderHistoryAsync(Guid orderId);
         Task<CreateOrderResultDTO> CreateOrderAsync(Guid customerId, Guid userId, CreateOrderDTO request);
         Task<bool> DeleteOrderAsync(Guid id);
-        Task<CreatePosOrderResultDTO> CreatePosOrderAsync(Guid? customerId, Guid? userId, CreatePosOrderDTO request);
+        Task<CreatePosOrderResultDTO> CreatePosOrderAsync(CreatePosOrderDTO request);
     }
 }

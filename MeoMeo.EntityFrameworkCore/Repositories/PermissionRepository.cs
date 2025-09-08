@@ -6,11 +6,12 @@ using Microsoft.EntityFrameworkCore;
 
 namespace MeoMeo.EntityFrameworkCore.Repositories
 {
-    public class PermissionRepository : IPermissionRepository
+    public class PermissionRepository:BaseRepository<Permission>, IPermissionRepository
     {
         private readonly MeoMeoDbContext _context;
 
-        public PermissionRepository(MeoMeoDbContext context)
+
+        public PermissionRepository(MeoMeoDbContext context) : base(context)
         {
             _context = context;
         }

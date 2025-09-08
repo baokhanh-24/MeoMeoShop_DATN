@@ -33,7 +33,6 @@ builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();
 builder.Services.AddScoped<IProductRepository, ProductRepository>();
 builder.Services.AddScoped<IProductServices, ProductService>();
 builder.Services.AddScoped<IProductsDetailRepository, ProductsDetailRepository>();
-builder.Services.AddScoped<IProductDetailServices, ProductDetailService>();
 builder.Services.AddScoped<ICartRepository, CartRepository>();
 builder.Services.AddScoped<ICartService, CartService>();
 builder.Services.AddScoped<ICartDetaillRepository, CartDetaillRepository>();
@@ -102,15 +101,23 @@ builder.Services.AddScoped<IOrderReturnItemRepository, OrderReturnItemRepository
 builder.Services.AddScoped<IOrderReturnFileRepository, OrderReturnFileRepository>();
 builder.Services.AddScoped<IProductReviewFileRepository, ProductReviewFileRepository>();
 builder.Services.AddScoped<IOrderReturnService, OrderReturnService>();
+// Permission services
+builder.Services.AddScoped<IPermissionRepository, PermissionRepository>();
+builder.Services.AddScoped<IPermissionService, PermissionService>();
+builder.Services.AddScoped<IPermissionGroupRepository, PermissionGroupRepository>();
+builder.Services.AddScoped<IPermissionGroupService, PermissionGroupService>();
+builder.Services.AddScoped<IRoleRepository, RoleRepository>();
+builder.Services.AddScoped<IRoleService, RoleService>();
+builder.Services.AddScoped<IRolePermissionRepository, RolePermissionRepository>();
+builder.Services.AddScoped<IUserRoleRepository, UserRoleRepository>();
+builder.Services.AddScoped<IUserRoleService, UserRoleService>();
+builder.Services.AddScoped<IWishlistRepository, WishlistRepository>();
+builder.Services.AddScoped<IWishlistService, WishlistService>();
 
 
 // Auth Service Dependencies
 builder.Services.AddScoped<IRefreshTokenRepository, RefreshTokenRepository>();
 builder.Services.AddScoped<IUserTokenRepository, UserTokenRepository>();
-builder.Services.AddScoped<IPermissionRepository, PermissionRepository>();
-builder.Services.AddScoped<IPermissionGroupRepository, PermissionGroupRepository>();
-builder.Services.AddScoped<IRoleRepository, RoleRepository>();
-builder.Services.AddScoped<IUserRoleRepository, UserRoleRepository>();
 builder.Services.Configure<PaymentOptions>(builder.Configuration.GetSection(PaymentOptions.SectionName));
 builder.Services.AddSingleton<IVnpay, Vnpay>();
 // Auth Service

@@ -1,10 +1,11 @@
 using MeoMeo.Domain.Entities;
+using MeoMeo.Domain.IRepositories;
 using MeoMeo.EntityFrameworkCore.Commons;
 using MeoMeo.EntityFrameworkCore.Configurations.Contexts;
 
 namespace MeoMeo.EntityFrameworkCore.Repositories
 {
-    public class WishlistRepository : BaseRepository<Wishlist>
+    public class WishlistRepository : BaseRepository<Wishlist>, IWishlistRepository
     {
         public WishlistRepository(MeoMeoDbContext dbContext) : base(dbContext)
         {

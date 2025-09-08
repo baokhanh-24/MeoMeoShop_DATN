@@ -96,12 +96,14 @@
                                             <Title Level="5">@review.ProductName</Title>
                                             <p class="product-variant">Màu sắc: @review.ColourName -
                                                 Size: @review.SizeName</p>
+                                            <div class="d-flex gap-2">
                                             <p class="review-date">Ngày đánh giá: @review.CreationTime.ToString("dd/MM/yyyy HH:mm")</p>
                                             @if (review.LastModificationTime.HasValue)
                                             {
-                                                <p> | </p>
+                                                <span> | </span>
                                                 <p class="review-date">Ngày chỉnh sửa: @review.LastModificationTime.Value.ToString("dd/MM/yyyy HH:mm")</p>
                                             }
+                                            </div>
 
                                         </div>
                                     </div>

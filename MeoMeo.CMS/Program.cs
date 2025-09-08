@@ -15,7 +15,8 @@ builder.Services.AddAntDesign();
 builder.Services.AddControllersWithViews();
 builder.Services.AddRazorPages();
 builder.Services.AddRadzenComponents();
-builder.Services.AddSignalR(e => {
+builder.Services.AddSignalR(e =>
+{
     e.MaximumReceiveMessageSize = 102400000;
 });
 
@@ -48,6 +49,11 @@ builder.Services.AddScoped<IPromotionDetailClientService, PromotionDetailClientS
 builder.Services.AddScoped<ISystemConfigClientService, SystenConfigClientService>();
 builder.Services.AddScoped<IGhnClientService, GhnClientService>();
 builder.Services.AddScoped<IDeliveryAddressClientService, DeliveryAddressClientService>();
+// Permission services
+builder.Services.AddScoped<IPermissionClientService, PermissionClientService>();
+builder.Services.AddScoped<IPermissionGroupClientService, PermissionGroupClientService>();
+builder.Services.AddScoped<IRoleClientService, RoleClientService>();
+builder.Services.AddScoped<IUserRoleClientService, UserRoleClientService>();
 builder.Services.AddHttpClient<IApiCaller, ApiCaller>(client =>
 {
     client.BaseAddress = new Uri(apiBaseUrl!);

@@ -31,7 +31,7 @@ public static class OrderValidator
             return $"Không thể chuyển trạng thái từ {from} sang {to}.";
         return null;
     }
-    
+
     public static async Task<Dictionary<string, int>> ValidateInventoryAsync(
         List<OrderDetail> orderDetails,
         Func<Guid, Task<List<InventoryBatch>>> inventoryLookup,
@@ -45,7 +45,7 @@ public static class OrderValidator
             var batches = await inventoryLookup(detail.ProductDetailId);
 
             int availableQty = batches
-                .Where(b => b.Quantity > 0 && b.Status == EInventoryBatchStatus.Aprroved)
+                .Where(b => b.Quantity > 0 && b.Status == EInventoryBatchStatus.Approved)
                 .Sum(b => b.Quantity);
 
             if (availableQty < requiredQty)

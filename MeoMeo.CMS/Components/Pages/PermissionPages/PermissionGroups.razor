@@ -1,0 +1,341 @@
+@page "/cms/permission-groups"
+@using MeoMeo.Shared.IServices
+@using MeoMeo.Contract.DTOs.Permission
+@using MeoMeo.Contract.Commons
+@using MeoMeo.Shared.Utilities
+@using AntDesign
+@using Microsoft.AspNetCore.Components.Web
+@using ButtonSize = AntDesign.ButtonSize
+@using ButtonType = AntDesign.ButtonType
+@inject IPermissionGroupClientService PermissionGroupService
+@inject MessageModalService MessageModalService
+
+<PageTitle>Quản lý nhóm quyền</PageTitle>
+
+<div class="permission-groups-container">
+    <div class="page-header">
+        <Title Level="2">
+            <Icon Type="folder" />
+            Quản lý nhóm quyền
+        </Title>
+        <p class="page-subtitle">Quản lý các nhóm quyền và cấu trúc phân cấp</p>
+    </div>
+
+    <div class="action-bar">
+        <Space>
+            <Button Type="@ButtonType.Primary" Icon="plus" @onclick="ShowCreateModal">
+                Thêm nhóm quyền
+            </Button>
+            <Button Type="@ButtonType.Default" Icon="reload" @onclick="LoadData">
+                Làm mới
+            </Button>
+        </Space>
+    </div>
+
+    <div class="content-section">
+        @if (isLoading)
+        {
+            <div class="loading-section">
+                <Spin Size="SpinSize.Large" />
+                <p>Đang tải dữ liệu...</p>
+            </div>
+        }
+        else
+        {
+            <Tree SelectedKeys="selectedKeys" ExpandedKeys="expandedKeys" DataSource="@permissionGroups"
+                TitleTemplate="@RenderTreeNode" Key="Id" Children="Children" DefaultExpandAll="true" ShowLine="true"
+                ShowIcon="true">
+            </Tree>
+        }
+    </div>
+</div>
+
+<!-- Create/Edit Modal -->
+<Modal Title="@(isEdit ? "Chỉnh sửa nhóm quyền" : "Thêm nhóm quyền")" @bind-Visible="showModal"
+    OnOk="SavePermissionGroup" OnCancel="CancelModal" Width="600">
+    <Form Model="@currentGroup" LabelColSpan="6" WrapperColSpan="18">
+        <FormItem Label="Tên nhóm">
+            <Input @bind-Value="currentGroup.Name" Placeholder="Nhập tên nhóm quyền" />
+        </FormItem>
+        <FormItem Label="Mô tả">
+            <TextArea @bind-Value="currentGroup.Description" Placeholder="Nhập mô tả" Rows="3" />
+        </FormItem>
+        <FormItem Label="Nhóm cha">
+            <Select TItemValue="Guid?" TItem="PermissionGroupDTO" @bind-Value="currentGroup.ParentId"
+                Placeholder="Chọn nhóm cha" AllowClear>
+                @foreach (var group in allGroups.Where(g => g.Id != currentGroup.Id))
+                {
+                    <SelectOption TItemValue="Guid?" TItem="PermissionGroupDTO" Value="@group.Id" Label="@group.Name" />
+                }
+            </Select>
+        </FormItem>
+        <FormItem Label="Thứ tự">
+            <AntDesign.InputNumber @bind-Value="currentGroup.Order" Min="0" Placeholder="Thứ tự hiển thị" />
+        </FormItem>
+    </Form>
+</Modal>
+
+@code {
+    private List<PermissionGroupDTO> permissionGroups = new();
+    private List<PermissionGroupDTO> allGroups = new();
+    private bool isLoading = true;
+    private bool showModal = false;
+    private bool isEdit = false;
+    private CreateOrUpdatePermissionGroupDTO currentGroup = new();
+    private string[] selectedKeys = new string[0];
+    private string[] expandedKeys = new string[0];
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadData();
+    }
+
+    private async Task LoadData()
+    {
+        try
+        {
+            isLoading = true;
+            permissionGroups = await PermissionGroupService.GetPermissionGroupsTreeAsync();
+            allGroups = await PermissionGroupService.GetAllPermissionGroupsAsync();
+
+            // Auto expand all nodes
+            expandedKeys = GetAllKeys(permissionGroups);
+        }
+        catch (Exception ex)
+        {
+            await MessageModalService.Error("Không thể tải dữ liệu!");
+            Console.WriteLine($"Error loading permission groups: {ex.Message}");
+        }
+        finally
+        {
+            isLoading = false;
+            StateHasChanged();
+        }
+    }
+
+    private string[] GetAllKeys(List<PermissionGroupDTO> nodes)
+    {
+        var keys = new List<string>();
+        foreach (var node in nodes)
+        {
+            keys.Add(node.Id.ToString());
+            if (node.Children.Any())
+            {
+                keys.AddRange(GetAllKeys(node.Children));
+            }
+        }
+        return keys.ToArray();
+    }
+
+    private void ShowCreateModal()
+    {
+        isEdit = false;
+        currentGroup = new CreateOrUpdatePermissionGroupDTO();
+        showModal = true;
+    }
+
+    private void ShowEditModal(PermissionGroupDTO group)
+    {
+        isEdit = true;
+        currentGroup = new CreateOrUpdatePermissionGroupDTO
+        {
+            Id = group.Id,
+            Name = group.Name,
+            Description = group.Description,
+            ParentId = group.ParentId,
+            Order = group.Order
+        };
+        showModal = true;
+    }
+
+    private async Task SavePermissionGroup()
+    {
+        try
+        {
+            BaseResponse result;
+            if (isEdit)
+            {
+                result = await PermissionGroupService.UpdatePermissionGroupAsync(currentGroup);
+            }
+            else
+            {
+                result = await PermissionGroupService.CreatePermissionGroupAsync(currentGroup);
+            }
+
+            if (result.ResponseStatus == BaseStatus.Success)
+            {
+                await MessageModalService.Success(result.Message);
+                showModal = false;
+                await LoadData();
+            }
+            else
+            {
+                await MessageModalService.Error(result.Message);
+            }
+        }
+        catch (Exception ex)
+        {
+            await MessageModalService.Error("Có lỗi xảy ra!");
+            Console.WriteLine($"Error saving permission group: {ex.Message}");
+        }
+    }
+
+    private void CancelModal()
+    {
+        showModal = false;
+        currentGroup = new CreateOrUpdatePermissionGroupDTO();
+    }
+
+    private async Task DeletePermissionGroup(PermissionGroupDTO group)
+    {
+        try
+        {
+            var result = await PermissionGroupService.DeletePermissionGroupAsync(group.Id);
+            if (result.ResponseStatus == BaseStatus.Success)
+            {
+                await MessageModalService.Success(result.Message);
+                await LoadData();
+            }
+            else
+            {
+                await MessageModalService.Error(result.Message);
+            }
+        }
+        catch (Exception ex)
+        {
+            await MessageModalService.Error("Có lỗi xảy ra!");
+            Console.WriteLine($"Error deleting permission group: {ex.Message}");
+        }
+    }
+
+    private RenderFragment<TreeNode<PermissionGroupDTO>> RenderTreeNode => context => @<div class="tree-node-content">
+        <Space>
+            <span>@context.DataItem.Name</span>
+            <span class="text-muted">@context.DataItem.Description</span>
+            <Space>
+                <Button Type="@ButtonType.Link" Size="@ButtonSize.Small" Icon="edit"
+                    @onclick="() => ShowEditModal(context.DataItem)" />
+                <Popconfirm Title="Bạn có chắc chắn muốn xóa nhóm quyền này?"
+                    OnConfirm="() => DeletePermissionGroup(context.DataItem)" OkText="Đồng ý" CancelText="Hủy">
+                    <Button Type="@ButtonType.Link" Size="@ButtonSize.Small" Icon="delete" Danger />
+                </Popconfirm>
+            </Space>
+        </Space>
+    </div>;
+}
+
+<style>
+    .permission-groups-container {
+        padding: 24px;
+    }
+
+    .page-header {
+        margin-bottom: 24px;
+    }
+
+    .page-subtitle {
+        color: #666;
+        margin-top: 8px;
+    }
+
+    .action-bar {
+        margin-bottom: 24px;
+    }
+
+    .content-section {
+        background: white;
+        padding: 24px;
+        border-radius: 8px;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    }
+
+    .loading-section {
+        text-align: center;
+        padding: 48px;
+    }
+
+    .tree-node-content {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        width: 100%;
+        padding: 8px 12px;
+        border-radius: 4px;
+        transition: all 0.2s ease;
+    }
+
+    .tree-node-content:hover {
+        background: #f5f5f5;
+    }
+
+    .text-muted {
+        color: #999;
+        font-size: 12px;
+        margin-left: 8px;
+    }
+
+    /* Ant Design Tree customizations */
+    .ant-tree .ant-tree-node-content-wrapper {
+        padding: 4px 8px;
+        border-radius: 4px;
+        transition: all 0.2s ease;
+    }
+
+    .ant-tree .ant-tree-node-content-wrapper:hover {
+        background: #f5f5f5;
+    }
+
+    .ant-tree .ant-tree-node-content-wrapper.ant-tree-node-selected {
+        background: #e6f7ff;
+        border: 1px solid #91d5ff;
+    }
+
+    .ant-tree .ant-tree-title {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        width: 100%;
+    }
+
+    .ant-tree .ant-tree-iconEle {
+        margin-right: 8px;
+    }
+
+    .ant-tree .ant-tree-switcher {
+        width: 24px;
+        height: 24px;
+        line-height: 24px;
+    }
+
+    .ant-tree .ant-tree-indent {
+        width: 24px;
+    }
+
+    .ant-tree .ant-tree-indent-unit {
+        width: 24px;
+    }
+
+    /* Action buttons styling */
+    .tree-node-content .ant-btn {
+        margin-left: 4px;
+        padding: 4px 8px;
+        height: auto;
+        line-height: 1;
+    }
+
+    .tree-node-content .ant-btn-link {
+        padding: 0;
+        height: auto;
+        border: none;
+        box-shadow: none;
+    }
+
+    .tree-node-content .ant-btn-link:hover {
+        background: transparent;
+        color: #1890ff;
+    }
+
+    .tree-node-content .ant-btn-dangerous:hover {
+        color: #ff4d4f;
+    }
+</style>

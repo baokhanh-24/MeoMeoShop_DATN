@@ -1,0 +1,307 @@
+@page "/cms/user-roles"
+@using MeoMeo.Shared.IServices
+@using MeoMeo.Contract.DTOs.Permission
+@using MeoMeo.Contract.Commons
+@using AntDesign
+@using ButtonSize = AntDesign.ButtonSize
+@using ButtonType = AntDesign.ButtonType
+@inject IUserRoleClientService UserRoleService
+@inject IRoleClientService RoleService
+@inject MessageService MessageService
+
+<PageTitle>Quản lý người dùng và vai trò</PageTitle>
+
+<div class="user-roles-container">
+    <div class="page-header">
+        <Title Level="2">
+            <Icon Type="user" />
+            Quản lý người dùng và vai trò
+        </Title>
+        <p class="page-subtitle">Gán vai trò cho người dùng</p>
+    </div>
+
+    <div class="action-bar">
+        <Space>
+            <Button Type="@ButtonType.Default" Icon="reload" @onclick="LoadData">
+                Làm mới
+            </Button>
+        </Space>
+    </div>
+
+    <div class="content-section">
+        @if (isLoading)
+        {
+            <div class="loading-section">
+                <Spin Size="SpinSize.Large" />
+                <p>Đang tải dữ liệu...</p>
+            </div>
+        }
+        else
+        {
+            <Table DataSource="@users" Pagination="false" Bordered>
+                <PropertyColumn Property="@(u => u.UserName)" Title="Tên đăng nhập" />
+                <PropertyColumn Property="@(u => u.Email)" Title="Email" />
+                <PropertyColumn Property="@(u => u.Status)" Title="Trạng thái">
+                    <Template Context="u">
+                        <Tag Color="@(context.Status == 1 ? "green" : "red")">
+                            @(context.Status == 1 ? "Hoạt động" : "Không hoạt động")
+                        </Tag>
+                    </Template>
+                </PropertyColumn>
+                <PropertyColumn TItem="UserWithRolesDTO" TProp="List<RoleDTO>" Title="Vai trò">
+                    <Template >
+                        @if (context.Roles.Any())
+                        {
+                            @foreach (var role in context.Roles)
+                            {
+                                <Tag Style="margin: 2px;">@role.Name</Tag>
+                            }
+                        }
+                        else
+                        {
+                            <span class="text-muted">Chưa có vai trò</span>
+                        }
+                    </Template>
+                </PropertyColumn>
+                <ActionColumn Title="Thao tác">
+                    <Template >
+                        <Button Type="@ButtonType.Link" Size="@ButtonSize.Small" Icon="setting"
+                            @onclick="() => ShowRoleAssignmentModal(context)">
+                            Gán vai trò
+                        </Button>
+                    </Template>
+                </ActionColumn>
+            </Table>
+        }
+    </div>
+</div>
+
+<!-- Role Assignment Modal -->
+<Modal Title="Gán vai trò cho người dùng" @bind-Visible="showRoleModal" OnOk="SaveUserRoles" OnCancel="CancelRoleModal"
+    Width="600">
+    <div class="user-info">
+        <div class="user-avatar">
+            <Avatar Size="@AntDesign.AvatarSize.Large" Src="@selectedUser.Avatar">
+                @selectedUser.UserName.Substring(0, 1).ToUpper()
+            </Avatar>
+        </div>
+        <div class="user-details">
+            <h4>@selectedUser.UserName</h4>
+            <p>@selectedUser.Email</p>
+        </div>
+    </div>
+
+    <Divider />
+
+    <div class="role-assignment">
+        <h4>Vai trò hiện tại:</h4>
+        @if (selectedUser.Roles.Any())
+        {
+            <div class="current-roles">
+                @foreach (var role in selectedUser.Roles)
+                {
+                    <Tag Closable OnClose="() => RemoveRoleFromUser(role.Id)">
+                        @role.Name
+                    </Tag>
+                }
+            </div>
+        }
+        else
+        {
+            <p class="text-muted">Chưa có vai trò nào</p>
+        }
+
+        <Divider />
+
+        <h4>Thêm vai trò:</h4>
+        <Select TItemValue="Guid?" TItem="RoleDTO" @bind-Value="selectedRoleId" Placeholder="Chọn vai trò để thêm"
+            Style="width: 100%;">
+            @foreach (var role in availableRoles)
+            {
+                <SelectOption TItemValue="Guid?" TItem="RoleDTO" Value="@role.Id" Label="@role.Name" />
+            }
+        </Select>
+        <Button Type="@ButtonType.Primary" Icon="plus" @onclick="AddRoleToUser" Style="margin-top: 8px;">
+            Thêm vai trò
+        </Button>
+    </div>
+</Modal>
+
+@code {
+    private List<UserWithRolesDTO> users = new();
+    private List<RoleDTO> allRoles = new();
+    private List<RoleDTO> availableRoles = new();
+    private bool isLoading = true;
+    private bool showRoleModal = false;
+    private UserWithRolesDTO selectedUser = new();
+    private Guid? selectedRoleId;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadData();
+    }
+
+    private async Task LoadData()
+    {
+        try
+        {
+            isLoading = true;
+            users = await UserRoleService.GetAllUsersWithRolesAsync();
+            allRoles = await RoleService.GetAllRolesAsync();
+        }
+        catch (Exception ex)
+        {
+            MessageService.Error("Không thể tải dữ liệu!");
+            Console.WriteLine($"Error loading users: {ex.Message}");
+        }
+        finally
+        {
+            isLoading = false;
+            StateHasChanged();
+        }
+    }
+
+    private void ShowRoleAssignmentModal(UserWithRolesDTO user)
+    {
+        selectedUser = user;
+        availableRoles = allRoles.Where(r => !user.Roles.Any(ur => ur.Id == r.Id)).ToList();
+        showRoleModal = true;
+    }
+
+    private async Task AddRoleToUser()
+    {
+        if (selectedRoleId.HasValue)
+        {
+            try
+            {
+                var result = await UserRoleService.AssignRoleToUserAsync(new AssignRoleToUserDTO
+                {
+                    UserId = selectedUser.Id,
+                    RoleId = selectedRoleId.Value
+                });
+
+                if (result.ResponseStatus == BaseStatus.Success)
+                {
+                    MessageService.Success(result.Message);
+                    await LoadData();
+                    ShowRoleAssignmentModal(selectedUser); // Refresh modal
+                    selectedRoleId = null;
+                }
+                else
+                {
+                    MessageService.Error(result.Message);
+                }
+            }
+            catch (Exception ex)
+            {
+                MessageService.Error("Có lỗi xảy ra!");
+                Console.WriteLine($"Error adding role to user: {ex.Message}");
+            }
+        }
+    }
+
+    private async Task RemoveRoleFromUser(Guid roleId)
+    {
+        try
+        {
+            var result = await UserRoleService.RemoveRoleFromUserAsync(selectedUser.Id, roleId);
+            if (result.ResponseStatus == BaseStatus.Success)
+            {
+                MessageService.Success(result.Message);
+                await LoadData();
+                ShowRoleAssignmentModal(selectedUser); // Refresh modal
+            }
+            else
+            {
+                MessageService.Error(result.Message);
+            }
+        }
+        catch (Exception ex)
+        {
+            MessageService.Error("Có lỗi xảy ra!");
+            Console.WriteLine($"Error removing role from user: {ex.Message}");
+        }
+    }
+
+    private void CancelRoleModal()
+    {
+        showRoleModal = false;
+        selectedUser = new UserWithRolesDTO();
+        selectedRoleId = null;
+    }
+
+    private async Task SaveUserRoles()
+    {
+        // Modal will be closed by CancelRoleModal
+        CancelRoleModal();
+    }
+}
+
+<style>
+    .user-roles-container {
+        padding: 24px;
+    }
+
+    .page-header {
+        margin-bottom: 24px;
+    }
+
+    .page-subtitle {
+        color: #666;
+        margin-top: 8px;
+    }
+
+    .action-bar {
+        margin-bottom: 24px;
+    }
+
+    .content-section {
+        background: white;
+        padding: 24px;
+        border-radius: 8px;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    }
+
+    .loading-section {
+        text-align: center;
+        padding: 48px;
+    }
+
+    .text-muted {
+        color: #999;
+        font-style: italic;
+    }
+
+    .user-info {
+        display: flex;
+        align-items: center;
+        margin-bottom: 16px;
+    }
+
+    .user-avatar {
+        margin-right: 16px;
+    }
+
+    .user-details h4 {
+        margin: 0;
+        color: #1890ff;
+    }
+
+    .user-details p {
+        margin: 4px 0 0 0;
+        color: #666;
+    }
+
+    .role-assignment h4 {
+        margin-bottom: 12px;
+        color: #333;
+    }
+
+    .current-roles {
+        margin-bottom: 16px;
+    }
+
+    .current-roles .ant-tag {
+        margin: 4px;
+    }
+</style>

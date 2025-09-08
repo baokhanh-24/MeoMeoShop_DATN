@@ -1,0 +1,439 @@
+@page "/cms/roles"
+@using MeoMeo.Shared.IServices
+@using MeoMeo.Contract.DTOs.Permission
+@using MeoMeo.Contract.Commons
+@using AntDesign
+@using MeoMeo.Shared.Utilities
+@using ButtonSize = AntDesign.ButtonSize
+@using ButtonType = AntDesign.ButtonType
+@inject IRoleClientService RoleService
+@inject IPermissionClientService PermissionService
+@inject IPermissionGroupClientService PermissionGroupService
+@inject MeoMeo.Shared.Utilities.MessageModalService MessageModalService
+
+<PageTitle>Quản lý vai trò</PageTitle>
+
+<div class="roles-container">
+    <div class="page-header">
+        <Title Level="2">
+            <Icon Type="team" />
+            Quản lý vai trò
+        </Title>
+        <p class="page-subtitle">Quản lý các vai trò và phân quyền</p>
+    </div>
+
+    <div class="action-bar">
+        <Space>
+            <Button Type="@ButtonType.Primary" Icon="plus" @onclick="ShowCreateModal">
+                Thêm vai trò
+            </Button>
+            <Button Type="@ButtonType.Default" Icon="reload" @onclick="LoadData">
+                Làm mới
+            </Button>
+        </Space>
+    </div>
+
+    <div class="content-section">
+        @if (isLoading)
+        {
+            <div class="loading-section">
+                <Spin Size="SpinSize.Large" />
+                <p>Đang tải dữ liệu...</p>
+            </div>
+        }
+        else
+        {
+            <Table DataSource="@roles" Pagination="false" Bordered>
+                <PropertyColumn Property="@(r => r.Name)" Title="Tên vai trò" />
+                <PropertyColumn Property="@(r => r.Description)" Title="Mô tả" />
+                <PropertyColumn Property="@(r => r.Status)" Title="Trạng thái">
+                    <Template >
+                        <Tag Color="@(context.Status == 1 ? "green" : "red")">
+                            @(context.Status == 1 ? "Hoạt động" : "Không hoạt động")
+                        </Tag>
+                    </Template>
+                </PropertyColumn>
+                <PropertyColumn Property="@(r => r.Permissions.Count)" Title="Số quyền" />
+                <ActionColumn Title="Thao tác">
+                    <Template >
+                        <Space>
+                            <Button Type="@ButtonType.Link" Size="@ButtonSize.Small" Icon="setting"
+                                Onclick="() => ShowPermissionModal(context)">
+                                Phân quyền
+                            </Button>
+                            <Button Type="@ButtonType.Link" Size="@ButtonSize.Small" Icon="edit"
+                                Onclick="() => ShowEditModal(context)"></Button>
+                            <Popconfirm Title="Bạn có chắc chắn muốn xóa vai trò này?" OnConfirm="() => DeleteRole(context)"
+                                OkText="Đồng ý" CancelText="Hủy">
+                                <Button Type="@ButtonType.Link" Size="@ButtonSize.Small" Icon="delete" Danger></Button>
+                            </Popconfirm>
+                        </Space>
+                    </Template>
+                </ActionColumn>
+            </Table>
+        }
+    </div>
+</div>
+
+<!-- Create/Edit Role Modal -->
+<Modal Title="@(isEdit ? "Chỉnh sửa vai trò" : "Thêm vai trò")" @bind-Visible="showRoleModal" OnOk="SaveRole"
+    OnCancel="CancelRoleModal" Width="600">
+    <Form Model="@currentRole" LabelColSpan="6" WrapperColSpan="18">
+        <FormItem Label="Tên vai trò">
+            <Input @bind-Value="currentRole.Name" Placeholder="Nhập tên vai trò" />
+        </FormItem>
+        <FormItem Label="Mô tả">
+            <TextArea @bind-Value="currentRole.Description" Placeholder="Nhập mô tả" Rows="3" />
+        </FormItem>
+        <FormItem Label="Trạng thái">
+            <Select TItemValue="int?" TItem="int?" @bind-Value="currentRole.Status" Placeholder="Chọn trạng thái">
+                <SelectOption TItemValue="int?" TItem="int?" Value="1" Label="Hoạt động" />
+                <SelectOption TItemValue="int?" TItem="int?" Value="0" Label="Không hoạt động" />
+            </Select>
+        </FormItem>
+    </Form>
+</Modal>
+
+<!-- Permission Assignment Modal -->
+<Modal Title="Phân quyền cho vai trò" @bind-Visible="showPermissionModal" OnOk="SavePermissions"
+    OnCancel="CancelPermissionModal" Width="800">
+    <div class="permission-assignment">
+        <div class="permission-groups">
+            @foreach (var group in permissionGroups)
+            {
+                <div class="permission-group">
+                    <div class="group-header">
+                        <Checkbox Checked="@GetGroupChecked(group.Id)"
+                            @onchange="@((ChangeEventArgs e) => SetGroupChecked(group.Id, e.Value))">
+                            <strong>@group.Name</strong>
+                        </Checkbox>
+                    </div>
+                    <div class="permissions-list">
+                        @foreach (var permission in group.Permissions)
+                        {
+                            <div class="permission-item">
+                                <Checkbox Checked="@GetPermissionChecked(permission.Id)"
+                                    @onchange="@((ChangeEventArgs e) => SetPermissionChecked(permission.Id, e.Value))">
+                                    @permission.Name
+                                </Checkbox>
+                                <span class="permission-desc">@permission.Description</span>
+                            </div>
+                        }
+                    </div>
+                </div>
+            }
+        </div>
+    </div>
+</Modal>
+
+@code {
+    private List<RoleDTO> roles = new();
+    private List<PermissionGroupDTO> permissionGroups = new();
+    private List<PermissionDTO> allPermissions = new();
+    private bool isLoading = true;
+    private bool showRoleModal = false;
+    private bool showPermissionModal = false;
+    private bool isEdit = false;
+    private CreateOrUpdateRoleDTO currentRole = new();
+    private RoleDTO selectedRole = new();
+    private List<Guid> selectedPermissionIds = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadData();
+    }
+
+    private async Task LoadData()
+    {
+        try
+        {
+            isLoading = true;
+            roles = await RoleService.GetAllRolesAsync();
+            permissionGroups = await PermissionGroupService.GetPermissionGroupsTreeAsync();
+            allPermissions = await PermissionService.GetAllPermissionsAsync();
+        }
+        catch (Exception ex)
+        {
+            await MessageModalService.Error("Không thể tải dữ liệu!");
+            Console.WriteLine($"Error loading roles: {ex.Message}");
+        }
+        finally
+        {
+            isLoading = false;
+            StateHasChanged();
+        }
+    }
+
+    private void ShowCreateModal()
+    {
+        isEdit = false;
+        currentRole = new CreateOrUpdateRoleDTO { Status = 1 };
+        showRoleModal = true;
+    }
+
+    private void ShowEditModal(RoleDTO role)
+    {
+        isEdit = true;
+        currentRole = new CreateOrUpdateRoleDTO
+        {
+            Id = role.Id,
+            Name = role.Name,
+            Description = role.Description,
+            Status = role.Status
+        };
+        showRoleModal = true;
+    }
+
+    private async Task SaveRole()
+    {
+        try
+        {
+            BaseResponse result;
+            if (isEdit)
+            {
+                result = await RoleService.UpdateRoleAsync(currentRole);
+            }
+            else
+            {
+                result = await RoleService.CreateRoleAsync(currentRole);
+            }
+
+            if (result.ResponseStatus == BaseStatus.Success)
+            {
+                await MessageModalService.Success(result.Message);
+                showRoleModal = false;
+                await LoadData();
+            }
+            else
+            {
+                await MessageModalService.Error(result.Message);
+            }
+        }
+        catch (Exception ex)
+        {
+            await MessageModalService.Error("Có lỗi xảy ra!");
+            Console.WriteLine($"Error saving role: {ex.Message}");
+        }
+    }
+
+    private void CancelRoleModal()
+    {
+        showRoleModal = false;
+        currentRole = new CreateOrUpdateRoleDTO();
+    }
+
+    private async Task DeleteRole(RoleDTO role)
+    {
+        try
+        {
+            var result = await RoleService.DeleteRoleAsync(role.Id);
+            if (result.ResponseStatus == BaseStatus.Success)
+            {
+                await MessageModalService.Success(result.Message);
+                await LoadData();
+            }
+            else
+            {
+                await MessageModalService.Error(result.Message);
+            }
+        }
+        catch (Exception ex)
+        {
+            await MessageModalService.Error("Có lỗi xảy ra!");
+            Console.WriteLine($"Error deleting role: {ex.Message}");
+        }
+    }
+
+    private async Task ShowPermissionModal(RoleDTO role)
+    {
+        selectedRole = role;
+        selectedPermissionIds = role.Permissions.Select(p => p.Id).ToList();
+        showPermissionModal = true;
+    }
+
+    private async Task SavePermissions()
+    {
+        try
+        {
+            var result = await RoleService.AssignPermissionsToRoleAsync(new AssignPermissionsToRoleDTO
+            {
+                RoleId = selectedRole.Id,
+                PermissionIds = selectedPermissionIds
+            });
+
+            if (result.ResponseStatus == BaseStatus.Success)
+            {
+                await MessageModalService.Success(result.Message);
+                showPermissionModal = false;
+                await LoadData();
+            }
+            else
+            {
+                await MessageModalService.Error(result.Message);
+            }
+        }
+        catch (Exception ex)
+        {
+            await MessageModalService.Error("Có lỗi xảy ra!");
+            Console.WriteLine($"Error saving permissions: {ex.Message}");
+        }
+    }
+
+    private void CancelPermissionModal()
+    {
+        showPermissionModal = false;
+        selectedRole = new RoleDTO();
+        selectedPermissionIds.Clear();
+    }
+
+    private bool GetPermissionChecked(Guid permissionId)
+    {
+        return selectedPermissionIds.Contains(permissionId);
+    }
+
+    private void SetPermissionChecked(Guid permissionId, object value)
+    {
+        if (value is bool isChecked)
+        {
+            if (isChecked)
+            {
+                if (!selectedPermissionIds.Contains(permissionId))
+                    selectedPermissionIds.Add(permissionId);
+            }
+            else
+            {
+                selectedPermissionIds.Remove(permissionId);
+            }
+        }
+    }
+
+    private bool GetGroupChecked(Guid groupId)
+    {
+        var group = permissionGroups.FirstOrDefault(g => g.Id == groupId);
+        if (group == null) return false;
+
+        return group.Permissions.All(p => selectedPermissionIds.Contains(p.Id));
+    }
+
+    private void SetGroupChecked(Guid groupId, object value)
+    {
+        if (value is bool isChecked)
+        {
+            var group = permissionGroups.FirstOrDefault(g => g.Id == groupId);
+            if (group != null)
+            {
+                foreach (var permission in group.Permissions)
+                {
+                    if (isChecked)
+                    {
+                        if (!selectedPermissionIds.Contains(permission.Id))
+                            selectedPermissionIds.Add(permission.Id);
+                    }
+                    else
+                    {
+                        selectedPermissionIds.Remove(permission.Id);
+                    }
+                }
+            }
+        }
+    }
+
+    private void TogglePermission(Guid permissionId, bool isChecked)
+    {
+        if (isChecked)
+        {
+            if (!selectedPermissionIds.Contains(permissionId))
+                selectedPermissionIds.Add(permissionId);
+        }
+        else
+        {
+            selectedPermissionIds.Remove(permissionId);
+        }
+    }
+
+    private void ToggleGroupPermissions(Guid groupId, bool isChecked)
+    {
+        var groupPermissions = allPermissions.Where(p => p.PermissionGroupId == groupId).Select(p => p.Id);
+
+        if (isChecked)
+        {
+            foreach (var permissionId in groupPermissions)
+            {
+                if (!selectedPermissionIds.Contains(permissionId))
+                    selectedPermissionIds.Add(permissionId);
+            }
+        }
+        else
+        {
+            foreach (var permissionId in groupPermissions)
+            {
+                selectedPermissionIds.Remove(permissionId);
+            }
+        }
+    }
+}
+
+<style>
+    .roles-container {
+        padding: 24px;
+    }
+
+    .page-header {
+        margin-bottom: 24px;
+    }
+
+    .page-subtitle {
+        color: #666;
+        margin-top: 8px;
+    }
+
+    .action-bar {
+        margin-bottom: 24px;
+    }
+
+    .content-section {
+        background: white;
+        padding: 24px;
+        border-radius: 8px;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    }
+
+    .loading-section {
+        text-align: center;
+        padding: 48px;
+    }
+
+    .permission-assignment {
+        max-height: 500px;
+        overflow-y: auto;
+    }
+
+    .permission-group {
+        margin-bottom: 16px;
+        border: 1px solid #f0f0f0;
+        border-radius: 6px;
+        padding: 12px;
+    }
+
+    .group-header {
+        margin-bottom: 8px;
+        padding-bottom: 8px;
+        border-bottom: 1px solid #f0f0f0;
+    }
+
+    .permissions-list {
+        margin-left: 24px;
+    }
+
+    .permission-item {
+        display: flex;
+        align-items: center;
+        margin-bottom: 8px;
+    }
+
+    .permission-desc {
+        margin-left: 8px;
+        color: #666;
+        font-size: 12px;
+    }
+</style>

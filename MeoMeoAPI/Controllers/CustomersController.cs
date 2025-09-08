@@ -46,6 +46,13 @@ namespace MeoMeo.API.Controllers
             return result;
         }
 
+        [HttpPost("create-quick-customer-async")]
+        public async Task<QuickCustomerResponseDTO> CreateQuickCustomerAsync([FromBody] CreateQuickCustomerDTO request)
+        {
+            var result = await _customerServices.CreateQuickCustomerAsync(request);
+            return result;
+        }
+
         [HttpDelete("delete-customer-async/{id}")]
         public async Task<bool> DeleteCustomersAsync(Guid id)
         {
@@ -58,7 +65,7 @@ namespace MeoMeo.API.Controllers
         {
             var result = await _customerServices.UpdateCustomersAsync(customer);
             return result;
-        }    
+        }
         [HttpPut("update-profile")]
         public async Task<CreateOrUpdateCustomerResponse> UpdateCustomersAsync([FromBody] CreateOrUpdateCustomerDTO customer)
         {
@@ -99,13 +106,13 @@ namespace MeoMeo.API.Controllers
                         ResponseStatus = BaseStatus.Error,
                         Message = "Không có file nào được tải lên."
                     };
-                 
+
                 }
                 var acceptedExtensions = new List<string>
                 {
                     "jpg", "jpeg", "png", "gif", "bmp", "tiff", "tif", "webp", "svg", "heic", "heif"
                 };
-                var oldAvatar= await _customerServices.GetOldUrlAvatar(userId);
+                var oldAvatar = await _customerServices.GetOldUrlAvatar(userId);
                 var uploadResults = await FileUploadHelper.UploadFilesAsync(
                     _environment,
                     new List<IFormFile> { file },
@@ -113,16 +120,16 @@ namespace MeoMeo.API.Controllers
                     userId,
                     acceptedExtensions,
                     true,
-                    5 * 1024 * 1024 
+                    5 * 1024 * 1024
                 );
-                var response= await _customerServices.UploadAvatarAsync(userId, uploadResults.First());
+                var response = await _customerServices.UploadAvatarAsync(userId, uploadResults.First());
                 if (response.ResponseStatus != BaseStatus.Success)
                 {
                     return response;
                 }
-                FileUploadHelper.DeleteUploadedFiles(_environment, new List<FileUploadResult> { new FileUploadResult { RelativePath =oldAvatar } });
+                FileUploadHelper.DeleteUploadedFiles(_environment, new List<FileUploadResult> { new FileUploadResult { RelativePath = oldAvatar } });
                 return response;
-                
+
 
 
             }
@@ -150,7 +157,7 @@ namespace MeoMeo.API.Controllers
                         Message = "Vui lòng đăng nhập"
                     };
                 }
-                var response=  await _customerServices.ChangePasswordAsync(userId,changePasswordDTO); 
+                var response = await _customerServices.ChangePasswordAsync(userId, changePasswordDTO);
                 return response;
             }
             catch (Exception ex)

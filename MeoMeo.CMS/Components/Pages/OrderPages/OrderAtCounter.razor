@@ -1,11 +1,19 @@
 @page "/order-at-counter"
 @using System.ComponentModel.DataAnnotations
+@using AntDesign
+@using Microsoft.JSInterop
+@using Microsoft.AspNetCore.Components
+@using Microsoft.Extensions.Configuration
+@using MeoMeo.Contract.DTOs
+@using MeoMeo.Contract.DTOs.Order
+@using MeoMeo.Contract.DTOs.Product
 @inject IMessageService MessageService
+@inject IJSRuntime JSRuntime
 @inject MeoMeo.Shared.IServices.ICustomerClientService CustomerClientService
-@inject MeoMeo.Shared.IServices.IProductDetailClientService ProductDetailClientService
 @inject MeoMeo.Shared.IServices.IProductClientService ProductClientService
 @inject MeoMeo.Shared.IServices.IGhnClientService GhnService
 @inject MeoMeo.Shared.IServices.IOrderClientService OrderClientService
+@inject MeoMeo.Shared.IServices.IVoucherClientService VoucherClientService
 @inject NavigationManager Navigation
 @inject IConfiguration Configuration
 
@@ -17,16 +25,17 @@
         </BreadcrumbItem>
     </Breadcrumb>
     <div class="group-breadcumb">
-        <Button Class="btn-reset w-100px" Icon="close" OnClick="HandleCancel">Hủy</Button>
+        <Button Class="btn-reset w-100px" Icon="close" OnClick="HandleCancel">Hủy Làm mới (Ctrl+N)</Button>
         <Button Class="btn-reset" Icon="photo_album" OnClick="() => HandleSave(true)">Lưu tạm</Button>
-        <Button Class="btn-save" Icon="check" OnClick="() => HandleSave(false)">Lưu</Button>
-        @if (HasPermission("ORDER:POS_ORDER:PRINT"))
-        {
-            <Button Class="btn-reset" Icon="print" OnClick="HandlePrintOrder">In đơn</Button>
-        }
+        <Button Class="btn-save" Icon="check" OnClick="() => HandleSave(false)"> Lưu đơn hàng (Ctrl+S)</Button>
+
+        <Button Class="btn-reset" Icon="print" OnClick="HandlePrintOrder" Disabled="@(!Products.Any())">In đơn In hóa
+            đơn (Ctrl+P)
+        </Button>
+
         <Button Class="btn-back" Icon="arrow-left" OnClick="HandleGoBack">Quay lại</Button>
     </div>
-    <Form Model="OrderModel" Layout="@FormLayout.Vertical" RequiredMark="@FormRequiredMark.Required"
+    <Form Model="OrderModel" Layout="@AntDesign.FormLayout.Vertical" RequiredMark="@AntDesign.FormRequiredMark.Required"
         OnFinish="OnFinish" OnFinishFailed="OnFinishFailed">
         <div class="order-section-general">
             <div class="order-section-general-header">
@@ -35,16 +44,10 @@
             <Row Gutter="16">
                 <AntDesign.Col Lg="8">
                     <FormItem Label="Loại" Required="true">
-                        <Select TItem="SelectOption"
-                                TItemValue="int"
-                                DataSource="@TypeOptions"
-                                @bind-Value="@OrderModel.Type"
-                                Placeholder="Chọn loại..."
-                                ItemValue="x => x.Value"
-                                ItemLabel="x => x.Label"
-                                OnSelectedItemChanged="HandleTypeChange"
-                                ShowSearch="true"
-                                AllowClear="true" />
+                        <Select TItem="SelectOption" TItemValue="int" DataSource="@TypeOptions"
+                            @bind-Value="@OrderModel.Type" Placeholder="Chọn loại..." ItemValue="x => x.Value"
+                            ItemLabel="x => x.Label" OnSelectedItemChanged="HandleTypeChange" ShowSearch="true"
+                            AllowClear="true" />
                     </FormItem>
                 </AntDesign.Col>
                 <AntDesign.Col Lg="8">
@@ -56,23 +59,15 @@
                 <AntDesign.Col Lg="8">
                     <FormItem Label="Tên khách hàng" Required="@(OrderType == 2)">
                         <div style="display: flex; gap: 4px;">
-                            <Select TItem="Customer"
-                                    TItemValue="int?"
-                                    DataSource="@Customers"
-                                    @bind-Value="@OrderModel.CustomerId"
-                                    Placeholder="Chọn khách hàng..."
-                                    ItemValue="x => x.Id"
-                                    ItemLabel="x => x.Name"
-                                    ShowSearch="true"
-                                    FilterOption="false"
-                                    OnSelectedItemChanged="@(e => OnCustomerChanged(e))"
-                                    Loading="@CustomersLoading"
-                                    Style="flex: 1"
-                                    AllowClear="true">
+                            <Select TItem="Customer" TItemValue="Guid?" DataSource="@Customers"
+                                @bind-Value="@OrderModel.CustomerId" Placeholder="Chọn khách hàng..."
+                                ItemValue="x => x.Id" ItemLabel="x => x.Name" ShowSearch="true" FilterOption="false"
+                                OnSelectedItemChanged="@(e => OnCustomerChanged(e))" Loading="@CustomersLoading"
+                                Style="flex: 1" AllowClear="true">
                                 <NotFoundContent>
                                     @if (CustomersLoading)
                                     {
-                                        <Spin Size="SpinSize.Default" />
+                                        <Spin Size="@AntDesign.SpinSize.Default" />
                                     }
                                     else
                                     {
@@ -92,10 +87,10 @@
                 <div class="order-section-delivery-header">
                     <div class="txt-18-n-600">Thông tin nhận hàng</div>
                     <Checkbox @bind-Checked="@UseDefaultAddress"
-                        Disabled="@(SelectedCustomer == null || SelectedCustomer.UserId == -1)"
+                        Disabled="@(SelectedCustomer == null)"
                         class="order-checkbox-default-address">
                         <span class="txt-16-n-400 order-checkbox-default-address-label"
-                            style="color: @(SelectedCustomer?.UserId == -1 ? "#999" : "#22313F")">
+                            style="color: @(SelectedCustomer?.Id == Guid.Empty ? "#999" : "#22313F")">
                             Giao đến địa chỉ mặc định
                         </span>
                     </Checkbox>
@@ -103,8 +98,7 @@
                 <Row Gutter="16" class="order-section-delivery-row-margin">
                     <AntDesign.Col Lg="8">
                         <FormItem Label="Tên người nhận" Required="true">
-                            <Input @bind-Value="@OrderModel.Delivery.ConsigneeName" Placeholder="Nhập"
-                                MaxLength="255" />
+                            <Input @bind-Value="@OrderModel.Delivery.ConsigneeName" Placeholder="Nhập" MaxLength="255" />
                         </FormItem>
                     </AntDesign.Col>
                     <AntDesign.Col Lg="8">
@@ -116,66 +110,43 @@
                 <Row Gutter="16" class="order-section-delivery-row-margin">
                     <AntDesign.Col Lg="8">
                         <FormItem Label="Tỉnh/Thành phố" Required="true">
-                            <Select TItem="Province"
-                                    TItemValue="int?"
-                                    DataSource="@Provinces"
-                                    @bind-Value="@OrderModel.Delivery.ProvinceId"
-                                    Placeholder="Chọn tỉnh/thành phố..."
-                                    ItemValue="x => x.Id"
-                                    ItemLabel="x => x.Name"
-                                    ShowSearch="true"
-                                    FilterOption="false"
-                                    OnSelectedItemChanged="@(e => HandleProvinceChange(e))"
-                                    Loading="@ProvincesLoading"
-                                    AllowClear="true" />
+                            <Select TItem="Province" TItemValue="int?" DataSource="@Provinces"
+                                @bind-Value="@OrderModel.Delivery.ProvinceId" Placeholder="Chọn tỉnh/thành phố..."
+                                ItemValue="x => x.Id" ItemLabel="x => x.Name" ShowSearch="true" FilterOption="false"
+                                OnSelectedItemChanged="@(e => HandleProvinceChange(e))" Loading="@ProvincesLoading"
+                                AllowClear="true" />
                         </FormItem>
                     </AntDesign.Col>
                     <AntDesign.Col Lg="8">
                         <FormItem Label="Quận/Huyện" Required="true">
-                            <Select TItem="District"
-                                    TItemValue="int?"
-                                    DataSource="@Districts"
-                                    @bind-Value="@OrderModel.Delivery.DistrictId"
-                                    Placeholder="Chọn quận/huyện..."
-                                    ItemValue="x => x.Id"
-                                    ItemLabel="x => x.Name"
-                                    Disabled="@(SelectedProvinceId == 0)"
-                                    ShowSearch="true"
-                                    FilterOption="false"
-                                    OnSelectedItemChanged="@(e => HandleDistrictChange(e))"
-                                    Loading="@DistrictsLoading"
-                                    AllowClear="true" />
+                            <Select TItem="District" TItemValue="int?" DataSource="@Districts"
+                                @bind-Value="@OrderModel.Delivery.DistrictId" Placeholder="Chọn quận/huyện..."
+                                ItemValue="x => x.Id" ItemLabel="x => x.Name" Disabled="@(SelectedProvinceId == 0)"
+                                ShowSearch="true" FilterOption="false"
+                                OnSelectedItemChanged="@(e => HandleDistrictChange(e))" Loading="@DistrictsLoading"
+                                AllowClear="true" />
                         </FormItem>
                     </AntDesign.Col>
                     <AntDesign.Col Lg="8">
                         <FormItem Label="Phường/Xã" Required="true">
-                            <Select TItem="Commune"
-                                    TItemValue="int?"
-                                    DataSource="@Communes"
-                                    @bind-Value="@OrderModel.Delivery.CommuneId"
-                                    Placeholder="Chọn phường/xã..."
-                                    ItemValue="x => x.Id"
-                                    ItemLabel="x => x.Name"
-                                    Disabled="@(SelectedDistrictId == 0 || SelectedProvinceId == 0)"
-                                    ShowSearch="true"
-                                    FilterOption="false"
-                                    OnSelectedItemChanged="@(e => HandleCommuneChange(e))"
-                                    Loading="@CommunesLoading"
-                                    AllowClear="true" />
+                            <Select TItem="Commune" TItemValue="int?" DataSource="@Communes"
+                                @bind-Value="@OrderModel.Delivery.CommuneId" Placeholder="Chọn phường/xã..."
+                                ItemValue="x => x.Id" ItemLabel="x => x.Name"
+                                Disabled="@(SelectedDistrictId == 0 || SelectedProvinceId == 0)" ShowSearch="true"
+                                FilterOption="false" OnSelectedItemChanged="@(e => HandleCommuneChange(e))"
+                                Loading="@CommunesLoading" AllowClear="true" />
                         </FormItem>
                     </AntDesign.Col>
                 </Row>
                 <Row Gutter="16">
                     <AntDesign.Col Lg="16">
                         <FormItem Label="Địa chỉ chi tiết" Required="true">
-                            <Input @bind-Value="@OrderModel.Delivery.ConsigneeAddress" Placeholder="Nhập"
-                                MaxLength="200" />
+                            <Input @bind-Value="@OrderModel.Delivery.ConsigneeAddress" Placeholder="Nhập" MaxLength="200" />
                         </FormItem>
                     </AntDesign.Col>
                     <AntDesign.Col Lg="8">
                         <FormItem Label="Ghi chú">
-                            <Input @bind-Value="@OrderModel.Delivery.ConsigneeNote" Placeholder="Nhập"
-                                MaxLength="500" />
+                            <Input @bind-Value="@OrderModel.Delivery.ConsigneeNote" Placeholder="Nhập" MaxLength="500" />
                         </FormItem>
                     </AntDesign.Col>
                 </Row>
@@ -191,20 +162,72 @@
                         </Tooltip>
                     }
                     <span class="txt-18-n-500">Danh sách sản phẩm (@Products.Count)</span>
-                    <Popover Content="ProductSearchDropdown"
-                             Visible="@SearchDropdownVisible"
-                             Trigger="@(new Trigger[] { Trigger.Click })"
-                             Placement="Placement.Bottom">
+                    <div class="search-controls">
+                        <Button Type="@AntDesign.ButtonType.Default" Icon="scan" OnClick="StartBarcodeScan"
+                            class="barcode-scan-btn">
+                            <Icon Type="scan" />
+                            Quét barcode (F2)
+                        </Button>
                         <div class="order-section-product-search-input">
-                            <Search @bind-Value="@ProductSearchKeyword"
+                            <Tooltip Title="Tìm kiếm sản phẩm (F1)">
+                                <Search @bind-Value="@ProductSearchKeyword" Width="600"
                                     Placeholder="Nhập barcode, mã sản phẩm, tên sản phẩm để tìm kiếm"
-                                    @onclick="OnSearchClick"
-                                    OnSearch="OnProductSearch"
-                                    OnClear="OnSearchClear"
-                                    Loading="@SearchingProduct"
-                                    class="order-search-input" />
+                                    OnSearch="OnProductSearch" OnClear="OnSearchClear" Loading="@SearchingProduct"
+                                    class="order-search-input" Id="product-search-input" />
+                            </Tooltip>
+                            @if (SearchResults.Any() && SearchDropdownVisible)
+                            {
+                                <div class="search-results-dropdown">
+                                    @foreach (var product in SearchResults.Take(5))
+                                    {
+                                        <div class="search-result-item" @onclick="() => AddProductToOrder(product)">
+                                            <Image Fallback="@(ApiBaseUrl + "/Images/fallback.jpeg")"
+                                                Src="@(ApiBaseUrl + "/" + product.Thumbnail)" Class="search-result-image" />
+                                            <div class="search-result-info">
+                                                <div class="search-result-name">@product.ProductName</div>
+                                                <div class="search-result-sku">SKU: @product.SKU</div>
+                                                <div class="search-result-sku">Màu sắc: @product.ColourName - Size:
+                                                    @product.SizeValue</div>
+                                                <div class="search-result-price">
+                                                    @if (product.SalePrice.HasValue && product.SalePrice < product.Price)
+                                                    {
+                                                        <span
+                                                            style="text-decoration: line-through; color: #999; margin-right: 8px;">@product.Price.ToString("N0")
+                                                            đ</span>
+                                                        <span
+                                                            style="color: #ff4d4f; font-weight: bold;">@product.SalePrice.Value.ToString("N0")
+                                                            đ</span>
+                                                        @if (product.MaxDiscount.HasValue)
+                                                        {
+                                                            <span
+                                                                style="background: #ff4d4f; color: white; padding: 2px 4px; border-radius: 2px; font-size: 10px; margin-left: 4px;">-@product.MaxDiscount.Value.ToString("0")%</span>
+                                                        }
+                                                    }
+                                                    else
+                                                    {
+                                                        @(product.Price.ToString("N0") + "đ")
+                                                    }
+                                                </div>
+                                            </div>
+                                            <div class="search-result-stock">
+                                                <Tag Color="@(product.StockQuantity > 0 ? "green" : "red")">
+                                                    @(product.StockQuantity > 0 ? $"Còn {product.StockQuantity}" : "Hết hàng")
+                                                </Tag>
+                                            </div>
+                                        </div>
+                                    }
+                                    @if (SearchResults.Count > 5)
+                                    {
+                                        <div class="search-result-more">
+                                            <Button Type="@AntDesign.ButtonType.Link" OnClick="()=>ShowAllSearchResults()">
+                                                Xem thêm @(SearchResults.Count - 5) sản phẩm...
+                                            </Button>
+                                        </div>
+                                    }
+                                </div>
+                            }
                         </div>
-                    </Popover>
+                    </div>
                 </div>
             </div>
             <div class="order-section-product-search-right"></div>
@@ -212,39 +235,50 @@
         <div class="order-section-product-table-summary">
             <div class="product-list order-section-product-table">
                 <Table DataSource="@Products" @bind-SelectedRows="selectedRows" RowKey="x => x.ProductDetailId"
-                    Loading="@ProductsLoading" Size="@TableSize.Small">
+                    Loading="@ProductsLoading" Size="@AntDesign.TableSize.Small">
                     <ChildContent Context="product">
-                        <Selection Type="@selectionType" />
+                        <Selection Type="@AntDesign.SelectionType.Checkbox" />
                         <Column TData="string" Title="SKU" Width="136">
                             <div>@product.Sku</div>
                         </Column>
                         <Column TData="string" Title="Ảnh sản phẩm" Width="116">
-                            <img src="@product.ImageUrl"
-                                 style="width: 40px; height: 40px; object-fit: cover;" />
+                            <img src="@product.ImageUrl" style="width: 40px; height: 40px; object-fit: cover;" />
                         </Column>
                         <Column TData="string" Title="Tên sản phẩm">
                             <div>@product.Name</div>
                         </Column>
-                        <Column TData="string" Title="Size" Width="116" Align="@ColumnAlign.Right">
+                        <Column TData="string" Title="Size" Width="116" Align="@AntDesign.ColumnAlign.Right">
                             <div>@product.SizeName</div>
                         </Column>
-                        <Column TData="string" Title="Màu sắc" Width="116" Align="@ColumnAlign.Right">
+                        <Column TData="string" Title="Màu sắc" Width="116" Align="@AntDesign.ColumnAlign.Right">
                             <div>@product.ColourName</div>
                         </Column>
-                        <Column TData="decimal" Title="Đơn giá (đ)" Width="116" Align="@ColumnAlign.Right">
-                            @product.Price.ToString("N0") đ
+                        <Column TData="decimal" Title="Đơn giá (đ)" Width="116" Align="@AntDesign.ColumnAlign.Right">
+                            @if (product.SalePrice.HasValue && product.SalePrice < product.OriginalPrice)
+                            {
+                                <div>
+                                    <span
+                                        style="text-decoration: line-through; color: #999; display: block; font-size: 11px;">@product.OriginalPrice.ToString("N0")
+                                        đ</span>
+                                    <span style="color: #ff4d4f; font-weight: bold;">@product.SalePrice.Value.ToString("N0")
+                                        đ</span>
+                                </div>
+                            }
+                            else
+                            {
+                                @(product.Price.ToString("N0") + "đ")
+                            }
                         </Column>
-                        <Column TData="int" Title="Số lượng" Width="116" Align="@ColumnAlign.Center">
-                            <AntDesign.InputNumber TValue="int" @bind-Value="product.Quantity"
-                              Min="1"
-                              OnChange="@(value => UpdateProductQuantity(product, value))" />
+                        <Column TData="int" Title="Số lượng" Width="116" Align="@AntDesign.ColumnAlign.Center">
+                            <AntDesign.InputNumber TValue="int" @bind-Value="product.Quantity" Min="1"
+                                OnChange="@(value => UpdateProductQuantity(product, value))" />
                         </Column>
-                        <Column TData="decimal" Title="Thành tiền (đ)" Width="116" Align="@ColumnAlign.Right">
+                        <Column TData="decimal" Title="Thành tiền (đ)" Width="116" Align="@AntDesign.ColumnAlign.Right">
                             @((product.Price * product.Quantity).ToString("N0")) đ
                         </Column>
-                        <ActionColumn Title="Thao tác" Width="80" Align="@ColumnAlign.Right">
+                        <ActionColumn Title="Thao tác" Width="80" Align="@AntDesign.ColumnAlign.Right">
                             <Icon Type="delete" OnClick="() => RemoveProduct(product)"
-                                  Style="cursor: pointer; color: #ff4d4f;" />
+                                Style="cursor: pointer; color: #ff4d4f;" />
                         </ActionColumn>
                     </ChildContent>
                 </Table>
@@ -259,9 +293,8 @@
                     <div class="txt-14-n-400">Phí vận chuyển</div>
                     @if (OrderType == 2)
                     {
-                        <AntDesign.InputNumber TValue="decimal" @bind-Value="@ShippingFee"
-                      Placeholder="Nhập..."
-                      class="order-input-shipping-fee" />
+                        <AntDesign.InputNumber TValue="decimal" @bind-Value="@ShippingFee" Placeholder="Nhập..."
+                            class="order-input-shipping-fee" />
                     }
                     else
                     {
@@ -269,12 +302,12 @@
                     }
                 </div>
                 <Divider class="order-summary-divider" />
-                <div class="txt-14-n-500 order-summary-discount-label">Mã giảm giá</div>
+                <div class="txt-14-n-500 order-summary-discount-label">Mã giảm giá/Voucher</div>
                 <div class="order-summary-discount-row">
-                    <Input @bind-Value="@DiscountCode" Placeholder="Nhập mã giảm giá" MaxLength="20"
+                    <Input @bind-Value="@DiscountCode" Placeholder="Nhập mã giảm giá hoặc voucher" MaxLength="20"
                         AllowClear="true" class="order-input-discount-code" />
-                    <Button Disabled="@(string.IsNullOrEmpty(DiscountCode) || DiscountCodeResponse != null)"
-                        OnClick="CheckDiscountCode">
+                    <Button Disabled="@(string.IsNullOrEmpty(DiscountCode) || CheckingDiscount)"
+                        Loading="@CheckingDiscount" OnClick="CheckDiscountCode">
                         Áp dụng
                     </Button>
                 </div>
@@ -287,12 +320,23 @@
                 @if (DiscountCodeAmount > 0)
                 {
                     <div class="order-summary-row order-summary-row-discount">
-                        <div class="txt-14-n-400">Giảm giá/ tổng đơn hàng:</div>
-                        <div class="txt-14-n-500 order-summary-discount-amount">-@DiscountCodeAmount.ToString("N0") đ</div>
+                        <div class="txt-14-n-400">Giảm giá:</div>
+                        <div class="txt-14-n-500 order-summary-discount-amount">-@DiscountCodeAmount.ToString("N0") đ
+                        </div>
+                        <Icon Type="close" @onclick="RemoveDiscountCode" class="remove-discount-icon" />
                     </div>
                     <Divider class="order-summary-divider" />
                 }
-                
+                @if (SelectedVoucher != null)
+                {
+                    <div class="order-summary-row order-summary-row-voucher">
+                        <div class="txt-14-n-400">Voucher:</div>
+                        <div class="txt-14-n-500 order-summary-voucher-name">@SelectedVoucher.Name</div>
+                        <Icon Type="close" @onclick="RemoveVoucher" class="remove-voucher-icon" />
+                    </div>
+                    <Divider class="order-summary-divider" />
+                }
+
                 <div class="order-summary-row order-summary-row-final">
                     <div class="order-summary-final-label">Thành tiền</div>
                     <div class="order-summary-final-amount">@CalculateTotal().ToString("N0") đ</div>
@@ -300,7 +344,7 @@
                 <Divider class="order-summary-divider" />
                 <div class="order-summary-payment-method">
                     <div class="order-summary-payment-label">Hình thức thanh toán</div>
-                    <RadioGroup @bind-Value="@PaymentType" ButtonStyle="@RadioButtonStyle.Solid">
+                    <RadioGroup @bind-Value="@PaymentType" ButtonStyle="@AntDesign.RadioButtonStyle.Solid">
                         <Radio RadioButton Value="0" class="order-radio-payment">Tiền mặt</Radio>
                         <Radio RadioButton Value="1" class="order-radio-payment">Chuyển khoản</Radio>
                     </RadioGroup>
@@ -311,36 +355,41 @@
     <Modal Title="Thêm khách hàng mới" Visible="@AddCustomerModalVisible" OnCancel="HandleCloseAddCustomerModal"
         Footer="null">
         <div style="padding: 8px 0;">
-            <Form TModel="MeoMeo.Contract.DTOs.CreateOrUpdateCustomerDTO" Model="newCustomerModel" Layout="@FormLayout.Vertical">
+            <Form TModel="MeoMeo.Contract.DTOs.CreateQuickCustomerDTO" Model="newCustomerModel"
+                Layout="@AntDesign.FormLayout.Vertical">
                 <FormItem Label="Họ và tên" Required="true">
                     <Input @bind-Value="newCustomerModel.Name" Placeholder="Nhập họ và tên" MaxLength="255" />
                 </FormItem>
                 <FormItem Label="Số điện thoại" Required="true">
                     <Input @bind-Value="newCustomerModel.PhoneNumber" Placeholder="Nhập số điện thoại" MaxLength="20" />
                 </FormItem>
-                <FormItem Label="Mã khách hàng">
-                    <Input @bind-Value="newCustomerModel.Code" Placeholder="Tự động nếu bỏ trống" MaxLength="50" />
+                <FormItem Label="Địa chỉ">
+                    <Input @bind-Value="newCustomerModel.Address" Placeholder="Nhập địa chỉ (tùy chọn)"
+                        MaxLength="200" />
                 </FormItem>
                 <div class="d-flex" style="justify-content: flex-end; gap: 8px;">
                     <Button OnClick="HandleCloseAddCustomerModal">Hủy</Button>
-                    <Button Type="AntDesign.ButtonType.Primary" Loading="@creatingCustomer" OnClick="CreateCustomerAsync">Lưu</Button>
+                    <Button Type="AntDesign.ButtonType.Primary" Loading="@creatingCustomer"
+                        OnClick="CreateQuickCustomerAsync">Tạo nhanh
+                    </Button>
                 </div>
             </Form>
         </div>
     </Modal>
 </div>
+
 @code {
-    SelectionType selectionType = SelectionType.Checkbox;
+
     public class OrderFormModel
     {
-        [Required]
-        public int Type { get; set; } = 0;
-        [Required]
-        public DateTime OrderTime { get; set; } = DateTime.Now;
-        public int? CustomerId { get; set; }
+        [Required] public int Type { get; set; } = 0;
+        [Required] public DateTime OrderTime { get; set; } = DateTime.Now;
+        public Guid? CustomerId { get; set; }
         public DeliveryInfo Delivery { get; set; } = new();
     }
-    IEnumerable<Product> selectedRows = Enumerable.Empty<Product>();
+
+    IEnumerable<OrderProductItem> selectedRows = Enumerable.Empty<OrderProductItem>();
+
     public class DeliveryInfo
     {
         public string ConsigneeName { get; set; } = string.Empty;
@@ -351,46 +400,71 @@
         public string ConsigneeAddress { get; set; } = string.Empty;
         public string ConsigneeNote { get; set; } = string.Empty;
     }
+
     public class SelectOption
     {
         public string Label { get; set; }
         public int Value { get; set; }
     }
+
     public class Customer
     {
-        public int Id { get; set; }
+        public Guid Id { get; set; }
         public string Name { get; set; }
         public string Phone { get; set; }
-        public int UserId { get; set; }
-        public string MembershipName { get; set; }
-        public int RemainingPoint { get; set; }
     }
+
     public class Province
     {
         public int Id { get; set; }
         public string Name { get; set; }
     }
+
     public class District
     {
         public int Id { get; set; }
         public string Name { get; set; }
     }
+
     public class Commune
     {
         public int Id { get; set; }
         public string Name { get; set; }
     }
-    public class Product
+
+    // Sử dụng DTO có sẵn thay vì tự định nghĩa model
+    public class OrderProductItem
     {
         public Guid ProductDetailId { get; set; }
-        public string Sku { get; set; }
-        public string Name { get; set; }
-        public string ImageUrl { get; set; }
-        public string SizeName { get; set; }
-        public string ColourName { get; set; }
+        public string Sku { get; set; } = string.Empty;
+        public string Name { get; set; } = string.Empty;
+        public string ImageUrl { get; set; } = string.Empty;
+        public string SizeName { get; set; } = string.Empty;
+        public string ColourName { get; set; } = string.Empty;
         public decimal Price { get; set; }
+        public decimal OriginalPrice { get; set; }
+        public decimal? SalePrice { get; set; }
+        public decimal? MaxDiscount { get; set; }
         public int Quantity { get; set; } = 1;
+        public int StockQuantity { get; set; } = 0;
+        public int Weight { get; set; } = 500;
+        public int Length { get; set; } = 15;
+        public int Width { get; set; } = 15;
+        public int Height { get; set; } = 15;
     }
+
+    // Sử dụng DTO có sẵn thay vì tự định nghĩa
+    public class OrderVoucher
+    {
+        public Guid Id { get; set; }
+        public string Name { get; set; } = string.Empty;
+        public string Code { get; set; } = string.Empty;
+        public decimal DiscountAmount { get; set; }
+        public decimal DiscountPercent { get; set; }
+        public decimal MinOrderAmount { get; set; }
+        public DateTime ExpiryDate { get; set; }
+    }
+
     private OrderFormModel OrderModel = new();
     private object? DetailsItem = null;
     private int OrderType = 0;
@@ -398,48 +472,74 @@
     private Customer? SelectedCustomer = null;
     private int SelectedProvinceId = 0;
     private int SelectedDistrictId = 0;
+
     private List<SelectOption> TypeOptions = new()
 {
 new() { Label = "Giao trực tiếp", Value = 0 },
 new() { Label = "Giao hàng", Value = 2 }
 };
+
     private List<Customer> Customers = new();
     private List<Province> Provinces = new();
     private List<District> Districts = new();
     private List<Commune> Communes = new();
-    private List<Product> Products = new();
-    private List<Product> SelectedProducts = new();
+    private List<OrderProductItem> Products = new();
+    private List<OrderProductItem> SelectedProducts = new();
+    private List<ProductSearchResponseDTO> SearchResults = new();
     private bool CustomersLoading = false;
     private bool ProvincesLoading = false;
     private bool DistrictsLoading = false;
     private bool CommunesLoading = false;
     private bool ProductsLoading = false;
     private bool SearchingProduct = false;
+    private bool CheckingDiscount = false;
     private string ProductSearchKeyword = string.Empty;
     private bool SearchDropdownVisible = false;
     private bool AddCustomerModalVisible = false;
-    private MeoMeo.Contract.DTOs.CreateOrUpdateCustomerDTO newCustomerModel = new();
+    private CreateQuickCustomerDTO newCustomerModel = new();
     private bool creatingCustomer = false;
     private decimal ShippingFee = 0;
     private string DiscountCode = string.Empty;
     private string? DiscountCodeError = null;
-    private object? DiscountCodeResponse = null;
     private decimal DiscountCodeAmount = 0;
+    private OrderVoucher? SelectedVoucher = null;
     private int PaymentType = 0;
     private string ApiBaseUrl = string.Empty;
-    private RenderFragment ProductSearchDropdown => builder =>
+    private bool IsBarcodeScanning = false;
+
+    private ProductSearchRequestDTO requestSearchProduct = new ProductSearchRequestDTO
     {
-        builder.AddContent(0, "Search results here...");
+        PageIndex = 1,
+        PageSize = 20,
+        InStockOnly = true
     };
+
+
     protected override async Task OnInitializedAsync()
     {
         ApiBaseUrl = Configuration["ApiSettings:BaseUrl"]?.TrimEnd('/') ?? string.Empty;
         await LoadInitialData();
+        //
+        // // Set focus to search input
+        // await Task.Delay(100);
+        // await JSRuntime.InvokeVoidAsync("setFocus", "product-search-input");
     }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            // Add keyboard shortcuts
+            await JSRuntime.InvokeVoidAsync("addKeyboardShortcuts");
+        }
+    }
+
     private async Task HandleCancel()
     {
         Products.Clear();
         SelectedProducts.Clear();
+        SearchResults.Clear();
+        SearchDropdownVisible = false;
         OrderModel = new();
         SelectedCustomer = null;
         SelectedProvinceId = 0;
@@ -447,11 +547,15 @@ new() { Label = "Giao hàng", Value = 2 }
         ShippingFee = 0;
         DiscountCode = string.Empty;
         DiscountCodeError = null;
-        DiscountCodeResponse = null;
+        DiscountCodeAmount = 0;
+        SelectedVoucher = null;
         PaymentType = 0;
+        ProductSearchKeyword = string.Empty;
         StateHasChanged();
-        MessageService.Success("Đã làm mới biểu mẫu");
+        MessageService.Success("Đã đã làm mới thành công");
+
     }
+
     private async Task HandleSave(bool isDraft)
     {
         if (!Products.Any())
@@ -459,14 +563,15 @@ new() { Label = "Giao hàng", Value = 2 }
             MessageService.Warning("Vui lòng chọn sản phẩm");
             return;
         }
+
         if (OrderType == 2)
         {
             if (string.IsNullOrWhiteSpace(OrderModel.Delivery.ConsigneeName) ||
-                string.IsNullOrWhiteSpace(OrderModel.Delivery.ConsigneePhone) ||
-                !OrderModel.Delivery.ProvinceId.HasValue ||
-                !OrderModel.Delivery.DistrictId.HasValue ||
-                !OrderModel.Delivery.CommuneId.HasValue ||
-                string.IsNullOrWhiteSpace(OrderModel.Delivery.ConsigneeAddress))
+            string.IsNullOrWhiteSpace(OrderModel.Delivery.ConsigneePhone) ||
+            !OrderModel.Delivery.ProvinceId.HasValue ||
+            !OrderModel.Delivery.DistrictId.HasValue ||
+            !OrderModel.Delivery.CommuneId.HasValue ||
+            string.IsNullOrWhiteSpace(OrderModel.Delivery.ConsigneeAddress))
             {
                 MessageService.Warning("Vui lòng nhập đủ thông tin giao hàng");
                 return;
@@ -475,34 +580,28 @@ new() { Label = "Giao hàng", Value = 2 }
 
         try
         {
-            var dto = new MeoMeo.Contract.DTOs.Order.CreatePosOrderDTO
+            var dto = new CreatePosOrderDTO
             {
                 Type = OrderType == 2 ? MeoMeo.Domain.Commons.Enums.EOrderType.Online : MeoMeo.Domain.Commons.Enums.EOrderType.Store,
                 OrderTime = OrderModel.OrderTime,
-                PaymentMethod = PaymentType == 0 ? MeoMeo.Domain.Commons.Enums.EOrderPaymentMethod.Cash : MeoMeo.Domain.Commons.Enums.EOrderPaymentMethod.Transfer,
+                PaymentMethod = PaymentType == 0 ? MeoMeo.Domain.Commons.Enums.EOrderPaymentMethod.Cash :
+            MeoMeo.Domain.Commons.Enums.EOrderPaymentMethod.Transfer,
                 Note = OrderModel.Delivery.ConsigneeNote,
                 ShippingFee = ShippingFee,
                 DiscountCode = string.IsNullOrWhiteSpace(DiscountCode) ? null : DiscountCode,
-                CustomerId = null,
-                NewCustomer = SelectedCustomer == null ? new MeoMeo.Contract.DTOs.Order.CreatePosCustomerDTO
-                {
-                    Name = string.Empty,
-                    PhoneNumber = string.Empty
-                } : new MeoMeo.Contract.DTOs.Order.CreatePosCustomerDTO
-                {
-                    Name = SelectedCustomer.Name,
-                    PhoneNumber = SelectedCustomer.Phone
-                },
-                Delivery = OrderType == 2 ? new MeoMeo.Contract.DTOs.Order.CreatePosDeliveryDTO
-                {
-                    ConsigneeName = OrderModel.Delivery.ConsigneeName,
-                    ConsigneePhone = OrderModel.Delivery.ConsigneePhone,
-                    ProvinceId = OrderModel.Delivery.ProvinceId ?? 0,
-                    DistrictId = OrderModel.Delivery.DistrictId ?? 0,
-                    CommuneId = OrderModel.Delivery.CommuneId ?? 0,
-                    ConsigneeAddress = OrderModel.Delivery.ConsigneeAddress,
-                    ConsigneeNote = OrderModel.Delivery.ConsigneeNote
-                } : null,
+                CustomerId = SelectedCustomer.Id,
+                Delivery = OrderType == 2
+            ? new MeoMeo.Contract.DTOs.Order.CreatePosDeliveryDTO
+            {
+                ConsigneeName = OrderModel.Delivery.ConsigneeName,
+                ConsigneePhone = OrderModel.Delivery.ConsigneePhone,
+                ProvinceId = OrderModel.Delivery.ProvinceId ?? 0,
+                DistrictId = OrderModel.Delivery.DistrictId ?? 0,
+                CommuneId = OrderModel.Delivery.CommuneId ?? 0,
+                ConsigneeAddress = OrderModel.Delivery.ConsigneeAddress,
+                ConsigneeNote = OrderModel.Delivery.ConsigneeNote
+            }
+            : null,
                 Items = Products.Select(p => new MeoMeo.Contract.DTOs.Order.CreatePosOrderItemDTO
                 {
                     ProductDetailId = p.ProductDetailId,
@@ -527,78 +626,118 @@ new() { Label = "Giao hàng", Value = 2 }
             MessageService.Error("Không thể lưu đơn hàng");
         }
     }
+
     private async Task HandlePrintOrder()
     {
-        MessageService.Info("Tính năng in đơn đang được phát triển");
+        if (!Products.Any())
+        {
+            MessageService.Warning("Vui lòng chọn sản phẩm trước khi in");
+            return;
+        }
+
+        try
+        {
+            // Tạo dữ liệu hóa đơn để in
+            var receiptData = new
+            {
+                OrderCode = $"POS-{DateTime.Now:yyyyMMdd-HHmmss}",
+                OrderTime = OrderModel.OrderTime,
+                CustomerName = SelectedCustomer?.Name ?? "Khách lẻ",
+                CustomerPhone = SelectedCustomer?.Phone ?? "",
+                Items = Products.Select(p => new
+                {
+                    Name = p.Name,
+                    SKU = p.Sku,
+                    Quantity = p.Quantity,
+                    Price = p.Price,
+                    Total = p.Price * p.Quantity
+                }),
+                SubTotal = CalculateSubTotal(),
+                ShippingFee = ShippingFee,
+                DiscountAmount = DiscountCodeAmount,
+                Total = CalculateTotal(),
+                PaymentMethod = PaymentType == 0 ? "Tiền mặt" : "Chuyển khoản"
+            };
+
+            // Gọi JavaScript để in hóa đơn
+            await JSRuntime.InvokeVoidAsync("printReceipt", receiptData);
+            MessageService.Success("Đã gửi lệnh in hóa đơn");
+        }
+        catch (Exception ex)
+        {
+            MessageService.Error("Không thể in hóa đơn: " + ex.Message);
+        }
     }
+
     private async Task HandleGoBack()
     {
         Navigation.NavigateTo("/orders");
     }
+
     private async Task HandleTypeChange(SelectOption selectedOption)
     {
         OrderType = selectedOption.Value;
         StateHasChanged();
     }
+
     private void OnCustomerSearch(string searchText)
     {
         CustomersLoading = true;
         CustomersLoading = false;
         StateHasChanged();
     }
+
     private void OnCustomerChanged(Customer customer)
     {
         SelectedCustomer = customer;
-        if (customer?.UserId == -1)
+        if (customer.Id == Guid.Empty)
         {
             UseDefaultAddress = false;
         }
+
         StateHasChanged();
     }
+
     private async Task HandleAddNewCustomer()
     {
         AddCustomerModalVisible = true;
-        newCustomerModel = new MeoMeo.Contract.DTOs.CreateOrUpdateCustomerDTO();
+        newCustomerModel = new CreateQuickCustomerDTO();
     }
+
     private async Task HandleCloseAddCustomerModal()
     {
         AddCustomerModalVisible = false;
     }
-    private async Task CreateCustomerAsync()
+
+    private async Task CreateQuickCustomerAsync()
     {
         if (string.IsNullOrWhiteSpace(newCustomerModel.Name) || string.IsNullOrWhiteSpace(newCustomerModel.PhoneNumber))
         {
             MessageService.Warning("Vui lòng nhập đầy đủ họ tên và số điện thoại");
             return;
         }
+
         try
         {
             creatingCustomer = true;
-            var resp = await CustomerClientService.CreateCustomersAsync(newCustomerModel);
+            var resp = await CustomerClientService.CreateQuickCustomerAsync(newCustomerModel);
             if (resp != null && resp.ResponseStatus == MeoMeo.Contract.Commons.BaseStatus.Success)
             {
-                MessageService.Success(resp.Message ?? "Tạo khách hàng thành công");
-                // Reload a small page of customers including the new one
-                var custReq = new MeoMeo.Contract.DTOs.GetListCustomerRequestDTO { PageIndex = 1, PageSize = 20, PhoneNumberFilter = newCustomerModel.PhoneNumber };
-                var custResp = await CustomerClientService.GetAllCustomersAsync(custReq);
-                var list = (custResp.Items ?? new List<MeoMeo.Contract.DTOs.CustomerDTO>())
-                    .Select(c => new Customer
-                    {
-                        Id = 0,
-                        Name = c.Name,
-                        Phone = c.PhoneNumber,
-                        UserId = c.UserId.GetHashCode(),
-                        MembershipName = string.Empty,
-                        RemainingPoint = 0
-                    })
-                    .ToList();
-                if (list.Any())
+                MessageService.Success(resp.Message ?? "Tạo khách hàng nhanh thành công");
+
+                // Tạo customer object từ response và select nó
+                var newCustomer = new Customer
                 {
-                    // Merge or replace
-                    Customers = list;
-                    SelectedCustomer = Customers.First();
-                    OrderModel.CustomerId = SelectedCustomer.Id;
-                }
+                    Id = resp.CustomerId ?? Guid.Empty,
+                    Name = resp.CustomerName ?? newCustomerModel.Name,
+                    Phone = resp.PhoneNumber ?? newCustomerModel.PhoneNumber
+                };
+
+                // Thêm vào danh sách customers và select
+                Customers.Insert(0, newCustomer);
+                SelectedCustomer = newCustomer;
+                OrderModel.CustomerId = newCustomer.Id;
+
                 AddCustomerModalVisible = false;
             }
             else
@@ -616,7 +755,11 @@ new() { Label = "Giao hàng", Value = 2 }
             StateHasChanged();
         }
     }
-    private void OnProvinceSearch(string searchText) { }
+
+    private void OnProvinceSearch(string searchText)
+    {
+    }
+
     private void HandleProvinceChange(Province province)
     {
         SelectedProvinceId = province?.Id ?? 0;
@@ -627,7 +770,11 @@ new() { Label = "Giao hàng", Value = 2 }
         StateHasChanged();
         _ = LoadDistrictsAsync(SelectedProvinceId);
     }
-    private void OnDistrictSearch(string searchText) { }
+
+    private void OnDistrictSearch(string searchText)
+    {
+    }
+
     private void HandleDistrictChange(District district)
     {
         SelectedDistrictId = district?.Id ?? 0;
@@ -636,47 +783,53 @@ new() { Label = "Giao hàng", Value = 2 }
         StateHasChanged();
         _ = LoadCommunesAsync(SelectedDistrictId);
     }
-    private void OnCommuneSearch(string searchText) { }
+
+    private void OnCommuneSearch(string searchText)
+    {
+    }
+
     private void HandleCommuneChange(Commune commune)
     {
         OrderModel.Delivery.CommuneId = commune?.Id;
         StateHasChanged();
     }
+
     private async Task OnSearchClick()
     {
         SearchDropdownVisible = true;
     }
+
+
     private async Task OnProductSearch(string searchText)
     {
         try
         {
             SearchingProduct = true;
             ProductSearchKeyword = searchText?.Trim() ?? string.Empty;
-            var request = new MeoMeo.Contract.DTOs.ProductDetail.GetListProductDetailRequestDTO
+
+            if (string.IsNullOrEmpty(ProductSearchKeyword))
             {
-                PageIndex = 1,
-                PageSize = 10,
-                ProductNameFilter = ProductSearchKeyword,
-                SKUFilter = ProductSearchKeyword
-            };
-            var result = await ProductDetailClientService.GetAllProductDetailAsync(request);
-            var items = result.Items ?? new List<MeoMeo.Contract.DTOs.ProductDetail.ProductDetailDTO>();
-            Products = items.Select(x => new Product
-            {
-                ProductDetailId = x.Id,
-                Sku = x.Sku ?? string.Empty,
-                Name = x.ProductName ?? string.Empty,
-                ImageUrl = string.IsNullOrWhiteSpace(x.Thumbnail) ? string.Empty : ($"{ApiBaseUrl}{x.Thumbnail}"),
-                SizeName = x.SizeValue ?? string.Empty,
-                ColourName = x.ColourName ?? string.Empty,
-                Price = (decimal)x.Price,
-                Quantity = 1
-            }).ToList();
-            SearchDropdownVisible = false;
+                SearchResults.Clear();
+                SearchDropdownVisible = false;
+                return;
+            }
+
+            // Cập nhật request với keyword mới
+            requestSearchProduct.SearchKeyword = ProductSearchKeyword;
+            requestSearchProduct.PageIndex = 1; // Reset về trang đầu khi search mới
+
+            var result = await ProductClientService.SearchProductsAsync(requestSearchProduct);
+            var items = result.Items ?? new List<ProductSearchResponseDTO>();
+
+            SearchResults = items.ToList();
+
+            SearchDropdownVisible = SearchResults.Any();
         }
         catch
         {
             MessageService.Error("Không thể tìm sản phẩm");
+            SearchResults.Clear();
+            SearchDropdownVisible = false;
         }
         finally
         {
@@ -684,65 +837,262 @@ new() { Label = "Giao hàng", Value = 2 }
             StateHasChanged();
         }
     }
+
     private async Task OnSearchClear()
     {
         ProductSearchKeyword = string.Empty;
+        SearchResults.Clear();
         SearchDropdownVisible = false;
+        StateHasChanged();
     }
+
+    private void AddProductToOrder(ProductSearchResponseDTO product)
+    {
+        if (product.StockQuantity <= 0)
+        {
+            MessageService.Warning("Sản phẩm đã hết hàng");
+            return;
+        }
+
+        var existingProduct = Products.FirstOrDefault(p => p.ProductDetailId == product.ProductDetailId);
+        if (existingProduct != null)
+        {
+            if (existingProduct.Quantity >= product.StockQuantity)
+            {
+                MessageService.Warning($"Số lượng tồn kho chỉ còn {product.StockQuantity}");
+                return;
+            }
+
+            existingProduct.Quantity++;
+        }
+        else
+        {
+            Products.Add(new OrderProductItem
+            {
+                ProductDetailId = product.ProductDetailId,
+                Sku = product.SKU,
+                Name = product.ProductName,
+                ImageUrl = string.IsNullOrWhiteSpace(product.Thumbnail) ? string.Empty : ($"{ApiBaseUrl}{product.Thumbnail}"),
+                SizeName = product.SizeValue,
+                ColourName = product.ColourName,
+                Price = product.SalePrice ?? product.Price,
+                OriginalPrice = product.Price,
+                SalePrice = product.SalePrice,
+                MaxDiscount = product.MaxDiscount,
+                Quantity = 1,
+                StockQuantity = product.StockQuantity,
+                Weight = product.Weight,
+                Length = 15,
+                Width = 15,
+                Height = 15
+            });
+        }
+
+        SearchDropdownVisible = false;
+        StateHasChanged();
+    }
+
+    private async ValueTask ShowAllSearchResults()
+    {
+        try
+        {
+            SearchingProduct = true;
+            requestSearchProduct.PageSize = 50;
+            var result = await ProductClientService.SearchProductsAsync(requestSearchProduct);
+            var items = result.Items ?? new List<ProductSearchResponseDTO>();
+            SearchResults = items.ToList();
+            SearchDropdownVisible = SearchResults.Any();
+        }
+        catch
+        {
+            MessageService.Error("Không thể tải thêm sản phẩm");
+        }
+        finally
+        {
+            SearchingProduct = false;
+            StateHasChanged();
+        }
+    }
+
+    private async Task StartBarcodeScan()
+    {
+        try
+        {
+            IsBarcodeScanning = true;
+            MessageService.Info("Đang khởi động camera quét barcode...");
+
+            // Gọi JavaScript để khởi động camera
+            var barcode = await JSRuntime.InvokeAsync<string>("startBarcodeScan");
+            if (!string.IsNullOrEmpty(barcode))
+            {
+                // Tìm sản phẩm theo barcode bằng SearchProductsAsync
+                var barcodeRequest = new ProductSearchRequestDTO
+                {
+                    PageIndex = 1,
+                    PageSize = 1,
+                    SearchKeyword = barcode,
+                    InStockOnly = true
+                };
+
+                var result = await ProductClientService.SearchProductsAsync(barcodeRequest);
+                var product = result.Items?.FirstOrDefault();
+
+                if (product != null)
+                {
+                    AddProductToOrder(product);
+                }
+                else
+                {
+                    MessageService.Warning($"Không tìm thấy sản phẩm với barcode: {barcode}");
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            MessageService.Error("Không thể khởi động camera: " + ex.Message);
+        }
+        finally
+        {
+            IsBarcodeScanning = false;
+            StateHasChanged();
+        }
+    }
+
+    private async Task CheckDiscountCode()
+    {
+        if (string.IsNullOrEmpty(DiscountCode))
+            return;
+
+        try
+        {
+            CheckingDiscount = true;
+            DiscountCodeError = null;
+
+            // Kiểm tra mã giảm giá
+            var request = new CheckVoucherRequestDTO
+            {
+                Code = DiscountCode,
+                OrderAmount = CalculateSubTotal()
+            };
+
+            var result = await VoucherClientService.CheckVoucherAsync(request);
+            if (result != null && result.ResponseStatus == MeoMeo.Contract.Commons.BaseStatus.Success)
+            {
+                DiscountCodeAmount = result.DiscountAmount;
+                SelectedVoucher = new OrderVoucher
+                {
+                    Id = result.Id,
+                    Name = result.Name,
+                    Code = result.Code,
+                    DiscountAmount = result.DiscountAmount,
+                    DiscountPercent = result.DiscountPercent,
+                    MinOrderAmount = result.MinOrderAmount,
+                    ExpiryDate = result.ExpiryDate
+                };
+                MessageService.Success($"Áp dụng mã giảm giá thành công: -{DiscountCodeAmount.ToString("N0")} đ");
+            }
+            else
+            {
+                DiscountCodeError = result?.Message ?? "Mã giảm giá không hợp lệ";
+                DiscountCodeAmount = 0;
+                SelectedVoucher = null;
+            }
+        }
+        catch (Exception ex)
+        {
+            DiscountCodeError = "Lỗi khi kiểm tra mã giảm giá";
+            DiscountCodeAmount = 0;
+            SelectedVoucher = null;
+        }
+        finally
+        {
+            CheckingDiscount = false;
+            StateHasChanged();
+        }
+    }
+
+    private void RemoveDiscountCode()
+    {
+        DiscountCode = string.Empty;
+        DiscountCodeAmount = 0;
+        DiscountCodeError = null;
+        StateHasChanged();
+    }
+
+    private void RemoveVoucher()
+    {
+        SelectedVoucher = null;
+        DiscountCodeAmount = 0;
+        StateHasChanged();
+    }
+
     private async Task HandleRemoveSelectedProducts()
     {
-        foreach (var product in SelectedProducts)
+        if (SelectedProducts.Any())
         {
-            Products.Remove(product);
+            var count = SelectedProducts.Count;
+            foreach (var product in SelectedProducts)
+            {
+                Products.Remove(product);
+            }
+
+            SelectedProducts.Clear();
+            StateHasChanged();
+            MessageService.Success($"Đã xóa {count} sản phẩm");
         }
-        SelectedProducts.Clear();
-        StateHasChanged();
+        else
+        {
+            MessageService.Warning("Chưa có sản phẩm nào được chọn");
+        }
     }
-    private void UpdateProductQuantity(Product product, int quantity)
+
+    private void UpdateProductQuantity(OrderProductItem product, int quantity)
     {
-        product.Quantity = Math.Max(1, quantity);
+        if (quantity <= 0)
+        {
+            MessageService.Warning("Số lượng phải lớn hơn 0");
+            return;
+        }
+
+        if (quantity > product.StockQuantity)
+        {
+            MessageService.Warning($"Số lượng tồn kho chỉ còn {product.StockQuantity}");
+            product.Quantity = product.StockQuantity;
+        }
+        else
+        {
+            product.Quantity = quantity;
+        }
+
         StateHasChanged();
     }
-    private void RemoveProduct(Product product)
+
+    private void RemoveProduct(OrderProductItem product)
     {
         Products.Remove(product);
         SelectedProducts.Remove(product);
         StateHasChanged();
     }
-    private async Task CheckDiscountCode()
-    {
-        if (string.IsNullOrEmpty(DiscountCode))
-            return;
-        try
-        {
-        }
-        catch (Exception ex)
-        {
-            DiscountCodeError = "Lỗi khi kiểm tra mã giảm giá";
-        }
-    }
+
     private decimal CalculateSubTotal()
     {
         return Products.Sum(p => p.Price * p.Quantity);
     }
+
     private decimal CalculateTotal()
     {
         var subTotal = CalculateSubTotal();
         var total = subTotal + ShippingFee - DiscountCodeAmount;
         return Math.Max(0, total);
     }
-    private bool HasPermission(string permission)
-    {
-        return true;
-    }
+
     private async Task LoadInitialData()
     {
         try
         {
             CustomersLoading = true;
             ProvincesLoading = true;
-
-            // Load some customers (first page)
+            
             var custReq = new MeoMeo.Contract.DTOs.GetListCustomerRequestDTO
             {
                 PageIndex = 1,
@@ -750,22 +1100,19 @@ new() { Label = "Giao hàng", Value = 2 }
             };
             var custResp = await CustomerClientService.GetAllCustomersAsync(custReq);
             Customers = (custResp.Items ?? new List<MeoMeo.Contract.DTOs.CustomerDTO>())
-                .Select(c => new Customer
-                {
-                    Id = 0,
-                    Name = c.Name,
-                    Phone = c.PhoneNumber,
-                    UserId = c.UserId.GetHashCode(),
-                    MembershipName = string.Empty,
-                    RemainingPoint = 0
-                })
-                .ToList();
+            .Select(c => new Customer
+            {
+                Id = c.Id,
+                Name = c.Name,
+                Phone = c.PhoneNumber,
+            })
+            .ToList();
 
             // Load provinces via GHN
             var ghnProvinces = await GhnService.GetProvincesAsync();
             Provinces = (ghnProvinces ?? new List<MeoMeo.Shared.DTOs.GhnLocationItem>())
-                .Select(p => new Province { Id = p.Id, Name = p.Name })
-                .ToList();
+            .Select(p => new Province { Id = p.Id, Name = p.Name })
+            .ToList();
         }
         catch
         {
@@ -778,9 +1125,11 @@ new() { Label = "Giao hàng", Value = 2 }
             StateHasChanged();
         }
     }
+
     private async Task OnFinish()
     {
     }
+
     private async Task OnFinishFailed()
     {
     }
@@ -792,8 +1141,8 @@ new() { Label = "Giao hàng", Value = 2 }
             DistrictsLoading = true;
             var ghnDistricts = await GhnService.GetDistrictsAsync(provinceId);
             Districts = (ghnDistricts ?? new List<MeoMeo.Shared.DTOs.GhnLocationItem>())
-                .Select(d => new District { Id = d.Id, Name = d.Name })
-                .ToList();
+            .Select(d => new District { Id = d.Id, Name = d.Name })
+            .ToList();
         }
         catch
         {
@@ -813,8 +1162,8 @@ new() { Label = "Giao hàng", Value = 2 }
             CommunesLoading = true;
             var ghnWards = await GhnService.GetWardsAsync(districtId);
             Communes = (ghnWards ?? new List<MeoMeo.Shared.DTOs.GhnLocationItem>())
-                .Select(w => new Commune { Id = w.Id, Name = w.Name })
-                .ToList();
+            .Select(w => new Commune { Id = w.Id, Name = w.Name })
+            .ToList();
         }
         catch
         {
@@ -826,4 +1175,7 @@ new() { Label = "Giao hàng", Value = 2 }
             StateHasChanged();
         }
     }
+
+}
+
 }

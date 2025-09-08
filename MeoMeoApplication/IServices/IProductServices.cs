@@ -33,5 +33,9 @@ namespace MeoMeo.Application.IServices
 
         // Featured products by rating
         Task<List<TopRatedProductDTO>> GetTopRatedProductsAsync(int take = 12);
+
+        // Search methods
+        Task<PagingExtensions.PagedResult<ProductSearchResponseDTO>> SearchProductsAsync(ProductSearchRequestDTO request);
+        Task<ProductSearchResponseDTO?> GetProductBySkuAsync(string sku);
     }
 }

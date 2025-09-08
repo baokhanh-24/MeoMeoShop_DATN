@@ -86,7 +86,7 @@ namespace MeoMeo.Shared.Services
                 _logger.LogError(ex, "Có lỗi xảy ra khi cập nhật Customer {Id}: {Message}", createOrUpdateCustomerDto.Id, ex.Message);
                 return new CreateOrUpdateCustomerResponse { ResponseStatus = BaseStatus.Error, Message = ex.Message };
             }
-        }    
+        }
         public async Task<CreateOrUpdateCustomerResponse> UpdateProfileAsync(CreateOrUpdateCustomerDTO createOrUpdateCustomerDto)
         {
             try
@@ -114,9 +114,9 @@ namespace MeoMeo.Shared.Services
                 var success = await _httpClient.DeleteAsync(url);
                 if (!success)
                 {
-                    return new BaseResponse { ResponseStatus = BaseStatus.Error, Message ="Xoá khách hàng thất bại" };
+                    return new BaseResponse { ResponseStatus = BaseStatus.Error, Message = "Xoá khách hàng thất bại" };
                 }
-                return new BaseResponse { ResponseStatus = BaseStatus.Success,  Message = "Xóa khách hàng thành công" };
+                return new BaseResponse { ResponseStatus = BaseStatus.Success, Message = "Xóa khách hàng thành công" };
             }
             catch (Exception ex)
             {
@@ -142,7 +142,7 @@ namespace MeoMeo.Shared.Services
             catch (Exception ex)
             {
                 return new BaseResponse { ResponseStatus = BaseStatus.Error, Message = ex.Message };
-     
+
             }
         }
 
@@ -151,13 +151,36 @@ namespace MeoMeo.Shared.Services
             try
             {
                 var url = "/api/Customers/change-password-async";
-                var response = await _httpClient.PutAsync<ChangePasswordDTO,BaseResponse>(url, model);
+                var response = await _httpClient.PutAsync<ChangePasswordDTO, BaseResponse>(url, model);
                 return response;
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Có lỗi xảy ra khi đổi mật khẩu cho Customer {CustomerId}: {Message}", model.CustomerId, ex.Message);
                 return new BaseResponse { ResponseStatus = BaseStatus.Error, Message = ex.Message };
+            }
+        }
+
+        public async Task<QuickCustomerResponseDTO> CreateQuickCustomerAsync(CreateQuickCustomerDTO request)
+        {
+            try
+            {
+                var url = "/api/Customers/create-quick-customer-async";
+                var response = await _httpClient.PostAsync<CreateQuickCustomerDTO, QuickCustomerResponseDTO>(url, request);
+                return response ?? new QuickCustomerResponseDTO
+                {
+                    ResponseStatus = BaseStatus.Error,
+                    Message = "Không thể tạo khách hàng"
+                };
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Có lỗi xảy ra khi tạo nhanh Customer: {Message}", ex.Message);
+                return new QuickCustomerResponseDTO
+                {
+                    ResponseStatus = BaseStatus.Error,
+                    Message = ex.Message
+                };
             }
         }
     }

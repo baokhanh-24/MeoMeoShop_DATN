@@ -9,20 +9,16 @@ namespace MeoMeo.EntityFrameworkCore.Configurations
         public void Configure(EntityTypeBuilder<Wishlist> builder)
         {
             builder.ToTable("Wishlist");
-            builder.HasKey(x => x.Id);
             builder.Property(x => x.CustomerId).IsRequired();
-            builder.Property(x => x.ProductId).IsRequired();
-
-            builder.HasIndex(x => new { x.CustomerId, x.ProductId }).IsUnique();
-
-            builder.HasOne(x => x.Customer)
-                .WithMany()
+            builder.Property(x => x.ProductDetailId).IsRequired();
+            builder.HasKey(x => new { x.CustomerId, x.ProductDetailId });
+            builder.HasOne(x => x.Customers)
+                .WithMany(x=>x.Wishlists)
                 .HasForeignKey(x => x.CustomerId)
                 .OnDelete(DeleteBehavior.Cascade);
-
-            builder.HasOne(x => x.Product)
-                .WithMany()
-                .HasForeignKey(x => x.ProductId)
+            builder.HasOne(x => x.ProductDetails)
+                .WithMany(x=>x.Wishlists)
+                .HasForeignKey(x => x.ProductDetailId)
                 .OnDelete(DeleteBehavior.Cascade);
         }
     }

@@ -149,11 +149,7 @@ namespace MeoMeo.API.Controllers
         [HttpPost("create-pos-order")]
         public async Task<CreatePosOrderResultDTO> CreatePosOrder([FromBody] CreatePosOrderDTO input)
         {
-            var customerId = _httpContextAccessor.HttpContext.GetCurrentCustomerId();
-            var userId = _httpContextAccessor.HttpContext.GetCurrentUserId();
-            Guid? cid = customerId == Guid.Empty ? null : customerId;
-            Guid? uid = userId == Guid.Empty ? null : userId;
-            return await _orderService.CreatePosOrderAsync(cid, uid, input);
+            return await _orderService.CreatePosOrderAsync(input);
         }
     }
 }

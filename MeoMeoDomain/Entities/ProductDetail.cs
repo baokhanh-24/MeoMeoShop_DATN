@@ -44,6 +44,7 @@ namespace MeoMeo.Domain.Entities
         public virtual ICollection<InventoryBatch> InventoryBatches { get; set; }
         public virtual ICollection<PromotionDetail> PromotionDetails { get; set; }
         public virtual ICollection<Image> Images { get; set; }
+        public virtual ICollection<Wishlist> Wishlists { get; set; }
         
     }
 }

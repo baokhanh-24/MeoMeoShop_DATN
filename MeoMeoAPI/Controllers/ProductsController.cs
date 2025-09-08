@@ -154,7 +154,7 @@ namespace MeoMeo.API.Controllers
             }
             catch (Exception ex)
             {
-                return  new BaseResponse()
+                return new BaseResponse()
                 {
                     Message = $"Lỗi khi cập nhật sản phẩm: {ex.Message}",
                     ResponseStatus = BaseStatus.Error
@@ -253,6 +253,53 @@ namespace MeoMeo.API.Controllers
         {
             var result = await _productServices.DeleteAsync(id);
             return Ok(result);
+        }
+
+        // Search endpoints for POS system
+        [HttpGet("search-products-async")]
+        public async Task<IActionResult> SearchProducts([FromQuery] ProductSearchRequestDTO request)
+        {
+            try
+            { 
+                
+                var result = await _productServices.SearchProductsAsync(request);
+                return Ok(result);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new BaseResponse
+                {
+                    ResponseStatus = BaseStatus.Error,
+                    Message = $"Lỗi khi tìm kiếm sản phẩm: {ex.Message}"
+                });
+            }
+        }
+
+        [HttpGet("get-product-by-sku-async/{sku}")]
+        public async Task<IActionResult> GetProductBySku(string sku)
+        {
+            try
+            {
+                if (string.IsNullOrWhiteSpace(sku))
+                {
+                    return BadRequest(new BaseResponse
+                    {
+                        ResponseStatus = BaseStatus.Error,
+                        Message = "SKU không được để trống"
+                    });
+                }
+
+                var result = await _productServices.GetProductBySkuAsync(sku.Trim());
+                return Ok(result);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new BaseResponse
+                {
+                    ResponseStatus = BaseStatus.Error,
+                    Message = $"Lỗi khi lấy sản phẩm theo SKU: {ex.Message}"
+                });
+            }
         }
     }
 }

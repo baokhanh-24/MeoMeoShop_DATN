@@ -116,5 +116,28 @@ namespace MeoMeo.Shared.Services
                 };
             }
         }
+
+        public async Task<CheckVoucherResponseDTO> CheckVoucherAsync(CheckVoucherRequestDTO request)
+        {
+            try
+            {
+                var url = "/api/Vouchers/check-voucher-async";
+                var result = await _httpClient.PostAsync<CheckVoucherRequestDTO, CheckVoucherResponseDTO>(url, request);
+                return result ?? new CheckVoucherResponseDTO
+                {
+                    ResponseStatus = BaseStatus.Error,
+                    Message = "Không có dữ liệu trả về"
+                };
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Có lỗi xảy ra khi kiểm tra voucher: {Message}", ex.Message);
+                return new CheckVoucherResponseDTO
+                {
+                    ResponseStatus = BaseStatus.Error,
+                    Message = "Có lỗi xảy ra khi kiểm tra voucher"
+                };
+            }
+        }
     }
 }
