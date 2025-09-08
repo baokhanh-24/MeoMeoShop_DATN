@@ -69,6 +69,8 @@
     gap: 8px;
     color: #595959;
     line-height: 1.5;
+    align-items: center;
+    margin-top: 8px;
 }
 
 .empty-state {
@@ -87,4 +89,10 @@
         align-items: flex-start;
         gap: 8px;
     }
+}
+.address-item {
+    padding: 12px ;
+    border-radius: 8px;
+    background: aliceblue;
+    
 }

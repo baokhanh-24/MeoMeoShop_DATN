@@ -162,18 +162,19 @@ namespace MeoMeo.Shared.Services
             }
         }
 
-        public async Task<List<ProductReviewDTO>> GetMyReviewsAsync()
+        public async Task<PagingExtensions.PagedResult<ProductReviewDTO>> GetMyReviewsAsync(GetListMyReviewedDTO request)
         {
             try
             {
-                var url = "/api/ProductReviews/my-reviews";
-                var response = await _httpClient.GetAsync<List<ProductReviewDTO>>(url);
-                return response ?? new List<ProductReviewDTO>();
+                var queryString = BuildQuery.ToQueryString(request);
+                var url = $"/api/ProductReviews/my-reviews?{queryString}";
+                var response = await _httpClient.GetAsync<PagingExtensions.PagedResult<ProductReviewDTO>>(url);
+                return response ?? new PagingExtensions.PagedResult<ProductReviewDTO>();
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Có lỗi xảy ra khi lấy danh sách đánh giá của tôi: {Message}", ex.Message);
-                return new List<ProductReviewDTO>();
+                return new PagingExtensions.PagedResult<ProductReviewDTO>();
             }
         }
     }

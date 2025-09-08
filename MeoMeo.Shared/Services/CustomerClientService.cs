@@ -86,6 +86,24 @@ namespace MeoMeo.Shared.Services
                 _logger.LogError(ex, "Có lỗi xảy ra khi cập nhật Customer {Id}: {Message}", createOrUpdateCustomerDto.Id, ex.Message);
                 return new CreateOrUpdateCustomerResponse { ResponseStatus = BaseStatus.Error, Message = ex.Message };
             }
+        }    
+        public async Task<CreateOrUpdateCustomerResponse> UpdateProfileAsync(CreateOrUpdateCustomerDTO createOrUpdateCustomerDto)
+        {
+            try
+            {
+                var url = $"/api/Customers/update-profile";
+                var result = await _httpClient.PutAsync<CreateOrUpdateCustomerDTO, CreateOrUpdateCustomerResponse>(url, createOrUpdateCustomerDto);
+                return result ?? new CreateOrUpdateCustomerResponse
+                {
+                    ResponseStatus = BaseStatus.Error,
+                    Message = "Không có dữ liệu trả về"
+                };
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Có lỗi xảy ra khi cập nhật Customer {Id}: {Message}", createOrUpdateCustomerDto.Id, ex.Message);
+                return new CreateOrUpdateCustomerResponse { ResponseStatus = BaseStatus.Error, Message = ex.Message };
+            }
         }
 
         public async Task<BaseResponse> DeleteCustomersAsync(Guid id)

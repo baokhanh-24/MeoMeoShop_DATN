@@ -58,14 +58,32 @@ namespace MeoMeo.API.Controllers
         {
             var result = await _customerServices.UpdateCustomersAsync(customer);
             return result;
+        }    
+        [HttpPut("update-profile")]
+        public async Task<CreateOrUpdateCustomerResponse> UpdateCustomersAsync([FromBody] CreateOrUpdateCustomerDTO customer)
+        {
+            var customerId = _httpContextAccessor.HttpContext.GetCurrentCustomerId();
+            var userId = _httpContextAccessor.HttpContext.GetCurrentUserId();
+            if (customerId == Guid.Empty)
+            {
+                return new CreateOrUpdateCustomerResponse()
+                {
+                    ResponseStatus = BaseStatus.Error,
+                    Message = "Vui lòng đăng nhập"
+                };
+            }
+            customer.Id = customerId;
+            customer.UserId = userId;
+            var result = await _customerServices.UpdateCustomersAsync(customer);
+            return result;
         }
 
-        [HttpPut("upload-avatar-async")]
-        public async Task<BaseResponse> UploadAvatarAsync([FromForm] IFormFile file)
+        [HttpPost("upload-avatar-async")]
+        public async Task<BaseResponse> UploadAvatar([FromForm] IFormFile file)
         {
             try
             {
-                var userId = _httpContextAccessor.HttpContext.GetCurrentCustomerId();
+                var userId = _httpContextAccessor.HttpContext.GetCurrentUserId();
                 if (userId == Guid.Empty)
                 {
                     return new BaseResponse()

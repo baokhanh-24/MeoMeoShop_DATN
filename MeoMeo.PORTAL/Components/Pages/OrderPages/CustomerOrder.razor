@@ -4,31 +4,14 @@
 @using MeoMeo.Contract.DTOs.Order
 @using MeoMeo.Contract.Commons
 @using MeoMeo.Contract.DTOs
+@using MeoMeo.PORTAL.Components.Pages.ProfilePages
 @inject NavigationManager Navigation
 @inject MessageService MessageService
 @inject IOrderClientService OrderClient
 @inject ICartClientService CartClient
 @inject IConfiguration Configuration
-<div class="content-background">
-    <GridRow Gutter="16">
-        <GridCol Span="22" Offset="1">
-            <Breadcrumb Class="mb-3">
-                <BreadcrumbItem>
-                    <a class="">
-                        Trang chủ
-                    </a>
-                </BreadcrumbItem>
-                <BreadcrumbItem>
-                    <a class="current">
-                        Đơn hàng của tôi
-                    </a>
-                </BreadcrumbItem>
-                <BreadcrumbItem>
-                    <a class="current">
-                        Tiếp tục mua sắm
-                    </a>
-                </BreadcrumbItem>
-            </Breadcrumb>
+@layout ProfileLayout
+<div >
 
             <div>
                 <div class="d-flex justify-content-between" style="justify-items: center;">
@@ -266,8 +249,6 @@
                     </div>
                 }
             </div>
-        </GridCol>
-    </GridRow>
 </div>
 
 <!-- Modal hủy đơn hàng -->
@@ -314,7 +295,7 @@
         new() { Key = "All", Label = "Tất cả", Value = null },
         new() { Key = "Pending", Label = "Chờ xác nhận", Value = (int)Domain.Commons.Enums.EOrderStatus.Pending },
         new() { Key = "InTransit", Label = "Đang giao", Value = (int)Domain.Commons.Enums.EOrderStatus.InTransit },
-        new() { Key = "Completed", Label = "Đã giao", Value = (int)Domain.Commons.Enums.EOrderStatus.Completed },
+        new() { Key = "Completed", Label = "Hoàn thành", Value = (int)Domain.Commons.Enums.EOrderStatus.Completed },
         new() { Key = "Canceled", Label = "Đã huỷ", Value = (int)Domain.Commons.Enums.EOrderStatus.Canceled }
     };
 

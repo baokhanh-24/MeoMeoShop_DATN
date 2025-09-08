@@ -90,6 +90,10 @@
 
 .review-card {
     margin-bottom: 16px;
+    padding: 12px;
+    border-radius: 8px;
+    background: aliceblue;
+    
 }
 
 .review-header {
@@ -138,6 +142,7 @@
 
 .review-content {
     margin-bottom: 16px;
+
 }
 
 .review-content p {
@@ -148,6 +153,9 @@
 
 .review-images {
     margin-top: 12px;
+    display: flex;
+    gap: 8px;
+    align-items: center;
 }
 
 .review-actions {

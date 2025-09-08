@@ -148,7 +148,7 @@ namespace MeoMeo.Application.Services
                     Message = "Mật khẩu hiện tại không chính xác"
                 };
             }
-            var newPassword=  FunctionHelper.ComputerSha256Hash(request.CurrentPassword);
+            var newPassword=  FunctionHelper.ComputerSha256Hash(request.NewPassword);
             user.PasswordHash = newPassword;
             await _userRepository.UpdateAsync(user);
             return new BaseResponse()
@@ -225,8 +225,24 @@ namespace MeoMeo.Application.Services
 
         public async Task<CustomerDTO> GetCustomersByIdAsync(Guid id)
         {
-            var customer = await _repository.GetCustomersByIdAsync(id);
-            return _mapper.Map<CustomerDTO>(customer);
+            return await _repository.Query()
+                .Where(c => c.Id == id)
+                .Select(c => new CustomerDTO
+                {
+                    Id = c.Id,
+                    UserId = c.UserId,
+                    Name = c.Name,
+                    Code = c.Code,
+                    PhoneNumber = c.PhoneNumber,
+                    DateOfBirth = c.DateOfBirth,
+                    CreationTime = c.CreationTime,
+                    TaxCode = c.TaxCode,
+                    Address = c.Address,
+                    Status = c.Status,
+                    Avatar = c.User.Avatar?? "",
+                    Gender = c.Gender
+                })
+                .FirstOrDefaultAsync();
         }
 
         public async Task<CreateOrUpdateCustomerResponse> UpdateCustomersAsync(CreateOrUpdateCustomerDTO customer)
@@ -241,9 +257,9 @@ namespace MeoMeo.Application.Services
                     ResponseStatus = BaseStatus.Error
                 };
             }
+          
             var customerToUpdate = await _repository.GetCustomersByIdAsync(customer.Id.Value);
             _mapper.Map(customer, customerToUpdate);
-
             var result = await _repository.UpdateCustomersAsync(customerToUpdate);
             return _mapper.Map<CreateOrUpdateCustomerResponse>(result);
 

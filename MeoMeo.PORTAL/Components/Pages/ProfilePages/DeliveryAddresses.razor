@@ -45,8 +45,9 @@
         else if (addresses.Any())
         {
             <div class="address-list">
-                @foreach (var address in addresses)
+                @for (int i = 0; i < addresses.Count; i++)
                 {
+                    var address = addresses[i];
                     <div class="address-item">
                         <div class="d-flex justify-content-between">
                             <div class="address-content">
@@ -78,7 +79,12 @@
                             </div>
                         </div>
                     </div>
+                    @if (i < addresses.Count - 1)
+                    {
+                        <hr />
+                    }
                 }
+
             </div>
         }
         else

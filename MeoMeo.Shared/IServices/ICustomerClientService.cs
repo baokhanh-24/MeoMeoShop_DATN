@@ -14,4 +14,6 @@ public interface ICustomerClientService
     Task<BaseResponse> DeleteCustomersAsync(Guid id);
     Task<BaseResponse> UploadAvatarAsync(IFormFile file);
     Task<BaseResponse> ChangePasswordAsync(ChangePasswordDTO model);
+    Task<CreateOrUpdateCustomerResponse> UpdateProfileAsync(CreateOrUpdateCustomerDTO createOrUpdateCustomerDto);
+
 }

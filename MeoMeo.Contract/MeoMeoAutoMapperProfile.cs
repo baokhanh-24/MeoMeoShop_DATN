@@ -114,9 +114,7 @@ namespace MeoMeo.Contract
             CreateMap<CategoryDTO, Category>();
             CreateMap<Category, CategoryResponseDTO>();
             CreateMap<Category, CategoryDTO>();
-
-         
-          
+            CreateMap<ProductReviewCreateOrUpdateDTO, ProductReview>();
     }
     }
 }

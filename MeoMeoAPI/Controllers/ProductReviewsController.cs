@@ -64,16 +64,24 @@ namespace MeoMeo.API.Controllers
             List<FileUploadResult> uploadedFiles = new List<FileUploadResult>();
             if (newFiles != null && newFiles.Count > 0)
             {
-                uploadedFiles = await FileUploadHelper.UploadFilesAsync(_env, newFiles, "ReviewFiles", request.Id!.Value);
+                uploadedFiles = await FileUploadHelper.UploadFilesAsync(_env, newFiles, "Reviews", request.Id!.Value);
             }
             var oldFiles = await _service.GetOldFilesAsync(request.Id!.Value);
             var keepFileIds = request.MediaUploads?.Where(f => f.Id.HasValue).Select(f => f.Id!.Value).ToList() ?? new List<Guid>();
             var filesToDelete = oldFiles.Where(f => !keepFileIds.Contains(f.Id)).ToList();
+     
+            var result = await _service.UpdateProductReviewAsync(request, uploadedFiles);
+            if (result.ResponseStatus == BaseStatus.Error)
+            {
+                foreach (var img in uploadedFiles)
+                {
+                    FileUploadHelper.DeleteUploadedFiles(_env, new List<FileUploadResult> { new FileUploadResult { RelativePath = img.RelativePath } });
+                }
+            }
             foreach (var img in filesToDelete)
             {
                 FileUploadHelper.DeleteUploadedFiles(_env, new List<FileUploadResult> { new FileUploadResult { RelativePath = img.FileUrl } });
             }
-            var result = await _service.UpdateProductReviewAsync(request, uploadedFiles);
             return Ok(result);
         }
         [HttpDelete("{id}")]
@@ -125,7 +133,7 @@ namespace MeoMeo.API.Controllers
         }
 
         [HttpGet("my-reviews")]
-        public async Task<IActionResult> GetMyReviews()
+        public async Task<IActionResult> GetMyReviews([FromQuery] GetListMyReviewedDTO request)
         {
             var customerId = _httpContextAccessor.HttpContext.GetCurrentCustomerId();
             if (customerId == Guid.Empty)
@@ -139,7 +147,7 @@ namespace MeoMeo.API.Controllers
 
             try
             {
-                var result = await _service.GetCustomerReviewsAsync(customerId);
+                var result = await _service.GetCustomerReviewsAsync(customerId,request );
                 return Ok(result);
             }
             catch (Exception ex)

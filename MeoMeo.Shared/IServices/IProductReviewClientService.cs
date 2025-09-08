@@ -13,11 +13,13 @@ namespace MeoMeo.Shared.IServices
         Task<BaseResponse> UpdateAsync(ProductReviewCreateOrUpdateDTO dto);
         Task<BaseResponse> DeleteAsync(Guid id);
         Task<List<ProductReviewDTO>> GetAllAsync();
-        Task<PagingExtensions.PagedResult<ProductReviewDTO>> GetByProductDetailIdsAsync(GetListProductReviewDTO request);
-        
+
+        Task<PagingExtensions.PagedResult<ProductReviewDTO>>
+            GetByProductDetailIdsAsync(GetListProductReviewDTO request);
+
         // New methods
         Task<List<OrderItemForReviewDTO>> GetUnreviewedOrderItemsAsync();
-        Task<List<ProductReviewDTO>> GetMyReviewsAsync();
+        Task<PagingExtensions.PagedResult<ProductReviewDTO>> GetMyReviewsAsync(GetListMyReviewedDTO request);
     }
 }
 

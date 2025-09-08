@@ -11,6 +11,9 @@ namespace MeoMeo.Contract.DTOs.ProductReview
         public string? Answer { get; set; }
         public string? ColourName { get; set; }
         public string? SizeName { get; set; }
+        public string? ProductName { get; set; }
+        public string? ProductThumbnail { get; set; }
+        public string? OrderCode { get; set; }
         public DateTime? ReplyDate { get; set; }
         public decimal Rating { get; set; }
         public bool IsHidden { get; set; }
@@ -18,6 +21,7 @@ namespace MeoMeo.Contract.DTOs.ProductReview
         public Guid OrderId { get; set; }
         public Guid ProductDetailId { get; set; }
         public DateTime CreationTime { get; set; }
+        public DateTime? LastModificationTime { get; set; }
         public List<ProductReviewFileDTO> ProductReviewFiles { get; set; } = new();
 
         // Customer information

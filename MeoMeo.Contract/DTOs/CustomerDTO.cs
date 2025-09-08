@@ -15,5 +15,5 @@ public class CustomerDTO
     public string? Address { get; set; }
     public ECustomerStatus Status { get; set; }
     public string? Avatar { get; set; }
-    public int? Gender { get; set; }
+    public int Gender { get; set; }
 }
