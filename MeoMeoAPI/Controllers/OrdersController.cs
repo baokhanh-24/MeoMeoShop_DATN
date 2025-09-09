@@ -1,6 +1,7 @@
 ﻿using MeoMeo.Application.IServices;
 using MeoMeo.Contract.Commons;
 using MeoMeo.Contract.DTOs.Order;
+using MeoMeo.Contract.DTOs.Payment;
 using MeoMeo.Domain.Commons;
 using MeoMeo.Domain.Commons.Enums;
 using MeoMeo.Shared.Utilities;
@@ -18,69 +19,152 @@ namespace MeoMeo.API.Controllers
     public class OrdersController : ControllerBase
     {
         private readonly IOrderService _orderService;
+        private readonly IPaymentTransactionService _paymentTransactionService;
         private readonly PaymentOptions _paymentOptions;
         private readonly IVnpay _vnpay;
         private readonly IHttpContextAccessor _httpContextAccessor;
-        public OrdersController(IOrderService orderService, IOptions<PaymentOptions> paymentOptions, IVnpay vnpay, IHttpContextAccessor httpContextAccessor)
+
+        public OrdersController(
+            IOrderService orderService,
+            IPaymentTransactionService paymentTransactionService,
+            IOptions<PaymentOptions> paymentOptions,
+            IVnpay vnpay,
+            IHttpContextAccessor httpContextAccessor)
         {
             _orderService = orderService;
+            _paymentTransactionService = paymentTransactionService;
             _vnpay = vnpay;
             _httpContextAccessor = httpContextAccessor;
             _paymentOptions = paymentOptions.Value;
             _vnpay.Initialize(_paymentOptions.Vnpay.TmnCode, _paymentOptions.Vnpay.HashSecret, _paymentOptions.Vnpay.BaseUrl, _paymentOptions.Vnpay.PaymentBackReturnUrl);
         }
-        
+
         [HttpPost("take-vn-pay")]
         public async Task<string> CreatePaymentUrlAsync([FromBody] CreatePaymentUrlDTO input)
         {
-            var ipAddress = NetworkHelper.GetIpAddress(_httpContextAccessor.HttpContext); // Lấy địa chỉ IP của thiết bị thực hiện giao dịch
+            var ipAddress = NetworkHelper.GetIpAddress(_httpContextAccessor.HttpContext);
+
+            // Create payment transaction record first
+            var createTransactionRequest = new CreatePaymentTransactionDTO
+            {
+                OrderId = input.OrderId,
+                CustomerId = input.CustomerId,
+                Amount = input.Amount,
+                Description = string.IsNullOrWhiteSpace(input.Description) ? $"Thanh toan don hang {input.OrderId}" : input.Description,
+                IpAddress = ipAddress,
+                PaymentMethod = "VNPAY"
+            };
+
+            var transactionResult = await _paymentTransactionService.CreatePaymentTransactionAsync(createTransactionRequest);
+            if (transactionResult.ResponseStatus != BaseStatus.Success)
+            {
+                throw new Exception(transactionResult.Message);
+            }
+
+            var transactionCode = transactionResult.TransactionCode;
 
             var request = new PaymentRequest
             {
                 PaymentId = DateTime.Now.Ticks,
                 Money = input.Amount,
-                Description = string.IsNullOrWhiteSpace(input.Description) ? $"Thanh toan don hang {input.OrderId}" : input.Description,
+                Description = createTransactionRequest.Description,
                 IpAddress = ipAddress,
-                BankCode = BankCode.ANY, // Tùy chọn. Mặc định là tất cả phương thức giao dịch
-                CreatedDate = DateTime.Now, // Tùy chọn. Mặc định là thời điểm hiện tại
-                Currency = Currency.VND, // Tùy chọn. Mặc định là VND (Việt Nam đồng)
-                Language = DisplayLanguage.Vietnamese // Tùy chọn. Mặc định là tiếng Việt
+                BankCode = BankCode.ANY,
+                CreatedDate = DateTime.Now,
+                Currency = Currency.VND,
+                Language = DisplayLanguage.Vietnamese
             };
 
+            // Use transaction code as VnpTxnRef for tracking
             var paymentUrl = _vnpay.GetPaymentUrl(request);
-            return await Task.FromResult(paymentUrl);
+
+            // Replace the auto-generated TxnRef with our transaction code
+            paymentUrl = paymentUrl.Replace($"vnp_TxnRef={request.PaymentId}", $"vnp_TxnRef={transactionCode}");
+
+            return paymentUrl;
         }
 
         [HttpGet("call-back-vn-pay")]
         public async Task<object> GetCallBackAsync()
         {
-            
             try
             {
-                var paymentResult = _vnpay.GetPaymentResult(_httpContextAccessor.HttpContext.Request.Query);
+                var query = _httpContextAccessor.HttpContext.Request.Query;
 
-                if (paymentResult.IsSuccess)
+                // Extract VNPay callback data
+                var callback = new VnpayCallbackDTO
                 {
-                    return await Task.FromResult(paymentResult);
+                    vnp_TxnRef = query["vnp_TxnRef"].ToString(),
+                    vnp_TransactionNo = query["vnp_TransactionNo"].ToString(),
+                    vnp_Amount = query["vnp_Amount"].ToString(),
+                    vnp_BankCode = query["vnp_BankCode"].ToString(),
+                    vnp_BankTranNo = query["vnp_BankTranNo"].ToString(),
+                    vnp_CardType = query["vnp_CardType"].ToString(),
+                    vnp_PayDate = query["vnp_PayDate"].ToString(),
+                    vnp_OrderInfo = query["vnp_OrderInfo"].ToString(),
+                    vnp_ResponseCode = query["vnp_ResponseCode"].ToString(),
+                    vnp_TransactionStatus = query["vnp_TransactionStatus"].ToString(),
+                    vnp_SecureHash = query["vnp_SecureHash"].ToString()
+                };
+
+                // Build raw data string for logging
+                var rawData = string.Join("&", query.Select(kvp => $"{kvp.Key}={kvp.Value}"));
+
+                // Process callback through PaymentTransactionService
+                var result = await _paymentTransactionService.ProcessVnpayCallbackAsync(callback, rawData);
+
+                if (result.ResponseStatus == BaseStatus.Success)
+                {
+                    return Ok(new
+                    {
+                        success = true,
+                        message = result.Message,
+                        transactionRef = callback.vnp_TxnRef
+                    });
                 }
 
-                return await Task.FromResult("");
+                return BadRequest(new
+                {
+                    success = false,
+                    message = result.Message,
+                    transactionRef = callback.vnp_TxnRef
+                });
             }
             catch (Exception ex)
             {
-                return await Task.FromResult(ex.Message);
+                return StatusCode(500, new
+                {
+                    success = false,
+                    message = ex.Message
+                });
             }
-            
-            
         }
-        
+
         [HttpGet("get-list-order-async")]
         public async Task<PagingExtensions.PagedResult<OrderDTO, GetListOrderResponseDTO>> GetAllCustomersAsync([FromQuery] GetListOrderRequestDTO request)
         {
             var result = await _orderService.GetListOrderAsync(request);
             return result;
         }
-        
+
+        [HttpGet("{id}")]
+        public async Task<ActionResult<OrderDTO>> GetOrderByIdAsync(Guid id)
+        {
+            try
+            {
+                var result = await _orderService.GetOrderByIdAsync(id);
+                if (result == null)
+                {
+                    return NotFound("Không tìm thấy đơn hàng");
+                }
+                return Ok(result);
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(ex.Message);
+            }
+        }
+
         // API lấy danh sách đơn hàng của user hiện tại
         [HttpGet("get-my-orders")]
         public async Task<IActionResult> GetMyOrdersAsync([FromQuery] GetListOrderRequestDTO request)
@@ -94,32 +178,32 @@ namespace MeoMeo.API.Controllers
                     Message = "Vui lòng đăng nhập để xem đơn hàng"
                 });
             }
-            
+
             var result = await _orderService.GetListOrderByCustomerAsync(request, customerId);
             return Ok(result);
         }
-        
+
         [HttpPut("update-status-order-async")]
         public async Task<BaseResponse> UpdateStatusOrderAsync([FromBody] UpdateStatusOrderRequestDTO request)
         {
             var result = await _orderService.UpdateStatusOrderAsync(request);
             return result;
-        }   
-        
+        }
+
         [HttpGet("history/{orderId}")]
         public async Task<GetListOrderHistoryResponseDTO> GetOrderHistoryAsync(Guid orderId)
         {
             var result = await _orderService.GetListOrderHistoryAsync(orderId);
             return result;
         }
-        
+
         [HttpDelete("delete-order/{id}")]
         public async Task<IActionResult> DeleteOrder(Guid id)
         {
             var result = await _orderService.DeleteOrderAsync(id);
             return Ok(result);
         }
-        
+
         // API hủy đơn hàng
         [HttpPut("cancel-order/{orderId}")]
         public async Task<IActionResult> CancelOrderAsync(Guid orderId)
@@ -133,7 +217,7 @@ namespace MeoMeo.API.Controllers
                     Message = "Vui lòng đăng nhập để hủy đơn hàng"
                 });
             }
-            
+
             // Tạo request để hủy đơn hàng
             var cancelRequest = new UpdateStatusOrderRequestDTO
             {
@@ -141,7 +225,7 @@ namespace MeoMeo.API.Controllers
                 Status = EOrderStatus.Canceled,
                 Reason = "Đơn hàng bị hủy bởi khách hàng"
             };
-            
+
             var result = await _orderService.UpdateStatusOrderAsync(cancelRequest);
             return Ok(result);
         }

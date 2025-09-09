@@ -3,7 +3,7 @@
     public class BaseResponse
     {
         public BaseStatus ResponseStatus { get; set; } = BaseStatus.Success;
-        public string Message { get; set; } =String.Empty;
+        public string Message { get; set; } = String.Empty;
     }
     public enum BaseStatus
     {

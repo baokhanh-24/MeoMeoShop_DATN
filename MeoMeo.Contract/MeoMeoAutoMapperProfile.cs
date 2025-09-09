@@ -12,6 +12,7 @@ using MeoMeo.Contract.DTOs.Promotion;
 using MeoMeo.Contract.DTOs.PromotionDetail;
 using MeoMeo.Contract.DTOs.Size;
 using MeoMeo.Contract.DTOs.SystemConfig;
+using MeoMeo.Contract.DTOs.Payment;
 using MeoMeo.Contract.Extensions;
 using MeoMeo.Domain.Entities;
 
@@ -115,6 +116,13 @@ namespace MeoMeo.Contract
             CreateMap<Category, CategoryResponseDTO>();
             CreateMap<Category, CategoryDTO>();
             CreateMap<ProductReviewCreateOrUpdateDTO, ProductReview>();
-    }
+
+            // Payment Transaction mappings
+            CreateMap<PaymentTransaction, PaymentTransactionDTO>()
+                .ForMember(dest => dest.StatusDisplayName, opt => opt.Ignore())
+                .ForMember(dest => dest.OrderCode, opt => opt.Ignore())
+                .ForMember(dest => dest.CustomerName, opt => opt.Ignore());
+            CreateMap<CreatePaymentTransactionDTO, PaymentTransaction>();
+        }
     }
 }

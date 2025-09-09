@@ -94,6 +94,8 @@ builder.Services.AddScoped<ISystemConfigRepository, SystemConfigRepository>();
 builder.Services.AddScoped<ISystemConfigService, SystemConfigService>();
 builder.Services.AddScoped<ICategoryRepository, CategoryRepository>();
 builder.Services.AddScoped<ICategoryService, CategoryService>();
+builder.Services.AddScoped<IStatisticsService, StatisticsService>();
+builder.Services.AddScoped<IOrderReturnService, OrderReturnService>();
 builder.Services.AddScoped<IProductCategoryRepository, ProductCategoryRepository>();
 builder.Services.AddScoped<IProductReviewRepository, ProductReviewRepository>();
 builder.Services.AddScoped<IOrderReturnRepository, OrderReturnRepository>();
@@ -101,6 +103,9 @@ builder.Services.AddScoped<IOrderReturnItemRepository, OrderReturnItemRepository
 builder.Services.AddScoped<IOrderReturnFileRepository, OrderReturnFileRepository>();
 builder.Services.AddScoped<IProductReviewFileRepository, ProductReviewFileRepository>();
 builder.Services.AddScoped<IOrderReturnService, OrderReturnService>();
+// Payment Transaction services
+builder.Services.AddScoped<IPaymentTransactionRepository, PaymentTransactionRepository>();
+builder.Services.AddScoped<IPaymentTransactionService, PaymentTransactionService>();
 // Permission services
 builder.Services.AddScoped<IPermissionRepository, PermissionRepository>();
 builder.Services.AddScoped<IPermissionService, PermissionService>();

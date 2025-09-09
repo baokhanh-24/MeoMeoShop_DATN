@@ -33,6 +33,8 @@ namespace MeoMeo.Application.Services
         private readonly IEmployeeRepository _employeeRepository;
         private readonly ICustomerRepository _customerRepository;
         private readonly IProductRepository _productRepository;
+        private readonly IPromotionDetailRepository _promotionDetailRepository;
+        private readonly IVoucherRepository _voucherRepository;
 
         public OrderService(IIventoryBatchReposiory inventoryRepository, IOrderRepository orderRepository,
             IMapper mapper, IOrderDetailRepository orderDetailRepository,
@@ -42,7 +44,8 @@ namespace MeoMeo.Application.Services
             ICartDetaillRepository cartDetailRepository, ICartRepository cartRepository,
             IOrderHistoryRepository orderHistoryRepository, IUserRepository userRepository,
             IDeliveryAddressRepository deliveryAddressRepository, IEmployeeRepository employeeRepository,
-            ICustomerRepository customerRepository, IProductRepository productRepository)
+            ICustomerRepository customerRepository, IProductRepository productRepository,
+            IPromotionDetailRepository promotionDetailRepository, IVoucherRepository voucherRepository)
         {
             _inventoryRepository = inventoryRepository;
             _orderRepository = orderRepository;
@@ -61,6 +64,8 @@ namespace MeoMeo.Application.Services
             _employeeRepository = employeeRepository;
             _customerRepository = customerRepository;
             _productRepository = productRepository;
+            _promotionDetailRepository = promotionDetailRepository;
+            _voucherRepository = voucherRepository;
         }
 
 
@@ -340,6 +345,28 @@ namespace MeoMeo.Application.Services
             }
         }
 
+        public async Task<OrderDTO?> GetOrderByIdAsync(Guid orderId)
+        {
+            try
+            {
+                var order = await _orderRepository.Query()
+                    .Include(o => o.OrderDetails)
+                    .Include(o => o.Customers)
+                    .Include(o => o.Employee)
+                    .Include(o => o.Voucher)
+                    .FirstOrDefaultAsync(o => o.Id == orderId);
+
+                if (order == null)
+                    return null;
+
+                return _mapper.Map<OrderDTO>(order);
+            }
+            catch (Exception ex)
+            {
+                throw new Exception($"Error getting order by id: {ex.Message}");
+            }
+        }
+
         public async Task<BaseResponse> UpdateStatusOrderAsync(UpdateStatusOrderRequestDTO request)
         {
             try
@@ -604,6 +631,55 @@ namespace MeoMeo.Application.Services
                     };
                 }
 
+                // Validate voucher if provided
+                Voucher? validVoucher = null;
+                if (request.VoucherId.HasValue)
+                {
+                    validVoucher = await _voucherRepository.Query()
+                        .Include(v => v.Orders)
+                        .Where(v => v.Id == request.VoucherId.Value &&
+                                   v.StartDate <= DateTime.Now &&
+                                   v.EndDate >= DateTime.Now)
+                        .FirstOrDefaultAsync();
+
+                    if (validVoucher == null)
+                    {
+                        return new CreateOrderResultDTO
+                        {
+                            Message = "Voucher không hợp lệ hoặc đã hết hạn",
+                            ResponseStatus = BaseStatus.Error
+                        };
+                    }
+
+                    // Check MaxTotalUse limit
+                    if (validVoucher.MaxTotalUse.HasValue)
+                    {
+                        var totalUsageCount = validVoucher.Orders?.Count ?? 0;
+                        if (totalUsageCount >= validVoucher.MaxTotalUse.Value)
+                        {
+                            return new CreateOrderResultDTO
+                            {
+                                Message = "Voucher này đã hết lượt sử dụng",
+                                ResponseStatus = BaseStatus.Error
+                            };
+                        }
+                    }
+
+                    // Check MaxTotalUsePerCustomer limit
+                    if (validVoucher.MaxTotalUsePerCustomer.HasValue)
+                    {
+                        var customerUsageCount = validVoucher.Orders?.Count(o => o.CustomerId == customerId) ?? 0;
+                        if (customerUsageCount >= validVoucher.MaxTotalUsePerCustomer.Value)
+                        {
+                            return new CreateOrderResultDTO
+                            {
+                                Message = "Bạn đã sử dụng hết lượt áp dụng voucher này",
+                                ResponseStatus = BaseStatus.Error
+                            };
+                        }
+                    }
+                }
+
                 var customerUser = await _userRepository.Query().FirstOrDefaultAsync(c => c.Id == userId);
                 var order = new Order
                 {
@@ -614,7 +690,7 @@ namespace MeoMeo.Application.Services
                     CustomerName = deliInfor.Name,
                     CustomerEmail = customerUser.Email ?? "",
                     CustomerPhoneNumber = deliInfor.PhoneNumber,
-                    VoucherId = request.VoucherId,
+                    VoucherId = validVoucher?.Id,
                     DeliveryAddressId = request.DeliveryAddressId,
                     Note = request.Note,
                     PaymentMethod = request.PaymentMethod,
@@ -656,8 +732,47 @@ namespace MeoMeo.Application.Services
                     await _orderDetailRepository.AddAsync(orderDetail);
                 }
 
-                // Cập nhật tổng tiền đơn
-                order.TotalPrice = totalPrice;
+                // Apply voucher discount if available
+                decimal voucherDiscountAmount = 0m;
+                if (validVoucher != null)
+                {
+                    // Check minimum order requirement
+                    if (totalPrice >= validVoucher.MinOrder)
+                    {
+                        if (validVoucher.Type == EVoucherType.byPercentage)
+                        {
+                            // Percentage discount
+                            voucherDiscountAmount = totalPrice * (decimal)validVoucher.Discount / 100m;
+                            // Apply max discount limit if set
+                            if (validVoucher.MaxDiscount > 0 && voucherDiscountAmount > (decimal)validVoucher.MaxDiscount)
+                            {
+                                voucherDiscountAmount = (decimal)validVoucher.MaxDiscount;
+                            }
+                        }
+                        else
+                        {
+                            // Fixed amount discount
+                            voucherDiscountAmount = (decimal)validVoucher.Discount;
+                            // Ensure discount doesn't exceed order total
+                            if (voucherDiscountAmount > totalPrice)
+                            {
+                                voucherDiscountAmount = totalPrice;
+                            }
+                        }
+                    }
+                    else
+                    {
+                        return new CreateOrderResultDTO
+                        {
+                            Message = $"Đơn hàng cần tối thiểu {validVoucher.MinOrder:N0} đ để áp dụng voucher này",
+                            ResponseStatus = BaseStatus.Error
+                        };
+                    }
+                }
+
+                // Update order with discount information
+                order.DiscountPrice = voucherDiscountAmount > 0 ? voucherDiscountAmount : null;
+                order.TotalPrice = totalPrice - voucherDiscountAmount + (order.ShippingFee ?? 0);
                 await _orderRepository.UpdateAsync(order);
 
                 // 6) Xoá các dòng giỏ đã checkout và cập nhật lại tổng tiền giỏ còn lại
@@ -733,7 +848,56 @@ namespace MeoMeo.Application.Services
                         };
                     }
                 }
-                var customer= await _customerRepository.Query().FirstOrDefaultAsync(c=>c.Id == request.CustomerId);
+                var customer = await _customerRepository.Query().FirstOrDefaultAsync(c => c.Id == request.CustomerId);
+
+                Voucher? validVoucher = null;
+                if (!string.IsNullOrEmpty(request.DiscountCode))
+                {
+                    validVoucher = await _voucherRepository.Query()
+                        .Include(v => v.Orders)
+                        .Where(v => v.Code == request.DiscountCode &&
+                                   v.StartDate <= DateTime.Now &&
+                                   v.EndDate >= DateTime.Now)
+                        .FirstOrDefaultAsync();
+
+                    if (validVoucher == null)
+                    {
+                        return new CreatePosOrderResultDTO
+                        {
+                            Message = "Mã voucher không hợp lệ hoặc đã hết hạn",
+                            ResponseStatus = BaseStatus.Error
+                        };
+                    }
+
+                    // Check MaxTotalUse limit
+                    if (validVoucher.MaxTotalUse.HasValue)
+                    {
+                        var totalUsageCount = validVoucher.Orders?.Count ?? 0;
+                        if (totalUsageCount >= validVoucher.MaxTotalUse.Value)
+                        {
+                            return new CreatePosOrderResultDTO
+                            {
+                                Message = "Voucher này đã hết lượt sử dụng",
+                                ResponseStatus = BaseStatus.Error
+                            };
+                        }
+                    }
+
+                    // Check MaxTotalUsePerCustomer limit
+                    if (validVoucher.MaxTotalUsePerCustomer.HasValue)
+                    {
+                        var customerUsageCount = validVoucher.Orders?.Count(o => o.CustomerId == request.CustomerId) ?? 0;
+                        if (customerUsageCount >= validVoucher.MaxTotalUsePerCustomer.Value)
+                        {
+                            return new CreatePosOrderResultDTO
+                            {
+                                Message = "Bạn đã sử dụng hết lượt áp dụng voucher này",
+                                ResponseStatus = BaseStatus.Error
+                            };
+                        }
+                    }
+                }
+
                 // Create order
                 var orderCode = await GenerateUniqueOrderCodeAsync();
                 var order = new Order
@@ -741,14 +905,14 @@ namespace MeoMeo.Application.Services
                     Id = Guid.NewGuid(),
                     Code = orderCode,
                     CustomerId = customer.Id,
-                    CustomerName =customer?.Name ?? string.Empty,
+                    CustomerName = customer?.Name ?? string.Empty,
                     CustomerPhoneNumber = customer?.PhoneNumber ?? string.Empty,
-                    VoucherId = null,
+                    VoucherId = validVoucher?.Id,
                     DeliveryAddressId = null,
                     Note = request.Note,
                     PaymentMethod = request.PaymentMethod,
                     Type = request.Type,
-                    Status = EOrderStatus.Confirmed,
+                    Status = EOrderStatus.Completed,
                     ShippingFee = request.ShippingFee,
                     CreationTime = DateTime.Now,
                 };
@@ -759,13 +923,28 @@ namespace MeoMeo.Application.Services
                 await _orderRepository.AddAsync(order);
 
                 decimal totalPrice = 0m;
+                var now = DateTime.Now;
+
                 foreach (var item in request.Items)
                 {
                     var productDetail = await _productsDetailRepository.Query().FirstOrDefaultAsync(c => c.Id == item.ProductDetailId);
                     if (productDetail == null) continue;
                     var product = await _productRepository.Query().FirstOrDefaultAsync(c => c.Id == productDetail.ProductId);
 
-                    var lineTotal = item.UnitPrice * item.Quantity;
+                    // Check for active promotion
+                    var activePromotion = await _promotionDetailRepository.Query()
+                        .Include(pd => pd.Promotion)
+                        .Where(pd => pd.ProductDetailId == item.ProductDetailId &&
+                                    pd.Promotion.StartDate <= now &&
+                                    pd.Promotion.EndDate >= now)
+                        .OrderByDescending(pd => pd.Discount)
+                        .FirstOrDefaultAsync();
+
+                    // Calculate discount and final price
+                    float discount = activePromotion?.Discount ?? 0f;
+                    var originalPrice = item.UnitPrice;
+                    var discountedPrice = discount > 0 ? originalPrice * (1 - (decimal)discount / 100m) : originalPrice;
+                    var lineTotal = discountedPrice * item.Quantity;
                     totalPrice += lineTotal;
 
                     var orderDetail = new OrderDetail
@@ -777,14 +956,55 @@ namespace MeoMeo.Application.Services
                         ProductDetailId = item.ProductDetailId,
                         Image = product?.Thumbnail ?? string.Empty,
                         Quantity = item.Quantity,
-                        Price = (float)item.UnitPrice,
-                        OriginalPrice = (float)item.UnitPrice,
-                        Discount = 0
+                        Price = (float)discountedPrice,
+                        OriginalPrice = (float)originalPrice,
+                        Discount = discount,
+                        PromotionDetailId = activePromotion?.Id
                     };
                     await _orderDetailRepository.AddAsync(orderDetail);
                 }
 
-                order.TotalPrice = totalPrice + (order.ShippingFee ?? 0);
+                // Apply voucher discount if available
+                decimal voucherDiscountAmount = 0m;
+                if (validVoucher != null)
+                {
+                    // Check minimum order requirement
+                    if (totalPrice >= validVoucher.MinOrder)
+                    {
+                        if (validVoucher.Type == EVoucherType.byPercentage)
+                        {
+                            // Percentage discount
+                            voucherDiscountAmount = totalPrice * (decimal)validVoucher.Discount / 100m;
+                            // Apply max discount limit if set
+                            if (validVoucher.MaxDiscount > 0 && voucherDiscountAmount > (decimal)validVoucher.MaxDiscount)
+                            {
+                                voucherDiscountAmount = (decimal)validVoucher.MaxDiscount;
+                            }
+                        }
+                        else
+                        {
+                            // Fixed amount discount
+                            voucherDiscountAmount = (decimal)validVoucher.Discount;
+                            // Ensure discount doesn't exceed order total
+                            if (voucherDiscountAmount > totalPrice)
+                            {
+                                voucherDiscountAmount = totalPrice;
+                            }
+                        }
+                    }
+                    else
+                    {
+                        return new CreatePosOrderResultDTO
+                        {
+                            Message = $"Đơn hàng cần tối thiểu {validVoucher.MinOrder:N0} đ để áp dụng voucher này",
+                            ResponseStatus = BaseStatus.Error
+                        };
+                    }
+                }
+
+                // Update order with discount information
+                order.DiscountPrice = voucherDiscountAmount > 0 ? voucherDiscountAmount : null;
+                order.TotalPrice = totalPrice - voucherDiscountAmount + (order.ShippingFee ?? 0);
                 await _orderRepository.UpdateAsync(order);
 
                 // Deduct inventory immediately (POS confirm)
@@ -885,6 +1105,6 @@ namespace MeoMeo.Application.Services
             return code.Length > 20 ? code.Substring(0, 20) : code; // respect max length
         }
 
-        
+
     }
 }

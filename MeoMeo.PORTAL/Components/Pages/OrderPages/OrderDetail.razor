@@ -134,15 +134,52 @@
                 {
                     <div class="return-item">
                         <div class="return-header">
-                            <span class="return-code">@returnRequest.Code</span>
+                            <div class="return-header-left">
+                                <span class="return-code">@returnRequest.Code</span>
+                                <span class="return-date">@returnRequest.CreationTime.ToString("dd/MM/yyyy HH:mm")</span>
+                            </div>
                             <Tag Color="@GetReturnStatusColor(returnRequest.Status)">
-                                @GetReturnStatusName(returnRequest.Status)
+                                @returnRequest.StatusDisplayName
                             </Tag>
                         </div>
                         <div class="return-details">
-                            <div><strong>Lý do:</strong> @returnRequest.Reason</div>
-                            <div><strong>Phương thức hoàn:</strong> @GetRefundMethodName(returnRequest.RefundMethod)</div>
-                            <div><strong>Ngày tạo:</strong> @returnRequest.CreationTime.ToString("dd/MM/yyyy HH:mm")</div>
+                            <div class="return-info-row">
+                                <div><strong>Lý do:</strong> @returnRequest.Reason</div>
+                                <div><strong>Phương thức hoàn:</strong> @returnRequest.RefundMethodDisplayName</div>
+                            </div>
+                            <div class="return-info-row">
+                                <div><strong>Số sản phẩm:</strong> @returnRequest.TotalItemCount</div>
+                                <div><strong>Số tiền dự kiến:</strong> <span
+                                        class="estimated-amount">@returnRequest.TotalRefundAmount.ToString("N0") đ</span></div>
+                            </div>
+                            @if (returnRequest.PayBackAmount.HasValue)
+                            {
+                                <div class="return-financial-info">
+                                    <div class="payback-amount">
+                                        <strong>Số tiền đã hoàn:</strong>
+                                        <span class="actual-amount">@returnRequest.PayBackAmount.Value.ToString("N0") đ</span>
+                                    </div>
+                                    @if (returnRequest.PayBackDate.HasValue)
+                                    {
+                                        <div class="payback-date">
+                                            <strong>Ngày hoàn tiền:</strong> @returnRequest.PayBackDate.Value.ToString("dd/MM/yyyy HH:mm")
+                                        </div>
+                                    }
+                                </div>
+                            }
+                        </div>
+                        <div class="return-actions">
+                            <Button Type="@AntDesign.ButtonType.Link" Size="@AntDesign.ButtonSize.Small"
+                                OnClick="@(() => Navigation.NavigateTo($"/order-return/{returnRequest.Id}"))">
+                                Xem chi tiết
+                            </Button>
+                            @if (returnRequest.Status == Domain.Commons.Enums.EOrderReturnStatus.Pending)
+                            {
+                                <Button Type="@AntDesign.ButtonType.Link" Size="@AntDesign.ButtonSize.Small" Danger="true"
+                                    OnClick="@(() => CancelReturn(returnRequest.Id))">
+                                    Hủy yêu cầu
+                                </Button>
+                            }
                         </div>
                     </div>
                 }
@@ -221,12 +258,12 @@
     public Guid OrderId { get; set; }
 
     private OrderDTO? Order;
-    private List<OrderReturnViewDTO> OrderReturns = new();
+    private List<OrderReturnListDTO> OrderReturns = new();
     private List<OrderDetailWithReturn> OrderDetailsWithReturn = new();
     private bool IsLoading = true;
     private bool IsReturnModalVisible = false;
     private bool IsSubmitting = false;
-    private CreateOrderReturnRequestDTO ReturnRequest = new();
+    private CreatePartialOrderReturnDTO ReturnRequest = new();
     private List<UploadFileItem> UploadedFiles = new();
 
     private bool CanCreateReturn => Order?.Status == EOrderStatus.Completed &&
@@ -247,15 +284,9 @@
         try
         {
             IsLoading = true;
-            // Load order details
-            var orderResult = await OrderClient.GetListOrderAsync(new GetListOrderRequestDTO
-            {
-                PageIndex = 1,
-                PageSize = 1,
-                CodeFilter = OrderId.ToString() // This might need adjustment based on your API
-            });
 
-            Order = orderResult.Items?.FirstOrDefault();
+            // Load order by ID
+            Order = await OrderClient.GetOrderByIdAsync(OrderId);
 
             if (Order != null)
             {
@@ -268,7 +299,8 @@
                 }).ToList();
 
                 // Load return requests for this order
-                OrderReturns = await OrderReturnClient.GetByOrderIdAsync(Order.Id);
+                var returnRequests = await OrderReturnClient.GetByOrderIdAsync(Order.Id);
+                OrderReturns = returnRequests ?? new List<OrderReturnListDTO>();
             }
         }
         catch (Exception ex)
@@ -284,13 +316,13 @@
 
     private void ShowReturnModal()
     {
-        ReturnRequest = new CreateOrderReturnRequestDTO
+        ReturnRequest = new CreatePartialOrderReturnDTO
         {
             OrderId = Order!.Id,
             Reason = string.Empty,
             RefundMethod = ERefundMethod.BankTransfer,
-            Items = new List<CreateOrderReturnItemDTO>(),
-            Files = new List<CreateOrderReturnFileDTO>()
+            Items = new List<OrderReturnItemDTO>(),
+            Files = new List<OrderReturnFileDTO>()
         };
 
         // Reset selection
@@ -327,7 +359,7 @@
             }
 
             // Build return items
-            ReturnRequest.Items = selectedItems.Select(x => new CreateOrderReturnItemDTO
+            ReturnRequest.Items = selectedItems.Select(x => new OrderReturnItemDTO
             {
                 OrderDetailId = x.OrderDetail.Id,
                 Quantity = x.ReturnQuantity,
@@ -335,7 +367,7 @@
             }).ToList();
 
             // Build return files (simplified - you might need to handle actual file uploads)
-            ReturnRequest.Files = UploadedFiles.Select(x => new CreateOrderReturnFileDTO
+            ReturnRequest.Files = UploadedFiles.Select(x => new OrderReturnFileDTO
             {
                 Url = x.FileName ?? "",
                 Name = x.FileName,
@@ -343,11 +375,11 @@
             }).ToList();
 
             IsSubmitting = true;
-            var result = await OrderReturnClient.CreateAsync(ReturnRequest);
+            var result = await OrderReturnClient.CreatePartialOrderReturnAsync(ReturnRequest);
 
             if (result.ResponseStatus == BaseStatus.Success)
             {
-                MessageService.Success($"Đã tạo yêu cầu hoàn hàng thành công. Mã: {result.Code}");
+                MessageService.Success(result.Message ?? "Đã tạo yêu cầu hoàn hàng thành công");
                 HideReturnModal();
                 await LoadOrderData(); // Reload to show new return request
             }
@@ -363,6 +395,27 @@
         finally
         {
             IsSubmitting = false;
+        }
+    }
+
+    private async Task CancelReturn(Guid returnId)
+    {
+        try
+        {
+            var result = await OrderReturnClient.CancelOrderReturnAsync(returnId);
+            if (result.ResponseStatus == BaseStatus.Success)
+            {
+                MessageService.Success("Hủy yêu cầu hoàn trả thành công!");
+                await LoadOrderData(); // Reload to refresh return status
+            }
+            else
+            {
+                MessageService.Error(result.Message);
+            }
+        }
+        catch (Exception ex)
+        {
+            MessageService.Error($"Lỗi khi hủy yêu cầu hoàn trả: {ex.Message}");
         }
     }
 
@@ -528,26 +581,90 @@
 
     .return-history-section .return-item {
         border: 1px solid #e8e8e8;
-        border-radius: 8px;
-        padding: 15px;
-        margin-bottom: 15px;
-        background: #fafafa;
+        border-radius: 12px;
+        padding: 20px;
+        margin-bottom: 20px;
+        background: white;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
     }
 
     .return-header {
         display: flex;
         justify-content: space-between;
         align-items: center;
-        margin-bottom: 10px;
+        margin-bottom: 15px;
+        padding-bottom: 10px;
+        border-bottom: 1px solid #f0f0f0;
+    }
+
+    .return-header-left {
+        display: flex;
+        flex-direction: column;
+        gap: 5px;
     }
 
     .return-code {
         font-weight: 600;
         color: #00833D;
+        font-size: 16px;
     }
 
-    .return-details div {
-        margin-bottom: 5px;
+    .return-date {
+        color: #666;
+        font-size: 14px;
+    }
+
+    .return-details {
+        margin-bottom: 15px;
+    }
+
+    .return-info-row {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 8px;
+        padding: 5px 0;
+    }
+
+    .return-info-row div {
+        flex: 1;
+        font-size: 14px;
+    }
+
+    .estimated-amount {
+        color: #666;
+        font-style: italic;
+    }
+
+    .return-financial-info {
+        margin-top: 15px;
+        padding: 15px;
+        background: #f0f8ff;
+        border-radius: 8px;
+        border-left: 4px solid #00833D;
+    }
+
+    .payback-amount {
+        margin-bottom: 8px;
+    }
+
+    .actual-amount {
+        color: #00833D;
+        font-weight: 600;
+        font-size: 16px;
+    }
+
+    .payback-date {
+        color: #666;
+        font-size: 14px;
+    }
+
+    .return-actions {
+        display: flex;
+        justify-content: flex-end;
+        gap: 10px;
+        padding-top: 10px;
+        border-top: 1px solid #f0f0f0;
     }
 
     .return-items-selection {

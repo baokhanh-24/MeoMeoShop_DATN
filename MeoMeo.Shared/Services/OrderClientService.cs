@@ -7,7 +7,7 @@ using Microsoft.Extensions.Logging;
 
 namespace MeoMeo.Shared.Services;
 
-public class OrderClientService:IOrderClientService
+public class OrderClientService : IOrderClientService
 {
     private readonly IApiCaller _httpClient;
     private readonly ILogger<OrderClientService> _logger;
@@ -17,21 +17,21 @@ public class OrderClientService:IOrderClientService
         _httpClient = httpClient;
         _logger = logger;
     }
-    
-    public async Task<PagingExtensions.PagedResult<OrderDTO,GetListOrderResponseDTO>> GetListOrderAsync(GetListOrderRequestDTO filter)
+
+    public async Task<PagingExtensions.PagedResult<OrderDTO, GetListOrderResponseDTO>> GetListOrderAsync(GetListOrderRequestDTO filter)
     {
         var query = BuildQuery.ToQueryString(filter);
         var url = $"/api/Orders/get-list-order-async?{query}";
-        var response = await _httpClient.GetAsync<PagingExtensions.PagedResult<OrderDTO,GetListOrderResponseDTO>>(url);
-        return response ?? new PagingExtensions.PagedResult<OrderDTO,GetListOrderResponseDTO>();
+        var response = await _httpClient.GetAsync<PagingExtensions.PagedResult<OrderDTO, GetListOrderResponseDTO>>(url);
+        return response ?? new PagingExtensions.PagedResult<OrderDTO, GetListOrderResponseDTO>();
     }
 
-    public async Task<PagingExtensions.PagedResult<OrderDTO,GetListOrderResponseDTO>> GetMyOrdersAsync(GetListOrderRequestDTO filter)
+    public async Task<PagingExtensions.PagedResult<OrderDTO, GetListOrderResponseDTO>> GetMyOrdersAsync(GetListOrderRequestDTO filter)
     {
         var query = BuildQuery.ToQueryString(filter);
         var url = $"/api/Orders/get-my-orders?{query}";
-        var response = await _httpClient.GetAsync<PagingExtensions.PagedResult<OrderDTO,GetListOrderResponseDTO>>(url);
-        return response ?? new PagingExtensions.PagedResult<OrderDTO,GetListOrderResponseDTO>();
+        var response = await _httpClient.GetAsync<PagingExtensions.PagedResult<OrderDTO, GetListOrderResponseDTO>>(url);
+        return response ?? new PagingExtensions.PagedResult<OrderDTO, GetListOrderResponseDTO>();
     }
 
     public async Task<BaseResponse> UpdateStatusOrderAsync(UpdateStatusOrderRequestDTO request)
@@ -48,7 +48,7 @@ public class OrderClientService:IOrderClientService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Có lỗi xảy ra khi cập nhật trạng thái Order {Id}: {Message}", string.Join(',',request.OrderIds), ex.Message);
+            _logger.LogError(ex, "Có lỗi xảy ra khi cập nhật trạng thái Order {Id}: {Message}", string.Join(',', request.OrderIds), ex.Message);
             return new BaseResponse { ResponseStatus = BaseStatus.Error, Message = ex.Message };
         }
     }
@@ -58,7 +58,7 @@ public class OrderClientService:IOrderClientService
         try
         {
             var url = $"/api/Orders/cancel-order/{orderId}";
-            var result = await _httpClient.PutAsync<object, BaseResponse>(url, new {});
+            var result = await _httpClient.PutAsync<object, BaseResponse>(url, new { });
             return result ?? new BaseResponse
             {
                 ResponseStatus = BaseStatus.Error,
@@ -84,6 +84,21 @@ public class OrderClientService:IOrderClientService
         var url = "/api/Orders/take-vn-pay";
         var response = await _httpClient.PostAsync<CreatePaymentUrlDTO, string>(url, request);
         return response ?? string.Empty;
+    }
+
+    public async Task<OrderDTO?> GetOrderByIdAsync(Guid orderId)
+    {
+        try
+        {
+            var url = $"/api/Orders/{orderId}";
+            var response = await _httpClient.GetAsync<OrderDTO>(url);
+            return response;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error getting order by id {OrderId}: {Message}", orderId, ex.Message);
+            return null;
+        }
     }
 
     public async Task<CreatePosOrderResultDTO> CreatePosOrderAsync(CreatePosOrderDTO request)

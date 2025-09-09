@@ -14,6 +14,10 @@ public class OrderReturn : BaseEntity
     // Refund method selection
     public ERefundMethod RefundMethod { get; set; }
 
+    // Financial fields
+    public decimal? PayBackAmount { get; set; } // Số tiền thực tế đã hoàn trả
+    public DateTime? PayBackDate { get; set; } // Ngày hoàn trả tiền
+
     // Optional bank info for transfer
     public string? BankName { get; set; }
     public string? BankAccountName { get; set; }

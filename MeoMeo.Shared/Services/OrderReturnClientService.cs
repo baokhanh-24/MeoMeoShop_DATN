@@ -1,95 +1,174 @@
-using MeoMeo.Shared.IServices;
 using MeoMeo.Contract.Commons;
 using MeoMeo.Contract.DTOs.Order.Return;
+using MeoMeo.Domain.Commons;
+using MeoMeo.Shared.IServices;
 using MeoMeo.Shared.Utilities;
-using Microsoft.Extensions.Logging;
+using System;
+using System.Collections.Generic;
+using System.Threading.Tasks;
 
-namespace MeoMeo.Shared.Services;
-
-public class OrderReturnClientService : IOrderReturnClientService
+namespace MeoMeo.Shared.Services
 {
-    private readonly IApiCaller _httpClient;
-    private readonly ILogger<OrderReturnClientService> _logger;
-
-    public OrderReturnClientService(IApiCaller httpClient, ILogger<OrderReturnClientService> logger)
+    public class OrderReturnClientService : IOrderReturnClientService
     {
-        _httpClient = httpClient;
-        _logger = logger;
-    }
+        private readonly IApiCaller _apiCaller;
 
-    public async Task<CreateOrderReturnResponseDTO> CreateAsync(CreateOrderReturnRequestDTO request)
-    {
-        try
+        public OrderReturnClientService(IApiCaller apiCaller)
         {
-            var url = "/api/OrderReturns";
-            var result = await _httpClient.PostAsync<CreateOrderReturnRequestDTO, CreateOrderReturnResponseDTO>(url, request);
-            return result ?? new CreateOrderReturnResponseDTO
+            _apiCaller = apiCaller;
+        }
+
+        public async Task<BaseResponse> CreatePartialOrderReturnAsync(CreatePartialOrderReturnDTO request)
+        {
+            try
             {
-                ResponseStatus = BaseStatus.Error,
-                Message = "Không thể tạo yêu cầu hoàn hàng"
-            };
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Có lỗi xảy ra khi tạo yêu cầu hoàn hàng: {Message}", ex.Message);
-            return new CreateOrderReturnResponseDTO
+                var url = "api/OrderReturn/create-partial-return";
+                var result = await _apiCaller.PostAsync<CreatePartialOrderReturnDTO, BaseResponse>(url, request);
+                return result ?? new BaseResponse
+                {
+                    Message = "Lỗi khi tạo yêu cầu hoàn trả",
+                    ResponseStatus = BaseStatus.Error
+                };
+            }
+            catch (Exception ex)
             {
-                ResponseStatus = BaseStatus.Error,
-                Message = ex.Message
-            };
+                return new BaseResponse
+                {
+                    Message = ex.Message,
+                    ResponseStatus = BaseStatus.Error
+                };
+            }
         }
-    }
 
-    public async Task<UpdateOrderReturnStatusResponseDTO> UpdateStatusAsync(UpdateOrderReturnStatusRequestDTO request)
-    {
-        try
+        public async Task<PagingExtensions.PagedResult<OrderReturnListDTO>?> GetMyOrderReturnsAsync(GetOrderReturnRequestDTO request)
         {
-            var url = "/api/OrderReturns/status";
-            var result = await _httpClient.PutAsync<UpdateOrderReturnStatusRequestDTO, UpdateOrderReturnStatusResponseDTO>(url, request);
-            return result ?? new UpdateOrderReturnStatusResponseDTO
+            try
             {
-                ResponseStatus = BaseStatus.Error,
-                Message = "Không thể cập nhật trạng thái"
-            };
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Có lỗi xảy ra khi cập nhật trạng thái hoàn hàng: {Message}", ex.Message);
-            return new UpdateOrderReturnStatusResponseDTO
+                var queryString = BuildQueryString(request);
+                var url = $"api/OrderReturn/my-returns{queryString}";
+                var result = await _apiCaller.GetAsync<PagingExtensions.PagedResult<OrderReturnListDTO>>(url);
+                return result;
+            }
+            catch (Exception ex)
             {
-                ResponseStatus = BaseStatus.Error,
-                Message = ex.Message
-            };
+                Console.WriteLine($"Error getting my order returns: {ex.Message}");
+                return null;
+            }
         }
-    }
 
-    public async Task<OrderReturnViewDTO?> GetByIdAsync(Guid id)
-    {
-        try
+        public async Task<OrderReturnDetailDTO?> GetOrderReturnByIdAsync(Guid id)
         {
-            var url = $"/api/OrderReturns/{id}";
-            var result = await _httpClient.GetAsync<OrderReturnViewDTO>(url);
-            return result;
+            try
+            {
+                var url = $"api/OrderReturn/{id}";
+                var result = await _apiCaller.GetAsync<OrderReturnDetailDTO>(url);
+                return result;
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error getting order return detail: {ex.Message}");
+                return null;
+            }
         }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Có lỗi xảy ra khi lấy thông tin hoàn hàng {Id}: {Message}", id, ex.Message);
-            return null;
-        }
-    }
 
-    public async Task<List<OrderReturnViewDTO>> GetByOrderIdAsync(Guid orderId)
-    {
-        try
+        public async Task<BaseResponse> CancelOrderReturnAsync(Guid orderReturnId)
         {
-            var url = $"/api/OrderReturns/order/{orderId}";
-            var result = await _httpClient.GetAsync<List<OrderReturnViewDTO>>(url);
-            return result ?? new List<OrderReturnViewDTO>();
+            try
+            {
+                var url = $"api/OrderReturn/{orderReturnId}/cancel";
+                var result = await _apiCaller.PostAsync<object, BaseResponse>(url, new { });
+                return result ?? new BaseResponse
+                {
+                    Message = "Lỗi khi hủy yêu cầu hoàn trả",
+                    ResponseStatus = BaseStatus.Error
+                };
+            }
+            catch (Exception ex)
+            {
+                return new BaseResponse
+                {
+                    Message = ex.Message,
+                    ResponseStatus = BaseStatus.Error
+                };
+            }
         }
-        catch (Exception ex)
+
+        public async Task<List<OrderReturnItemDetailDTO>?> GetAvailableItemsForReturnAsync(Guid orderId)
         {
-            _logger.LogError(ex, "Có lỗi xảy ra khi lấy danh sách hoàn hàng cho đơn hàng {OrderId}: {Message}", orderId, ex.Message);
-            return new List<OrderReturnViewDTO>();
+            try
+            {
+                var url = $"api/OrderReturn/order/{orderId}/available-items";
+                var result = await _apiCaller.GetAsync<List<OrderReturnItemDetailDTO>>(url);
+                return result;
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error getting available items for return: {ex.Message}");
+                return null;
+            }
+        }
+
+        public async Task<bool> CanOrderBeReturnedAsync(Guid orderId)
+        {
+            try
+            {
+                var url = $"api/OrderReturn/order/{orderId}/can-return";
+                var result = await _apiCaller.GetAsync<bool>(url);
+                return result;
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error checking if order can be returned: {ex.Message}");
+                return false;
+            }
+        }
+
+        public async Task<List<OrderReturnListDTO>?> GetByOrderIdAsync(Guid orderId)
+        {
+            try
+            {
+                var request = new GetOrderReturnRequestDTO
+                {
+                    PageIndex = 1,
+                    PageSize = 100 // Get all returns for this order
+                };
+
+                var result = await GetMyOrderReturnsAsync(request);
+                return result?.Items?.Where(r => r.OrderId == orderId).ToList() ?? new List<OrderReturnListDTO>();
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error getting order returns by order id: {ex.Message}");
+                return null;
+            }
+        }
+
+        private string BuildQueryString(GetOrderReturnRequestDTO request)
+        {
+            var queryParams = new List<string>();
+
+            if (!string.IsNullOrEmpty(request.CodeFilter))
+                queryParams.Add($"CodeFilter={Uri.EscapeDataString(request.CodeFilter)}");
+
+            if (!string.IsNullOrEmpty(request.OrderCodeFilter))
+                queryParams.Add($"OrderCodeFilter={Uri.EscapeDataString(request.OrderCodeFilter)}");
+
+            if (request.StatusFilter.HasValue)
+                queryParams.Add($"StatusFilter={request.StatusFilter.Value}");
+
+            if (request.RefundMethodFilter.HasValue)
+                queryParams.Add($"RefundMethodFilter={request.RefundMethodFilter.Value}");
+
+            if (request.FromDateFilter.HasValue)
+                queryParams.Add($"FromDateFilter={request.FromDateFilter.Value:yyyy-MM-dd}");
+
+            if (request.ToDateFilter.HasValue)
+                queryParams.Add($"ToDateFilter={request.ToDateFilter.Value:yyyy-MM-dd}");
+
+            queryParams.Add($"PageIndex={request.PageIndex}");
+            queryParams.Add($"PageSize={request.PageSize}");
+
+            return queryParams.Count > 0 ? "?" + string.Join("&", queryParams) : string.Empty;
         }
     }
 }

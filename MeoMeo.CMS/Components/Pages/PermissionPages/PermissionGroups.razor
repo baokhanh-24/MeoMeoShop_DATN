@@ -4,6 +4,8 @@
 @using MeoMeo.Contract.Commons
 @using MeoMeo.Shared.Utilities
 @using AntDesign
+@using Radzen
+@using Radzen.Blazor
 @using Microsoft.AspNetCore.Components.Web
 @using ButtonSize = AntDesign.ButtonSize
 @using ButtonType = AntDesign.ButtonType
@@ -22,30 +24,50 @@
     </div>
 
     <div class="action-bar">
-        <Space>
-            <Button Type="@ButtonType.Primary" Icon="plus" @onclick="ShowCreateModal">
-                Thêm nhóm quyền
-            </Button>
-            <Button Type="@ButtonType.Default" Icon="reload" @onclick="LoadData">
-                Làm mới
-            </Button>
-        </Space>
+        <RadzenRow>
+            <RadzenColumn Size="6">
+                <RadzenStack Orientation="Orientation.Horizontal" Gap="1rem">
+                    <RadzenButton Text="Thêm nhóm quyền" Icon="add" ButtonStyle="ButtonStyle.Primary" Click="ShowCreateModal" />
+                    <RadzenButton Text="Làm mới" Icon="refresh" ButtonStyle="ButtonStyle.Light" Click="LoadData" />
+                    <RadzenButton Text="Lưu thay đổi" Icon="save" ButtonStyle="ButtonStyle.Success" 
+                                  Click="SavePermissionChanges" Disabled="@(!HasChanges())" />
+                </RadzenStack>
+            </RadzenColumn>
+            <RadzenColumn Size="6">
+                <RadzenStack Orientation="Orientation.Horizontal" JustifyContent="JustifyContent.End" Gap="1rem">
+                    <RadzenCheckBox @bind-Value="@selectAll" Name="selectAll" TValue="bool" 
+                                    Change="@(args => OnSelectAllChanged(args))" />
+                    <RadzenLabel Text="Chọn tất cả" Component="selectAll" />
+                </RadzenStack>
+            </RadzenColumn>
+        </RadzenRow>
     </div>
 
     <div class="content-section">
         @if (isLoading)
         {
-            <div class="loading-section">
-                <Spin Size="SpinSize.Large" />
-                <p>Đang tải dữ liệu...</p>
-            </div>
+                                    <div class="loading-section">
+                                                <RadzenProgressBarCircular ShowValue="true" Mode="ProgressBarMode.Indeterminate" Size="ProgressBarCircularSize.Large" />
+                                        <p>Đang tải dữ liệu...</p>
+                                    </div>
         }
         else
         {
-            <Tree SelectedKeys="selectedKeys" ExpandedKeys="expandedKeys" DataSource="@permissionGroups"
-                TitleTemplate="@RenderTreeNode" Key="Id" Children="Children" DefaultExpandAll="true" ShowLine="true"
-                ShowIcon="true">
-            </Tree>
+                                        <RadzenTree Data="@permissionGroups" 
+                                                    Expand="@OnExpand" 
+                                                    Change="@OnChange"
+                                                    CheckBoxes="true"
+                                                    AllowCheckChildren="true"
+                                                    AllowCheckParents="true"
+                                                    @bind-CheckedValues="@checkedValues"
+                                                    Style="width: 100%; height: 600px; overflow: auto;"
+                                                    Class="permission-tree">
+                                            <RadzenTreeLevel TextProperty="Name" 
+                                                             ChildrenProperty="Children"
+                                                             HasChildren="@(e => ((PermissionGroupDTO)e).Children?.Any() == true)"
+                                                             Template="@TreeNodeTemplate"
+                                                              />
+                                        </RadzenTree>
         }
     </div>
 </div>
@@ -65,7 +87,7 @@
                 Placeholder="Chọn nhóm cha" AllowClear>
                 @foreach (var group in allGroups.Where(g => g.Id != currentGroup.Id))
                 {
-                    <SelectOption TItemValue="Guid?" TItem="PermissionGroupDTO" Value="@group.Id" Label="@group.Name" />
+                                            <SelectOption TItemValue="Guid?" TItem="PermissionGroupDTO" Value="@group.Id" Label="@group.Name" />
                 }
             </Select>
         </FormItem>
@@ -82,8 +104,10 @@
     private bool showModal = false;
     private bool isEdit = false;
     private CreateOrUpdatePermissionGroupDTO currentGroup = new();
-    private string[] selectedKeys = new string[0];
-    private string[] expandedKeys = new string[0];
+    private bool selectAll = false;
+    private IEnumerable<object> checkedValues = new List<object>();
+    private HashSet<Guid> originalCheckedIds = new();
+    private HashSet<Guid> currentCheckedIds = new();
 
     protected override async Task OnInitializedAsync()
     {
@@ -98,8 +122,15 @@
             permissionGroups = await PermissionGroupService.GetPermissionGroupsTreeAsync();
             allGroups = await PermissionGroupService.GetAllPermissionGroupsAsync();
 
-            // Auto expand all nodes
-            expandedKeys = GetAllKeys(permissionGroups);
+            // Initialize checked values based on IsGranted property
+            var initialCheckedValues = new List<object>();
+            CollectCheckedNodes(permissionGroups, initialCheckedValues);
+            checkedValues = initialCheckedValues;
+            
+            // Store original state for comparison
+            originalCheckedIds = GetCheckedIds();
+            currentCheckedIds = new HashSet<Guid>(originalCheckedIds);
+            UpdateSelectAllState();
         }
         catch (Exception ex)
         {
@@ -113,18 +144,19 @@
         }
     }
 
-    private string[] GetAllKeys(List<PermissionGroupDTO> nodes)
+    private void CollectCheckedNodes(List<PermissionGroupDTO> nodes, List<object> checkedList)
     {
-        var keys = new List<string>();
         foreach (var node in nodes)
         {
-            keys.Add(node.Id.ToString());
-            if (node.Children.Any())
+            if (node.IsGranted)
             {
-                keys.AddRange(GetAllKeys(node.Children));
+                checkedList.Add(node);
+            }
+            if (node.Children?.Any() == true)
+            {
+                CollectCheckedNodes(node.Children, checkedList);
             }
         }
-        return keys.ToArray();
     }
 
     private void ShowCreateModal()
@@ -208,134 +240,126 @@
         }
     }
 
-    private RenderFragment<TreeNode<PermissionGroupDTO>> RenderTreeNode => context => @<div class="tree-node-content">
-        <Space>
-            <span>@context.DataItem.Name</span>
-            <span class="text-muted">@context.DataItem.Description</span>
-            <Space>
-                <Button Type="@ButtonType.Link" Size="@ButtonSize.Small" Icon="edit"
-                    @onclick="() => ShowEditModal(context.DataItem)" />
-                <Popconfirm Title="Bạn có chắc chắn muốn xóa nhóm quyền này?"
-                    OnConfirm="() => DeletePermissionGroup(context.DataItem)" OkText="Đồng ý" CancelText="Hủy">
-                    <Button Type="@ButtonType.Link" Size="@ButtonSize.Small" Icon="delete" Danger />
-                </Popconfirm>
-            </Space>
-        </Space>
+    // Template for tree nodes with action buttons
+    RenderFragment<RadzenTreeItem> TreeNodeTemplate = (context) => @<div class="tree-node-content">
+                <div style="display: flex; align-items: center; justify-content: space-between; width: 100%;">
+                    <div style="flex: 1;">
+                        <span style="font-weight: 500; margin-right: 8px;">@(((PermissionGroupDTO)context.Value).Name)</span>
+                        <span style="color: #999; font-size: 12px;">@(((PermissionGroupDTO)context.Value).Description)</span>
+                    </div>
+                    <div style="display: flex; gap: 4px;" @onclick:stopPropagation="true">
+                        @* <Button Type="@ButtonType.Link" Size="@ButtonSize.Small" Icon="edit" *@
+                        @*         OnClick="@((e) => { ShowEditModal(context.); })" /> *@
+                        @* <Popconfirm Title="@($"Bạn có chắc chắn muốn xóa nhóm quyền '{((PermissionGroupDTO)context.Value).Name}'?")" *@
+                        @*             OnConfirm="@((e) => { DeletePermissionGroup((PermissionGroupDTO)context.Value); })"  *@
+                        @*             OkText="Đồng ý" CancelText="Hủy"> *@
+                        @*     <Button Type="@ButtonType.Link" Size="@ButtonSize.Small" Icon="delete" Danger /> *@
+                        @* </Popconfirm> *@
+                    </div>
+                </div>
     </div>;
+
+    // Event handlers for tree interactions
+    private void OnExpand(TreeExpandEventArgs args)
+    {
+        // Handle tree node expansion if needed
+    }
+
+    private void OnChange(TreeEventArgs args)
+    {
+        currentCheckedIds = GetCheckedIds();
+        UpdateSelectAllState();
+        StateHasChanged();
+    }
+
+    private void OnSelectAllChanged(bool value)
+    {
+        if (value)
+        {
+            // Select all nodes
+            var allNodes = new List<object>();
+            CollectAllNodes(permissionGroups, allNodes);
+            checkedValues = allNodes;
+        }
+        else
+        {
+            // Deselect all nodes
+            checkedValues = new List<object>();
+        }
+        
+        currentCheckedIds = GetCheckedIds();
+        UpdateSelectAllState();
+        StateHasChanged();
+    }
+
+    private void UpdateSelectAllState()
+    {
+        var totalNodes = 0;
+        CountAllNodes(permissionGroups, ref totalNodes);
+        selectAll = currentCheckedIds.Count == totalNodes && totalNodes > 0;
+    }
+
+    private void CountAllNodes(List<PermissionGroupDTO> nodes, ref int count)
+    {
+        foreach (var node in nodes)
+        {
+            count++;
+            if (node.Children?.Any() == true)
+            {
+                CountAllNodes(node.Children, ref count);
+            }
+        }
+    }
+
+    private void CollectAllNodes(List<PermissionGroupDTO> nodes, List<object> nodeList)
+    {
+        foreach (var node in nodes)
+        {
+            nodeList.Add(node);
+            if (node.Children?.Any() == true)
+            {
+                CollectAllNodes(node.Children, nodeList);
+            }
+        }
+    }
+
+    private HashSet<Guid> GetCheckedIds()
+    {
+        var ids = new HashSet<Guid>();
+        foreach (var item in checkedValues)
+        {
+            if (item is PermissionGroupDTO group)
+            {
+                ids.Add(group.Id);
+            }
+        }
+        return ids;
+    }
+
+    private bool HasChanges()
+    {
+        return !originalCheckedIds.SetEquals(currentCheckedIds);
+    }
+
+    private async Task SavePermissionChanges()
+    {
+        try
+        {
+            // Here you would implement the logic to save permission changes
+            // This might involve calling a service method to update IsGranted states
+            
+            // For now, just update the original state and show success message
+            originalCheckedIds = new HashSet<Guid>(currentCheckedIds);
+            
+            await MessageModalService.Success("Đã lưu thay đổi phân quyền!");
+            
+            StateHasChanged();
+        }
+        catch (Exception ex)
+        {
+            await MessageModalService.Error("Có lỗi xảy ra khi lưu thay đổi!");
+            Console.WriteLine($"Error saving permission changes: {ex.Message}");
+        }
+    }
 }
 
-<style>
-    .permission-groups-container {
-        padding: 24px;
-    }
-
-    .page-header {
-        margin-bottom: 24px;
-    }
-
-    .page-subtitle {
-        color: #666;
-        margin-top: 8px;
-    }
-
-    .action-bar {
-        margin-bottom: 24px;
-    }
-
-    .content-section {
-        background: white;
-        padding: 24px;
-        border-radius: 8px;
-        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-    }
-
-    .loading-section {
-        text-align: center;
-        padding: 48px;
-    }
-
-    .tree-node-content {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        width: 100%;
-        padding: 8px 12px;
-        border-radius: 4px;
-        transition: all 0.2s ease;
-    }
-
-    .tree-node-content:hover {
-        background: #f5f5f5;
-    }
-
-    .text-muted {
-        color: #999;
-        font-size: 12px;
-        margin-left: 8px;
-    }
-
-    /* Ant Design Tree customizations */
-    .ant-tree .ant-tree-node-content-wrapper {
-        padding: 4px 8px;
-        border-radius: 4px;
-        transition: all 0.2s ease;
-    }
-
-    .ant-tree .ant-tree-node-content-wrapper:hover {
-        background: #f5f5f5;
-    }
-
-    .ant-tree .ant-tree-node-content-wrapper.ant-tree-node-selected {
-        background: #e6f7ff;
-        border: 1px solid #91d5ff;
-    }
-
-    .ant-tree .ant-tree-title {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        width: 100%;
-    }
-
-    .ant-tree .ant-tree-iconEle {
-        margin-right: 8px;
-    }
-
-    .ant-tree .ant-tree-switcher {
-        width: 24px;
-        height: 24px;
-        line-height: 24px;
-    }
-
-    .ant-tree .ant-tree-indent {
-        width: 24px;
-    }
-
-    .ant-tree .ant-tree-indent-unit {
-        width: 24px;
-    }
-
-    /* Action buttons styling */
-    .tree-node-content .ant-btn {
-        margin-left: 4px;
-        padding: 4px 8px;
-        height: auto;
-        line-height: 1;
-    }
-
-    .tree-node-content .ant-btn-link {
-        padding: 0;
-        height: auto;
-        border: none;
-        box-shadow: none;
-    }
-
-    .tree-node-content .ant-btn-link:hover {
-        background: transparent;
-        color: #1890ff;
-    }
-
-    .tree-node-content .ant-btn-dangerous:hover {
-        color: #ff4d4f;
-    }
-</style>

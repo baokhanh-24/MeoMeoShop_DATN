@@ -1,0 +1,137 @@
+using MeoMeo.Contract.DTOs.Statistics;
+using MeoMeo.Shared.IServices;
+using MeoMeo.Shared.Utilities;
+using System;
+using System.Collections.Generic;
+using System.Threading.Tasks;
+
+namespace MeoMeo.Shared.Services
+{
+    public class StatisticsClientService : IStatisticsClientService
+    {
+        private readonly IApiCaller _apiCaller;
+
+        public StatisticsClientService(IApiCaller apiCaller)
+        {
+            _apiCaller = apiCaller;
+        }
+
+        public async Task<DashboardStatisticsDTO?> GetDashboardStatisticsAsync(StatisticsRequestDTO request)
+        {
+            try
+            {
+                var queryString = BuildQueryString(request);
+                var url = $"api/Statistics/dashboard{queryString}";
+                var result = await _apiCaller.GetAsync<DashboardStatisticsDTO>(url);
+                return result;
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error getting dashboard statistics: {ex.Message}");
+                return null;
+            }
+        }
+
+        public async Task<RevenueStatisticsDTO?> GetRevenueStatisticsAsync(StatisticsRequestDTO request)
+        {
+            try
+            {
+                var queryString = BuildQueryString(request);
+                var url = $"api/Statistics/revenue{queryString}";
+                var result = await _apiCaller.GetAsync<RevenueStatisticsDTO>(url);
+                return result;
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error getting revenue statistics: {ex.Message}");
+                return null;
+            }
+        }
+
+        public async Task<OrderStatisticsDTO?> GetOrderStatisticsAsync(StatisticsRequestDTO request)
+        {
+            try
+            {
+                var queryString = BuildQueryString(request);
+                var url = $"api/Statistics/orders{queryString}";
+                var result = await _apiCaller.GetAsync<OrderStatisticsDTO>(url);
+                return result;
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error getting order statistics: {ex.Message}");
+                return null;
+            }
+        }
+
+        public async Task<CustomerStatisticsDTO?> GetCustomerStatisticsAsync(StatisticsRequestDTO request)
+        {
+            try
+            {
+                var queryString = BuildQueryString(request);
+                var url = $"api/Statistics/customers{queryString}";
+                var result = await _apiCaller.GetAsync<CustomerStatisticsDTO>(url);
+                return result;
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error getting customer statistics: {ex.Message}");
+                return null;
+            }
+        }
+
+        public async Task<InventoryStatisticsDTO?> GetInventoryStatisticsAsync()
+        {
+            try
+            {
+                var url = "api/Statistics/inventory";
+                var result = await _apiCaller.GetAsync<InventoryStatisticsDTO>(url);
+                return result;
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error getting inventory statistics: {ex.Message}");
+                return null;
+            }
+        }
+
+        public async Task<List<TopProductDTO>?> GetTopProductsByPeriodAsync(StatisticsPeriod period, DateTime? startDate = null, DateTime? endDate = null)
+        {
+            try
+            {
+                var queryParams = new List<string>();
+
+                if (startDate.HasValue)
+                    queryParams.Add($"startDate={startDate.Value:yyyy-MM-dd}");
+
+                if (endDate.HasValue)
+                    queryParams.Add($"endDate={endDate.Value:yyyy-MM-dd}");
+
+                var queryString = queryParams.Count > 0 ? "?" + string.Join("&", queryParams) : string.Empty;
+                var url = $"api/Statistics/top-products/{period}{queryString}";
+                var result = await _apiCaller.GetAsync<List<TopProductDTO>>(url);
+                return result;
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error getting top products by period: {ex.Message}");
+                return null;
+            }
+        }
+
+        private string BuildQueryString(StatisticsRequestDTO request)
+        {
+            var queryParams = new List<string>();
+
+            if (request.StartDate.HasValue)
+                queryParams.Add($"StartDate={request.StartDate.Value:yyyy-MM-dd}");
+
+            if (request.EndDate.HasValue)
+                queryParams.Add($"EndDate={request.EndDate.Value:yyyy-MM-dd}");
+
+            queryParams.Add($"Period={request.Period}");
+
+            return queryParams.Count > 0 ? "?" + string.Join("&", queryParams) : string.Empty;
+        }
+    }
+}

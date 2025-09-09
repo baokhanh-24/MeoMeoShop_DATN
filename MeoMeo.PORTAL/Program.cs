@@ -18,7 +18,8 @@ builder.Services.AddControllersWithViews();
 builder.Services.AddScoped<MessageModalService>();
 builder.Services.AddSingleton<LoadingService>();
 builder.Services.AddRadzenComponents();
-builder.Services.AddSignalR(e => {
+builder.Services.AddSignalR(e =>
+{
     e.MaximumReceiveMessageSize = 102400000;
 });
 
@@ -45,6 +46,7 @@ builder.Services.AddInteractiveStringLocalizer();
 builder.Services.AddScoped<ICustomerClientService, CustomerClientService>();
 builder.Services.AddScoped<IProductClientService, ProductClientService>();
 builder.Services.AddScoped<ICartClientService, CartClientService>();
+builder.Services.AddScoped<IOrderReturnClientService, OrderReturnClientService>();
 builder.Services.AddScoped<ISizeClientService, SizeClientService>();
 builder.Services.AddScoped<IColourClientService, ColourClientService>();
 builder.Services.AddScoped<IVoucherClientService, VoucherClientService>();

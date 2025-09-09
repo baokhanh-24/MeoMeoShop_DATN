@@ -324,27 +324,22 @@ namespace MeoMeo.Application.Services
 
         private async Task<string> GenerateCustomerCodeAsync()
         {
-            var today = DateTime.Now;
-            var datePrefix = today.ToString("yyyyMMdd");
-
-            // Tìm số thứ tự lớn nhất trong ngày
-            var lastCustomerToday = await _repository.Query()
-                .Where(c => c.Code.StartsWith($"KH{datePrefix}"))
-                .OrderByDescending(c => c.Code)
+            var lastCustomer = await _repository.Query()
+                .Where(c => c.Code.StartsWith("KH"))
+                .OrderByDescending(c => Convert.ToInt32(c.Code.Substring(2)))
                 .FirstOrDefaultAsync();
-
             int sequence = 1;
-            if (lastCustomerToday != null)
+            if (lastCustomer != null)
             {
-                var lastCode = lastCustomerToday.Code;
-                var sequencePart = lastCode.Substring($"KH{datePrefix}".Length);
+                var sequencePart = lastCustomer.Code.Substring(2); 
                 if (int.TryParse(sequencePart, out int lastSequence))
                 {
                     sequence = lastSequence + 1;
                 }
             }
 
-            return $"KH{datePrefix}{sequence:D3}"; // Format: KH20240101001
+            return $"KH{sequence:D3}"; // Format: KH001, KH002, KH003,...
         }
+
     }
 }
