@@ -1,0 +1,104 @@
+@using Microsoft.AspNetCore.Components.Authorization
+@using MeoMeo.CMS.IServices
+@using ButtonType = AntDesign.ButtonType
+@inject ICMSAuthService AuthService
+@inject NavigationManager NavigationManager
+
+@if (isLoading)
+{
+    <div class="auth-loading">
+        <Spin Size="SpinSize.Large" />
+        <p>Đang kiểm tra quyền truy cập...</p>
+    </div>
+}
+else if (isAuthenticated && hasAccess)
+{
+    @ChildContent
+}
+else
+{
+    <div class="access-denied">
+        <Result Status="ResultStatus.Http403" Title="Truy cập bị từ chối"
+            SubTitle="Bạn không có quyền truy cập vào hệ thống CMS. Chỉ Admin và Employee mới có thể truy cập.">
+            <Extra>
+                <Button Type="@ButtonType.Primary" @onclick="GoToLogin">
+                    Đăng nhập CMS
+                </Button>
+            </Extra>
+        </Result>
+    </div>
+}
+
+@code {
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+    [Parameter] public string[] RequiredRoles { get; set; } = new[] { "Admin", "Employee" };
+
+    private bool isLoading = true;
+    private bool isAuthenticated = false;
+    private bool hasAccess = false;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await CheckAccess();
+    }
+
+    private async Task CheckAccess()
+    {
+        try
+        {
+            isLoading = true;
+            StateHasChanged();
+
+            isAuthenticated = await AuthService.IsAuthenticatedAsync();
+
+            if (isAuthenticated)
+            {
+                // Kiểm tra từng role được yêu cầu
+                hasAccess = false;
+                foreach (var role in RequiredRoles)
+                {
+                    if (await AuthService.HasRoleAsync(role))
+                    {
+                        hasAccess = true;
+                        break;
+                    }
+                }
+            }
+            else
+            {
+                hasAccess = false;
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error checking CMS access: {ex.Message}");
+            hasAccess = false;
+        }
+        finally
+        {
+            isLoading = false;
+            StateHasChanged();
+        }
+    }
+
+    private void GoToLogin()
+    {
+        NavigationManager.NavigateTo("/cms/login");
+    }
+}
+
+<style>
+    .auth-loading {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        min-height: 200px;
+        gap: 16px;
+    }
+
+    .access-denied {
+        padding: 40px;
+        text-align: center;
+    }
+</style>

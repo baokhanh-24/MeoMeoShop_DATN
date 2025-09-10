@@ -2,15 +2,19 @@
 @using MeoMeo.Shared.Services
 @using MeoMeo.Shared.IServices
 @using MeoMeo.Contract.DTOs
+@using MeoMeo.PORTAL.Services
+@using MeoMeo.PORTAL.IServices
 @using Microsoft.AspNetCore.Components.Authorization
 @using System.Security.Claims
 @using MeoMeo.Shared.Utilities
 @using AntDesign
 @using MeoMeo.PORTAL.Components.Layout
 @inject ICustomerClientService CustomerService
+@inject IUserInfoService UserInfoService
 @inject IAuthClientService AuthService
 @inject CustomAuthStateProvider AuthStateProvider
 @inject NavigationManager NavigationManager
+@inject IConfiguration Configuration
 
 @inherits LayoutComponentBase
 
@@ -35,7 +39,9 @@
                             <Card Class="profile-sidebar-card">
                                 <div class="user-info-section">
                                     <div class="user-avatar">
-                                        <Avatar Size="AvatarSize.Large" Icon="user" />
+                                        <Avatar Size="AvatarSize.Large" Src="@GetUserAvatar(context.User)">
+                                            @GetUserInitial(context.User)
+                                        </Avatar>
                                     </div>
                                     <div class="user-details">
                                         <h4 class="user-name">@GetUserFullName(context.User)</h4>
@@ -79,43 +85,82 @@
 </AuthorizeView>
 
 @code {
-    private CustomerDTO? userInfo;
     private string[] selectedKeys = new string[0];
+    private string backendUrl = string.Empty;
 
     protected override async Task OnInitializedAsync()
     {
-        await LoadUserInfo();
+        // Subscribe to user info changes
+        UserInfoService.OnUserInfoChanged += OnUserInfoChanged;
+
+        // Load user info khi component khởi tạo
+        await UserInfoService.LoadUserInfoAsync();
+
+        // Get backend URL from configuration
+        backendUrl = Configuration["ApiSettings:BaseUrl"] ?? "";
+
         SetSelectedKeys();
     }
 
-    private async Task LoadUserInfo()
+    private void OnUserInfoChanged()
     {
-        try
-        {
-            var authState = await AuthStateProvider.GetAuthenticationStateAsync();
-            var userIdClaim = authState.User.FindFirst("CustomerId");
-
-            if (userIdClaim != null && Guid.TryParse(userIdClaim.Value, out var customerId))
-            {
-                userInfo = await CustomerService.GetCustomersByIdAsync(customerId);
-            }
-        }
-        catch (Exception ex)
-        {
-            Console.WriteLine($"Error loading user info: {ex.Message}");
-        }
+        InvokeAsync(StateHasChanged);
     }
 
-    private string GetUserFullName(ClaimsPrincipal user) =>
-    user?.FindFirst("FullName")?.Value
-    ?? user?.FindFirst("UserName")?.Value
-    ?? userInfo?.Name
-    ?? "User";
+    private string GetUserFullName(ClaimsPrincipal user)
+    {
+        // Ưu tiên thông tin từ API, fallback về claims
+        if (UserInfoService.CurrentUser != null && !string.IsNullOrEmpty(UserInfoService.CurrentUser.Name))
+        {
+            return UserInfoService.CurrentUser.Name;
+        }
 
-    private string GetUserPhone(ClaimsPrincipal user) =>
-    user?.FindFirst("PhoneNumber")?.Value
-    ?? userInfo?.PhoneNumber
-    ?? "";
+        return user?.FindFirst("FullName")?.Value
+        ?? user?.FindFirst("UserName")?.Value
+        ?? "User";
+    }
+
+    private string GetUserPhone(ClaimsPrincipal user)
+    {
+        // Ưu tiên thông tin từ API, fallback về claims
+        if (UserInfoService.CurrentUser != null && !string.IsNullOrEmpty(UserInfoService.CurrentUser.PhoneNumber))
+        {
+            return UserInfoService.CurrentUser.PhoneNumber;
+        }
+
+        return user?.FindFirst("PhoneNumber")?.Value ?? "";
+    }
+
+    private string GetUserAvatar(ClaimsPrincipal user)
+    {
+        // Ưu tiên thông tin từ API, fallback về claims
+        string avatarPath = string.Empty;
+
+        if (UserInfoService.CurrentUser != null && !string.IsNullOrEmpty(UserInfoService.CurrentUser.Avatar))
+        {
+            avatarPath = UserInfoService.CurrentUser.Avatar;
+        }
+        else
+        {
+            avatarPath = user?.FindFirst("Avatar")?.Value ?? string.Empty;
+        }
+
+        // Kết hợp với backend URL nếu có avatar path
+        if (!string.IsNullOrEmpty(avatarPath))
+        {
+            return backendUrl + "/" + avatarPath;
+        }
+
+        return string.Empty;
+    }
+
+    private string GetUserInitial(ClaimsPrincipal user)
+    {
+        var fullName = GetUserFullName(user);
+        return !string.IsNullOrEmpty(fullName)
+        ? fullName.Substring(0, 1).ToUpper()
+        : "U";
+    }
 
     private string[] GetSelectedKeys()
     {
@@ -148,5 +193,10 @@
             "profile/reviews" => "Đánh giá sản phẩm",
             _ => "Thông tin cá nhân"
         };
+    }
+
+    public void Dispose()
+    {
+        UserInfoService.OnUserInfoChanged -= OnUserInfoChanged;
     }
 }

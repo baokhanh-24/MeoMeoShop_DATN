@@ -4,9 +4,12 @@
 @using MeoMeo.Shared.IServices
 @using MeoMeo.Contract.DTOs
 @using MeoMeo.Domain.Commons.Enums
+@using MeoMeo.PORTAL.IServices
 @using MeoMeo.Shared.Utilities
+@using MeoMeo.PORTAL.Services
 @using ButtonType = AntDesign.ButtonType
 @inject ICustomerClientService CustomerService
+@inject IUserInfoService UserInfoService
 @inject IAuthClientService AuthService
 @inject CustomAuthStateProvider AuthStateProvider
 @inject NavigationManager NavigationManager
@@ -33,11 +36,11 @@
                 <div class="avatar-container">
                     @if (!string.IsNullOrEmpty(currentAvatarUrl))
                     {
-                        <Avatar Size="AvatarSize.Large" Src="@currentAvatarUrl" Class="profile-avatar"/>
+                        <Avatar Size="AvatarSize.Large" Src="@currentAvatarUrl" Class="profile-avatar" />
                     }
                     else
                     {
-                        <Avatar Size="AvatarSize.Large" Icon="user" Class="profile-avatar"/>
+                        <Avatar Size="AvatarSize.Large" Icon="user" Class="profile-avatar" />
                     }
                 </div>
                 <div class="avatar-actions">
@@ -54,7 +57,7 @@
                                 Thay đổi ảnh
                             </Button>
                             <InputFile @ref="avatarInput" OnChange="OnAvatarSelected" accept="image/*"
-                                       style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; opacity: 0; cursor: pointer;"/>
+                                style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; opacity: 0; cursor: pointer;" />
                         </div>
                     }
                     <p class="avatar-note">JPG, PNG hoặc GIF. Tối đa 5MB.</p>
@@ -70,19 +73,14 @@
                     <GridRow Gutter="16">
                         <GridCol Span="12">
                             <FormItem Label="Mã khách hàng">
-                                <Input @bind-Value="@context.Code" Disabled="true"/>
+                                <Input @bind-Value="@context.Code" Disabled="true" />
                             </FormItem>
                         </GridCol>
                         <GridCol Span="12">
-                            <FormItem Label="Trạng thái" >
-                                <Select TItem="SelectOptionModel" 
-                                        TItemValue="ECustomerStatus" 
-                                        DataSource="@statusOptions"
-                                        @bind-Value="@context.Status" 
-                                        Disabled
-                                        Style="width:100%" 
-                                        ItemValue="x => x.Value" 
-                                        ItemLabel="x => x.Label"></Select>
+                            <FormItem Label="Trạng thái">
+                                <Select TItem="SelectOptionModel" TItemValue="ECustomerStatus"
+                                    DataSource="@statusOptions" @bind-Value="@context.Status" Disabled
+                                    Style="width:100%" ItemValue="x => x.Value" ItemLabel="x => x.Label"></Select>
                             </FormItem>
                         </GridCol>
                     </GridRow>
@@ -90,12 +88,13 @@
                     <GridRow Gutter="16">
                         <GridCol Span="12">
                             <FormItem Label="Họ tên" Name="Name" Rules="@nameRules">
-                                <Input @bind-Value="@context.Name" MaxLength="100" Placeholder="Nhập họ và tên"/>
+                                <Input @bind-Value="@context.Name" MaxLength="100" Placeholder="Nhập họ và tên" />
                             </FormItem>
                         </GridCol>
                         <GridCol Span="12">
                             <FormItem Label="Điện thoại" Name="PhoneNumber" Rules="@phoneRules">
-                                <Input MaxLength="10" @bind-Value="@context.PhoneNumber" Placeholder="Nhập số điện thoại"/>
+                                <Input MaxLength="10" @bind-Value="@context.PhoneNumber"
+                                    Placeholder="Nhập số điện thoại" />
                             </FormItem>
                         </GridCol>
                     </GridRow>
@@ -103,12 +102,13 @@
                     <GridRow Gutter="16">
                         <GridCol Span="12">
                             <FormItem Label="Email" Name="Email">
-                                <Input @bind-Value="@context.Email" Disabled="true"/>
+                                <Input @bind-Value="@context.Email" Disabled="true" />
                             </FormItem>
                         </GridCol>
                         <GridCol Span="12">
-                            <FormItem Label="Ngày sinh" Name="DateOfBirth" >
-                                <DatePicker  DisabledDate="DisableFutureDate" @bind-Value="@context.DateOfBirth" Style="width: 100%"/>
+                            <FormItem Label="Ngày sinh" Name="DateOfBirth">
+                                <DatePicker DisabledDate="DisableFutureDate" @bind-Value="@context.DateOfBirth"
+                                    Style="width: 100%" />
                             </FormItem>
                         </GridCol>
                     </GridRow>
@@ -116,26 +116,22 @@
                     <GridRow Gutter="16">
                         <GridCol Span="12">
                             <FormItem Label="Mã số thuế" Name="TaxCode" Rules="@taxCodeRules">
-                                <Input MaxLength="14" @bind-Value="@context.TaxCode" Placeholder="Nhập mã số thuế"/>
+                                <Input MaxLength="14" @bind-Value="@context.TaxCode" Placeholder="Nhập mã số thuế" />
                             </FormItem>
-                        </GridCol>    
+                        </GridCol>
                         <GridCol Span="12">
-                            <FormItem Label="Giới tính" >
-                                <Select TItem="SelectOptionModel<int>"
-                                        TItemValue="int"
-                                        DataSource="@genderOptions"
-                                        @bind-Value="@context.Gender"
-                                        Placeholder="Chọn giới tính"
-                                        Style="width:100%" 
-                                        ItemValue="x => x.Value" 
-                                        ItemLabel="x => x.Label"></Select>
+                            <FormItem Label="Giới tính">
+                                <Select TItem="SelectOptionModel<int>" TItemValue="int" DataSource="@genderOptions"
+                                    @bind-Value="@context.Gender" Placeholder="Chọn giới tính" Style="width:100%"
+                                    ItemValue="x => x.Value" ItemLabel="x => x.Label"></Select>
                             </FormItem>
 
                         </GridCol>
                     </GridRow>
 
                     <FormItem Label="Địa chỉ" Name="Address" Rules="@addressRules">
-                        <TextArea MaxLength="500" @bind-Value="@context.Address" Rows="3" Placeholder="Nhập địa chỉ của bạn"></TextArea>
+                        <TextArea MaxLength="500" @bind-Value="@context.Address" Rows="3"
+                            Placeholder="Nhập địa chỉ của bạn"></TextArea>
                     </FormItem>
 
                     <FormItem>
@@ -148,7 +144,7 @@
                                     Lưu thay đổi
                                 </Button>
                             </div>
-                          
+
                         </Space>
                     </FormItem>
                 </Form>
@@ -165,20 +161,17 @@
     </GridRow>
 </div>
 
-<Modal Title="Đổi mật khẩu"
-       Visible="@isChangePasswordVisible"
-       OnOk="@HandleChangePassword"
-       OnCancel="@HandlePasswordModalCancel"
-       ConfirmLoading="@isChangingPassword">
+<Modal Title="Đổi mật khẩu" Visible="@isChangePasswordVisible" OnOk="@HandleChangePassword"
+    OnCancel="@HandlePasswordModalCancel" ConfirmLoading="@isChangingPassword">
     <Form Model="@passwordModel" Layout="FormLayout.Vertical">
         <FormItem Label="Mật khẩu hiện tại" Required>
-            <InputPassword @bind-Value="@passwordModel.CurrentPassword"/>
+            <InputPassword @bind-Value="@passwordModel.CurrentPassword" />
         </FormItem>
         <FormItem Label="Mật khẩu mới" Required>
-            <InputPassword @bind-Value="@passwordModel.NewPassword"/>
+            <InputPassword @bind-Value="@passwordModel.NewPassword" />
         </FormItem>
         <FormItem Label="Xác nhận mật khẩu mới" Required>
-            <InputPassword @bind-Value="@passwordModel.ConfirmPassword"/>
+            <InputPassword @bind-Value="@passwordModel.ConfirmPassword" />
         </FormItem>
     </Form>
 </Modal>
@@ -204,18 +197,18 @@
     }
 
     private List<SelectOptionModel<int>> genderOptions = new()
-    {
-        new() { Value = 0, Label = "Nam" },
-        new() { Value = 1, Label = "Nữ" },
-        new() { Value = 2, Label = "Khác" }
-    };
+{
+new() { Value = 0, Label = "Nam" },
+new() { Value = 1, Label = "Nữ" },
+new() { Value = 2, Label = "Khác" }
+};
 
     private List<SelectOptionModel> statusOptions = new()
-    {
-        new SelectOptionModel { Value = ECustomerStatus.Enabled, Label = "Hoạt động" },
-        new SelectOptionModel { Value = ECustomerStatus.Disabled, Label = "Ngừng hoạt động" },
-        new SelectOptionModel { Value = ECustomerStatus.Locked, Label = "Bị khóa" }
-    };
+{
+new SelectOptionModel { Value = ECustomerStatus.Enabled, Label = "Hoạt động" },
+new SelectOptionModel { Value = ECustomerStatus.Disabled, Label = "Ngừng hoạt động" },
+new SelectOptionModel { Value = ECustomerStatus.Locked, Label = "Bị khóa" }
+};
     // Avatar upload
     private InputFile? avatarInput;
     private bool isUploadingAvatar = false;
@@ -225,15 +218,15 @@
     // Form validation rules
     private FormValidationRule[] nameRules = new[]
     {
-        new FormValidationRule { Required = true, Message = "Vui lòng nhập họ tên" },
-        new FormValidationRule { Min = 2, Message = "Họ tên phải có ít nhất 2 ký tự" }
-    };
+new FormValidationRule { Required = true, Message = "Vui lòng nhập họ tên" },
+new FormValidationRule { Min = 2, Message = "Họ tên phải có ít nhất 2 ký tự" }
+};
 
     private FormValidationRule[] phoneRules = new[]
     {
-        new FormValidationRule { Required = true, Message = "Vui lòng nhập số điện thoại" },
-        new FormValidationRule { Pattern = @"^[0-9]{10,11}$", Message = "Số điện thoại không hợp lệ" }
-    };
+new FormValidationRule { Required = true, Message = "Vui lòng nhập số điện thoại" },
+new FormValidationRule { Pattern = @"^[0-9]{10,11}$", Message = "Số điện thoại không hợp lệ" }
+};
 
     private bool DisableFutureDate(DateTime date)
     {
@@ -242,14 +235,14 @@
 
     private FormValidationRule[] taxCodeRules = new[]
     {
-        new FormValidationRule { Pattern = @"^\d{10}(\d{3})?$", Message = "Mã số thuế phải có 10 hoặc 13 số" }
-    };
+new FormValidationRule { Pattern = @"^\d{10}(\d{3})?$", Message = "Mã số thuế phải có 10 hoặc 13 số" }
+};
 
     private FormValidationRule[] addressRules = new[]
     {
-        new FormValidationRule { Required = true, Message = "Vui lòng nhập địa chỉ" },
-        new FormValidationRule { Max = 255, Message = "Địa chỉ tối đa 255 ký tự" }
-    };
+new FormValidationRule { Required = true, Message = "Vui lòng nhập địa chỉ" },
+new FormValidationRule { Max = 255, Message = "Địa chỉ tối đa 255 ký tự" }
+};
 
     protected override async Task OnInitializedAsync()
     {
@@ -345,6 +338,8 @@
             {
                 MessageService.Success("Cập nhật ảnh đại diện thành công!");
                 await LoadUserData(); // Reload to get new avatar URL
+                                      // Refresh user info để cập nhật UserMenu
+                await UserInfoService.RefreshUserInfoAsync();
             }
             else
             {
@@ -379,8 +374,8 @@
     private async Task HandleChangePassword()
     {
         if (string.IsNullOrEmpty(passwordModel.CurrentPassword) ||
-            string.IsNullOrEmpty(passwordModel.NewPassword) ||
-            string.IsNullOrEmpty(passwordModel.ConfirmPassword))
+        string.IsNullOrEmpty(passwordModel.NewPassword) ||
+        string.IsNullOrEmpty(passwordModel.ConfirmPassword))
         {
             MessageService.Error("Vui lòng điền đầy đủ thông tin!");
             return;
@@ -428,76 +423,78 @@
     }
 
     private async Task HandleSubmit()
-{
-    try
     {
-        // Validate Name
-        if (string.IsNullOrWhiteSpace(model.Name) || model.Name.Length < 2)
+        try
         {
-            MessageService.Warning("Họ tên phải có ít nhất 2 ký tự");
-            return;
-        }
+            // Validate Name
+            if (string.IsNullOrWhiteSpace(model.Name) || model.Name.Length < 2)
+            {
+                MessageService.Warning("Họ tên phải có ít nhất 2 ký tự");
+                return;
+            }
 
-        // Validate Phone
-        if (string.IsNullOrWhiteSpace(model.PhoneNumber) || 
+            // Validate Phone
+            if (string.IsNullOrWhiteSpace(model.PhoneNumber) ||
             !System.Text.RegularExpressions.Regex.IsMatch(model.PhoneNumber, @"^[0-9]{10,11}$"))
-        {
-            MessageService.Warning("Số điện thoại không hợp lệ");
-            return;
-        }
+            {
+                MessageService.Warning("Số điện thoại không hợp lệ");
+                return;
+            }
 
-        // Validate DateOfBirth
-        if (model.DateOfBirth.HasValue && model.DateOfBirth.Value.Date > DateTime.Today)
-        {
-            MessageService.Warning("Ngày sinh không được lớn hơn ngày hiện tại");
-            return;
-        }
+            // Validate DateOfBirth
+            if (model.DateOfBirth.HasValue && model.DateOfBirth.Value.Date > DateTime.Today)
+            {
+                MessageService.Warning("Ngày sinh không được lớn hơn ngày hiện tại");
+                return;
+            }
 
-        // Validate TaxCode
-        if (!string.IsNullOrEmpty(model.TaxCode) && 
+            // Validate TaxCode
+            if (!string.IsNullOrEmpty(model.TaxCode) &&
             !System.Text.RegularExpressions.Regex.IsMatch(model.TaxCode, @"^\d{10}(\d{3})?$"))
-        {
-            MessageService.Warning("Mã số thuế phải có 10 hoặc 13 số");
-            return;
-        }
+            {
+                MessageService.Warning("Mã số thuế phải có 10 hoặc 13 số");
+                return;
+            }
 
-        // Validate Address
-        if (string.IsNullOrWhiteSpace(model.Address))
-        {
-            MessageService.Warning("Vui lòng nhập địa chỉ");
-            return;
-        }
-        if (model.Address.Length > 255)
-        {
-            MessageService.Warning("Địa chỉ tối đa 255 ký tự");
-            return;
-        }
-        isLoading = true;
-        StateHasChanged();
+            // Validate Address
+            if (string.IsNullOrWhiteSpace(model.Address))
+            {
+                MessageService.Warning("Vui lòng nhập địa chỉ");
+                return;
+            }
+            if (model.Address.Length > 255)
+            {
+                MessageService.Warning("Địa chỉ tối đa 255 ký tự");
+                return;
+            }
+            isLoading = true;
+            StateHasChanged();
 
-        var response = await CustomerService.UpdateProfileAsync(model);
-        if (response.ResponseStatus == BaseStatus.Success)
-        {
-            MessageService.Success("Cập nhật thông tin thành công!");
-            hasChanges = false;
-            await LoadUserData();
+            var response = await CustomerService.UpdateProfileAsync(model);
+            if (response.ResponseStatus == BaseStatus.Success)
+            {
+                MessageService.Success("Cập nhật thông tin thành công!");
+                hasChanges = false;
+                await LoadUserData();
+                // Refresh user info để cập nhật UserMenu
+                await UserInfoService.RefreshUserInfoAsync();
+            }
+            else
+            {
+                MessageService.Error("Cập nhật thông tin thất bại!");
+            }
         }
-        else
+        catch (Exception ex)
         {
-            MessageService.Error("Cập nhật thông tin thất bại!");
+            MessageService.Error("Có lỗi xảy ra khi cập nhật thông tin!");
+            Console.WriteLine($"Error updating profile: {ex.Message}");
+        }
+        finally
+        {
+            isLoading = false;
+            StateHasChanged();
         }
     }
-    catch (Exception ex)
-    {
-        MessageService.Error("Có lỗi xảy ra khi cập nhật thông tin!");
-        Console.WriteLine($"Error updating profile: {ex.Message}");
-    }
-    finally
-    {
-        isLoading = false;
-        StateHasChanged();
-    }
-}
 
 
     private void HandleCancel()

@@ -1,0 +1,322 @@
+@page "/cms/login"
+@using MeoMeo.Contract.DTOs.Auth
+@using MeoMeo.CMS.IServices
+@using MeoMeo.CMS.Utilities
+@using ButtonSize = AntDesign.ButtonSize
+@using ButtonType = AntDesign.ButtonType
+@inject ICMSAuthService AuthService
+@inject CMSAuthStateProvider AuthStateProvider
+@inject NavigationManager NavigationManager
+@inject MessageService MessageService
+
+<div class="cms-login-container">
+    <div class="cms-login-card">
+        <div class="cms-login-header">
+            <div class="logo-section">
+                <img src="/images/logo.png" alt="MeoMeo Shop CMS" class="logo" />
+                <h1>MeoMeo Shop CMS</h1>
+            </div>
+            <p class="welcome-text">Hệ thống quản lý</p>
+            <p class="subtitle">Đăng nhập để truy cập hệ thống quản lý</p>
+        </div>
+
+        <Form Model="@loginModel" OnFinish="HandleLogin" Layout="FormLayout.Vertical" class="cms-login-form">
+            <FormItem Label="Tên đăng nhập" Name="UserName" Rules="@userNameRules">
+                <Input @bind-Value="@context.UserName" Placeholder="Nhập tên đăng nhập" Size="InputSize.Large" />
+            </FormItem>
+
+            <FormItem Label="Mật khẩu" Name="Password" Rules="@passwordRules">
+                <InputPassword @bind-Value="@context.Password" Placeholder="Nhập mật khẩu" Size="InputSize.Large" />
+            </FormItem>
+
+            <FormItem>
+                <div class="form-actions">
+                    <Checkbox @bind-Checked="@rememberMe">Ghi nhớ đăng nhập</Checkbox>
+                </div>
+            </FormItem>
+
+            <FormItem>
+                <Button Type="@ButtonType.Primary" HtmlType="submit" Size="ButtonSize.Large" Block="true"
+                    Loading="@isLoading" Class="cms-login-button">
+                    @if (isLoading)
+                    {
+                        <span>Đang đăng nhập...</span>
+                    }
+                    else
+                    {
+                        <span>Đăng nhập CMS</span>
+                    }
+                </Button>
+            </FormItem>
+        </Form>
+
+        <div class="cms-login-footer">
+            <div class="role-info">
+                <Alert Message="Chỉ Admin và Employee mới có thể đăng nhập vào hệ thống CMS" Type="AlertType.Info"
+                    ShowIcon="true" />
+            </div>
+
+            <div class="default-credentials">
+                <div class="credentials-toggle" @onclick="ToggleCredentials">
+                    <span>📋 Thông tin đăng nhập mặc định</span>
+                    <span class="toggle-icon">@(showCredentials ? "▼" : "▶")</span>
+                </div>
+
+                @if (showCredentials)
+                {
+                    <div class="credentials-content">
+                        <div class="credential-item">
+                            <h4>👑 Admin</h4>
+                            <p><strong>Tài khoản:</strong> admin@meomeo.com</p>
+                            <p><strong>Mật khẩu:</strong> Admin@12345</p>
+                        </div>
+                        <div class="credential-item">
+                            <h4>👤 Employee</h4>
+                            <p><strong>Tài khoản:</strong> employee@meomeo.com</p>
+                            <p><strong>Mật khẩu:</strong> Employee@12345</p>
+                        </div>
+                        <div class="credential-note">
+                            <Alert
+                                Message="Lưu ý: Đây là tài khoản mặc định để demo. Trong môi trường production, vui lòng thay đổi mật khẩu!"
+                                Type="AlertType.Warning" ShowIcon="true" />
+                        </div>
+                    </div>
+                }
+            </div>
+        </div>
+    </div>
+</div>
+
+@code {
+    private AuthenRequest loginModel = new();
+    private bool isLoading = false;
+    private bool rememberMe = false;
+    private bool showCredentials = false;
+
+    private readonly FormValidationRule[] userNameRules = new[]
+    {
+new FormValidationRule { Required = true, Message = "Vui lòng nhập tên đăng nhập!" }
+};
+
+    private readonly FormValidationRule[] passwordRules = new[]
+    {
+new FormValidationRule { Required = true, Message = "Vui lòng nhập mật khẩu!" },
+new FormValidationRule { Min = 6, Message = "Mật khẩu phải có ít nhất 6 ký tự!" }
+};
+
+    protected override async Task OnInitializedAsync()
+    {
+        var isAuthenticated = await AuthService.IsAuthenticatedAsync();
+        if (isAuthenticated)
+        {
+            // Kiểm tra quyền truy cập CMS
+            var userRoles = await AuthService.GetUserRolesAsync();
+            var hasAdminRole = userRoles.Contains("Admin");
+            var hasEmployeeRole = userRoles.Contains("Employee");
+
+            if (hasAdminRole || hasEmployeeRole)
+            {
+                NavigationManager.NavigateTo("/cms", forceLoad: true);
+            }
+            else
+            {
+                MessageService.Error("Bạn không có quyền truy cập hệ thống CMS! Chỉ Admin và Employee mới có thể đăng nhập.");
+                await AuthService.ClearTokensAsync();
+            }
+        }
+    }
+
+    private async Task HandleLogin()
+    {
+        try
+        {
+            isLoading = true;
+            StateHasChanged();
+
+            var response = await AuthService.LoginAsync(loginModel);
+
+            if (response?.ResponseStatus == MeoMeo.Contract.Commons.BaseStatus.Success)
+            {
+                // Kiểm tra quyền truy cập CMS
+                var userRoles = await AuthService.GetUserRolesAsync();
+                var hasAdminRole = userRoles.Contains("Admin");
+                var hasEmployeeRole = userRoles.Contains("Employee");
+
+                if (hasAdminRole || hasEmployeeRole)
+                {
+                    // Thông báo authentication state provider
+                    AuthStateProvider.NotifyUserAuthentication(response.AccessToken);
+
+                    MessageService.Success("Đăng nhập CMS thành công!");
+
+                    // Force UI update
+                    StateHasChanged();
+
+                    // Chuyển hướng về trang CMS chính
+                    NavigationManager.NavigateTo("/cms", forceLoad: true);
+                }
+                else
+                {
+                    MessageService.Error("Bạn không có quyền truy cập hệ thống CMS. Chỉ Admin và Employee mới có thể đăng nhập!");
+                    await AuthService.ClearTokensAsync();
+                }
+            }
+            else
+            {
+                var errorMessage = response?.Message ?? "Đăng nhập thất bại. Vui lòng kiểm tra lại thông tin!";
+                MessageService.Error(errorMessage);
+            }
+        }
+        catch (Exception ex)
+        {
+            MessageService.Error("Có lỗi xảy ra trong quá trình đăng nhập. Vui lòng thử lại!");
+        }
+        finally
+        {
+            isLoading = false;
+            StateHasChanged();
+        }
+    }
+
+    private void ToggleCredentials()
+    {
+        showCredentials = !showCredentials;
+        StateHasChanged();
+    }
+}
+
+<style>
+    .cms-login-container {
+        min-height: 100vh;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        padding: 20px;
+    }
+
+    .cms-login-card {
+        background: white;
+        border-radius: 12px;
+        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+        padding: 40px;
+        width: 100%;
+        max-width: 400px;
+    }
+
+    .cms-login-header {
+        text-align: center;
+        margin-bottom: 32px;
+    }
+
+    .logo-section {
+        margin-bottom: 16px;
+    }
+
+    .logo {
+        width: 64px;
+        height: 64px;
+        margin-bottom: 12px;
+    }
+
+    .cms-login-header h1 {
+        color: #1890ff;
+        margin: 0;
+        font-size: 24px;
+        font-weight: 600;
+    }
+
+    .welcome-text {
+        color: #333;
+        font-size: 18px;
+        font-weight: 500;
+        margin: 8px 0 4px 0;
+    }
+
+    .subtitle {
+        color: #666;
+        font-size: 14px;
+        margin: 0;
+    }
+
+    .cms-login-form {
+        margin-bottom: 24px;
+    }
+
+    .form-actions {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+
+    .cms-login-button {
+        height: 48px;
+        font-size: 16px;
+        font-weight: 500;
+    }
+
+    .cms-login-footer {
+        text-align: center;
+    }
+
+    .role-info {
+        margin-top: 16px;
+    }
+
+    .default-credentials {
+        margin-top: 20px;
+    }
+
+    .credentials-toggle {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 12px 16px;
+        background-color: #f0f0f0;
+        border-radius: 6px;
+        cursor: pointer;
+        user-select: none;
+        transition: background-color 0.2s;
+    }
+
+    .credentials-toggle:hover {
+        background-color: #e6e6e6;
+    }
+
+    .toggle-icon {
+        font-size: 12px;
+        color: #666;
+    }
+
+    .credentials-content {
+        padding: 16px;
+        background-color: #f8f9fa;
+        border-radius: 8px;
+        margin-top: 12px;
+    }
+
+    .credential-item {
+        margin-bottom: 16px;
+        padding: 12px;
+        background-color: white;
+        border-radius: 6px;
+        border-left: 4px solid #1890ff;
+    }
+
+    .credential-item h4 {
+        margin: 0 0 8px 0;
+        color: #1890ff;
+        font-size: 16px;
+        font-weight: 600;
+    }
+
+    .credential-item p {
+        margin: 4px 0;
+        font-size: 14px;
+        color: #333;
+    }
+
+    .credential-note {
+        margin-top: 16px;
+    }
+</style>

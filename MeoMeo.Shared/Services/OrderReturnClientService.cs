@@ -6,6 +6,10 @@ using MeoMeo.Shared.Utilities;
 using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
+using System.Text;
+using System.Net.Http;
+using System.Text.Json;
+using System.Linq;
 
 namespace MeoMeo.Shared.Services
 {
@@ -24,6 +28,72 @@ namespace MeoMeo.Shared.Services
             {
                 var url = "api/OrderReturn/create-partial-return";
                 var result = await _apiCaller.PostAsync<CreatePartialOrderReturnDTO, BaseResponse>(url, request);
+                return result ?? new BaseResponse
+                {
+                    Message = "Lỗi khi tạo yêu cầu hoàn trả",
+                    ResponseStatus = BaseStatus.Error
+                };
+            }
+            catch (Exception ex)
+            {
+                return new BaseResponse
+                {
+                    Message = ex.Message,
+                    ResponseStatus = BaseStatus.Error
+                };
+            }
+        }
+
+        public async Task<BaseResponse> CreatePartialOrderReturnAsync(CreatePartialOrderReturnDTO request, List<ReturnFileUpload> files)
+        {
+            try
+            {
+                var url = "api/OrderReturn/create-partial-return";
+
+                using var formData = new MultipartFormDataContent();
+
+                // Add basic fields
+                formData.Add(new StringContent(request.OrderId.ToString()), "OrderId");
+                formData.Add(new StringContent(request.Reason), "Reason");
+                formData.Add(new StringContent(((int)request.RefundMethod).ToString()), "RefundMethod");
+
+                // Add bank info if provided
+                if (!string.IsNullOrEmpty(request.BankName))
+                    formData.Add(new StringContent(request.BankName), "BankName");
+                if (!string.IsNullOrEmpty(request.BankAccountName))
+                    formData.Add(new StringContent(request.BankAccountName), "BankAccountName");
+                if (!string.IsNullOrEmpty(request.BankAccountNumber))
+                    formData.Add(new StringContent(request.BankAccountNumber), "BankAccountNumber");
+
+                // Add contact info if provided
+                if (!string.IsNullOrEmpty(request.ContactName))
+                    formData.Add(new StringContent(request.ContactName), "ContactName");
+                if (!string.IsNullOrEmpty(request.ContactPhone))
+                    formData.Add(new StringContent(request.ContactPhone), "ContactPhone");
+
+                // Add items
+                for (int i = 0; i < request.Items.Count; i++)
+                {
+                    var item = request.Items[i];
+                    formData.Add(new StringContent(item.OrderDetailId.ToString()), $"Items[{i}].OrderDetailId");
+                    formData.Add(new StringContent(item.Quantity.ToString()), $"Items[{i}].Quantity");
+                    if (!string.IsNullOrEmpty(item.Reason))
+                        formData.Add(new StringContent(item.Reason), $"Items[{i}].Reason");
+                }
+
+                // Add files
+                for (int i = 0; i < files.Count; i++)
+                {
+                    var file = files[i];
+                    var fileBytes = Convert.FromBase64String(file.Base64Data);
+                    var fileContent = new ByteArrayContent(fileBytes);
+                    fileContent.Headers.ContentType = System.Net.Http.Headers.MediaTypeHeaderValue.Parse(file.ContentType);
+                    formData.Add(fileContent, $"FileUploads[{i}].UploadFile", file.FileName);
+                    formData.Add(new StringContent(file.FileName), $"FileUploads[{i}].FileName");
+                    formData.Add(new StringContent(file.ContentType), $"FileUploads[{i}].ContentType");
+                }
+
+                var result = await _apiCaller.PostFormAsync<BaseResponse>(url, formData);
                 return result ?? new BaseResponse
                 {
                     Message = "Lỗi khi tạo yêu cầu hoàn trả",

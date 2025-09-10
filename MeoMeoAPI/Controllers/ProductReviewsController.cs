@@ -32,7 +32,6 @@ namespace MeoMeo.API.Controllers
         [RequestSizeLimit(200 * 1024 * 1024)] // 200MB limit
         public async Task<IActionResult> Create([FromForm] ProductReviewCreateOrUpdateDTO request)
         {
-            Console.WriteLine("Files count: " + Request.Form.Files.Count);
 
             var customerId = _httpContextAccessor.HttpContext.GetCurrentCustomerId();
             if (customerId == Guid.Empty)

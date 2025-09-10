@@ -1,6 +1,7 @@
 ﻿using MeoMeo.Application.IServices;
 using MeoMeo.Application.Services;
 using MeoMeo.Contract.DTOs;
+using MeoMeo.Contract.DTOs.Customer;
 using MeoMeo.Domain.Commons;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
@@ -86,7 +87,7 @@ namespace MeoMeo.API.Controllers
         }
 
         [HttpPost("upload-avatar-async")]
-        public async Task<BaseResponse> UploadAvatar([FromForm] IFormFile file)
+        public async Task<BaseResponse> UploadAvatar([FromForm] UploadAvatarDTO request)
         {
             try
             {
@@ -99,7 +100,7 @@ namespace MeoMeo.API.Controllers
                         Message = "Vui lòng đăng nhập"
                     };
                 }
-                if (file == null || file.Length == 0)
+                if (request.AvatarFile == null || request.AvatarFile.Length == 0)
                 {
                     return new BaseResponse()
                     {
@@ -115,7 +116,7 @@ namespace MeoMeo.API.Controllers
                 var oldAvatar = await _customerServices.GetOldUrlAvatar(userId);
                 var uploadResults = await FileUploadHelper.UploadFilesAsync(
                     _environment,
-                    new List<IFormFile> { file },
+                    new List<IFormFile> { request.AvatarFile },
                     "Users",
                     userId,
                     acceptedExtensions,

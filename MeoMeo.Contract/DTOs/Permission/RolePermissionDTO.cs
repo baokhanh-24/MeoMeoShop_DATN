@@ -4,8 +4,8 @@ namespace MeoMeo.Contract.DTOs.Permission
 {
     public class RolePermissionDTO
     {
-        public int RoleId { get; set; }
-        public int PermissionId { get; set; }
+        public Guid RoleId { get; set; }
+        public Guid PermissionId { get; set; }
     }
 
     public class SubPermissionGroupDTO

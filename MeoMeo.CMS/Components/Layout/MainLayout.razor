@@ -1,18 +1,29 @@
 ﻿@using MeoMeo.CMS.Components.Loading
+@using MeoMeo.CMS.Components.Common
+@using MeoMeo.CMS.IServices
+@using MeoMeo.Contract.DTOs.Auth
+@using Microsoft.AspNetCore.Components.Authorization
 @inherits LayoutComponentBase
+@inject ICMSAuthService AuthService
+@inject NavigationManager NavigationManager
 <RadzenDialog />
 <RadzenNotification />
 <RadzenTooltip />
 <RadzenContextMenu />
 
 <RadzenLayout style="grid-template-areas: 'rz-sidebar rz-header' 'rz-sidebar rz-body'; background: #fff;">
-    <RadzenHeader style="background: #fff;" >
+    <RadzenHeader style="background: #fff;">
         <RadzenRow JustifyContent="JustifyContent.Start" AlignItems="AlignItems.Center" Gap="0">
             <RadzenColumn Size="5">
                 <RadzenSidebarToggle Click="@SidebarToggleClick"></RadzenSidebarToggle>
             </RadzenColumn>
             <RadzenColumn Size="7">
-                <RadzenStack AlignItems="AlignItems.Center" Orientation="Orientation.Horizontal" JustifyContent="JustifyContent.End"></RadzenStack>
+                <RadzenStack AlignItems="AlignItems.Center" Orientation="Orientation.Horizontal"
+                    JustifyContent="JustifyContent.End">
+                    <RadzenText Text="@($"Xin chào, {currentUser?.FullName ?? currentUser?.UserName ?? "User"}")"
+                        Style="margin-right: 16px;" />
+                    <RadzenButton Text="Đăng xuất" ButtonStyle="ButtonStyle.Light" Click="@Logout" Icon="logout" />
+                </RadzenStack>
             </RadzenColumn>
         </RadzenRow>
     </RadzenHeader>
@@ -20,23 +31,26 @@
         <RadzenRow class="rz-mx-auto" Style="max-width: 100%;">
             <RadzenColumn Size="12">
                 <GlobalSpin>
-                    @Body
+                    <CMSAuthGuard>
+                        @Body
+                    </CMSAuthGuard>
                 </GlobalSpin>
             </RadzenColumn>
         </RadzenRow>
     </RadzenBody>
     <RadzenSidebar Expanded="@sidebarExpanded" style="z-index: 2;">
-        <RadzenStack AlignItems="Radzen.AlignItems.Center" class="rz-py-4 rz-py-lg-6" >
+        <RadzenStack AlignItems="Radzen.AlignItems.Center" class="rz-py-4 rz-py-lg-6">
 
             @* <RadzenImage Path="images/logo.png"  style="width: 48px; height: 48px;"></RadzenImage>
             *@
-            <RadzenText Text="MeoMeoShop " style="color: var(--rz-text-disabled-color);" TextStyle="Radzen.Blazor.TextStyle.Subtitle1" class="rz-mb-0"  />
+            <RadzenText Text="MeoMeoShop CMS" style="color: var(--rz-text-disabled-color);"
+                TextStyle="Radzen.Blazor.TextStyle.Subtitle1" class="rz-mb-0" />
         </RadzenStack>
 
-        <NavMenu/>
+        <NavMenu />
 
-        <RadzenStack AlignItems="Radzen.AlignItems.Center" Gap="0" class="rz-py-4 rz-py-lg-6" >
-           
+        <RadzenStack AlignItems="Radzen.AlignItems.Center" Gap="0" class="rz-py-4 rz-py-lg-6">
+
         </RadzenStack>
 
     </RadzenSidebar>
@@ -45,10 +59,51 @@
 
 @code {
     bool sidebarExpanded = true;
+    private MeoMeo.Contract.DTOs.Auth.UserDTO? currentUser;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadCurrentUser();
+    }
+
+    private async Task LoadCurrentUser()
+    {
+        try
+        {
+            currentUser = await AuthService.GetCurrentUserAsync();
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error loading current user: {ex.Message}");
+        }
+    }
 
     void SidebarToggleClick()
     {
         sidebarExpanded = !sidebarExpanded;
     }
-}
 
+    private async Task Logout()
+    {
+        try
+        {
+            var refreshToken = await AuthService.GetRefreshTokenAsync();
+            if (!string.IsNullOrEmpty(refreshToken))
+            {
+                await AuthService.LogoutAsync(new RefreshTokenRequest { RefreshToken = refreshToken });
+            }
+            else
+            {
+                await AuthService.ClearTokensAsync();
+            }
+
+            NavigationManager.NavigateTo("/cms/login", forceLoad: true);
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error during logout: {ex.Message}");
+            await AuthService.ClearTokensAsync();
+            NavigationManager.NavigateTo("/cms/login", forceLoad: true);
+        }
+    }
+}

@@ -1,0 +1,171 @@
+@using MeoMeo.CMS.IServices
+@inject ICMSAuthService AuthService
+
+<div class="token-debug">
+    <h4>🔍 Token Debug Info</h4>
+    
+    @if (isLoading)
+    {
+            <p>Đang tải thông tin token...</p>
+    }
+    else if (tokenClaims != null && tokenClaims.Any())
+    {
+            <div class="claims-section">
+                <h5>📋 Claims trong Token:</h5>
+                <div class="claims-list">
+                    @foreach (var claim in tokenClaims)
+                    {
+                            <div class="claim-item">
+                                <strong>@claim.Key:</strong> @claim.Value
+                            </div>
+                    }
+                </div>
+            </div>
+
+            <div class="roles-section">
+                <h5>👥 Roles:</h5>
+                @if (userRoles != null && userRoles.Any())
+                {
+                        <div class="roles-list">
+                            @foreach (var role in userRoles)
+                            {
+                                    <span class="role-badge">@role</span>
+                            }
+                        </div>
+                }
+                else
+                {
+                        <p class="no-data">Không có roles</p>
+                }
+            </div>
+
+            <div class="permissions-section">
+                <h5>🔐 Permissions:</h5>
+                @if (userPermissions != null && userPermissions.Any())
+                {
+                        <div class="permissions-list">
+                            @foreach (var permission in userPermissions)
+                            {
+                                    <span class="permission-badge">@permission</span>
+                            }
+                        </div>
+                }
+                else
+                {
+                        <p class="no-data">Không có permissions</p>
+                }
+            </div>
+    }
+    else
+    {
+            <p class="no-data">Không có token hoặc không thể đọc claims</p>
+    }
+</div>
+
+@code {
+    private Dictionary<string, string>? tokenClaims;
+    private List<string>? userRoles;
+    private List<string>? userPermissions;
+    private bool isLoading = true;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadTokenInfo();
+    }
+
+    private async Task LoadTokenInfo()
+    {
+        try
+        {
+            isLoading = true;
+            StateHasChanged();
+
+            tokenClaims = await AuthService.GetTokenClaimsAsync();
+            userRoles = await AuthService.GetUserRolesAsync();
+            userPermissions = await AuthService.GetUserPermissionsAsync();
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error loading token info: {ex.Message}");
+        }
+        finally
+        {
+            isLoading = false;
+            StateHasChanged();
+        }
+    }
+}
+
+<style>
+    .token-debug {
+        background-color: #f8f9fa;
+        border: 1px solid #dee2e6;
+        border-radius: 8px;
+        padding: 20px;
+        margin: 20px 0;
+    }
+
+    .token-debug h4 {
+        color: #495057;
+        margin-bottom: 16px;
+        border-bottom: 2px solid #007bff;
+        padding-bottom: 8px;
+    }
+
+    .token-debug h5 {
+        color: #6c757d;
+        margin: 16px 0 8px 0;
+        font-size: 14px;
+        font-weight: 600;
+    }
+
+    .claims-list {
+        background-color: white;
+        border: 1px solid #e9ecef;
+        border-radius: 4px;
+        padding: 12px;
+        max-height: 200px;
+        overflow-y: auto;
+    }
+
+    .claim-item {
+        padding: 4px 0;
+        border-bottom: 1px solid #f1f3f4;
+        font-size: 13px;
+    }
+
+    .claim-item:last-child {
+        border-bottom: none;
+    }
+
+    .claim-item strong {
+        color: #007bff;
+        min-width: 120px;
+        display: inline-block;
+    }
+
+    .roles-list, .permissions-list {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+    }
+
+    .role-badge, .permission-badge {
+        background-color: #007bff;
+        color: white;
+        padding: 4px 8px;
+        border-radius: 12px;
+        font-size: 12px;
+        font-weight: 500;
+    }
+
+    .permission-badge {
+        background-color: #28a745;
+    }
+
+    .no-data {
+        color: #6c757d;
+        font-style: italic;
+        margin: 8px 0;
+    }
+</style>

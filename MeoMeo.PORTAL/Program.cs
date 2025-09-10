@@ -1,7 +1,8 @@
 using System.Globalization;
 using MeoMeo.PORTAL.Components;
+using MeoMeo.PORTAL.IServices;
+using MeoMeo.PORTAL.Services;
 using MeoMeo.Shared.IServices;
-using MeoMeo.Shared.Middlewares;
 using MeoMeo.Shared.Services;
 using MeoMeo.Shared.Utilities;
 using Microsoft.AspNetCore.Components.Authorization;
@@ -29,6 +30,7 @@ builder.Services.Configure<Microsoft.AspNetCore.Http.Features.FormOptions>(optio
 });
 // Authentication Services
 builder.Services.AddScoped<IAuthClientService, AuthClientService>();
+builder.Services.AddHttpClient<IVietQRClientService, VietQRClientService>();
 builder.Services.AddScoped<CustomAuthStateProvider>();
 builder.Services.AddScoped<AuthenticationStateProvider, CustomAuthStateProvider>();
 builder.Services.AddScoped<ITokenProvider, TokenProvider>();
@@ -48,6 +50,8 @@ builder.Services.AddScoped<IProductClientService, ProductClientService>();
 builder.Services.AddScoped<ICartClientService, CartClientService>();
 builder.Services.AddScoped<IOrderReturnClientService, OrderReturnClientService>();
 builder.Services.AddScoped<ISizeClientService, SizeClientService>();
+builder.Services.AddScoped<IVietQRClientService, VietQRClientService>();
+
 builder.Services.AddScoped<IColourClientService, ColourClientService>();
 builder.Services.AddScoped<IVoucherClientService, VoucherClientService>();
 builder.Services.AddScoped<ICommuneClientService, CommuneClientService>();
@@ -64,6 +68,7 @@ builder.Services.AddScoped<ISeasonClientService, SeasonClientService>();
 builder.Services.AddScoped<IMaterialClientService, MaterialClientService>();
 builder.Services.AddScoped<IBrandClientService, BrandClientService>();
 builder.Services.AddScoped<ICartStateService, CartStateService>();
+builder.Services.AddScoped<IUserInfoService, UserInfoService>();
 
 //builder.WebHost.ConfigureKestrel(options =>
 //{

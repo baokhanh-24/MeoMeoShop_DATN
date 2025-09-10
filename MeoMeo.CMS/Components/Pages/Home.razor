@@ -2,9 +2,24 @@
 @using System.Globalization
 @using MeoMeo.Contract.DTOs.Statistics
 @using MeoMeo.Shared.IServices
+@using MeoMeo.CMS.IServices
+@using MeoMeo.CMS.Components.Common
+@using MeoMeo.CMS.Components
 @inject IStatisticsClientService StatisticsService
+@inject ICMSAuthService AuthService
 
-<h3>📈 Dashboard Thống kê bán giày</h3>
+<div class="dashboard-header">
+    <div class="header-content">
+        <h3>📈 Dashboard Thống kê bán giày</h3>
+        @if (currentUser != null)
+        {
+            <div class="user-info">
+                <span class="user-role">@GetUserRoleDisplay()</span>
+                <span class="user-name">@currentUser.FullName</span>
+            </div>
+        }
+    </div>
+</div>
 
 @if (isLoading)
 {
@@ -164,13 +179,66 @@ else
     </RadzenAlert>
 }
 
+<!-- Debug component để kiểm tra token -->
+<TokenDebugInfo />
+
 @code {
     private DashboardStatisticsDTO? dashboardData;
     private bool isLoading = true;
+    private MeoMeo.Contract.DTOs.Auth.UserDTO? currentUser;
+    private string userRole = "";
 
     protected override async Task OnInitializedAsync()
     {
+        await LoadUserInfo();
         await LoadDashboardData();
+    }
+
+    private async Task LoadUserInfo()
+    {
+        try
+        {
+            currentUser = await AuthService.GetCurrentUserAsync();
+            if (currentUser != null)
+            {
+                // Lấy roles từ token thay vì gọi API
+                var userRoles = await AuthService.GetUserRolesAsync();
+
+                // Kiểm tra role từ token (có thể là "Admin", "Employee", "Customer")
+                if (userRoles.Contains("Admin"))
+                    userRole = "Admin";
+                else if (userRoles.Contains("Employee"))
+                    userRole = "Employee";
+                else if (userRoles.Contains("Customer"))
+                    userRole = "Customer";
+                else
+                {
+                    // Fallback: kiểm tra adminOrUser claim
+                    var hasAdminRole = await AuthService.HasRoleAsync("Admin");
+                    var hasEmployeeRole = await AuthService.HasRoleAsync("Employee");
+
+                    if (hasAdminRole)
+                        userRole = "Admin";
+                    else if (hasEmployeeRole)
+                        userRole = "Employee";
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error loading user info: {ex.Message}");
+        }
+    }
+
+    private string GetUserRoleDisplay()
+    {
+        return userRole switch
+        {
+            "Admin" => "👑 Quản trị viên",
+            "Employee" => "👤 Nhân viên",
+            "Customer" => "🛒 Khách hàng",
+            _ => "👤 Người dùng"
+        };
     }
 
     private async Task LoadDashboardData()
@@ -217,3 +285,36 @@ else
         return value.ToString() + " ₫";
     }
 }
+
+<style>
+    .dashboard-header {
+        margin-bottom: 24px;
+        padding: 16px 0;
+        border-bottom: 1px solid #e8e8e8;
+    }
+
+    .header-content {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+
+    .user-info {
+        display: flex;
+        flex-direction: column;
+        align-items: flex-end;
+        gap: 4px;
+    }
+
+    .user-role {
+        font-size: 14px;
+        color: #1890ff;
+        font-weight: 500;
+    }
+
+    .user-name {
+        font-size: 16px;
+        color: #333;
+        font-weight: 600;
+    }
+</style>

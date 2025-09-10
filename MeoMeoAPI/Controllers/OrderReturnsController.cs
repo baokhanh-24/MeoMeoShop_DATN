@@ -4,11 +4,14 @@ using MeoMeo.Contract.DTOs.Order.Return;
 using MeoMeo.Domain.Commons;
 using MeoMeo.Shared.Attributes;
 using MeoMeo.Shared.Constants;
+using MeoMeo.API.Extensions;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Hosting;
 using System;
 using System.Collections.Generic;
 using System.Security.Claims;
 using System.Threading.Tasks;
+using System.Linq;
 
 namespace MeoMeo.API.Controllers
 {
@@ -17,19 +20,55 @@ namespace MeoMeo.API.Controllers
     public class OrderReturnController : ControllerBase
     {
         private readonly IOrderReturnService _orderReturnService;
-
-        public OrderReturnController(IOrderReturnService orderReturnService)
+        private readonly IWebHostEnvironment _environment;
+        private readonly IHttpContextAccessor _httpContextAccessor;
+        public OrderReturnController(IOrderReturnService orderReturnService, IWebHostEnvironment environment, IHttpContextAccessor httpContextAccessor)
         {
             _orderReturnService = orderReturnService;
+            _environment = environment;
+            _httpContextAccessor = httpContextAccessor;
         }
 
         [HttpPost("create-partial-return")]
-        public async Task<ActionResult<BaseResponse>> CreatePartialOrderReturn([FromBody] CreatePartialOrderReturnDTO request)
+        [RequestSizeLimit(200 * 1024 * 1024)] 
+        public async Task<ActionResult<BaseResponse>> CreatePartialOrderReturn([FromForm] CreatePartialOrderReturnDTO request)
         {
             try
             {
-                var customerId = Guid.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? "");
-                var result = await _orderReturnService.CreatePartialOrderReturnAsync(customerId, request);
+                var customerId= _httpContextAccessor.HttpContext.GetCurrentCustomerId();
+                if (customerId == Guid.Empty)
+                {
+                    return BadRequest();
+                }
+                // Handle file uploads
+                var filesToUpload = request.FileUploads?.Where(f => f.UploadFile != null).Select(f => f.UploadFile!).ToList() ?? new List<IFormFile>();
+                List<FileUploadResult> uploadedFiles = new List<FileUploadResult>();
+
+                if (filesToUpload.Any())
+                {
+                    var returnId = Guid.NewGuid();
+                    uploadedFiles = await FileUploadHelper.UploadFilesAsync(
+                        _environment,
+                        filesToUpload,
+                        "OrderReturns",
+                        returnId,
+                        acceptedExtensions: new List<string> 
+                        { 
+                            "jpg", "jpeg", "png", "gif", "bmp", "tiff", "webp", "svg", "heic", "heif",
+                            "mp4", "avi", "mov", "wmv"
+                        },
+                        maxFileSizeInBytes: 200*1024 * 1024 
+                    );
+                }
+
+                var result = await _orderReturnService.CreatePartialOrderReturnAsync(customerId, request, uploadedFiles);
+
+                if (result.ResponseStatus == BaseStatus.Error)
+                {
+                    // Rollback uploaded files if service failed
+                    FileUploadHelper.DeleteUploadedFiles(_environment, uploadedFiles);
+                }
+
                 return Ok(result);
             }
             catch (Exception ex)

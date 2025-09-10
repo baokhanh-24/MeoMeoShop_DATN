@@ -8,7 +8,6 @@ namespace MeoMeo.Domain.Entities
         public Guid CustomerId { get; set; }
         public Guid? EmployeeId { get; set; }
         public Guid? VoucherId { get; set; }
-        public Guid? DeliveryAddressId { get; set; }
         public string? EmployeeName { get; set; }
         public string Code { get; set; }
         public string CustomerName { get; set; }
@@ -38,7 +37,6 @@ namespace MeoMeo.Domain.Entities
         public virtual Customers Customers { get; set; }
         public virtual Employee Employee { get; set; }
         public virtual Voucher? Voucher { get; set; }
-        public virtual DeliveryAddress? Address { get; set; }
         public virtual ICollection<OrderDetail> OrderDetails { get; set; }
         public virtual ICollection<OrderHistory> OrderHistories { get; set; }
     }

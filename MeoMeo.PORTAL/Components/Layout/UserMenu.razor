@@ -2,13 +2,17 @@
 @using MeoMeo.Contract.DTOs.Auth
 @using MeoMeo.Shared.IServices
 @using MeoMeo.Shared.Utilities
+@using MeoMeo.PORTAL.Services
 @using Microsoft.AspNetCore.Components.Authorization
 @using System.Security.Claims
+@using MeoMeo.PORTAL.IServices
 @using ButtonType = AntDesign.ButtonType
 @inject IAuthClientService AuthService
+@inject IUserInfoService UserInfoService
 @inject CustomAuthStateProvider AuthStateProvider
 @inject NavigationManager NavigationManager
 @inject MessageService MessageService
+@inject IConfiguration Configuration
 
 <AuthorizeView>
     <Authorized Context="context">
@@ -17,15 +21,7 @@
                 <ChildContent>
                     <Button Type="@ButtonType.Link" Class="user-button">
                         <Space>
-                            <Avatar Size="AvatarSize.Small" Style="background-color: #667eea">
-                                @if (!string.IsNullOrEmpty(GetUserAvatar(context.User)))
-                                {
-                                    <img src="@GetUserAvatar(context.User)" alt="Avatar" />
-                                }
-                                else
-                                {
-                                    @GetUserInitial(context.User)
-                                }
+                            <Avatar Size="AvatarSize.Small" Style="background-color: #667eea" Src="@GetUserAvatar(context.User)">
                             </Avatar>
                             <span class="user-name">@GetUserFullName(context.User)</span>
                             <Icon Type="down" />
@@ -72,13 +68,61 @@
 </AuthorizeView>
 
 @code {
-    private string GetUserFullName(ClaimsPrincipal user) =>
-    user?.FindFirst("FullName")?.Value
-    ?? user?.FindFirst("UserName")?.Value
-    ?? "User";
+    private string backendUrl = string.Empty;
 
-    private string GetUserAvatar(ClaimsPrincipal user) =>
-    user?.FindFirst("Avatar")?.Value ?? string.Empty;
+    protected override async Task OnInitializedAsync()
+    {
+        // Subscribe to user info changes
+        UserInfoService.OnUserInfoChanged += OnUserInfoChanged;
+
+        // Load user info khi component khởi tạo
+        await UserInfoService.LoadUserInfoAsync();
+
+        // Get backend URL from configuration
+        backendUrl = Configuration["ApiSettings:BaseUrl"] ?? "";
+    }
+
+    private void OnUserInfoChanged()
+    {
+        InvokeAsync(StateHasChanged);
+    }
+
+    private string GetUserFullName(ClaimsPrincipal user)
+    {
+        // Ưu tiên thông tin từ API, fallback về claims
+        if (UserInfoService.CurrentUser != null && !string.IsNullOrEmpty(UserInfoService.CurrentUser.Name))
+        {
+            return UserInfoService.CurrentUser.Name;
+        }
+
+        return user?.FindFirst("FullName")?.Value
+        ?? user?.FindFirst("UserName")?.Value
+        ?? "User";
+    }
+
+    private string GetUserAvatar(ClaimsPrincipal user)
+    {
+        // Ưu tiên thông tin từ API, fallback về claims
+        string avatarPath = string.Empty;
+
+        if (UserInfoService.CurrentUser != null && !string.IsNullOrEmpty(UserInfoService.CurrentUser.Avatar))
+        {
+            avatarPath = UserInfoService.CurrentUser.Avatar;
+        }
+        else
+        {
+            avatarPath = user?.FindFirst("Avatar")?.Value ?? string.Empty;
+        }
+
+        // Kết hợp với backend URL nếu có avatar path
+        if (!string.IsNullOrEmpty(avatarPath))
+        {
+            return backendUrl + "/" + avatarPath;
+
+        }
+
+        return string.Empty;
+    }
 
     private string GetUserInitial(ClaimsPrincipal user)
     {
@@ -92,18 +136,26 @@
     {
         try
         {
-            var refreshToken = await AuthService.GetRefreshTokenAsync();
+            var refreshToken = await AuthService.GetRefreshTokenAsync() ?? "";
             var logoutRequest = new RefreshTokenRequest { RefreshToken = refreshToken };
 
             await AuthService.LogoutAsync(logoutRequest);
             AuthStateProvider.NotifyUserLogout();
 
+            // Clear cached user info
+            UserInfoService.ClearUserInfo();
+
             MessageService.Success("Đăng xuất thành công!");
             NavigationManager.NavigateTo("/", forceLoad: true);
         }
-        catch (Exception ex)
+        catch (Exception)
         {
             MessageService.Error("Có lỗi xảy ra trong quá trình đăng xuất!");
         }
+    }
+
+    public void Dispose()
+    {
+        UserInfoService.OnUserInfoChanged -= OnUserInfoChanged;
     }
 }

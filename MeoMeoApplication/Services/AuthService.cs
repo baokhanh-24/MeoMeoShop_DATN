@@ -338,134 +338,127 @@ public class AuthService : IAuthService
     {
         try
         {
-            IEnumerable<RolePermissionDTO> userPermissionDtos = new List<RolePermissionDTO>();
-            var permissionGroups = await _permissionGroupRepository.GetAllAsync();
+            // Lấy tất cả permission groups với permissions
+            var permissionGroups = await _permissionGroupRepository.Query()
+                .Include(pg => pg.Permissions)
+                .ToListAsync();
 
-            // Get permissions by user ID
-            var rolePermissions = await _permissionRepository.GetPermissionByUserId(userId);
+            // Lấy permissions của user
+            var userPermissions = await _permissionRepository.GetPermissionByUserId(userId);
+            var userPermissionIds = userPermissions.Select(p => p.PermissionId).ToHashSet();
 
-            userPermissionDtos = rolePermissions.Select(rp => new RolePermissionDTO
+            // Tạo response với cấu trúc phân cấp
+            var response = new List<PermissionGroupDTO>();
+
+            foreach (var pg in permissionGroups.Where(pg => pg.ParentId == null))
             {
-                RoleId = rp.RoleId.GetHashCode(),
-                PermissionId = rp.PermissionId.GetHashCode()
-            });
-            var response = permissionGroups.Select(pg => new PermissionGroupDTO
-            {
-                Id = pg.Id,
-                Name = pg.Name,
-                Description = pg.Description,
-                ParentId = pg.ParentId,
-                Order = pg.Order ?? 0,
-                SubPermissionGroups = new List<SubPermissionGroupDTO>()
-            }).ToList();
-
-            foreach (var x in response.Where(c => c.ParentId == null))
-            {
-                var lstSubPermissionDtos = response.Where(c => c.ParentId == x.Id).ToList();
-
-                x.SubPermissionGroups = new List<SubPermissionGroupDTO>();
-                if (lstSubPermissionDtos.Count() == 0)
+                var permissionGroupDto = new PermissionGroupDTO
                 {
-                    var addSubItem = new SubPermissionGroupDTO();
-                    addSubItem.Name = x.Name;
-                    addSubItem.Id = x.Id;
-                    addSubItem.Description = x.Description;
-                    var permissions = new List<PermissionDTO>();
-
-                    addSubItem.Permissions = permissions;
-
-                    if (userPermissionDtos.Count() > 0)
-                    {
-                        int index = 0;
-                        foreach (var per in addSubItem.Permissions)
-                        {
-                            if (userPermissionDtos.Any(c => c.PermissionId == per.Id.GetHashCode()))
-                            {
-                                per.IsGranted = true;
-                            }
-                            else
-                            {
-                                per.IsGranted = false;
-                            }
-
-                            ++index;
-                            if (index == addSubItem.Permissions.Count())
-                            {
-                                if (addSubItem.Permissions.Count(c => c.IsGranted == true) == addSubItem.Permissions.Count())
-                                {
-                                    addSubItem.IsGranted = true;
-                                }
-                                else
-                                {
-                                    addSubItem.IsGranted = false;
-                                }
-                            }
-                        }
-                    }
-
-                    x.SubPermissionGroups.Add(addSubItem);
-                    x.IsGranted = x.SubPermissionGroups.Any(c => c.IsGranted == false) ? false : true;
-                }
-                else
-                {
-                    x.SubPermissionGroups = new List<SubPermissionGroupDTO>();
-                    int indexSub = 0;
-                    foreach (var subPermission in lstSubPermissionDtos)
-                    {
-                        ++indexSub;
-                        var addSubItem = new SubPermissionGroupDTO();
-                        addSubItem.Name = subPermission.Name;
-                        addSubItem.Description = subPermission.Description;
-                        addSubItem.Id = subPermission.Id;
-                        var permissions = new List<PermissionDTO>();
-
-                        addSubItem.Permissions = permissions;
-
-                        if (userPermissionDtos.Count() > 0)
-                        {
-                            int index = 0;
-                            foreach (var per in addSubItem.Permissions)
-                            {
-                                if (userPermissionDtos.Any(c => c.PermissionId == per.Id.GetHashCode()))
-                                {
-                                    per.IsGranted = true;
-                                }
-                                else
-                                {
-                                    per.IsGranted = false;
-                                }
-
-                                ++index;
-                                if (index == addSubItem.Permissions.Count())
-                                {
-                                    if (addSubItem.Permissions.Count(c => c.IsGranted == true) == addSubItem.Permissions.Count())
-                                    {
-                                        addSubItem.IsGranted = true;
-                                    }
-                                    else
-                                    {
-                                        addSubItem.IsGranted = false;
-                                    }
-                                }
-                            }
-                        }
-
-                        x.SubPermissionGroups.Add(addSubItem);
-                        if (indexSub == lstSubPermissionDtos.Count())
-                        {
-                            x.IsGranted = x.SubPermissionGroups.Any(c => c.IsGranted == false) ? false : true;
-                        }
-                    }
-                }
+                    Id = pg.Id,
+                    Name = pg.Name,
+                    Description = pg.Description ?? "",
+                    ParentId = pg.ParentId,
+                    Order = pg.Order ?? 0,
+                    SubPermissionGroups = await BuildSubPermissionGroupsAsync(permissionGroups, pg.Id, userPermissionIds)
+                };
+                response.Add(permissionGroupDto);
             }
 
-            return response.Where(c => c.ParentId == null).ToList();
+            // Tính toán IsGranted cho từng group
+            foreach (var group in response)
+            {
+                group.IsGranted = CalculateGroupGranted(group.SubPermissionGroups);
+            }
+
+            return response;
         }
         catch (Exception ex)
         {
             Console.WriteLine($"GetListPermissionGroupByArrRoleId error: {ex.Message}");
             return new List<PermissionGroupDTO>();
         }
+    }
+
+    private Task<List<SubPermissionGroupDTO>> BuildSubPermissionGroupsAsync(
+        IEnumerable<PermissionGroup> allGroups,
+        Guid parentId,
+        HashSet<Guid> userPermissionIds)
+    {
+        var subGroups = allGroups.Where(g => g.ParentId == parentId).ToList();
+
+        if (!subGroups.Any())
+        {
+            // Nếu không có sub groups, tạo một sub group từ chính nó
+            var parentGroup = allGroups.FirstOrDefault(g => g.Id == parentId);
+            if (parentGroup != null)
+            {
+                var permissions = parentGroup.Permissions?.Select(p => new PermissionDTO
+                {
+                    Id = p.Id,
+                    Name = p.Name,
+                    Description = p.Description,
+                    Function = p.Function,
+                    Command = p.Command,
+                    PermissionGroupId = p.PermissionGroupId,
+                    IsGranted = userPermissionIds.Contains(p.Id)
+                }).ToList() ?? new List<PermissionDTO>();
+
+                return Task.FromResult(new List<SubPermissionGroupDTO>
+                {
+                    new SubPermissionGroupDTO
+                    {
+                        Id = parentGroup.Id,
+                        Name = parentGroup.Name,
+                        Description = parentGroup.Description ?? "",
+                        Permissions = permissions,
+                        IsGranted = permissions.Any() && permissions.All(p => p.IsGranted == true)
+                    }
+                });
+            }
+        }
+
+        var result = new List<SubPermissionGroupDTO>();
+
+        foreach (var subGroup in subGroups)
+        {
+            var permissions = subGroup.Permissions?.Select(p => new PermissionDTO
+            {
+                Id = p.Id,
+                Name = p.Name,
+                Description = p.Description,
+                Function = p.Function,
+                Command = p.Command,
+                PermissionGroupId = p.PermissionGroupId,
+                IsGranted = userPermissionIds.Contains(p.Id)
+            }).ToList() ?? new List<PermissionDTO>();
+
+            var subPermissionGroup = new SubPermissionGroupDTO
+            {
+                Id = subGroup.Id,
+                Name = subGroup.Name,
+                Description = subGroup.Description ?? "",
+                Permissions = permissions
+            };
+
+            // Tính toán IsGranted: có permissions và tất cả đều được granted
+            var hasPermissions = permissions.Any();
+            var allPermissionsGranted = !hasPermissions || permissions.All(p => p.IsGranted == true);
+
+            subPermissionGroup.IsGranted = allPermissionsGranted;
+
+            result.Add(subPermissionGroup);
+        }
+
+        return Task.FromResult(result);
+    }
+
+    private bool CalculateGroupGranted(List<SubPermissionGroupDTO> subGroups)
+    {
+        if (!subGroups.Any())
+            return false;
+
+        // Nếu tất cả sub groups đều được granted thì group cha cũng được granted
+        return subGroups.All(sg => sg.IsGranted);
     }
 
     private async Task<IEnumerable<PermissionGroupDTO>> GetListPermissionGroupByArrRoleIdV2(List<int> RoleIds)
@@ -483,8 +476,8 @@ public class AuthService : IAuthService
                 // In a real implementation, you would need to modify the repository or add a new method
                 userPermissionDtos = rolePermissions.Select(rp => new RolePermissionDTO
                 {
-                    RoleId = rp.RoleId.GetHashCode(),
-                    PermissionId = rp.PermissionId.GetHashCode()
+                    RoleId = rp.RoleId,
+                    PermissionId = rp.PermissionId
                 });
             }
 
@@ -518,7 +511,7 @@ public class AuthService : IAuthService
                         int index = 0;
                         foreach (var per in addSubItem.Permissions)
                         {
-                            if (userPermissionDtos.Any(c => c.PermissionId == per.Id.GetHashCode()))
+                            if (userPermissionDtos.Any(c => c.PermissionId == per.Id))
                             {
                                 per.IsGranted = true;
                             }
@@ -565,7 +558,7 @@ public class AuthService : IAuthService
                             int index = 0;
                             foreach (var per in addSubItem.Permissions)
                             {
-                                if (userPermissionDtos.Any(c => c.PermissionId == per.Id.GetHashCode()))
+                                if (userPermissionDtos.Any(c => c.PermissionId == per.Id))
                                 {
                                     per.IsGranted = true;
                                 }

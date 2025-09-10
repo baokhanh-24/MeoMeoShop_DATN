@@ -10,6 +10,7 @@ namespace MeoMeo.Application.IServices
     public interface IOrderReturnService
     {
         Task<BaseResponse> CreatePartialOrderReturnAsync(Guid customerId, CreatePartialOrderReturnDTO request);
+        Task<BaseResponse> CreatePartialOrderReturnAsync(Guid customerId, CreatePartialOrderReturnDTO request, List<FileUploadResult> uploadedFiles);
         Task<PagingExtensions.PagedResult<OrderReturnListDTO>> GetOrderReturnsAsync(GetOrderReturnRequestDTO request);
         Task<PagingExtensions.PagedResult<OrderReturnListDTO>> GetMyOrderReturnsAsync(Guid customerId, GetOrderReturnRequestDTO request);
         Task<OrderReturnDetailDTO?> GetOrderReturnByIdAsync(Guid id);

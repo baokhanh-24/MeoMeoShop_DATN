@@ -121,20 +121,7 @@ namespace MeoMeo.Application.Services
                     await _orderReturnItemRepository.AddAsync(returnItem);
                 }
 
-                // Create return files
-                foreach (var fileDto in request.Files)
-                {
-                    var returnFile = new OrderReturnFile
-                    {
-                        Id = Guid.NewGuid(),
-                        OrderReturnId = orderReturn.Id,
-                        Name = fileDto.Name,
-                        Url = fileDto.Url,
-                        ContentType = fileDto.ContentType
-                    };
-
-                    await _orderReturnFileRepository.AddAsync(returnFile);
-                }
+                // Create return files - skip for now, will be handled in overload method
 
                 await _unitOfWork.CommitAsync();
 
@@ -150,6 +137,116 @@ namespace MeoMeo.Application.Services
                 return new BaseResponse
                 {
                     Message = ex.Message,
+                    ResponseStatus = BaseStatus.Error
+                };
+            }
+        }
+
+        public async Task<BaseResponse> CreatePartialOrderReturnAsync(Guid customerId, CreatePartialOrderReturnDTO request, List<FileUploadResult> uploadedFiles)
+        {
+            try
+            {
+                // Validate order
+                var order = await _orderRepository.Query()
+                    .Include(o => o.OrderDetails)
+                    .FirstOrDefaultAsync(o => o.Id == request.OrderId && o.CustomerId == customerId);
+
+                if (order == null)
+                {
+                    return new BaseResponse
+                    {
+                        Message = "Không tìm thấy đơn hàng",
+                        ResponseStatus = BaseStatus.Error
+                    };
+                }
+
+                // Check if order can be returned
+                if (!await CanOrderBeReturnedAsync(request.OrderId))
+                {
+                    return new BaseResponse
+                    {
+                        Message = "Đơn hàng này không thể hoàn trả",
+                        ResponseStatus = BaseStatus.Error
+                    };
+                }
+
+                // Validate return items
+                var validationResult = await ValidateReturnItemsAsync(request.Items, order.OrderDetails.ToList());
+                if (!validationResult.IsValid)
+                {
+                    return new BaseResponse
+                    {
+                        Message = validationResult.ErrorMessage,
+                        ResponseStatus = BaseStatus.Error
+                    };
+                }
+
+                // Generate return code
+                var returnCode = await GenerateReturnCodeAsync();
+
+                // Create order return
+                var orderReturn = new OrderReturn
+                {
+                    Id = Guid.NewGuid(),
+                    OrderId = request.OrderId,
+                    CustomerId = customerId,
+                    Code = returnCode,
+                    Reason = request.Reason,
+                    Status = EOrderReturnStatus.Pending,
+                    RefundMethod = request.RefundMethod,
+                    BankName = request.BankName,
+                    BankAccountName = request.BankAccountName,
+                    BankAccountNumber = request.BankAccountNumber,
+                    ContactPhone = request.ContactPhone,
+                    ContactName = request.ContactName,
+                    CreationTime = DateTime.Now
+                };
+
+                await _orderReturnRepository.AddAsync(orderReturn);
+
+                // Create return items
+                foreach (var itemDto in request.Items)
+                {
+                    var returnItem = new OrderReturnItem
+                    {
+                        Id = Guid.NewGuid(),
+                        OrderReturnId = orderReturn.Id,
+                        OrderDetailId = itemDto.OrderDetailId,
+                        Quantity = itemDto.Quantity,
+                        Reason = itemDto.Reason
+                    };
+
+                    await _orderReturnItemRepository.AddAsync(returnItem);
+                }
+
+                // Create return files from uploaded files
+                foreach (var uploadedFile in uploadedFiles)
+                {
+                    var returnFile = new OrderReturnFile
+                    {
+                        Id = Guid.NewGuid(),
+                        OrderReturnId = orderReturn.Id,
+                        Name = uploadedFile.FileName,
+                        Url = uploadedFile.RelativePath,
+                        ContentType = GetContentTypeFromFileName(uploadedFile.FileName)
+                    };
+
+                    await _orderReturnFileRepository.AddAsync(returnFile);
+                }
+
+                await _unitOfWork.CommitAsync();
+
+                return new BaseResponse
+                {
+                    Message = $"Tạo yêu cầu hoàn trả thành công. Mã hoàn trả: {returnCode}",
+                    ResponseStatus = BaseStatus.Success
+                };
+            }
+            catch (Exception ex)
+            {
+                return new BaseResponse
+                {
+                    Message = $"Lỗi khi tạo yêu cầu hoàn trả: {ex.Message}",
                     ResponseStatus = BaseStatus.Error
                 };
             }
@@ -545,6 +642,22 @@ namespace MeoMeo.Application.Services
         private decimal CalculateRefundAmount(ICollection<OrderReturnItem> items)
         {
             return items.Sum(i => (decimal)((i.OrderDetail?.Price ?? 0f) * i.Quantity));
+        }
+
+        private string GetContentTypeFromFileName(string fileName)
+        {
+            var extension = System.IO.Path.GetExtension(fileName).ToLowerInvariant();
+            return extension switch
+            {
+                ".jpg" or ".jpeg" => "image/jpeg",
+                ".png" => "image/png",
+                ".gif" => "image/gif",
+                ".mp4" => "video/mp4",
+                ".avi" => "video/avi",
+                ".mov" => "video/quicktime",
+                ".wmv" => "video/x-ms-wmv",
+                _ => "application/octet-stream"
+            };
         }
 
         private string GetStatusDisplayName(EOrderReturnStatus status)

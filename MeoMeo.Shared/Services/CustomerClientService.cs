@@ -1,6 +1,7 @@
 using MeoMeo.Shared.IServices;
 using MeoMeo.Contract.Commons;
 using MeoMeo.Contract.DTOs;
+using MeoMeo.Contract.DTOs.Customer;
 using MeoMeo.Domain.Commons;
 using MeoMeo.Shared.Utilities;
 using Microsoft.AspNetCore.Http;
@@ -135,7 +136,7 @@ namespace MeoMeo.Shared.Services
                 using var content = new MultipartFormDataContent();
                 var fileContent = new StreamContent(file.OpenReadStream());
                 fileContent.Headers.ContentType = new System.Net.Http.Headers.MediaTypeHeaderValue(file.ContentType);
-                content.Add(fileContent, "file", file.FileName);
+                content.Add(fileContent, "AvatarFile", file.FileName);
                 var response = await _httpClient.PostFormAsync<BaseResponse>(url, content);
                 return response;
             }

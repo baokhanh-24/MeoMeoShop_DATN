@@ -26,7 +26,6 @@ namespace MeoMeo.EntityFrameworkCore.Configurations
             builder.HasOne(x => x.Customers).WithMany(x => x.Orders).HasForeignKey(x => x.CustomerId).OnDelete(DeleteBehavior.NoAction);
             builder.HasOne(x => x.Employee).WithMany(x => x.Orders).HasForeignKey(x => x.EmployeeId).IsRequired(false);
             builder.HasOne(x => x.Voucher).WithMany(x => x.Orders).HasForeignKey(x => x.VoucherId).IsRequired(false);
-            builder.HasOne(x => x.Address).WithMany(x => x.Orders).HasForeignKey(x => x.DeliveryAddressId).IsRequired(false);
         }
     }
 }

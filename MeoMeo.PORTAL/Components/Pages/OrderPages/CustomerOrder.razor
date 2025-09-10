@@ -5,13 +5,17 @@
 @using MeoMeo.Contract.DTOs.Order.Return
 @using MeoMeo.Contract.Commons
 @using MeoMeo.Contract.DTOs
+@using MeoMeo.Contract.DTOs.VietQR
 @using MeoMeo.PORTAL.Components.Pages.ProfilePages
+@using System.IO
+@using BankDTO = MeoMeo.Contract.DTOs.VietQR.BankDTO
 @inject NavigationManager Navigation
 @inject MessageService MessageService
 @inject IOrderClientService OrderClient
 @inject ICartClientService CartClient
 @inject IOrderReturnClientService OrderReturnClient
 @inject IConfiguration Configuration
+@inject IVietQRClientService VietQRClientService
 @layout ProfileLayout
 <div >
 
@@ -291,6 +295,7 @@
        Visible="@ShowReturnModal" 
        OnCancel="@(() => ShowReturnModal = false)"
        Width="800"
+       MaxBodyHeight="600"
        Footer="null">
     <div class="return-order-modal">
         @if (AvailableReturnItems?.Any() == true)
@@ -329,7 +334,7 @@
                             <TextArea @bind-Value="item.Reason" 
                                      Placeholder="Lý do hoàn trả sản phẩm này (tùy chọn)"
                                      Rows="2"
-                                     MaxLength="200" />
+                                     MaxLength="200"></TextArea>
                         </div>
                     </div>
                 }
@@ -341,15 +346,83 @@
                     <TextArea @bind-Value="ReturnReason" 
                              Placeholder="Nhập lý do hoàn trả (bắt buộc)"
                              Rows="3"
-                             MaxLength="500" />
+                             MaxLength="500"></TextArea>
+                </div>
+
+                <!-- File upload section -->
+                <div class="form-group">
+                    <label><b>Đính kèm ảnh/video minh chứng (bắt buộc):</b></label>
+                    <div class="file-upload-container" style="position: relative;">
+                        <div class="file-upload-area @(IsProcessingReturnFiles ? "processing" : "")"
+                             style="cursor: pointer; border: 2px dashed #d9d9d9; padding: 20px; text-align: center; border-radius: 8px; background: #fafafa;">
+                            @if (IsProcessingReturnFiles)
+                            {
+                                <div style="display: flex; flex-direction: column; align-items: center;">
+                                    <Spin Size="SpinSize.Large"/>
+                                    <div style="margin-top: 8px; color: #666;">Đang xử lý file...</div>
+                                </div>
+                            }
+                            else
+                            {
+                                <Icon Type="@IconType.Outline.Upload" Style="font-size: 24px; color: #999;"/>
+                                <div style="margin-top: 8px; color: #666;">Tải ảnh và video minh chứng</div>
+                                <div style="font-size: 12px; color: #999;">Tối đa 10 ảnh + 2 video (Click để chọn file)</div>
+                            }
+                        </div>
+
+                        <InputFile @ref="FileInputReturn" OnChange="OnReturnFileSelected" multiple accept="image/*,video/*"
+                                   disabled="@IsProcessingReturnFiles" style="
+                                   position: absolute;
+                                   top: 0;
+                                   left: 0;
+                                   width: 100%;
+                                   height: 100%;
+                                   opacity: 0;
+                                   cursor: pointer;
+                               "/>
+                    </div>
+
+                    @if (ReturnUploads?.Any() == true)
+                    {
+                        <div class="file-preview-container" style="margin-top: 8px;">
+                            @for (int i = 0; i < ReturnUploads.Count; i++)
+                            {
+                                var index = i;
+                                var file = ReturnUploads[i];
+                                <div class="file-preview-item" style="display:inline-block; position: relative; margin: 4px;">
+                                    @if (file.ContentType.StartsWith("image/"))
+                                    {
+                                        <img src="@GetReturnFilePreviewUrl(file)" 
+                                             style="width: 80px; height: 80px; object-fit: cover; border-radius: 6px; border: 1px solid #e8e8e8;"
+                                             alt="@file.FileName" />
+                                    }
+                                    else if (file.ContentType.StartsWith("video/"))
+                                    {
+                                        <div style="width: 80px; height: 80px; background: #f0f0f0; border-radius: 6px; border: 1px solid #e8e8e8; display: flex; align-items: center; justify-content: center;">
+                                            <Icon Type="@IconType.Outline.PlayCircle" Style="font-size: 24px; color: #666;" />
+                                        </div>
+                                    }
+                                    <button type="button" @onclick="() => RemoveReturnFile(index)"
+                                            style="position: absolute; top: -8px; right: -8px; background: #ff4d4f; color: white; border: none; border-radius: 50%; width: 20px; height: 20px; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 12px;">
+                                        ×
+                                    </button>
+                                    <div style="font-size: 10px; color: #666; margin-top: 2px; text-align: center; max-width: 80px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
+                                        @file.FileName
+                                    </div>
+                                </div>
+                            }
+                        </div>
+                        <div style="margin-top: 8px; font-size: 12px; color: #666;">
+                            Đã tải: @(ReturnUploads.Count(x => x.ContentType.StartsWith("image/"))) ảnh, @(ReturnUploads.Count(x => x.ContentType.StartsWith("video/"))) video
+                        </div>
+                    }
                 </div>
 
                 <div class="form-group">
                     <label><b>Phương thức hoàn tiền:</b></label>
-                    <Select TItemValue="int" TItem="int" @bind-Value="SelectedRefundMethod" Style="width: 100%;">
-                        <SelectOption TItemValue="int" TItem="int" Value="@((int)Domain.Commons.Enums.ERefundMethod.BankTransfer)">Chuyển khoản ngân hàng</SelectOption>
-                        <SelectOption TItemValue="int" TItem="int" Value="@((int)Domain.Commons.Enums.ERefundMethod.InStore)">Nhận tại cửa hàng</SelectOption>
-                        <SelectOption TItemValue="int" TItem="int" Value="@((int)Domain.Commons.Enums.ERefundMethod.ViaShipper)">Nhận qua shipper</SelectOption>
+                    <Select TItem="RefundMethodOption" TItemValue="int" @bind-Value="SelectedRefundMethod" 
+                            DataSource="RefundMethodOptions" ValueName="Value" LabelName="Label"
+                            Placeholder="Chọn phương thức hoàn tiền..." Style="width: 100%;">
                     </Select>
                 </div>
 
@@ -357,8 +430,22 @@
                 {
                     <div class="bank-info">
                         <div class="form-group">
-                            <label>Tên ngân hàng:</label>
-                            <Input @bind-Value="BankName" Placeholder="VD: Vietcombank" />
+                            <label>Chọn ngân hàng:</label>
+                            <Select TItem="BankDTO" TItemValue="int?" @bind-Value="SelectedBankId" 
+                                    DataSource="Banks" ValueName="Id" LabelName="Name"
+                                    Placeholder="Chọn ngân hàng..." 
+                                    Style="width: 100%;"
+                                    Loading="@IsLoadingBanks"
+                                    OnSelectedItemChanged="OnBankSelected">
+                                <ItemTemplate  Context="bank">
+                                    <div style="display: flex; align-items: center; gap: 8px;">
+                                        <img src="@((bank as BankDTO)?.Logo)" 
+                                             alt="@((bank as BankDTO)?.ShortName)" 
+                                             style="width: 56px; height: 56px; object-fit: contain;" />
+                                        <span>@((bank as BankDTO)?.Name)</span>
+                                    </div>
+                                </ItemTemplate>
+                            </Select>
                         </div>
                         <div class="form-group">
                             <label>Tên chủ tài khoản:</label>
@@ -368,6 +455,19 @@
                             <label>Số tài khoản:</label>
                             <Input @bind-Value="BankAccountNumber" Placeholder="Số tài khoản ngân hàng" />
                         </div>
+                        @if (SelectedBank != null)
+                        {
+                            <div class="bank-details">
+                                <div class="bank-logo">
+                                    <img src="@SelectedBank.Logo" alt="@SelectedBank.ShortName" style="width: 40px; height: 40px; object-fit: contain;" />
+                                </div>
+                                <div class="bank-info-text">
+                                    <div><strong>@SelectedBank.Name</strong></div>
+                                    <div>Mã ngân hàng: @SelectedBank.Bin</div>
+                                    <div>Tên viết tắt: @SelectedBank.ShortName</div>
+                                </div>
+                            </div>
+                        }
                     </div>
                 }
                 else if (SelectedRefundMethod == (int)Domain.Commons.Enums.ERefundMethod.ViaShipper || SelectedRefundMethod == (int)Domain.Commons.Enums.ERefundMethod.InStore)
@@ -443,6 +543,17 @@
     private string ContactName = string.Empty;
     private string ContactPhone = string.Empty;
     private bool IsSubmittingReturn = false;
+    
+    // VietQR Bank variables
+    private List<BankDTO> Banks = new();
+    private BankDTO? SelectedBank = null;
+    private int? SelectedBankId = null;
+    private bool IsLoadingBanks = false;
+    
+    // File upload variables for return
+    private List<MeoMeo.Shared.IServices.ReturnFileUpload> ReturnUploads = new();
+    private bool IsProcessingReturnFiles = false;
+    private InputFile? FileInputReturn;
     private GetListOrderRequestDTO Filter = new() { PageIndex = 1, PageSize = 10 };
     private List<OrderDTO> Orders = new();
     private string backendUrl = "";
@@ -461,6 +572,7 @@
     {
         backendUrl = Configuration["ApiSettings:BaseUrl"] ?? "";
         await FetchOrders();
+        await LoadBanks();
     }
 
     private async Task FetchOrders()
@@ -481,6 +593,23 @@
         {
             IsLoading = false;
             StateHasChanged();
+        }
+    }
+
+    private async Task LoadBanks()
+    {
+        try
+        {
+            IsLoadingBanks = true;
+            Banks = await VietQRClientService.GetBanksAsync();
+        }
+        catch (Exception ex)
+        {
+            MessageService.Error($"Lỗi khi tải danh sách ngân hàng: {ex.Message}");
+        }
+        finally
+        {
+            IsLoadingBanks = false;
         }
     }
 
@@ -662,11 +791,14 @@
             // Reset form
             ReturnReason = string.Empty;
             SelectedRefundMethod = (int)Domain.Commons.Enums.ERefundMethod.BankTransfer;
+            SelectedBank = null;
+            SelectedBankId = null;
             BankName = string.Empty;
             BankAccountName = string.Empty;
             BankAccountNumber = string.Empty;
             ContactName = string.Empty;
             ContactPhone = string.Empty;
+            ReturnUploads.Clear(); // Reset file uploads
 
             SelectedOrder = order; // Store selected order for later use
             ShowReturnModal = true;
@@ -706,7 +838,12 @@
                 OrderId = SelectedOrder.Id,
                 Reason = ReturnReason,
                 RefundMethod = (Domain.Commons.Enums.ERefundMethod)SelectedRefundMethod,
-                Items = selectedItems
+                Items = selectedItems,
+                FileUploads = ReturnUploads.Select(file => new OrderReturnFileUpload
+                {
+                    FileName = file.FileName,
+                    ContentType = file.ContentType
+                }).ToList()
             };
 
             // Set additional fields based on refund method
@@ -722,7 +859,7 @@
                 request.ContactPhone = ContactPhone;
             }
 
-            var result = await OrderReturnClient.CreatePartialOrderReturnAsync(request);
+            var result = await OrderReturnClient.CreatePartialOrderReturnAsync(request, ReturnUploads);
             
             if (result.ResponseStatus == BaseStatus.Success)
             {
@@ -746,6 +883,14 @@
         }
     }
 
+    private void OnBankSelected(BankDTO bank)
+    {
+        SelectedBank = bank;
+        SelectedBankId = bank?.Id;
+        BankName = bank?.Name ?? string.Empty;
+        StateHasChanged();
+    }
+
     private bool CanSubmitReturn()
     {
         if (string.IsNullOrWhiteSpace(ReturnReason))
@@ -754,9 +899,13 @@
         if (AvailableReturnItems?.Any(item => item.Quantity > 0) != true)
             return false;
 
+        // Check if at least one file is uploaded (required)
+        if (!ReturnUploads?.Any() == true)
+            return false;
+
         if (SelectedRefundMethod == (int)Domain.Commons.Enums.ERefundMethod.BankTransfer)
         {
-            return !string.IsNullOrWhiteSpace(BankName) && 
+            return SelectedBank != null && 
                    !string.IsNullOrWhiteSpace(BankAccountName) && 
                    !string.IsNullOrWhiteSpace(BankAccountNumber);
         }
@@ -779,12 +928,142 @@
             .Sum(item => (decimal)(item.UnitPrice * item.Quantity)) ?? 0;
     }
 
+    // Return file upload methods
+    private async Task OnReturnFileSelected(InputFileChangeEventArgs e)
+    {
+        try
+        {
+            IsProcessingReturnFiles = true;
+            StateHasChanged();
+
+            var files = e.GetMultipleFiles(12); // Max 12 files total
+                    var processedFiles = new List<MeoMeo.Shared.IServices.ReturnFileUpload>();
+
+            // Count current files
+            var currentImageCount = ReturnUploads.Count(x => x.ContentType.StartsWith("image/"));
+            var currentVideoCount = ReturnUploads.Count(x => x.ContentType.StartsWith("video/"));
+
+            // Count new files to be added
+            var newImageCount = 0;
+            var newVideoCount = 0;
+
+            foreach (var file in files)
+            {
+                try
+                {
+                    var maxSize = file.ContentType.StartsWith("video/") ? 50 * 1024 * 1024 : 10 * 1024 * 1024; // 50MB for video, 10MB for image
+                    if (file.Size > maxSize)
+                    {
+                        MessageService.Error($"File {file.Name} quá lớn. Kích thước tối đa: {maxSize / (1024 * 1024)}MB");
+                        continue;
+                    }
+
+                    var isImage = file.ContentType.StartsWith("image/");
+                    var isVideo = file.ContentType.StartsWith("video/");
+
+                    if (!isImage && !isVideo)
+                    {
+                        MessageService.Error($"File {file.Name} không phải là ảnh hoặc video.");
+                        continue;
+                    }
+
+                    // Check limits for each file type
+                    if (isVideo)
+                    {
+                        if (currentVideoCount + newVideoCount >= 2)
+                        {
+                            MessageService.Warning("Chỉ được tải tối đa 2 video");
+                            continue;
+                        }
+                        newVideoCount++;
+                    }
+                    else if (isImage)
+                    {
+                        if (currentImageCount + newImageCount >= 10)
+                        {
+                            MessageService.Warning("Chỉ được tải tối đa 10 ảnh");
+                            continue;
+                        }
+                        newImageCount++;
+                    }
+
+                    var base64 = await ConvertToBase64(file);
+                    var fileUpload = new MeoMeo.Shared.IServices.ReturnFileUpload
+                    {
+                        FileName = file.Name,
+                        ContentType = file.ContentType,
+                        Base64Data = base64
+                    };
+
+                    processedFiles.Add(fileUpload);
+                }
+                catch (Exception ex)
+                {
+                    MessageService.Error($"Lỗi xử lý file {file.Name}: {ex.Message}");
+                }
+            }
+
+            ReturnUploads.AddRange(processedFiles);
+        }
+        catch (Exception ex)
+        {
+            MessageService.Error($"Lỗi khi tải file: {ex.Message}");
+        }
+        finally
+        {
+            IsProcessingReturnFiles = false;
+            StateHasChanged();
+        }
+    }
+
+    private string GetReturnFilePreviewUrl(MeoMeo.Shared.IServices.ReturnFileUpload file)
+    {
+        if (!string.IsNullOrEmpty(file.Base64Data))
+        {
+            return $"data:{file.ContentType};base64,{file.Base64Data}";
+        }
+        return $"{backendUrl}/Images/fallback.jpeg";
+    }
+
+    private void RemoveReturnFile(int index)
+    {
+        if (index >= 0 && index < ReturnUploads.Count)
+        {
+            ReturnUploads.RemoveAt(index);
+            StateHasChanged();
+        }
+    }
+
+    private async Task<string> ConvertToBase64(IBrowserFile file)
+    {
+        var maxSize = file.ContentType.StartsWith("video/") ? 50 * 1024 * 1024 : 10 * 1024 * 1024;
+        using var stream = file.OpenReadStream(maxAllowedSize: maxSize);
+        using var memoryStream = new MemoryStream();
+        await stream.CopyToAsync(memoryStream);
+        var bytes = memoryStream.ToArray();
+        return Convert.ToBase64String(bytes);
+    }
+
     private class StatusTab
     {
         public string Key { get; set; } = string.Empty;
         public string Label { get; set; } = string.Empty;
         public int? Value { get; set; }
     }
+
+    private class RefundMethodOption
+    {
+        public int Value { get; set; }
+        public string Label { get; set; } = string.Empty;
+    }
+
+    private List<RefundMethodOption> RefundMethodOptions = new()
+    {
+        new() { Value = (int)Domain.Commons.Enums.ERefundMethod.BankTransfer, Label = "Chuyển khoản ngân hàng" },
+        new() { Value = (int)Domain.Commons.Enums.ERefundMethod.InStore, Label = "Nhận tại cửa hàng" },
+        new() { Value = (int)Domain.Commons.Enums.ERefundMethod.ViaShipper, Label = "Nhận qua shipper" }
+    };
+
 }
 
 <style>
@@ -1223,6 +1502,35 @@
         border: 1px solid #e8e8e8;
     }
 
+    .bank-details {
+        margin-top: 15px;
+        padding: 15px;
+        background: #f0f8ff;
+        border-radius: 8px;
+        border-left: 4px solid #1890ff;
+        display: flex;
+        align-items: center;
+        gap: 15px;
+    }
+
+    .bank-logo {
+        flex-shrink: 0;
+    }
+
+    .bank-info-text {
+        flex: 1;
+    }
+
+    .bank-info-text div {
+        margin-bottom: 4px;
+        font-size: 14px;
+    }
+
+    .bank-info-text div:first-child {
+        font-size: 16px;
+        color: #1890ff;
+    }
+
     .return-summary {
         margin-top: 20px;
         padding: 15px;
@@ -1266,6 +1574,59 @@
     .no-return-items {
         text-align: center;
         padding: 20px;
+    }
+
+    /* File Upload Styles */
+    .file-upload-container {
+        margin-bottom: 15px;
+    }
+
+    .file-upload-area {
+        transition: all 0.3s ease;
+        border: 2px dashed #d9d9d9;
+        background: #fafafa;
+    }
+
+    .file-upload-area:hover {
+        border-color: #00833D;
+        background: #f6ffed;
+    }
+
+    .file-upload-area.processing {
+        border-color: #1890ff;
+        background: #e6f7ff;
+    }
+
+    .file-preview-container {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        margin-top: 8px;
+    }
+
+    .file-preview-item {
+        position: relative;
+        display: inline-block;
+    }
+
+    .file-preview-item img {
+        border-radius: 6px;
+        border: 1px solid #e8e8e8;
+        transition: transform 0.2s ease;
+    }
+
+    .file-preview-item:hover img {
+        transform: scale(1.05);
+    }
+
+    .file-preview-item button {
+        box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+        transition: all 0.2s ease;
+    }
+
+    .file-preview-item button:hover {
+        background: #d32f2f !important;
+        transform: scale(1.1);
     }
 
     /* Responsive */

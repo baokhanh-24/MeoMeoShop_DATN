@@ -1,8 +1,12 @@
 ﻿using MeoMeo.CMS.Components;
+using MeoMeo.CMS.IServices;
+using MeoMeo.CMS.Services;
+using MeoMeo.CMS.Utilities;
 using MeoMeo.Shared.IServices;
 using System.Globalization;
 using MeoMeo.Shared.Services;
 using MeoMeo.Shared.Utilities;
+using Microsoft.AspNetCore.Components.Authorization;
 using Radzen;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -26,7 +30,17 @@ builder.Services.Configure<Microsoft.AspNetCore.Http.Features.FormOptions>(optio
 });
 builder.Services.AddScoped<MessageModalService>();
 builder.Services.AddSingleton<LoadingService>();
-builder.Services.AddHttpClient<IApiCaller, ApiCaller>();
+
+// Authentication Services for CMS
+builder.Services.AddScoped<ICMSAuthService, CMSAuthService>();
+builder.Services.AddScoped<CMSAuthStateProvider>();
+builder.Services.AddScoped<AuthenticationStateProvider, CMSAuthStateProvider>();
+builder.Services.AddScoped<ITokenProvider, TokenProvider>();
+builder.Services.AddHttpClient<IApiCaller, ApiCaller>(client =>
+{
+    client.BaseAddress = new Uri(apiBaseUrl!);
+});
+builder.Services.AddAuthorizationCore();
 CultureInfo culture = new CultureInfo("vi-VN");
 CultureInfo.DefaultThreadCurrentUICulture = culture;
 // đăng kí 
