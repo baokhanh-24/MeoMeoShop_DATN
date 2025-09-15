@@ -1,4 +1,3 @@
-
 @using MeoMeo.Contract.DTOs.Product
 @using ButtonSize = AntDesign.ButtonSize
 @using ButtonType = AntDesign.ButtonType
@@ -7,6 +6,39 @@
 @inject IConfiguration Configuration
 @inject MeoMeo.Shared.IServices.ISizeClientService SizeClient
 @inject MeoMeo.Shared.IServices.IColourClientService ColourClient
+
+<style>
+    .variant-item.out-of-stock {
+        opacity: 0.5;
+        cursor: not-allowed;
+        position: relative;
+    }
+
+    .variant-item.out-of-stock::after {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: linear-gradient(45deg, transparent 45%, #ff0000 45%, #ff0000 55%, transparent 55%);
+        pointer-events: none;
+    }
+
+    .variant-item.out-of-stock .variant-info {
+        text-decoration: line-through;
+    }
+
+    .variant-item:not(.out-of-stock) {
+        cursor: pointer;
+        transition: all 0.2s ease;
+    }
+
+    .variant-item:not(.out-of-stock):hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    }
+</style>
 <GridRow Gutter="16">
     <GridCol Span="8">
         <div class="product-info">
@@ -53,112 +85,121 @@
 
             @if (Product.ProductVariants?.Any() == true)
             {
-                <div class="variants-grid">
-                    @foreach (var variant in Product.ProductVariants)
-                    {
-                        var isSelected = selectedVariant?.Id == variant.Id;
-                        var isOutOfStock = variant.OutOfStock <= 0;
+                @if (Product.ProductVariants.All(v => v.InventoryQuantity <= 0))
+                {
+                    <div class="no-stock-message">
+                        <p class="text-danger">Tất cả biến thể của sản phẩm này đã hết hàng.</p>
+                    </div>
+                }
+                else
+                {
+                    <div class="variants-grid">
+                        @foreach (var variant in Product.ProductVariants)
+                        {
+                            var isSelected = selectedVariant?.Id == variant.Id;
+                            var isOutOfStock = variant.InventoryQuantity <= 0;
 
-                        <div class="variant-item @(isSelected ? "selected" : "") @(isOutOfStock ? "out-of-stock" : "")"
-                            @onclick="() => SelectVariant(variant)" @onclick:preventDefault="true">
+                            <div class="variant-item @(isSelected ? "selected" : "") @(isOutOfStock ? "out-of-stock" : "")"
+                                @onclick="@(isOutOfStock ? null : () => SelectVariant(variant))" @onclick:preventDefault="true">
 
-                            @if (variant.Discount > 0)
-                            {
-                                <div class="discount-badge-small">
-                                    -@(variant.Discount)%
-                                </div>
-                            }
+                                @if (variant.Discount > 0)
+                                {
+                                    <div class="discount-badge-small">
+                                        -@(variant.Discount)%
+                                    </div>
+                                }
 
-                            <div class="variant-info">
-                                <div class="variant-size">Size: @(variant.SizeName)</div>
-                                <div class="variant-color">Màu sắc: @(variant.ColourName)</div>
-                                <div class="variant-price">
-                                    @if (variant.Discount > 0)
-                                    {
-                                        var discountedPrice = (decimal)(variant.Price * (1 - variant.Discount / 100));
-                                        <span class="original-price-small">@(variant.Price.ToString("N0"))</span>
-                                        <span class="discounted-price-small">@(discountedPrice.ToString("N0"))</span>
-                                    }
-                                    else
-                                    {
-                                        <span>@(variant.Price.ToString("N0"))</span>
-                                    }
-                                </div>
-                                <div class="variant-stock">
-                                    @if (isOutOfStock)
-                                    {
-                                        <span class="stock-out">Hết hàng</span>
-                                    }
-                                    else
-                                    {
-                                        <span class="stock-available">Còn @(variant.InventoryQuantity)</span>
-                                    }
+                                <div class="variant-info">
+                                    <div class="variant-size">Size: @(variant.SizeName)</div>
+                                    <div class="variant-color">Màu sắc: @(variant.ColourName)</div>
+                                    <div class="variant-price">
+                                        @if (variant.Discount > 0)
+                                        {
+                                            var discountedPrice = (decimal)(variant.Price * (1 - variant.Discount / 100));
+                                            <span class="original-price-small">@(variant.Price.ToString("N0"))</span>
+                                            <span class="discounted-price-small">@(discountedPrice.ToString("N0"))</span>
+                                        }
+                                        else
+                                        {
+                                            <span>@(variant.Price.ToString("N0"))</span>
+                                        }
+                                    </div>
+                                    <div class="variant-stock">
+                                        @if (isOutOfStock)
+                                        {
+                                            <span class="stock-out">Hết hàng</span>
+                                        }
+                                        else
+                                        {
+                                            <span class="stock-available">Còn @(variant.InventoryQuantity)</span>
+                                        }
+                                    </div>
                                 </div>
                             </div>
+                        }
+                    </div>
+
+                    @if (selectedVariant != null)
+                    {
+                        <div class="quantity-selection">
+                            <h6>Số lượng:</h6>
+                            <div class="quantity-controls">
+                                <Button Type="ButtonType.Primary" Size="ButtonSize.Small" OnClick="() => DecreaseQuantity()"
+                                    Disabled="@(quantity <= 1)">
+                                    <Icon Type="minus" />
+                                </Button>
+                                <span class="quantity-display">@quantity</span>
+                                <Button Type="ButtonType.Primary" Size="ButtonSize.Small" OnClick="() => IncreaseQuantity()"
+                                    Disabled="@(quantity >= selectedVariant.InventoryQuantity)">
+                                    <Icon Type="plus" />
+                                </Button>
+                            </div>
+                        </div>
+
+                        <div class="selected-variant-summary">
+                            <div class="summary-item">
+                                <span class="label">Sản phẩm:</span>
+                                <span class="value">Size @(selectedVariant.SizeName) - Màu sắc
+                                    @(selectedVariant.ColourName)</span>
+                            </div>
+                            <div class="summary-item">
+                                <span class="label">Giá:</span>
+                                <span class="value">
+                                    @if (selectedVariant.Discount > 0)
+                                    {
+                                        var discountedPrice = (decimal)(selectedVariant.Price * (1 - selectedVariant.Discount / 100));
+                                        <span class="original-price-summary">@(selectedVariant.Price.ToString("N0"))</span>
+                                        <span class="discounted-price-summary">@(discountedPrice.ToString("N0"))</span>
+                                    }
+                                    else
+                                    {
+                                        <span>@(selectedVariant.Price.ToString("N0"))</span>
+                                    }
+                                </span>
+                            </div>
+                            <div class="summary-item">
+                                <span class="label">Tổng:</span>
+                                <span class="value total-price">
+                                    @if (selectedVariant.Discount > 0)
+                                    {
+                                        var discountedPrice = (decimal)(selectedVariant.Price * (1 - selectedVariant.Discount / 100));
+                                        @((discountedPrice * quantity).ToString("N0"))
+                                    }
+                                    else
+                                    {
+                                        @((selectedVariant.Price * quantity).ToString("N0"))
+                                    }
+                                </span>
+                            </div>
+                        </div>
+
+                        <div class="action-buttons">
+                            <Button Type="ButtonType.Primary" Class="btn-add-to-cart-confirm" OnClick="ConfirmAddToCart"
+                                Disabled="@(selectedVariant.InventoryQuantity <= 0)">
+                                Thêm vào giỏ hàng
+                            </Button>
                         </div>
                     }
-                </div>
-
-                @if (selectedVariant != null)
-                {
-                    <div class="quantity-selection">
-                        <h6>Số lượng:</h6>
-                        <div class="quantity-controls">
-                            <Button Type="ButtonType.Primary" Size="ButtonSize.Small" OnClick="() => DecreaseQuantity()"
-                                Disabled="@(quantity <= 1)">
-                                <Icon Type="minus" />
-                            </Button>
-                            <span class="quantity-display">@quantity</span>
-                            <Button Type="ButtonType.Primary" Size="ButtonSize.Small" OnClick="() => IncreaseQuantity()"
-                                Disabled="@(quantity >= selectedVariant.InventoryQuantity)">
-                                <Icon Type="plus" />
-                            </Button>
-                        </div>
-                    </div>
-
-                    <div class="selected-variant-summary">
-                        <div class="summary-item">
-                            <span class="label">Sản phẩm:</span>
-                            <span class="value">Size @(selectedVariant.SizeName) - Màu sắc
-                                @(selectedVariant.ColourName)</span>
-                        </div>
-                        <div class="summary-item">
-                            <span class="label">Giá:</span>
-                            <span class="value">
-                                @if (selectedVariant.Discount > 0)
-                                {
-                                    var discountedPrice = (decimal)(selectedVariant.Price * (1 - selectedVariant.Discount / 100));
-                                    <span class="original-price-summary">@(selectedVariant.Price.ToString("N0"))</span>
-                                    <span class="discounted-price-summary">@(discountedPrice.ToString("N0"))</span>
-                                }
-                                else
-                                {
-                                    <span>@(selectedVariant.Price.ToString("N0"))</span>
-                                }
-                            </span>
-                        </div>
-                        <div class="summary-item">
-                            <span class="label">Tổng:</span>
-                            <span class="value total-price">
-                                @if (selectedVariant.Discount > 0)
-                                {
-                                    var discountedPrice = (decimal)(selectedVariant.Price * (1 - selectedVariant.Discount / 100));
-                                    @((discountedPrice * quantity).ToString("N0"))
-                                }
-                                else
-                                {
-                                    @((selectedVariant.Price * quantity).ToString("N0"))
-                                }
-                            </span>
-                        </div>
-                    </div>
-
-                    <div class="action-buttons">
-                        <Button Type="ButtonType.Primary" Class="btn-add-to-cart-confirm" OnClick="ConfirmAddToCart"
-                            Disabled="@(selectedVariant.InventoryQuantity <= 0)">
-                            Thêm vào giỏ hàng
-                        </Button>
-                    </div>
                 }
             }
             else
@@ -190,7 +231,9 @@
 
         if (Product?.ProductVariants != null)
         {
-            selectedVariant = Product?.ProductVariants.First();
+            // Chọn variant đầu tiên có hàng (InventoryQuantity > 0)
+            selectedVariant = Product?.ProductVariants.FirstOrDefault(v => v.InventoryQuantity > 0);
+
             foreach (var v in Product.ProductVariants)
             {
                 v.SizeName = await GetSizeNameAsync(v.SizeId);
@@ -209,7 +252,7 @@
     }
     private void SelectVariant(ProductDetailGrid variant)
     {
-        if (variant.OutOfStock > 0)
+        if (variant.InventoryQuantity > 0) // Chỉ cho chọn nếu còn hàng
         {
             selectedVariant = variant;
             quantity = 1;

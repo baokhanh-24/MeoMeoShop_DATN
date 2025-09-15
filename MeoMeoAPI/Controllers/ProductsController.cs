@@ -36,6 +36,13 @@ namespace MeoMeo.API.Controllers
             return Ok(result);
         }
 
+        [HttpGet("get-paged-products-for-portal-async")]
+        public async Task<IActionResult> GetPagedProductsForPortal([FromQuery] GetListProductRequestDTO request)
+        {
+            var result = await _productServices.GetPagedProductsForPortalAsync(request);
+            return Ok(result);
+        }
+
         [HttpGet("get-header-products")]
         public async Task<IActionResult> GetHeaderProducts()
         {
@@ -260,8 +267,8 @@ namespace MeoMeo.API.Controllers
         public async Task<IActionResult> SearchProducts([FromQuery] ProductSearchRequestDTO request)
         {
             try
-            { 
-                
+            {
+
                 var result = await _productServices.SearchProductsAsync(request);
                 return Ok(result);
             }

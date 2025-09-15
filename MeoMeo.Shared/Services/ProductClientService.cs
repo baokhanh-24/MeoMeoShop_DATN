@@ -40,6 +40,24 @@ namespace MeoMeo.Shared.Services
             }
         }
 
+        public async Task<PagingExtensions.PagedResult<ProductResponseDTO, GetListProductResponseDTO>>
+            GetAllProductForPortalAsync(GetListProductRequestDTO request)
+        {
+            try
+            {
+                var queryString = BuildQuery.ToQueryString(request);
+                var url = $"/api/Products/get-paged-products-for-portal-async?{queryString}";
+                var response = await _httpClient
+                    .GetAsync<PagingExtensions.PagedResult<ProductResponseDTO, GetListProductResponseDTO>>(url);
+                return response ?? new PagingExtensions.PagedResult<ProductResponseDTO, GetListProductResponseDTO>();
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Có lỗi khi xảy ra khi lấy danh sách sản phẩm cho Portal: {Message}", ex.Message);
+                return new PagingExtensions.PagedResult<ProductResponseDTO, GetListProductResponseDTO>();
+            }
+        }
+
         public async Task<CreateOrUpdateProductDTO> GetProductDetailAsync(Guid id)
         {
             try

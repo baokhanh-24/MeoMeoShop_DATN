@@ -459,7 +459,7 @@
 
     private async Task LoadProductsAsync()
     {
-        var response = await ProductClientService.GetAllProductAsync(filter);
+        var response = await ProductClientService.GetAllProductForPortalAsync(filter);
         products = response.Items ?? new List<ProductResponseDTO>();
         totalRecords = response.TotalRecords;
         StateHasChanged();

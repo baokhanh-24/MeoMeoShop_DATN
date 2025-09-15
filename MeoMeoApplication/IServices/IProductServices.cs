@@ -20,6 +20,7 @@ namespace MeoMeo.Application.IServices
         Task<ProductResponseDTO> DeleteAsync(Guid id);
 
         Task<PagingExtensions.PagedResult<ProductResponseDTO, GetListProductResponseDTO>> GetPagedProductsAsync(GetListProductRequestDTO request);
+        Task<PagingExtensions.PagedResult<ProductResponseDTO, GetListProductResponseDTO>> GetPagedProductsForPortalAsync(GetListProductRequestDTO request);
         Task<ProductResponseDTO> GetProductWithDetailsAsync(Guid id);
         Task<BaseResponse> UpdateVariantStatusAsync(UpdateProductStatusDTO input);
         Task<List<Image>> GetOldImagesAsync(Guid productId);
@@ -38,7 +39,7 @@ namespace MeoMeo.Application.IServices
         // Search methods
         Task<PagingExtensions.PagedResult<ProductSearchResponseDTO>> SearchProductsAsync(ProductSearchRequestDTO request);
         Task<ProductSearchResponseDTO?> GetProductBySkuAsync(string sku);
-        
+
         Task<bool> DeleteProductDetailAsync(Guid id);
     }
 }

@@ -18,6 +18,120 @@
 @inject IWishlistClientService WishlistClientService
 @inject IOrderClientService OrderClientService
 
+<style>
+    .product-variants {
+        margin: 16px 0;
+    }
+    
+    .variants-label {
+        font-weight: 500;
+        margin-bottom: 8px;
+        color: #333;
+    }
+    
+    .variants-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+        gap: 12px;
+        margin-bottom: 16px;
+    }
+    
+    .variant-item {
+        border: 2px solid #e8e8e8;
+        border-radius: 8px;
+        padding: 12px;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        position: relative;
+        background: #fff;
+    }
+    
+    .variant-item:hover:not(.out-of-stock) {
+        border-color: #1890ff;
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(24, 144, 255, 0.15);
+    }
+    
+    .variant-item.selected {
+        border-color: #1890ff;
+        background: #f0f8ff;
+    }
+    
+    .variant-item.out-of-stock {
+        opacity: 0.5;
+        cursor: not-allowed;
+        background: #f5f5f5;
+    }
+    
+    .variant-item.out-of-stock::after {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: linear-gradient(45deg, transparent 45%, #ff0000 45%, #ff0000 55%, transparent 55%);
+        pointer-events: none;
+    }
+    
+    .variant-item.out-of-stock .variant-info {
+        text-decoration: line-through;
+    }
+    
+    .discount-badge-small {
+        position: absolute;
+        top: -8px;
+        right: -8px;
+        background: #ff4d4f;
+        color: white;
+        padding: 2px 6px;
+        border-radius: 4px;
+        font-size: 11px;
+        font-weight: 500;
+    }
+    
+    .variant-info {
+        text-align: left;
+    }
+    
+    .variant-size, .variant-color {
+        font-size: 13px;
+        color: #666;
+        margin-bottom: 4px;
+    }
+    
+    .variant-price {
+        font-weight: 600;
+        margin-bottom: 4px;
+    }
+    
+    .original-price-small {
+        text-decoration: line-through;
+        color: #999;
+        font-size: 12px;
+        margin-right: 4px;
+    }
+    
+    .discounted-price-small {
+        color: #ff4d4f;
+        font-size: 14px;
+    }
+    
+    .variant-stock {
+        font-size: 12px;
+    }
+    
+    .stock-out {
+        color: #ff4d4f;
+        font-weight: 500;
+    }
+    
+    .stock-available {
+        color: #52c41a;
+        font-weight: 500;
+    }
+</style>
+
 <div class="content-background"> 
      <GridRow Gutter="16">
         <GridCol Span="22" Offset="1">
@@ -143,21 +257,86 @@
 
                             <!-- Price -->
                             <div class="product-price">
-                                <div class="current-price">
-                                    @* @CalcPriceAfterDiscount(productDetail.Price, productDetail.Discount).ToString("C0", new System.Globalization.CultureInfo("vi-VN")) *@
-                                </div>
-                                @* @if (productDetail.Discount > 0)  *@
-                                @* {  *@
-                                @*     <div class="original-price"> *@
-                                @*         @productDetail.Price.ToString("C0", new System.Globalization.CultureInfo("vi-VN")) *@
-                                @*     </div> *@
-                                @*     <div class="discount-badge"> *@
-                                @*         -@productDetail.Discount% *@
-                                @*     </div> *@
-                                @* } *@
+                                @if (selectedProductDetailId.HasValue)
+                                {
+                                    var selectedVariant = productDetail.ProductVariants?.FirstOrDefault(v => v.Id == selectedProductDetailId.Value);
+                                    if (selectedVariant != null)
+                                    {
+                                        <div class="current-price">
+                                            @if (selectedVariant.Discount > 0)
+                                            {
+                                                var discountedPrice = (decimal)(selectedVariant.Price * (1 - selectedVariant.Discount / 100));
+                                                <span class="discounted-price">@(discountedPrice.ToString("N0")) ₫</span>
+                                                <span class="original-price">@(selectedVariant.Price.ToString("N0")) ₫</span>
+                                                <span class="discount-badge">-@(selectedVariant.Discount)%</span>
+                                            }
+                                            else
+                                            {
+                                                <span class="current-price-value">@(selectedVariant.Price.ToString("N0")) ₫</span>
+                                            }
+                                        </div>
+                                    }
+                                }
+                                else
+                                {
+                                    <div class="current-price">
+                                        <span class="price-placeholder">Vui lòng chọn biến thể</span>
+                                    </div>
+                                }
                             </div>
 
-                            
+                            <!-- Product Variants -->
+                            @if (productDetail.ProductVariants?.Any() == true)
+                            {
+                                <div class="product-variants">
+                                    <div class="variants-label">Chọn biến thể:</div>
+                                    <div class="variants-grid">
+                                        @foreach (var variant in productDetail.ProductVariants)
+                                        {
+                                            var isSelected = selectedProductDetailId == variant.Id;
+                                            var isOutOfStock = variant.InventoryQuantity <= 0;
+
+                                            <div class="variant-item @(isSelected ? "selected" : "") @(isOutOfStock ? "out-of-stock" : "")"
+                                                @onclick="@(isOutOfStock ? null : () => SelectVariant(variant.Id))" @onclick:preventDefault="true">
+                                                
+                                                @if (variant.Discount > 0)
+                                                {
+                                                    <div class="discount-badge-small">
+                                                        -@(variant.Discount)%
+                                                    </div>
+                                                }
+
+                                                <div class="variant-info">
+                                                    <div class="variant-size">Size: @(variant.SizeName ?? "N/A")</div>
+                                                    <div class="variant-color">Màu: @(variant.ColourName ?? "N/A")</div>
+                                                    <div class="variant-price">
+                                                        @if (variant.Discount > 0)
+                                                        {
+                                                            var discountedPrice = (decimal)(variant.Price * (1 - variant.Discount / 100));
+                                                            <span class="original-price-small">@(variant.Price.ToString("N0")) ₫</span>
+                                                            <span class="discounted-price-small">@(discountedPrice.ToString("N0")) ₫</span>
+                                                        }
+                                                        else
+                                                        {
+                                                            <span>@(variant.Price.ToString("N0")) ₫</span>
+                                                        }
+                                                    </div>
+                                                    <div class="variant-stock">
+                                                        @if (isOutOfStock)
+                                                        {
+                                                            <span class="stock-out">Hết hàng</span>
+                                                        }
+                                                        else
+                                                        {
+                                                            <span class="stock-available">Còn @(variant.InventoryQuantity)</span>
+                                                        }
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        }
+                                    </div>
+                                </div>
+                            }
 
                             <!-- Quantity -->
                             <div class="quantity-section">
@@ -848,7 +1027,17 @@
             foreach (var m in productDetail.Media)
             {
                 m.ImageUrl = $"{backendUrl}/{m.ImageUrl}";
-            } 
+            }
+
+            // Chọn variant đầu tiên có hàng làm mặc định
+            if (productDetail.ProductVariants?.Any() == true)
+            {
+                selectedProductDetailId = productDetail.ProductVariants
+                    .FirstOrDefault(v => v.InventoryQuantity > 0)?.Id;
+                
+                // Cập nhật maxPurchasableQuantity dựa trên variant được chọn
+                UpdateMaxPurchasableQuantity();
+            }
         } 
         catch (Exception ex) 
         { 
@@ -875,6 +1064,34 @@
     private void DecreaseQuantity()
     { 
         if (productQuantity > 1) productQuantity--; 
+    }
+
+    private void SelectVariant(Guid? variantId)
+    {
+        if (variantId.HasValue)
+        {
+            var variant = productDetail.ProductVariants?.FirstOrDefault(v => v.Id == variantId.Value);
+            if (variant != null && variant.InventoryQuantity > 0)
+            {
+                selectedProductDetailId = variantId.Value;
+                productQuantity = 1; // Reset quantity khi chọn variant mới
+                UpdateMaxPurchasableQuantity();
+                StateHasChanged();
+            }
+        }
+    }
+
+    private void UpdateMaxPurchasableQuantity()
+    {
+        if (selectedProductDetailId.HasValue)
+        {
+            var selectedVariant = productDetail.ProductVariants?.FirstOrDefault(v => v.Id == selectedProductDetailId.Value);
+            maxPurchasableQuantity = selectedVariant?.InventoryQuantity ?? 0;
+        }
+        else
+        {
+            maxPurchasableQuantity = 0;
+        }
     } 
 
 

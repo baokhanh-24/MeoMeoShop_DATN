@@ -905,6 +905,333 @@ namespace MeoMeo.Application.Services
             }
         }
 
+        /// <summary>
+        /// Get paged products for Portal with simplified filtering and proper variant status filtering
+        /// </summary>
+        public async Task<PagingExtensions.PagedResult<ProductResponseDTO, GetListProductResponseDTO>> GetPagedProductsForPortalAsync(GetListProductRequestDTO request)
+        {
+            try
+            {
+                var productQuery = _repository.Query();
+                var brandQuery = _brandRepository.Query();
+
+                // Apply product name filter
+                if (!string.IsNullOrEmpty(request.NameFilter))
+                {
+                    productQuery = productQuery.Where(p => EF.Functions.Like(p.Name, $"%{request.NameFilter}%"));
+                }
+
+                // Apply brand filter
+                if (request.BrandFilter.HasValue)
+                {
+                    productQuery = productQuery.Where(p => p.BrandId == request.BrandFilter.Value);
+                }
+
+                // Apply SKU filter
+                if (!string.IsNullOrEmpty(request.SKUFilter))
+                {
+                    var productIdsWithSKU = await _productDetailRepository.Query()
+                        .Where(pd => EF.Functions.Like(pd.Sku, $"%{request.SKUFilter}%"))
+                        .Select(pd => pd.ProductId)
+                        .Distinct()
+                        .ToListAsync();
+                    productQuery = productQuery.Where(p => productIdsWithSKU.Contains(p.Id));
+                }
+
+                // Apply closure type filter
+                if (request.ClosureTypeFilter.HasValue)
+                {
+                    var productIdsWithClosureType = await _productDetailRepository.Query()
+                        .Where(pd => pd.ClosureType == request.ClosureTypeFilter.Value)
+                        .Select(pd => pd.ProductId)
+                        .Distinct()
+                        .ToListAsync();
+                    productQuery = productQuery.Where(p => productIdsWithClosureType.Contains(p.Id));
+                }
+
+                // Apply allow return filter
+                if (request.AllowReturnFilter.HasValue)
+                {
+                    var productIdsWithAllowReturn = await _productDetailRepository.Query()
+                        .Where(pd => pd.AllowReturn == request.AllowReturnFilter.Value)
+                        .Select(pd => pd.ProductId)
+                        .Distinct()
+                        .ToListAsync();
+                    productQuery = productQuery.Where(p => productIdsWithAllowReturn.Contains(p.Id));
+                }
+
+                // Main query with joins
+                var mainQuery = from product in productQuery
+                                join brand in brandQuery on product.BrandId equals brand.Id
+                                select new
+                                {
+                                    product.Id,
+                                    product.Name,
+                                    product.BrandId,
+                                    BrandName = brand.Name,
+                                    product.Thumbnail,
+                                    product.CreationTime,
+                                    product.LastModificationTime,
+                                    product.CreatedBy,
+                                    product.UpdatedBy
+                                };
+
+                // Apply sorting
+                switch (request.SortField)
+                {
+                    case EProductSortField.Name:
+                        mainQuery = request.SortDirection == ESortDirection.Desc
+                            ? mainQuery.OrderByDescending(x => x.Name)
+                            : mainQuery.OrderBy(x => x.Name);
+                        break;
+                    case EProductSortField.Price:
+                        // Note: Price sorting would need to be implemented differently since price is in variants
+                        mainQuery = mainQuery.OrderByDescending(x => x.CreationTime);
+                        break;
+                    case EProductSortField.CreationTime:
+                        mainQuery = request.SortDirection == ESortDirection.Desc
+                            ? mainQuery.OrderByDescending(x => x.CreationTime)
+                            : mainQuery.OrderBy(x => x.CreationTime);
+                        break;
+                    default:
+                        mainQuery = mainQuery.OrderByDescending(x => x.CreationTime);
+                        break;
+                }
+
+                var totalRecords = await mainQuery.CountAsync();
+                var mainResults = await mainQuery
+                    .Skip((request.PageIndex - 1) * request.PageSize)
+                    .Take(request.PageSize)
+                    .ToListAsync();
+
+                var productIds = mainResults.Select(x => x.Id).ToList();
+
+                // Apply additional filters based on related data
+                if (request.CategoryFilter.HasValue || request.MaterialFilter.HasValue || request.SeasonFilter.HasValue ||
+                    request.SizeFilter.HasValue || request.ColourFilter.HasValue || request.MinPriceFilter.HasValue || request.MaxPriceFilter.HasValue)
+                {
+                    var filteredProductIds = new List<Guid>();
+
+                    // Get all product details for filtering
+                    var allProductDetails = await _productDetailRepository.Query()
+                        .Where(pd => productIds.Contains(pd.ProductId))
+                        .Include(pd => pd.Size)
+                        .Include(pd => pd.Colour)
+                        .ToListAsync();
+
+                    // Apply size filter
+                    if (request.SizeFilter.HasValue)
+                    {
+                        allProductDetails = allProductDetails.Where(pd => pd.SizeId == request.SizeFilter.Value).ToList();
+                    }
+
+                    // Apply color filter
+                    if (request.ColourFilter.HasValue)
+                    {
+                        allProductDetails = allProductDetails.Where(pd => pd.ColourId == request.ColourFilter.Value).ToList();
+                    }
+
+                    // Apply price range filter
+                    if (request.MinPriceFilter.HasValue || request.MaxPriceFilter.HasValue)
+                    {
+                        if (request.MinPriceFilter.HasValue)
+                        {
+                            allProductDetails = allProductDetails.Where(pd => pd.Price >= (float)request.MinPriceFilter.Value).ToList();
+                        }
+                        if (request.MaxPriceFilter.HasValue)
+                        {
+                            allProductDetails = allProductDetails.Where(pd => pd.Price <= (float)request.MaxPriceFilter.Value).ToList();
+                        }
+                    }
+
+                    // Get filtered product IDs
+                    var filteredIds = allProductDetails.Select(pd => pd.ProductId).Distinct().ToList();
+
+                    // Apply category filter
+                    if (request.CategoryFilter.HasValue)
+                    {
+                        var categoryProductIds = await _productCategoryRepository.Query()
+                            .Where(pc => pc.CategoryId == request.CategoryFilter.Value && filteredIds.Contains(pc.ProductId))
+                            .Select(pc => pc.ProductId)
+                            .Distinct()
+                            .ToListAsync();
+                        filteredIds = filteredIds.Intersect(categoryProductIds).ToList();
+                    }
+
+                    // Apply material filter
+                    if (request.MaterialFilter.HasValue)
+                    {
+                        var materialProductIds = await _productMaterialRepository.Query()
+                            .Where(pm => pm.MaterialId == request.MaterialFilter.Value && filteredIds.Contains(pm.ProductId))
+                            .Select(pm => pm.ProductId)
+                            .Distinct()
+                            .ToListAsync();
+                        filteredIds = filteredIds.Intersect(materialProductIds).ToList();
+                    }
+
+                    // Apply season filter
+                    if (request.SeasonFilter.HasValue)
+                    {
+                        var seasonProductIds = await _productSeasonRepository.Query()
+                            .Where(ps => ps.SeasonId == request.SeasonFilter.Value && filteredIds.Contains(ps.ProductId))
+                            .Select(ps => ps.ProductId)
+                            .Distinct()
+                            .ToListAsync();
+                        filteredIds = filteredIds.Intersect(seasonProductIds).ToList();
+                    }
+
+                    // Update mainResults to only include filtered products
+                    mainResults = mainResults.Where(m => filteredIds.Contains(m.Id)).ToList();
+                    productIds = mainResults.Select(x => x.Id).ToList();
+                }
+
+                // CRITICAL: Filter products that have at least one variant with status = Selling
+                var productsWithSellingVariants = await _productDetailRepository.Query()
+                    .Where(pd => productIds.Contains(pd.ProductId) && pd.Status == EProductStatus.Selling)
+                    .Select(pd => pd.ProductId)
+                    .Distinct()
+                    .ToListAsync();
+
+                // Update mainResults to only include products with selling variants
+                mainResults = mainResults.Where(m => productsWithSellingVariants.Contains(m.Id)).ToList();
+                productIds = mainResults.Select(x => x.Id).ToList();
+
+                // Batch queries for related data
+                var variantsDict = await _productDetailRepository.Query()
+                    .Where(pd => productIds.Contains(pd.ProductId))
+                    .Include(pd => pd.Size)
+                    .Include(pd => pd.Colour)
+                    .GroupBy(pd => pd.ProductId)
+                    .ToDictionaryAsync(g => g.Key, g => g.ToList());
+
+                // Compute inventory quantity per variant (ProductDetail)
+                var allVariantIds = variantsDict.Values
+                    .SelectMany(v => v)
+                    .Select(v => v.Id)
+                    .Distinct()
+                    .ToList();
+
+                var inventoryQuantityByVariantId = await _inventoryBatchRepository.Query()
+                    .Where(b => allVariantIds.Contains(b.ProductDetailId) && b.Status == EInventoryBatchStatus.Approved)
+                    .GroupBy(b => b.ProductDetailId)
+                    .ToDictionaryAsync(g => g.Key, g => g.Sum(x => x.Quantity));
+
+                var materialIdsDict = await _productMaterialRepository.Query()
+                    .Where(pm => productIds.Contains(pm.ProductId))
+                    .GroupBy(pm => pm.ProductId)
+                    .ToDictionaryAsync(g => g.Key, g => g.Select(pm => pm.MaterialId).ToList());
+
+                var categoryIdsDict = await _productCategoryRepository.Query()
+                    .Where(pc => productIds.Contains(pc.ProductId))
+                    .GroupBy(pc => pc.ProductId)
+                    .ToDictionaryAsync(g => g.Key, g => g.Select(pc => pc.CategoryId).ToList());
+
+                var seasonIdsDict = await _productSeasonRepository.Query()
+                    .Where(ps => productIds.Contains(ps.ProductId))
+                    .GroupBy(ps => ps.ProductId)
+                    .ToDictionaryAsync(g => g.Key, g => g.Select(ps => ps.SeasonId).ToList());
+
+                var imageIdsDict = await _imageRepository.Query()
+                    .Where(i => productIds.Contains(i.ProductId))
+                    .GroupBy(i => i.ProductId)
+                    .ToDictionaryAsync(g => g.Key, g => g.ToList());
+
+                var allMaterialIds = materialIdsDict.Values.SelectMany(x => x).Distinct().ToList();
+                var allCategoryIds = categoryIdsDict.Values.SelectMany(x => x).Distinct().ToList();
+                var allSeasonIds = seasonIdsDict.Values.SelectMany(x => x).Distinct().ToList();
+
+                var materialsDict = await _materialRepository.Query()
+                    .Where(m => allMaterialIds.Contains(m.Id))
+                    .ToDictionaryAsync(m => m.Id, m => m.Name);
+
+                var categoriesDict = await _categoryRepository.Query()
+                    .Where(c => allCategoryIds.Contains(c.Id))
+                    .ToDictionaryAsync(c => c.Id, c => c.Name);
+
+                var seasonsDict = await _seasonRepository.Query()
+                    .Where(s => allSeasonIds.Contains(s.Id))
+                    .ToDictionaryAsync(s => s.Id, s => s.Name);
+
+                // Build response
+                var items = mainResults.Select(main =>
+                {
+                    var variants = variantsDict.TryGetValue(main.Id, out var variantList) ? variantList : new List<ProductDetail>();
+                    var materialIds = materialIdsDict.TryGetValue(main.Id, out var matIds) ? matIds : new List<Guid>();
+                    var categoryIds = categoryIdsDict.TryGetValue(main.Id, out var catIds) ? catIds : new List<Guid>();
+                    var seasonIds = seasonIdsDict.TryGetValue(main.Id, out var seaIds) ? seaIds : new List<Guid>();
+                    var images = imageIdsDict.TryGetValue(main.Id, out var imgList) ? imgList : new List<Image>();
+
+                    return new ProductResponseDTO
+                    {
+                        Id = main.Id,
+                        Name = main.Name,
+                        BrandId = main.BrandId,
+                        BrandName = main.BrandName,
+                        Thumbnail = main.Thumbnail,
+                        CreationTime = main.CreationTime,
+                        LastModificationTime = main.LastModificationTime,
+                        CreatedBy = main.CreatedBy,
+                        UpdatedBy = main.UpdatedBy,
+
+                        // Set related collections
+                        SizeIds = variants.Select(v => v.SizeId).Distinct().ToList(),
+                        SizeValues = variants.Select(v => v.Size?.Value ?? string.Empty).Distinct().ToList(),
+                        ColourIds = variants.Select(v => v.ColourId).Distinct().ToList(),
+                        ColourNames = variants.Select(v => v.Colour?.Name ?? string.Empty).Distinct().ToList(),
+                        MaterialIds = materialIds,
+                        MaterialNames = materialIds.Select(id => materialsDict.GetValueOrDefault(id, string.Empty)).ToList(),
+                        CategoryIds = categoryIds,
+                        CategoryNames = categoryIds.Select(id => categoriesDict.GetValueOrDefault(id, string.Empty)).ToList(),
+                        SeasonIds = seasonIds,
+                        SeasonNames = seasonIds.Select(id => seasonsDict.GetValueOrDefault(id, string.Empty)).ToList(),
+                        // Set variants with inventory quantity
+                        ProductVariants = variants.Select(v =>
+                        {
+                            var dto = _mapper.Map<ProductDetailGrid>(v);
+                            dto.InventoryQuantity = inventoryQuantityByVariantId.TryGetValue(v.Id, out var qty) ? qty : 0;
+                            return dto;
+                        }).ToList(),
+                        Media = _mapper.Map<List<ProductMediaUpload>>(images)
+                    };
+                }).ToList();
+
+                // Calculate metadata counts from ALL products in database (fixed numbers, not affected by filters)
+                var totalAllProducts = await _repository.Query().CountAsync();
+
+                // Get status counts in one query for better performance
+                var statusCounts = await _productDetailRepository.Query()
+                    .GroupBy(pd => pd.Status)
+                    .Select(g => new { Status = g.Key, Count = g.Select(x => x.ProductId).Distinct().Count() })
+                    .ToListAsync();
+
+                var sellingCount = statusCounts.FirstOrDefault(x => x.Status == EProductStatus.Selling)?.Count ?? 0;
+                var stopSellingCount = statusCounts.FirstOrDefault(x => x.Status == EProductStatus.StopSelling)?.Count ?? 0;
+                var pendingCount = statusCounts.FirstOrDefault(x => x.Status == EProductStatus.Pending)?.Count ?? 0;
+                var rejectedCount = statusCounts.FirstOrDefault(x => x.Status == EProductStatus.Rejected)?.Count ?? 0;
+
+                return new PagingExtensions.PagedResult<ProductResponseDTO, GetListProductResponseDTO>
+                {
+                    TotalRecords = totalRecords,
+                    PageIndex = request.PageIndex,
+                    PageSize = request.PageSize,
+                    Items = items,
+                    Metadata = new GetListProductResponseDTO
+                    {
+                        TotalAll = totalAllProducts,
+                        Selling = sellingCount,
+                        StopSelling = stopSellingCount,
+                        Pending = pendingCount,
+                        Rejected = rejectedCount
+                    }
+                };
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error in GetPagedProductsForPortalAsync: {ex.Message}");
+                throw;
+            }
+        }
+
         public async Task<ProductResponseDTO> GetProductWithDetailsAsync(Guid id)
         {
             try
