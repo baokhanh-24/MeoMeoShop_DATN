@@ -21,5 +21,8 @@ namespace MeoMeo.Shared.IServices
         // Search methods
         public Task<PagingExtensions.PagedResult<ProductSearchResponseDTO>> SearchProductsAsync(ProductSearchRequestDTO request);
         public Task<ProductSearchResponseDTO?> GetProductBySkuAsync(string sku);
+
+        // Related products
+        public Task<List<ProductResponseDTO>> GetRelatedProductsAsync(Guid productId, int pageSize = 4);
     }
 }

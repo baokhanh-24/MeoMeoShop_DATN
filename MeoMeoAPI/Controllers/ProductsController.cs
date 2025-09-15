@@ -308,5 +308,23 @@ namespace MeoMeo.API.Controllers
                 });
             }
         }
+
+        [HttpGet("get-related-products-async/{productId}")]
+        public async Task<IActionResult> GetRelatedProducts(Guid productId, [FromQuery] int pageSize = 4)
+        {
+            try
+            {
+                var result = await _productServices.GetRelatedProductsAsync(productId, pageSize);
+                return Ok(result);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new BaseResponse
+                {
+                    ResponseStatus = BaseStatus.Error,
+                    Message = $"Lỗi khi lấy sản phẩm liên quan: {ex.Message}"
+                });
+            }
+        }
     }
 }

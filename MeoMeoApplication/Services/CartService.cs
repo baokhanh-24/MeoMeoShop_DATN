@@ -75,7 +75,7 @@ namespace MeoMeo.Application.Services
                 LastModificationTime = cartDto.lastModificationTime,
                 TotalPrice = cartDto.TongTien
             };
-           await _cartRepository.Create(cart);
+            await _cartRepository.Create(cart);
             return new CartResponseDTO
             {
                 ResponseStatus = BaseStatus.Success,
@@ -115,13 +115,20 @@ namespace MeoMeo.Application.Services
                 // 1) Kiểm tra biến thể có tồn tại và lấy giá hiện tại
                 var variant = await _productDetailRepository.Query()
                     .Where(v => v.Id == productDetailId)
-                    .Select(v => new { v.Id, v.Price, v.Status, v.AllowReturn })
+                    .Select(v => new { v.Id, v.Price, v.Status, v.AllowReturn, v.MaxBuyPerOrder })
                     .FirstOrDefaultAsync();
                 if (variant == null)
                 {
                     // Không tồn tại biến thể → trả lỗi
                     return new CartResponseDTO
-                        { ResponseStatus = BaseStatus.Error, Message = "Biến thể không tồn tại" };
+                    { ResponseStatus = BaseStatus.Error, Message = "Biến thể không tồn tại" };
+                }
+
+                // Kiểm tra MaxBuyPerOrder nếu có giới hạn
+                if (variant.MaxBuyPerOrder.HasValue && quantity > variant.MaxBuyPerOrder.Value)
+                {
+                    return new CartResponseDTO
+                    { ResponseStatus = BaseStatus.Error, Message = $"Số lượng tối đa cho phép mua là {variant.MaxBuyPerOrder.Value} sản phẩm" };
                 }
 
                 // 2) Tính tồn kho khả dụng từ bảng InventoryBatch theo ProductDetailId
@@ -133,7 +140,7 @@ namespace MeoMeo.Application.Services
                 if (availableStock < quantity)
                 {
                     return new CartResponseDTO
-                        { ResponseStatus = BaseStatus.Error, Message = "Số lượng không đủ trong kho" };
+                    { ResponseStatus = BaseStatus.Error, Message = "Số lượng không đủ trong kho" };
                 }
 
                 // 3) Lấy giỏ hàng hiện tại theo Customer; nếu chưa có thì tạo mới
@@ -162,7 +169,14 @@ namespace MeoMeo.Application.Services
                 var totalQtyAfter = sameVariantItems.Sum(x => x.Quantity) + quantity;
                 if (totalQtyAfter > availableStock)
                     return new CartResponseDTO
-                        { ResponseStatus = BaseStatus.Error, Message = "Vượt quá số lượng tồn kho" };
+                    { ResponseStatus = BaseStatus.Error, Message = "Vượt quá số lượng tồn kho" };
+
+                // Kiểm tra MaxBuyPerOrder cho tổng số lượng trong giỏ hàng
+                if (variant.MaxBuyPerOrder.HasValue && totalQtyAfter > variant.MaxBuyPerOrder.Value)
+                {
+                    return new CartResponseDTO
+                    { ResponseStatus = BaseStatus.Error, Message = $"Tổng số lượng trong giỏ hàng không được vượt quá {variant.MaxBuyPerOrder.Value} sản phẩm" };
+                }
 
                 // Sai số so sánh float cho giá/discount
                 const float eps = 0.0001f;
@@ -209,8 +223,11 @@ namespace MeoMeo.Application.Services
                 // Trả về kết quả thành công
                 return new CartResponseDTO
                 {
-                    ResponseStatus = BaseStatus.Success, Message = "Thêm sản phẩm vào giỏ hàng thành công",
-                    Id = cart.Id, CustomersId = cart.CustomerId, TotalPrice = cart.TotalPrice
+                    ResponseStatus = BaseStatus.Success,
+                    Message = "Thêm sản phẩm vào giỏ hàng thành công",
+                    Id = cart.Id,
+                    CustomersId = cart.CustomerId,
+                    TotalPrice = cart.TotalPrice
                 };
             }
             catch (Exception e)
@@ -251,17 +268,17 @@ namespace MeoMeo.Application.Services
                     ColourName = cd.ProductDetail.Colour.Name,
                     Thumbnail = cd.ProductDetail.Product.Thumbnail,
                     ProductDetailId = cd.ProductDetailId, // Biến thể
-                    PromotionDetailId = cd.PromotionDetailId.HasValue? Guid.Parse(cd.PromotionDetailId.ToString()): Guid.Empty, // Mã KM nếu có
+                    PromotionDetailId = cd.PromotionDetailId.HasValue ? Guid.Parse(cd.PromotionDetailId.ToString()) : Guid.Empty, // Mã KM nếu có
                     Quantity = cd.Quantity,              // Số lượng
                     Price = cd.Price,                    // Đơn giá
                     Discount = cd.Discount,              // % giảm
-                    
+
                     // Thông tin vận chuyển từ ProductDetail
                     Weight = cd.ProductDetail.Weight,
                     Length = cd.ProductDetail.Length,
                     Width = cd.ProductDetail.Width,
                     Height = cd.ProductDetail.Height,
-                    
+
                     // Giới hạn mua hàng
                     MaxBuyPerOrder = cd.ProductDetail.MaxBuyPerOrder
                 })

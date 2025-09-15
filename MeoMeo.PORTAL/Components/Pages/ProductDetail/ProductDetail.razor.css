@@ -1,3 +1,61 @@
+/* Product Details Grid */
+.product-details-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 16px;
+    margin-top: 16px;
+}
+
+.detail-card {
+    background: #fff;
+    border: 1px solid #e8e8e8;
+    border-radius: 12px;
+    padding: 20px;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    transition: all 0.3s ease;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+}
+
+.detail-card:hover {
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    transform: translateY(-2px);
+    border-color: #1890ff;
+}
+
+.detail-icon {
+    width: 48px;
+    height: 48px;
+    background: linear-gradient(135deg, #1890ff, #40a9ff);
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-size: 20px;
+    flex-shrink: 0;
+}
+
+.detail-content {
+    flex: 1;
+    min-width: 0;
+}
+
+.detail-label {
+    font-size: 14px;
+    color: #666;
+    margin-bottom: 4px;
+    font-weight: 500;
+}
+
+.detail-value {
+    font-size: 16px;
+    color: #333;
+    font-weight: 600;
+    word-break: break-word;
+}
+
 /* Loading and Error States */
 .loading-container {
     display: flex;
@@ -891,4 +949,122 @@
 }
 ::deep .anticon-play-circle {
     color: white !important;
+}
+.product-variants {
+    margin: 16px 0;
+}
+
+.variants-label {
+    font-weight: 500;
+    margin-bottom: 8px;
+    color: #333;
+}
+
+.variants-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 12px;
+    margin-bottom: 16px;
+}
+
+.variant-item {
+    border: 2px solid #e8e8e8;
+    border-radius: 8px;
+    padding: 12px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    position: relative;
+    background: #fff;
+}
+
+.variant-item:hover {
+    border-color: #1890ff;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(24, 144, 255, 0.15);
+}
+
+.variant-item.selected {
+    border-color: #1890ff;
+    background: #f0f8ff;
+}
+
+.variant-item.out-of-stock {
+    opacity: 0.6;
+    cursor: pointer;
+    background: #f5f5f5;
+}
+
+.variant-item.out-of-stock::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: linear-gradient(
+        45deg,
+        transparent 45%,
+        #ff0000 45%,
+        #ff0000 55%,
+        transparent 55%
+    );
+    pointer-events: none;
+}
+
+.variant-item.out-of-stock .variant-info {
+    text-decoration: line-through;
+}
+
+.discount-badge-small {
+    position: absolute;
+    top: -8px;
+    right: -8px;
+    background: #ff4d4f;
+    color: white;
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-size: 11px;
+    font-weight: 500;
+}
+
+.variant-info {
+    text-align: left;
+}
+
+.variant-size,
+.variant-color {
+    font-size: 13px;
+    color: #666;
+    margin-bottom: 4px;
+}
+
+.variant-price {
+    font-weight: 600;
+    margin-bottom: 4px;
+}
+
+.original-price-small {
+    text-decoration: line-through;
+    color: #999;
+    font-size: 12px;
+    margin-right: 4px;
+}
+
+.discounted-price-small {
+    color: #ff4d4f;
+    font-size: 14px;
+}
+
+.variant-stock {
+    font-size: 12px;
+}
+
+.stock-out {
+    color: #ff4d4f;
+    font-weight: 500;
+}
+
+.stock-available {
+    color: #52c41a;
+    font-weight: 500;
 }

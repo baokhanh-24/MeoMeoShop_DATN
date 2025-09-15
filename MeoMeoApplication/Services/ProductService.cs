@@ -906,61 +906,45 @@ namespace MeoMeo.Application.Services
         }
 
         /// <summary>
-        /// Get paged products for Portal with simplified filtering and proper variant status filtering
+        /// Get paged products for Portal with simplified filtering, proper variant status filtering, and discount calculation
         /// </summary>
         public async Task<PagingExtensions.PagedResult<ProductResponseDTO, GetListProductResponseDTO>> GetPagedProductsForPortalAsync(GetListProductRequestDTO request)
         {
             try
             {
+                // Step 1: Build base product query with basic filters
                 var productQuery = _repository.Query();
                 var brandQuery = _brandRepository.Query();
 
-                // Apply product name filter
+                // Apply basic product filters
                 if (!string.IsNullOrEmpty(request.NameFilter))
                 {
                     productQuery = productQuery.Where(p => EF.Functions.Like(p.Name, $"%{request.NameFilter}%"));
                 }
 
-                // Apply brand filter
                 if (request.BrandFilter.HasValue)
                 {
                     productQuery = productQuery.Where(p => p.BrandId == request.BrandFilter.Value);
                 }
 
-                // Apply SKU filter
-                if (!string.IsNullOrEmpty(request.SKUFilter))
+                // Step 2: Get products with selling variants (CRITICAL FILTER)
+                var productsWithSellingVariants = await _productDetailRepository.Query()
+                    .Where(pd => pd.Status == EProductStatus.Selling)
+                    .Select(pd => pd.ProductId)
+                    .Distinct()
+                    .ToListAsync();
+
+                productQuery = productQuery.Where(p => productsWithSellingVariants.Contains(p.Id));
+
+                // Step 3: Apply complex filters (Category, Material, Season, Size, Color, Price)
+                var filteredProductIds = await ApplyComplexFiltersAsync(request, productsWithSellingVariants);
+
+                if (filteredProductIds.Any())
                 {
-                    var productIdsWithSKU = await _productDetailRepository.Query()
-                        .Where(pd => EF.Functions.Like(pd.Sku, $"%{request.SKUFilter}%"))
-                        .Select(pd => pd.ProductId)
-                        .Distinct()
-                        .ToListAsync();
-                    productQuery = productQuery.Where(p => productIdsWithSKU.Contains(p.Id));
+                    productQuery = productQuery.Where(p => filteredProductIds.Contains(p.Id));
                 }
 
-                // Apply closure type filter
-                if (request.ClosureTypeFilter.HasValue)
-                {
-                    var productIdsWithClosureType = await _productDetailRepository.Query()
-                        .Where(pd => pd.ClosureType == request.ClosureTypeFilter.Value)
-                        .Select(pd => pd.ProductId)
-                        .Distinct()
-                        .ToListAsync();
-                    productQuery = productQuery.Where(p => productIdsWithClosureType.Contains(p.Id));
-                }
-
-                // Apply allow return filter
-                if (request.AllowReturnFilter.HasValue)
-                {
-                    var productIdsWithAllowReturn = await _productDetailRepository.Query()
-                        .Where(pd => pd.AllowReturn == request.AllowReturnFilter.Value)
-                        .Select(pd => pd.ProductId)
-                        .Distinct()
-                        .ToListAsync();
-                    productQuery = productQuery.Where(p => productIdsWithAllowReturn.Contains(p.Id));
-                }
-
-                // Main query with joins
+                // Step 4: Build main query with joins
                 var mainQuery = from product in productQuery
                                 join brand in brandQuery on product.BrandId equals brand.Id
                                 select new
@@ -976,28 +960,10 @@ namespace MeoMeo.Application.Services
                                     product.UpdatedBy
                                 };
 
-                // Apply sorting
-                switch (request.SortField)
-                {
-                    case EProductSortField.Name:
-                        mainQuery = request.SortDirection == ESortDirection.Desc
-                            ? mainQuery.OrderByDescending(x => x.Name)
-                            : mainQuery.OrderBy(x => x.Name);
-                        break;
-                    case EProductSortField.Price:
-                        // Note: Price sorting would need to be implemented differently since price is in variants
-                        mainQuery = mainQuery.OrderByDescending(x => x.CreationTime);
-                        break;
-                    case EProductSortField.CreationTime:
-                        mainQuery = request.SortDirection == ESortDirection.Desc
-                            ? mainQuery.OrderByDescending(x => x.CreationTime)
-                            : mainQuery.OrderBy(x => x.CreationTime);
-                        break;
-                    default:
-                        mainQuery = mainQuery.OrderByDescending(x => x.CreationTime);
-                        break;
-                }
+                // Step 5: Apply sorting
+                mainQuery = ApplySorting(mainQuery, request);
 
+                // Step 6: Count and paginate
                 var totalRecords = await mainQuery.CountAsync();
                 var mainResults = await mainQuery
                     .Skip((request.PageIndex - 1) * request.PageSize)
@@ -1005,96 +971,6 @@ namespace MeoMeo.Application.Services
                     .ToListAsync();
 
                 var productIds = mainResults.Select(x => x.Id).ToList();
-
-                // Apply additional filters based on related data
-                if (request.CategoryFilter.HasValue || request.MaterialFilter.HasValue || request.SeasonFilter.HasValue ||
-                    request.SizeFilter.HasValue || request.ColourFilter.HasValue || request.MinPriceFilter.HasValue || request.MaxPriceFilter.HasValue)
-                {
-                    var filteredProductIds = new List<Guid>();
-
-                    // Get all product details for filtering
-                    var allProductDetails = await _productDetailRepository.Query()
-                        .Where(pd => productIds.Contains(pd.ProductId))
-                        .Include(pd => pd.Size)
-                        .Include(pd => pd.Colour)
-                        .ToListAsync();
-
-                    // Apply size filter
-                    if (request.SizeFilter.HasValue)
-                    {
-                        allProductDetails = allProductDetails.Where(pd => pd.SizeId == request.SizeFilter.Value).ToList();
-                    }
-
-                    // Apply color filter
-                    if (request.ColourFilter.HasValue)
-                    {
-                        allProductDetails = allProductDetails.Where(pd => pd.ColourId == request.ColourFilter.Value).ToList();
-                    }
-
-                    // Apply price range filter
-                    if (request.MinPriceFilter.HasValue || request.MaxPriceFilter.HasValue)
-                    {
-                        if (request.MinPriceFilter.HasValue)
-                        {
-                            allProductDetails = allProductDetails.Where(pd => pd.Price >= (float)request.MinPriceFilter.Value).ToList();
-                        }
-                        if (request.MaxPriceFilter.HasValue)
-                        {
-                            allProductDetails = allProductDetails.Where(pd => pd.Price <= (float)request.MaxPriceFilter.Value).ToList();
-                        }
-                    }
-
-                    // Get filtered product IDs
-                    var filteredIds = allProductDetails.Select(pd => pd.ProductId).Distinct().ToList();
-
-                    // Apply category filter
-                    if (request.CategoryFilter.HasValue)
-                    {
-                        var categoryProductIds = await _productCategoryRepository.Query()
-                            .Where(pc => pc.CategoryId == request.CategoryFilter.Value && filteredIds.Contains(pc.ProductId))
-                            .Select(pc => pc.ProductId)
-                            .Distinct()
-                            .ToListAsync();
-                        filteredIds = filteredIds.Intersect(categoryProductIds).ToList();
-                    }
-
-                    // Apply material filter
-                    if (request.MaterialFilter.HasValue)
-                    {
-                        var materialProductIds = await _productMaterialRepository.Query()
-                            .Where(pm => pm.MaterialId == request.MaterialFilter.Value && filteredIds.Contains(pm.ProductId))
-                            .Select(pm => pm.ProductId)
-                            .Distinct()
-                            .ToListAsync();
-                        filteredIds = filteredIds.Intersect(materialProductIds).ToList();
-                    }
-
-                    // Apply season filter
-                    if (request.SeasonFilter.HasValue)
-                    {
-                        var seasonProductIds = await _productSeasonRepository.Query()
-                            .Where(ps => ps.SeasonId == request.SeasonFilter.Value && filteredIds.Contains(ps.ProductId))
-                            .Select(ps => ps.ProductId)
-                            .Distinct()
-                            .ToListAsync();
-                        filteredIds = filteredIds.Intersect(seasonProductIds).ToList();
-                    }
-
-                    // Update mainResults to only include filtered products
-                    mainResults = mainResults.Where(m => filteredIds.Contains(m.Id)).ToList();
-                    productIds = mainResults.Select(x => x.Id).ToList();
-                }
-
-                // CRITICAL: Filter products that have at least one variant with status = Selling
-                var productsWithSellingVariants = await _productDetailRepository.Query()
-                    .Where(pd => productIds.Contains(pd.ProductId) && pd.Status == EProductStatus.Selling)
-                    .Select(pd => pd.ProductId)
-                    .Distinct()
-                    .ToListAsync();
-
-                // Update mainResults to only include products with selling variants
-                mainResults = mainResults.Where(m => productsWithSellingVariants.Contains(m.Id)).ToList();
-                productIds = mainResults.Select(x => x.Id).ToList();
 
                 // Batch queries for related data
                 var variantsDict = await _productDetailRepository.Query()
@@ -1115,6 +991,17 @@ namespace MeoMeo.Application.Services
                     .Where(b => allVariantIds.Contains(b.ProductDetailId) && b.Status == EInventoryBatchStatus.Approved)
                     .GroupBy(b => b.ProductDetailId)
                     .ToDictionaryAsync(g => g.Key, g => g.Sum(x => x.Quantity));
+
+                // Get active promotions for all variants
+                var now = DateTime.Now;
+                var activePromotionsDict = await _promotionDetailRepository.Query()
+                    .Where(pd => allVariantIds.Contains(pd.ProductDetailId) &&
+                               pd.Promotion != null &&
+                               pd.Promotion.StartDate <= now &&
+                               pd.Promotion.EndDate >= now)
+                    .Include(pd => pd.Promotion)
+                    .GroupBy(pd => pd.ProductDetailId)
+                    .ToDictionaryAsync(g => g.Key, g => g.OrderByDescending(pd => pd.Discount).First());
 
                 var materialIdsDict = await _productMaterialRepository.Query()
                     .Where(pm => productIds.Contains(pm.ProductId))
@@ -1184,30 +1071,27 @@ namespace MeoMeo.Application.Services
                         CategoryNames = categoryIds.Select(id => categoriesDict.GetValueOrDefault(id, string.Empty)).ToList(),
                         SeasonIds = seasonIds,
                         SeasonNames = seasonIds.Select(id => seasonsDict.GetValueOrDefault(id, string.Empty)).ToList(),
-                        // Set variants with inventory quantity
+                        // Set variants with inventory quantity and discount
                         ProductVariants = variants.Select(v =>
                         {
                             var dto = _mapper.Map<ProductDetailGrid>(v);
                             dto.InventoryQuantity = inventoryQuantityByVariantId.TryGetValue(v.Id, out var qty) ? qty : 0;
+
+                            // Set discount for this variant
+                            var activePromotion = activePromotionsDict.TryGetValue(v.Id, out var promo) ? promo : null;
+                            dto.Discount = activePromotion?.Discount;
+
                             return dto;
                         }).ToList(),
+                        // Calculate MaxDiscount for the product (maximum discount among all variants)
+                        MaxDiscount = variants.Any() ? variants.Max(v =>
+                        {
+                            var activePromotion = activePromotionsDict.TryGetValue(v.Id, out var promo) ? promo : null;
+                            return activePromotion?.Discount ?? 0f;
+                        }) : 0f,
                         Media = _mapper.Map<List<ProductMediaUpload>>(images)
                     };
                 }).ToList();
-
-                // Calculate metadata counts from ALL products in database (fixed numbers, not affected by filters)
-                var totalAllProducts = await _repository.Query().CountAsync();
-
-                // Get status counts in one query for better performance
-                var statusCounts = await _productDetailRepository.Query()
-                    .GroupBy(pd => pd.Status)
-                    .Select(g => new { Status = g.Key, Count = g.Select(x => x.ProductId).Distinct().Count() })
-                    .ToListAsync();
-
-                var sellingCount = statusCounts.FirstOrDefault(x => x.Status == EProductStatus.Selling)?.Count ?? 0;
-                var stopSellingCount = statusCounts.FirstOrDefault(x => x.Status == EProductStatus.StopSelling)?.Count ?? 0;
-                var pendingCount = statusCounts.FirstOrDefault(x => x.Status == EProductStatus.Pending)?.Count ?? 0;
-                var rejectedCount = statusCounts.FirstOrDefault(x => x.Status == EProductStatus.Rejected)?.Count ?? 0;
 
                 return new PagingExtensions.PagedResult<ProductResponseDTO, GetListProductResponseDTO>
                 {
@@ -1217,11 +1101,11 @@ namespace MeoMeo.Application.Services
                     Items = items,
                     Metadata = new GetListProductResponseDTO
                     {
-                        TotalAll = totalAllProducts,
-                        Selling = sellingCount,
-                        StopSelling = stopSellingCount,
-                        Pending = pendingCount,
-                        Rejected = rejectedCount
+                        TotalAll = totalRecords,
+                        Selling = 0,
+                        StopSelling = 0,
+                        Pending = 0,
+                        Rejected = 0
                     }
                 };
             }
@@ -1229,6 +1113,138 @@ namespace MeoMeo.Application.Services
             {
                 Console.WriteLine($"Error in GetPagedProductsForPortalAsync: {ex.Message}");
                 throw;
+            }
+        }
+
+
+        /// <summary>
+        /// Apply complex filters (Category, Material, Season, Size, Color, Price, SKU, ClosureType, AllowReturn)
+        /// </summary>
+        private async Task<List<Guid>> ApplyComplexFiltersAsync(GetListProductRequestDTO request, List<Guid> productsWithSellingVariants)
+        {
+            var hasComplexFilters = request.CategoryFilter.HasValue ||
+                                  request.MaterialFilter.HasValue ||
+                                  request.SeasonFilter.HasValue ||
+                                  request.SizeFilter.HasValue ||
+                                  request.ColourFilter.HasValue ||
+                                  request.MinPriceFilter.HasValue ||
+                                  request.MaxPriceFilter.HasValue ||
+                                  !string.IsNullOrEmpty(request.SKUFilter) ||
+                                  request.ClosureTypeFilter.HasValue ||
+                                  request.AllowReturnFilter.HasValue;
+
+            if (!hasComplexFilters)
+            {
+                return productsWithSellingVariants;
+            }
+
+            // Get all product details for filtering
+            var allProductDetails = await _productDetailRepository.Query()
+                .Where(pd => productsWithSellingVariants.Contains(pd.ProductId))
+                .Include(pd => pd.Size)
+                .Include(pd => pd.Colour)
+                .ToListAsync();
+
+            // Apply variant-level filters
+            if (!string.IsNullOrEmpty(request.SKUFilter))
+            {
+                allProductDetails = allProductDetails.Where(pd =>
+                    pd.Sku.Contains(request.SKUFilter, StringComparison.OrdinalIgnoreCase)).ToList();
+            }
+
+            if (request.ClosureTypeFilter.HasValue)
+            {
+                allProductDetails = allProductDetails.Where(pd => pd.ClosureType == request.ClosureTypeFilter.Value).ToList();
+            }
+
+            if (request.AllowReturnFilter.HasValue)
+            {
+                allProductDetails = allProductDetails.Where(pd => pd.AllowReturn == request.AllowReturnFilter.Value).ToList();
+            }
+
+            if (request.SizeFilter.HasValue)
+            {
+                allProductDetails = allProductDetails.Where(pd => pd.SizeId == request.SizeFilter.Value).ToList();
+            }
+
+            if (request.ColourFilter.HasValue)
+            {
+                allProductDetails = allProductDetails.Where(pd => pd.ColourId == request.ColourFilter.Value).ToList();
+            }
+
+            // Apply price range filter
+            if (request.MinPriceFilter.HasValue || request.MaxPriceFilter.HasValue)
+            {
+                if (request.MinPriceFilter.HasValue)
+                {
+                    allProductDetails = allProductDetails.Where(pd => pd.Price >= (float)request.MinPriceFilter.Value).ToList();
+                }
+                if (request.MaxPriceFilter.HasValue)
+                {
+                    allProductDetails = allProductDetails.Where(pd => pd.Price <= (float)request.MaxPriceFilter.Value).ToList();
+                }
+            }
+
+            // Get filtered product IDs
+            var filteredIds = allProductDetails.Select(pd => pd.ProductId).Distinct().ToList();
+
+            // Apply product-level filters
+            if (request.CategoryFilter.HasValue)
+            {
+                var categoryProductIds = await _productCategoryRepository.Query()
+                    .Where(pc => pc.CategoryId == request.CategoryFilter.Value && filteredIds.Contains(pc.ProductId))
+                    .Select(pc => pc.ProductId)
+                    .Distinct()
+                    .ToListAsync();
+                filteredIds = filteredIds.Intersect(categoryProductIds).ToList();
+            }
+
+            if (request.MaterialFilter.HasValue)
+            {
+                var materialProductIds = await _productMaterialRepository.Query()
+                    .Where(pm => pm.MaterialId == request.MaterialFilter.Value && filteredIds.Contains(pm.ProductId))
+                    .Select(pm => pm.ProductId)
+                    .Distinct()
+                    .ToListAsync();
+                filteredIds = filteredIds.Intersect(materialProductIds).ToList();
+            }
+
+            if (request.SeasonFilter.HasValue)
+            {
+                var seasonProductIds = await _productSeasonRepository.Query()
+                    .Where(ps => ps.SeasonId == request.SeasonFilter.Value && filteredIds.Contains(ps.ProductId))
+                    .Select(ps => ps.ProductId)
+                    .Distinct()
+                    .ToListAsync();
+                filteredIds = filteredIds.Intersect(seasonProductIds).ToList();
+            }
+
+            return filteredIds;
+        }
+
+        /// <summary>
+        /// Apply sorting to the main query
+        /// </summary>
+        private IQueryable<T> ApplySorting<T>(IQueryable<T> query, GetListProductRequestDTO request) where T : class
+        {
+            switch (request.SortField)
+            {
+                case EProductSortField.Name:
+                    return request.SortDirection == ESortDirection.Desc
+                        ? query.OrderByDescending(x => EF.Property<string>(x, "Name"))
+                        : query.OrderBy(x => EF.Property<string>(x, "Name"));
+
+                case EProductSortField.Price:
+                    // Note: Price sorting would need to be implemented differently since price is in variants
+                    return query.OrderByDescending(x => EF.Property<DateTime>(x, "CreationTime"));
+
+                case EProductSortField.CreationTime:
+                    return request.SortDirection == ESortDirection.Desc
+                        ? query.OrderByDescending(x => EF.Property<DateTime>(x, "CreationTime"))
+                        : query.OrderBy(x => EF.Property<DateTime>(x, "CreationTime"));
+
+                default:
+                    return query.OrderByDescending(x => EF.Property<DateTime>(x, "CreationTime"));
             }
         }
 
@@ -1331,8 +1347,60 @@ namespace MeoMeo.Application.Services
                 response.SeasonIds = seasonIds;
                 response.SeasonNames = seasons.Select(s => s.Name).ToList();
 
-                // Set variants and media using AutoMapper
-                response.ProductVariants = _mapper.Map<List<ProductDetailGrid>>(variants);
+                // Set variants with proper mapping (manual mapping to ensure SizeName and ColourName are set)
+                response.ProductVariants = variants.Select(v => new ProductDetailGrid
+                {
+                    Id = v.Id,
+                    ProductId = v.ProductId,
+                    Sku = v.Sku,
+                    SizeId = v.SizeId,
+                    SizeName = v.Size?.Value ?? string.Empty,
+                    ColourId = v.ColourId,
+                    ColourName = v.Colour?.Name ?? string.Empty,
+                    Price = v.Price,
+                    Discount = null, // Will be set below
+                    OutOfStock = v.OutOfStock,
+                    StockHeight = v.StockHeight,
+                    ClosureType = v.ClosureType,
+                    SellNumber = v.SellNumber,
+                    ViewNumber = v.ViewNumber,
+                    AllowReturn = v.AllowReturn,
+                    Status = v.Status,
+                    InventoryQuantity = 0, // Will be calculated below
+                    Weight = v.Weight,
+                    Length = v.Length,
+                    Width = v.Width,
+                    Height = v.Height,
+                    MaxBuyPerOrder = v.MaxBuyPerOrder
+                }).ToList();
+
+                // Calculate inventory quantity for each variant
+                var variantIds = variants.Select(v => v.Id).ToList();
+                var inventoryQuantityByVariantId = await _inventoryBatchRepository.Query()
+                    .Where(b => variantIds.Contains(b.ProductDetailId) && b.Status == EInventoryBatchStatus.Approved)
+                    .GroupBy(b => b.ProductDetailId)
+                    .ToDictionaryAsync(g => g.Key, g => g.Sum(x => x.Quantity));
+
+                // Get active promotions for variants
+                var now = DateTime.Now;
+                var activePromotionsDict = await _promotionDetailRepository.Query()
+                    .Where(pd => variantIds.Contains(pd.ProductDetailId) &&
+                               pd.Promotion != null &&
+                               pd.Promotion.StartDate <= now &&
+                               pd.Promotion.EndDate >= now)
+                    .Include(pd => pd.Promotion)
+                    .GroupBy(pd => pd.ProductDetailId)
+                    .ToDictionaryAsync(g => g.Key, g => g.OrderByDescending(pd => pd.Discount).First());
+
+                // Update variants with inventory quantity and discount
+                foreach (var variant in response.ProductVariants)
+                {
+                    variant.InventoryQuantity = inventoryQuantityByVariantId.TryGetValue(variant.Id ?? Guid.Empty, out var qty) ? qty : 0;
+
+                    var activePromotion = activePromotionsDict.TryGetValue(variant.Id ?? Guid.Empty, out var promo) ? promo : null;
+                    variant.Discount = activePromotion?.Discount;
+                }
+
                 response.Media = _mapper.Map<List<ProductMediaUpload>>(images);
 
                 // Set min/max prices and discount
@@ -1340,25 +1408,32 @@ namespace MeoMeo.Application.Services
                 {
                     response.MinPrice = variants.Min(v => v.Price);
                     response.MaxPrice = variants.Max(v => v.Price);
-                    // TODO: Calculate discount from promotions
-                    response.MaxDiscount = 0;
+
+                    // Calculate MaxDiscount from variants
+                    response.MaxDiscount = response.ProductVariants.Any() ?
+                        response.ProductVariants.Max(v => v.Discount ?? 0f) : 0f;
+
                     response.SaleNumber = variants.Sum(v => v.SellNumber ?? 0);
                 }
 
                 // Calculate rating and rating breakdown from reviews
-                var variantIds = variants.Select(v => v.Id).ToList();
                 var reviews = await _reviewRepository.Query()
                     .Where(r => variantIds.Contains(r.ProductDetailId) && !r.IsHidden)
                     .ToListAsync();
 
                 if (reviews.Any())
                 {
-                    response.Rating = (decimal)reviews.Average(r => r.Rating);
+                    // Tính trung bình cộng của tất cả reviews
+                    var averageRating = reviews.Average(r => r.Rating);
+                    response.Rating = (decimal)averageRating;
                     response.Rating1 = reviews.Count(r => Math.Round(r.Rating) == 1);
                     response.Rating2 = reviews.Count(r => Math.Round(r.Rating) == 2);
                     response.Rating3 = reviews.Count(r => Math.Round(r.Rating) == 3);
                     response.Rating4 = reviews.Count(r => Math.Round(r.Rating) == 4);
                     response.Rating5 = reviews.Count(r => Math.Round(r.Rating) == 5);
+
+                    // Debug logging
+                    _logger.LogInformation($"Product {id}: Reviews count = {reviews.Count}, Average rating = {averageRating}, Final rating = {response.Rating}");
                 }
                 else
                 {
@@ -1409,40 +1484,58 @@ namespace MeoMeo.Application.Services
             var startOfWeek = DateTime.Today.AddDays(-(int)DateTime.Today.DayOfWeek + (int)DayOfWeek.Monday);
             var endOfWeek = startOfWeek.AddDays(7);
 
-            var soldByProduct = await _orderDetailRepository.Query()
+            // Lấy sản phẩm bán chạy với thông tin ProductDetail được bán nhiều nhất
+            var soldByProductDetail = await _orderDetailRepository.Query()
                 .Include(od => od.Order)
+                .Include(od => od.ProductDetail)
+                .ThenInclude(pd => pd.Size)
+                .Include(od => od.ProductDetail)
+                .ThenInclude(pd => pd.Colour)
                 .Where(od => od.Order != null && od.Order.CreationTime >= startOfWeek && od.Order.CreationTime < endOfWeek)
-                .GroupBy(od => od.ProductDetail.ProductId)
-                .Select(g => new { ProductId = g.Key, TotalSold = g.Sum(x => x.Quantity) })
+                .GroupBy(od => new
+                {
+                    ProductId = od.ProductDetail.ProductId,
+                    ProductDetailId = od.ProductDetail.Id,
+                    SizeValue = od.ProductDetail.Size.Value,
+                    ColourName = od.ProductDetail.Colour.Name,
+                    Price = od.ProductDetail.Price,
+                    Discount = od.Discount
+                })
+                .Select(g => new
+                {
+                    ProductId = g.Key.ProductId,
+                    ProductDetailId = g.Key.ProductDetailId,
+                    SizeValue = g.Key.SizeValue,
+                    ColourName = g.Key.ColourName,
+                    Price = g.Key.Price,
+                    Discount = g.Key.Discount,
+                    TotalSold = g.Sum(x => x.Quantity)
+                })
                 .OrderByDescending(x => x.TotalSold)
                 .Take(take)
                 .ToListAsync();
 
-            var productIds = soldByProduct.Select(x => x.ProductId).ToList();
+            var productIds = soldByProductDetail.Select(x => x.ProductId).Distinct().ToList();
             var products = await _repository.Query()
                 .Where(p => productIds.Contains(p.Id))
                 .ToDictionaryAsync(p => p.Id, p => p);
 
-            var minMaxPrices = await _productDetailRepository.Query()
-                .Where(pd => productIds.Contains(pd.ProductId))
-                .GroupBy(pd => pd.ProductId)
-                .Select(g => new { ProductId = g.Key, MinPrice = g.Min(x => x.Price), MaxPrice = g.Max(x => x.Price) })
-                .ToListAsync();
-            var priceDict = minMaxPrices.ToDictionary(x => x.ProductId, x => (Min: (float?)x.MinPrice, Max: (float?)x.MaxPrice));
-
             var results = new List<BestSellerItemDTO>();
-            foreach (var item in soldByProduct)
+            foreach (var item in soldByProductDetail)
             {
                 if (products.TryGetValue(item.ProductId, out var product))
                 {
                     results.Add(new BestSellerItemDTO
                     {
                         ProductId = product.Id,
+                        ProductDetailId = item.ProductDetailId,
                         Name = product.Name,
                         Thumbnail = product.Thumbnail,
                         TotalSold = item.TotalSold,
-                        MinPrice = priceDict.ContainsKey(product.Id) ? priceDict[product.Id].Min : null,
-                        MaxPrice = priceDict.ContainsKey(product.Id) ? priceDict[product.Id].Max : null
+                        Price = item.Price,
+                        Discount = item.Discount,
+                        SizeValue = item.SizeValue,
+                        ColourName = item.ColourName
                     });
                 }
             }
@@ -1686,11 +1779,19 @@ namespace MeoMeo.Application.Services
 
             foreach (var category in categories)
             {
-                // Lấy 4 sản phẩm đầu tiên của mỗi category với thông tin brand
+                // Step 1: Lấy sản phẩm có variants đang bán (giống như Portal API)
+                var productsWithSellingVariants = await _productDetailRepository.Query()
+                    .Where(pd => pd.Status == EProductStatus.Selling)
+                    .Select(pd => pd.ProductId)
+                    .Distinct()
+                    .ToListAsync();
+
+                // Step 2: Lấy 4 sản phẩm đầu tiên của mỗi category với thông tin brand và chỉ lấy những sản phẩm có variants đang bán
                 var mainQuery = from product in _repository.Query()
                                 join brand in _brandRepository.Query() on product.BrandId equals brand.Id
                                 join productCategory in _productCategoryRepository.Query() on product.Id equals productCategory.ProductId
                                 where productCategory.CategoryId == category.Id
+                                      && productsWithSellingVariants.Contains(product.Id)
                                 select new
                                 {
                                     product.Id,
@@ -1717,13 +1818,31 @@ namespace MeoMeo.Application.Services
                     continue;
                 }
 
-                // Batch queries for related data (giống như GetPagedProductsAsync)
+                // Batch queries for related data (giống như GetPagedProductsAsync) - chỉ lấy variants đang bán
                 var variantsDict = await _productDetailRepository.Query()
-                    .Where(pd => productIds.Contains(pd.ProductId))
+                    .Where(pd => productIds.Contains(pd.ProductId) && pd.Status == EProductStatus.Selling)
                     .Include(pd => pd.Size)
                     .Include(pd => pd.Colour)
                     .GroupBy(pd => pd.ProductId)
                     .ToDictionaryAsync(g => g.Key, g => g.ToList());
+
+                // Get all variant IDs for promotion query
+                var allVariantIds = variantsDict.Values
+                    .SelectMany(v => v)
+                    .Select(v => v.Id)
+                    .Distinct()
+                    .ToList();
+
+                // Get active promotions for all variants
+                var now = DateTime.Now;
+                var activePromotionsDict = await _promotionDetailRepository.Query()
+                    .Where(pd => allVariantIds.Contains(pd.ProductDetailId) &&
+                               pd.Promotion != null &&
+                               pd.Promotion.StartDate <= now &&
+                               pd.Promotion.EndDate >= now)
+                    .Include(pd => pd.Promotion)
+                    .GroupBy(pd => pd.ProductDetailId)
+                    .ToDictionaryAsync(g => g.Key, g => g.OrderByDescending(pd => pd.Discount).First());
 
                 var materialIdsDict = await _productMaterialRepository.Query()
                     .Where(pm => productIds.Contains(pm.ProductId))
@@ -1793,8 +1912,23 @@ namespace MeoMeo.Application.Services
                         CategoryNames = categoryIds.Select(id => categoriesDict.GetValueOrDefault(id, string.Empty)).ToList(),
                         SeasonIds = seasonIds,
                         SeasonNames = seasonIds.Select(id => seasonsDict.GetValueOrDefault(id, string.Empty)).ToList(),
-                        // Set variants
-                        ProductVariants = variants.Select(v => _mapper.Map<ProductDetailGrid>(v)).ToList(),
+                        // Set variants with discount
+                        ProductVariants = variants.Select(v =>
+                        {
+                            var dto = _mapper.Map<ProductDetailGrid>(v);
+
+                            // Set discount for this variant
+                            var activePromotion = activePromotionsDict.TryGetValue(v.Id, out var promo) ? promo : null;
+                            dto.Discount = activePromotion?.Discount;
+
+                            return dto;
+                        }).ToList(),
+                        // Calculate MaxDiscount for the product (maximum discount among all variants)
+                        MaxDiscount = variants.Any() ? variants.Max(v =>
+                        {
+                            var activePromotion = activePromotionsDict.TryGetValue(v.Id, out var promo) ? promo : null;
+                            return activePromotion?.Discount ?? 0f;
+                        }) : 0f,
                         Media = _mapper.Map<List<ProductMediaUpload>>(images),
                         // Set min/max prices
                         MinPrice = variants.Any() ? variants.Min(v => v.Price) : null,
@@ -2140,6 +2274,205 @@ namespace MeoMeo.Application.Services
                 await _unitOfWork.RollbackAsync();
                 _logger.LogError(ex, "Error deleting product detail {Id}: {Message}", id, ex.Message);
                 return false;
+            }
+        }
+
+        public async Task<List<ProductResponseDTO>> GetRelatedProductsAsync(Guid productId, int pageSize = 4)
+        {
+            try
+            {
+                // Lấy categories của sản phẩm hiện tại
+                var categoryIds = await _productCategoryRepository.Query()
+                    .Where(pc => pc.ProductId == productId)
+                    .Select(pc => pc.CategoryId)
+                    .ToListAsync();
+
+                List<Guid> productIds = new List<Guid>();
+
+                if (categoryIds.Any())
+                {
+                    // Lấy sản phẩm từ cùng categories và có tồn kho > 0
+                    productIds = await _productCategoryRepository.Query()
+                        .Where(pc => categoryIds.Contains(pc.CategoryId) && pc.ProductId != productId)
+                        .Join(_productDetailRepository.Query(), pc => pc.ProductId, pd => pd.ProductId, (pc, pd) => new { pc.ProductId, pd.Status })
+                        .Where(x => x.Status == EProductStatus.Selling)
+                        .Join(_inventoryBatchRepository.Query(), x => x.ProductId, ib => ib.ProductDetailId, (x, ib) => new { x.ProductId, ib.Status, ib.Quantity })
+                        .Where(x => x.Status == EInventoryBatchStatus.Approved && x.Quantity > 0)
+                        .Select(x => x.ProductId)
+                        .Distinct()
+                        .Take(pageSize)
+                        .ToListAsync();
+                }
+
+                // Nếu không đủ, bổ sung sản phẩm ngẫu nhiên có tồn kho > 0
+                if (productIds.Count < pageSize)
+                {
+                    var additionalIds = await _repository.Query()
+                        .Where(p => p.Id != productId && !productIds.Contains(p.Id))
+                        .Join(_productDetailRepository.Query(), p => p.Id, pd => pd.ProductId, (p, pd) => new { p.Id, pd.Status })
+                        .Where(x => x.Status == EProductStatus.Selling)
+                        .Join(_inventoryBatchRepository.Query(), x => x.Id, ib => ib.ProductDetailId, (x, ib) => new { x.Id, ib.Status, ib.Quantity })
+                        .Where(x => x.Status == EInventoryBatchStatus.Approved && x.Quantity > 0)
+                        .Select(x => x.Id)
+                        .Distinct()
+                        .OrderBy(p => Guid.NewGuid())
+                        .Take(pageSize - productIds.Count)
+                        .ToListAsync();
+
+                    productIds.AddRange(additionalIds);
+                }
+
+                if (!productIds.Any())
+                    return new List<ProductResponseDTO>();
+
+                // Build main query with joins (y nguyên từ GetPagedProductsForPortalAsync)
+                var productQuery = _repository.Query().Where(p => productIds.Contains(p.Id));
+                var brandQuery = _brandRepository.Query();
+
+                var mainQuery = from product in productQuery
+                                join brand in brandQuery on product.BrandId equals brand.Id
+                                select new
+                                {
+                                    product.Id,
+                                    product.Name,
+                                    product.BrandId,
+                                    BrandName = brand.Name,
+                                    product.Thumbnail,
+                                    product.CreationTime,
+                                    product.LastModificationTime,
+                                    product.CreatedBy,
+                                    product.UpdatedBy
+                                };
+
+                var mainResults = await mainQuery.ToListAsync();
+
+                // Batch queries for related data (y nguyên từ GetPagedProductsForPortalAsync)
+                var variantsDict = await _productDetailRepository.Query()
+                    .Where(pd => productIds.Contains(pd.ProductId) && pd.Status == EProductStatus.Selling)
+                    .Include(pd => pd.Size)
+                    .Include(pd => pd.Colour)
+                    .GroupBy(pd => pd.ProductId)
+                    .ToDictionaryAsync(g => g.Key, g => g.ToList());
+
+                // Compute inventory quantity per variant
+                var allVariantIds = variantsDict.Values
+                    .SelectMany(v => v)
+                    .Select(v => v.Id)
+                    .Distinct()
+                    .ToList();
+
+                var inventoryQuantityByVariantId = await _inventoryBatchRepository.Query()
+                    .Where(b => allVariantIds.Contains(b.ProductDetailId) && b.Status == EInventoryBatchStatus.Approved)
+                    .GroupBy(b => b.ProductDetailId)
+                    .ToDictionaryAsync(g => g.Key, g => g.Sum(x => x.Quantity));
+
+                // Get active promotions for all variants
+                var now = DateTime.Now;
+                var activePromotionsDict = await _promotionDetailRepository.Query()
+                    .Where(pd => allVariantIds.Contains(pd.ProductDetailId) &&
+                               pd.Promotion != null &&
+                               pd.Promotion.StartDate <= now &&
+                               pd.Promotion.EndDate >= now)
+                    .Include(pd => pd.Promotion)
+                    .GroupBy(pd => pd.ProductDetailId)
+                    .ToDictionaryAsync(g => g.Key, g => g.OrderByDescending(pd => pd.Discount).First());
+
+                var materialIdsDict = await _productMaterialRepository.Query()
+                    .Where(pm => productIds.Contains(pm.ProductId))
+                    .GroupBy(pm => pm.ProductId)
+                    .ToDictionaryAsync(g => g.Key, g => g.Select(pm => pm.MaterialId).ToList());
+
+                var categoryIdsDict = await _productCategoryRepository.Query()
+                    .Where(pc => productIds.Contains(pc.ProductId))
+                    .GroupBy(pc => pc.ProductId)
+                    .ToDictionaryAsync(g => g.Key, g => g.Select(pc => pc.CategoryId).ToList());
+
+                var seasonIdsDict = await _productSeasonRepository.Query()
+                    .Where(ps => productIds.Contains(ps.ProductId))
+                    .GroupBy(ps => ps.ProductId)
+                    .ToDictionaryAsync(g => g.Key, g => g.Select(ps => ps.SeasonId).ToList());
+
+                var imageIdsDict = await _imageRepository.Query()
+                    .Where(i => productIds.Contains(i.ProductId))
+                    .GroupBy(i => i.ProductId)
+                    .ToDictionaryAsync(g => g.Key, g => g.ToList());
+
+                var allMaterialIds = materialIdsDict.Values.SelectMany(x => x).Distinct().ToList();
+                var allCategoryIds = categoryIdsDict.Values.SelectMany(x => x).Distinct().ToList();
+                var allSeasonIds = seasonIdsDict.Values.SelectMany(x => x).Distinct().ToList();
+
+                var materialsDict = await _materialRepository.Query()
+                    .Where(m => allMaterialIds.Contains(m.Id))
+                    .ToDictionaryAsync(m => m.Id, m => m.Name);
+
+                var categoriesDict = await _categoryRepository.Query()
+                    .Where(c => allCategoryIds.Contains(c.Id))
+                    .ToDictionaryAsync(c => c.Id, c => c.Name);
+
+                var seasonsDict = await _seasonRepository.Query()
+                    .Where(s => allSeasonIds.Contains(s.Id))
+                    .ToDictionaryAsync(s => s.Id, s => s.Name);
+
+                // Build response (y nguyên từ GetPagedProductsForPortalAsync)
+                var items = mainResults.Select(main =>
+                {
+                    var variants = variantsDict.TryGetValue(main.Id, out var variantList) ? variantList : new List<ProductDetail>();
+                    var materialIds = materialIdsDict.TryGetValue(main.Id, out var matIds) ? matIds : new List<Guid>();
+                    var categoryIds = categoryIdsDict.TryGetValue(main.Id, out var catIds) ? catIds : new List<Guid>();
+                    var seasonIds = seasonIdsDict.TryGetValue(main.Id, out var seaIds) ? seaIds : new List<Guid>();
+                    var images = imageIdsDict.TryGetValue(main.Id, out var imgList) ? imgList : new List<Image>();
+
+                    return new ProductResponseDTO
+                    {
+                        Id = main.Id,
+                        Name = main.Name,
+                        BrandId = main.BrandId,
+                        BrandName = main.BrandName,
+                        Thumbnail = main.Thumbnail,
+                        CreationTime = main.CreationTime,
+                        LastModificationTime = main.LastModificationTime,
+                        CreatedBy = main.CreatedBy,
+                        UpdatedBy = main.UpdatedBy,
+
+                        // Set related collections
+                        SizeIds = variants.Select(v => v.SizeId).Distinct().ToList(),
+                        SizeValues = variants.Select(v => v.Size?.Value ?? string.Empty).Distinct().ToList(),
+                        ColourIds = variants.Select(v => v.ColourId).Distinct().ToList(),
+                        ColourNames = variants.Select(v => v.Colour?.Name ?? string.Empty).Distinct().ToList(),
+                        MaterialIds = materialIds,
+                        MaterialNames = materialIds.Select(id => materialsDict.GetValueOrDefault(id, string.Empty)).ToList(),
+                        CategoryIds = categoryIds,
+                        CategoryNames = categoryIds.Select(id => categoriesDict.GetValueOrDefault(id, string.Empty)).ToList(),
+                        SeasonIds = seasonIds,
+                        SeasonNames = seasonIds.Select(id => seasonsDict.GetValueOrDefault(id, string.Empty)).ToList(),
+                        // Set variants with inventory quantity and discount
+                        ProductVariants = variants.Select(v =>
+                        {
+                            var dto = _mapper.Map<ProductDetailGrid>(v);
+                            dto.InventoryQuantity = inventoryQuantityByVariantId.TryGetValue(v.Id, out var qty) ? qty : 0;
+
+                            // Set discount for this variant
+                            var activePromotion = activePromotionsDict.TryGetValue(v.Id, out var promo) ? promo : null;
+                            dto.Discount = activePromotion?.Discount;
+
+                            return dto;
+                        }).ToList(),
+                        // Calculate MaxDiscount for the product (maximum discount among all variants)
+                        MaxDiscount = variants.Any() ? variants.Max(v =>
+                        {
+                            var activePromotion = activePromotionsDict.TryGetValue(v.Id, out var promo) ? promo : null;
+                            return activePromotion?.Discount ?? 0f;
+                        }) : 0f,
+                        Media = _mapper.Map<List<ProductMediaUpload>>(images)
+                    };
+                }).ToList();
+
+                return items;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error getting related products for product {ProductId}: {Message}", productId, ex.Message);
+                return new List<ProductResponseDTO>();
             }
         }
 

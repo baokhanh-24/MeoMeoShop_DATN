@@ -26,11 +26,14 @@ namespace MeoMeo.Contract.DTOs.Product
     public class BestSellerItemDTO
     {
         public Guid ProductId { get; set; }
+        public Guid ProductDetailId { get; set; }
         public string Name { get; set; }
         public string Thumbnail { get; set; }
         public int TotalSold { get; set; }
-        public float? MinPrice { get; set; }
-        public float? MaxPrice { get; set; }
+        public float? Price { get; set; }
+        public float? Discount { get; set; }
+        public string SizeValue { get; set; } = string.Empty;
+        public string ColourName { get; set; } = string.Empty;
     }
 
     public class CategoryHoverResponseDTO

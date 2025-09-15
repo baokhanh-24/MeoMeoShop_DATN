@@ -41,5 +41,8 @@ namespace MeoMeo.Application.IServices
         Task<ProductSearchResponseDTO?> GetProductBySkuAsync(string sku);
 
         Task<bool> DeleteProductDetailAsync(Guid id);
+
+        // Related products
+        Task<List<ProductResponseDTO>> GetRelatedProductsAsync(Guid productId, int pageSize = 4);
     }
 }

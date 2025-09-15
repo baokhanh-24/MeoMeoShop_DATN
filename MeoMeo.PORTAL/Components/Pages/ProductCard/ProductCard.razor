@@ -84,7 +84,7 @@
                             {
                                 var minPrice = product.ProductVariants.Min(v => v.Price);
                                 var maxPrice = product.ProductVariants.Max(v => v.Price);
-                                var maxDiscount = product.ProductVariants.Max(v => v.Discount ?? 0);
+                                var maxDiscount = product.MaxDiscount ?? 0;
 
 
                                 <div class="discount-badge">
@@ -102,12 +102,15 @@
                                             {
                                                 var discountedMinPrice = minPrice * (1 - maxDiscount / 100);
                                                 var discountedMaxPrice = maxPrice * (1 - maxDiscount / 100);
-                                                <span class="original-price">@(minPrice.ToString("N0")) ~ @(maxPrice.ToString("N0"))</span>
-
+                                                <span class="discounted-price">@(discountedMinPrice.ToString("N0")) ₫ ~
+                                                    @(discountedMaxPrice.ToString("N0")) ₫</span>
+                                                <span class="original-price text-muted"
+                                                    style="text-decoration: line-through; font-size: 0.9em; margin-left: 8px;">@(minPrice.ToString("N0")) ₫
+                                                    ~ @(maxPrice.ToString("N0")) ₫</span>
                                             }
                                             else
                                             {
-                                                <span> @(minPrice.ToString("N0")) ~ @(maxPrice.ToString("N0"))</span>
+                                                <span>@(minPrice.ToString("N0")) ₫ ~ @(maxPrice.ToString("N0")) ₫</span>
                                             }
                                         </span>
                                     </div>
@@ -123,11 +126,13 @@
                                             @if (maxDiscount > 0)
                                             {
                                                 var discountedPrice = maxPrice * (1 - maxDiscount / 100);
-                                                <span class="original-price"> @(maxPrice.ToString("N0"))</span>
+                                                <span class="discounted-price">@(discountedPrice.ToString("N0")) ₫</span>
+                                                <span class="original-price text-muted"
+                                                    style="text-decoration: line-through; font-size: 0.9em; margin-left: 8px;">@(maxPrice.ToString("N0")) ₫</span>
                                             }
                                             else
                                             {
-                                                <span> @(maxPrice.ToString("N0"))</span>
+                                                <span>@(maxPrice.ToString("N0")) ₫</span>
                                             }
                                         </span>
                                     </div>

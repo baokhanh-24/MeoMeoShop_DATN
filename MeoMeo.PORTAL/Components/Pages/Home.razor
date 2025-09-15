@@ -21,31 +21,34 @@
 @inject IBrandClientService BrandClientService
 @inject IMaterialClientService MaterialClientService
 @inject ISeasonClientService SeasonClientService
+@inject IAuthClientService AuthClient
+@inject ICartClientService CartClient
+@inject ICartStateService CartStateService
 
-<video autoplay muted loop playsinline >
-                <source src="videos/background.mp4" type="video/mp4">
-            </video>
+<video autoplay muted loop playsinline>
+    <source src="videos/background.mp4" type="video/mp4">
+</video>
 
 <GridRow Class="position-relative overflow-hidden bg-light-blue" Gutter="16">
 
-    <Carousel Autoplay="@TimeSpan.FromSeconds(3)" >
+    <Carousel Autoplay="@TimeSpan.FromSeconds(3)">
         <CarouselSlick>
             <div class="container">
                 <GridRow Class="align-items-center">
                     <GridCol Span="12">
-                    <div>
-                        <Title Level="1" Class="display-2 text-uppercase text-dark pb-5">Your Products Are
-                            Great.</Title>
-                        <Button Type="@ButtonType.Dashed" Class="btn-medium btn-dark text-uppercase btn-rounded"
+                        <div>
+                            <Title Level="1" Class="display-2 text-uppercase text-dark pb-5">Your Products Are
+                                Great.</Title>
+                            <Button Type="@ButtonType.Dashed" Class="btn-medium btn-dark text-uppercase btn-rounded"
                                 OnClick="@(() => NavigateToShop())">
-                            Mua Sản Phẩm
-                        </Button>
-                    </div>
+                                Mua Sản Phẩm
+                            </Button>
+                        </div>
                     </GridCol>
                     <GridCol Md="11">
-                    <div class="image-holder">
-                        <img src="images/giaynike.png" alt="banner"/>
-                    </div>
+                        <div class="image-holder">
+                            <img src="images/giaynike.png" alt="banner" />
+                        </div>
                     </GridCol>
                 </GridRow>
             </div>
@@ -54,19 +57,19 @@
             <div class="container">
                 <GridRow Class="flex-wrap align-items-center" Gutter="16">
                     <GridCol Md="12">
-                    <div class="banner-content">
-                        <Title Level="1" Class="display-2 text-uppercase text-dark pb-5">Technology Hack You Won't
-                            Get</Title>
-                        <Button Type="@ButtonType.Dashed" Class="btn-medium btn-dark text-uppercase btn-rounded"
+                        <div class="banner-content">
+                            <Title Level="1" Class="display-2 text-uppercase text-dark pb-5">Technology Hack You Won't
+                                Get</Title>
+                            <Button Type="@ButtonType.Dashed" Class="btn-medium btn-dark text-uppercase btn-rounded"
                                 OnClick="@(() => NavigateToShop())">
-                            Mua Sản Phẩm
-                        </Button>
-                    </div>
+                                Mua Sản Phẩm
+                            </Button>
+                        </div>
                     </GridCol>
                     <GridCol Md="11">
-                    <div class="image-holder">
-                        <img src="images/giaynike.png" alt="banner"/>
-                    </div>
+                        <div class="image-holder">
+                            <img src="images/giaynike.png" alt="banner" />
+                        </div>
                     </GridCol>
                 </GridRow>
             </div>
@@ -76,267 +79,347 @@
 
 <GridRow Gutter="16">
     <GridCol Span="22" Offset="1">
-<GridRow Class="padding-large" Gutter="16">
-    <GridCol Span="6" Class="pb-3">
-    <div class="icon-box d-flex">
-        <div class="icon-box-icon pe-3 pb-3">
-            <Icon Type="shopping-cart" Class="cart-outline"/>
-        </div>
-        <div class="icon-box-content">
-            <Title Level="3" Class="card-title text-uppercase text-dark">Giao hàng nhanh chóng</Title>
-            <Paragraph>Chúng tôi luôn sẵn sàng phục vụ bạn với dịch vụ tốt nhất.</Paragraph>
-        </div>
-    </div>
-    </GridCol>
-    <GridCol Span="6" Class="pb-3">
-    <div class="icon-box d-flex">
-        <div class="icon-box-icon pe-3 pb-3">
-            <Icon Type="star" Class="star-outline"/>
-        </div>
-        <div class="icon-box-content">
-            <Title Level="3" Class="card-title text-uppercase text-dark">Đảm bảo chất lượng</Title>
-            <Paragraph>Sản phẩm của chúng tôi luôn đảm bảo chất lượng hàng đầu.</Paragraph>
-        </div>
-    </div>
-    </GridCol>
-    <GridCol Span="6" Class="pb-3">
-    <div class="icon-box d-flex">
-        <div class="icon-box-icon pe-3 pb-3">
-            <Icon Type="tag" Class="price-tag"/>
-        </div>
-        <div class="icon-box-content">
-            <Title Level="3" Class="card-title text-uppercase text-dark">Ưu đãi mỗi ngày</Title>
-            <Paragraph>Nhận ưu đãi hấp dẫn mỗi ngày cho mọi sản phẩm.</Paragraph>
-        </div>
-    </div>
-    </GridCol>
-    <GridCol Span="6" Class="pb-3">
-    <div class="icon-box d-flex">
-        <div class="icon-box-icon pe-3 pb-3">
-            <Icon Type="safety" Class="shield-plus"/>
-        </div>
-        <div class="icon-box-content">
-            <Title Level="3" Class="card-title text-uppercase text-dark">Thanh toán an toàn 100%</Title>
-            <Paragraph>Bảo mật tuyệt đối trong mọi giao dịch thanh toán.</Paragraph>
-        </div>
-    </div>
-    </GridCol>
-</GridRow>
+        <GridRow Class="padding-large" Gutter="16">
+            <GridCol Span="6" Class="pb-3">
+                <div class="icon-box d-flex">
+                    <div class="icon-box-icon pe-3 pb-3">
+                        <Icon Type="shopping-cart" Class="cart-outline" />
+                    </div>
+                    <div class="icon-box-content">
+                        <Title Level="3" Class="card-title text-uppercase text-dark">Giao hàng nhanh chóng</Title>
+                        <Paragraph>Chúng tôi luôn sẵn sàng phục vụ bạn với dịch vụ tốt nhất.</Paragraph>
+                    </div>
+                </div>
+            </GridCol>
+            <GridCol Span="6" Class="pb-3">
+                <div class="icon-box d-flex">
+                    <div class="icon-box-icon pe-3 pb-3">
+                        <Icon Type="star" Class="star-outline" />
+                    </div>
+                    <div class="icon-box-content">
+                        <Title Level="3" Class="card-title text-uppercase text-dark">Đảm bảo chất lượng</Title>
+                        <Paragraph>Sản phẩm của chúng tôi luôn đảm bảo chất lượng hàng đầu.</Paragraph>
+                    </div>
+                </div>
+            </GridCol>
+            <GridCol Span="6" Class="pb-3">
+                <div class="icon-box d-flex">
+                    <div class="icon-box-icon pe-3 pb-3">
+                        <Icon Type="tag" Class="price-tag" />
+                    </div>
+                    <div class="icon-box-content">
+                        <Title Level="3" Class="card-title text-uppercase text-dark">Ưu đãi mỗi ngày</Title>
+                        <Paragraph>Nhận ưu đãi hấp dẫn mỗi ngày cho mọi sản phẩm.</Paragraph>
+                    </div>
+                </div>
+            </GridCol>
+            <GridCol Span="6" Class="pb-3">
+                <div class="icon-box d-flex">
+                    <div class="icon-box-icon pe-3 pb-3">
+                        <Icon Type="safety" Class="shield-plus" />
+                    </div>
+                    <div class="icon-box-content">
+                        <Title Level="3" Class="card-title text-uppercase text-dark">Thanh toán an toàn 100%</Title>
+                        <Paragraph>Bảo mật tuyệt đối trong mọi giao dịch thanh toán.</Paragraph>
+                    </div>
+                </div>
+            </GridCol>
+        </GridRow>
 
-<GridRow Class="product-store position-relative padding-large no-padding-top" Id="product" Gutter="16">
-    <GridCol Span="24" Class="mb-3">
-        <Menu Mode="MenuMode.Horizontal">
-            @if (categories.Any())
-            {
-                @foreach (var c in categories)
+        <GridRow Class="product-store position-relative padding-large no-padding-top" Id="product" Gutter="16">
+            <GridCol Span="5" Md="5" Sm="24">
+                <div class="advanced-filter">
+                    <Form TModel="GetListProductRequestDTO" Model="filter">
+                        <div class="filter-header">
+                            <Title Level="4" Class="filter-title">
+                                <Icon Type="filter" Class="filter-icon" />
+                                Bộ lọc sản phẩm
+                            </Title>
+                            <Button Type="@ButtonType.Text" Size="@AntDesign.ButtonSize.Small" OnClick="ResetFilter"
+                                Class="reset-btn">
+                                <Icon Type="reload" />
+                                Xóa lọc
+                            </Button>
+                        </div>
+                        <Divider Class="filter-divider" />
+
+                        <div class="filter-form">
+
+                            <!-- Danh mục sản phẩm -->
+                            <div class="filter-section">
+                                <div class="filter-section-title">
+                                    <Icon Type="appstore" Class="section-icon" />
+                                    Danh mục
+                                </div>
+                                <FormItem>
+                                    <Select TItem="MeoMeo.Domain.Entities.Category" TItemValue="Guid ?"
+                                        @bind-Value="filter.CategoryFilter"
+                                        OnSelectedItemChanged="async _ => await ApplyFilter()" DataSource="categories"
+                                        ValueName="Id" LabelName="Name" AllowClear Placeholder="Chọn danh mục"
+                                        Class="filter-select">
+                                    </Select>
+                                </FormItem>
+                            </div>
+
+                            <!-- Tìm kiếm -->
+                            <div class="filter-section">
+                                <div class="filter-section-title">
+                                    <Icon Type="search" Class="section-icon" />
+                                    Tìm kiếm
+                                </div>
+                                <FormItem>
+                                    <Search Placeholder="Tìm theo tên sản phẩm" @bind-Value="filter.NameFilter"
+                                        OnSearch="async _ => await ApplyFilter()" Class="filter-search" />
+                                </FormItem>
+                                <FormItem>
+                                    <Input Placeholder="Tìm theo mã SKU" @bind-Value="filter.SKUFilter"
+                                        @onblur="async _ => await ApplyFilter()" Class="filter-input" />
+                                </FormItem>
+                            </div>
+                        </div>
+
+                        <!-- Thương hiệu & Chất liệu -->
+                        <div class="filter-section">
+                            <div class="filter-section-title">
+                                <Icon Type="shop" Class="section-icon" />
+                                Thương hiệu & Chất liệu
+                            </div>
+                            <FormItem>
+                                <Select TItem="BrandDTO" TItemValue="Guid ?" @bind-Value="filter.BrandFilter"
+                                    OnSelectedItemChanged="async _ => await ApplyFilter()" DataSource="brands"
+                                    ValueName="Id" LabelName="Name" AllowClear Placeholder="Chọn thương hiệu"
+                                    Class="filter-select">
+                                </Select>
+                            </FormItem>
+                            <FormItem>
+                                <Select TItem="CreateOrUpdateMaterialDTO" TItemValue="Guid ?"
+                                    @bind-Value="filter.MaterialFilter"
+                                    OnSelectedItemChanged="async _ => await ApplyFilter()" DataSource="materials"
+                                    ValueName="Id" LabelName="Name" AllowClear Placeholder="Chọn chất liệu"
+                                    Class="filter-select">
+                                </Select>
+                            </FormItem>
+                        </div>
+
+                        <!-- Màu sắc & Size -->
+                        <div class="filter-section">
+                            <div class="filter-section-title">
+                                <Icon Type="bg-colors" Class="section-icon" />
+                                Màu sắc & Size
+                            </div>
+                            <FormItem>
+                                <Select TItem="ColourDTO" TItemValue="Guid ?" @bind-Value="filter.ColourFilter"
+                                    OnSelectedItemChanged="async _ => await ApplyFilter()" DataSource="colours"
+                                    ValueName="Id" LabelName="Name" AllowClear Placeholder="Chọn màu sắc"
+                                    Class="filter-select">
+                                </Select>
+                            </FormItem>
+                            <FormItem>
+                                <Select TItem="SizeDTO" TItemValue="Guid ?" @bind-Value="filter.SizeFilter"
+                                    OnSelectedItemChanged="async _ => await ApplyFilter()" DataSource="sizes"
+                                    ValueName="Id" LabelName="Value" AllowClear Placeholder="Chọn size"
+                                    Class="filter-select">
+                                </Select>
+                            </FormItem>
+                        </div>
+
+                        <!-- Giá cả -->
+                        <div class="filter-section">
+                            <div class="filter-section-title">
+                                <Icon Type="dollar" Class="section-icon" />
+                                Khoảng giá
+                            </div>
+                            <FormItem>
+                                <Select TItem="PriceRangeOption" TItemValue="int?" @bind-Value="selectedPriceRange"
+                                    OnSelectedItemChanged="OnPriceRangeChanged" AllowClear Placeholder="Chọn mức giá"
+                                    ValueName="Id" LabelName="Label" DataSource="priceRanges" Class="filter-select">
+                                </Select>
+                            </FormItem>
+                        </div>
+
+                        <!-- Mùa vụ & Đặc tính -->
+                        <div class="filter-section">
+                            <div class="filter-section-title">
+                                <Icon Type="calendar" Class="section-icon" />
+                                Mùa & Đặc tính
+                            </div>
+                            <FormItem>
+                                <Select TItem="SeasonDTO" TItemValue="Guid ?" @bind-Value="filter.SeasonFilter"
+                                    OnSelectedItemChanged="ApplyFilter" DataSource="seasons" ValueName="Id"
+                                    LabelName="Name" AllowClear Placeholder="Chọn mùa" Class="filter-select">
+                                </Select>
+                            </FormItem>
+                            <FormItem>
+                                <Select TItem="EnumOption<EClosureType>" TItemValue="EClosureType ?"
+                                    @bind-Value="filter.ClosureTypeFilter"
+                                    OnSelectedItemChanged="async _ => await ApplyFilter()" DataSource="closureTypes"
+                                    ValueName="Value" LabelName="Label" AllowClear Placeholder="Chọn kiểu đóng"
+                                    Class="filter-select">
+                                </Select>
+                            </FormItem>
+                            <FormItem>
+                                <Select TItem="BoolOption" TItemValue="bool?" @bind-Value="filter.AllowReturnFilter"
+                                    OnSelectedItemChanged="async _ => await ApplyFilter()" DataSource="boolOptions"
+                                    ValueName="Value" LabelName="Label" AllowClear Placeholder="Cho phép đổi trả"
+                                    Class="filter-select">
+                                </Select>
+                            </FormItem>
+                        </div>
+
+                        <!-- Sắp xếp -->
+                        <div class="filter-section">
+                            <div class="filter-section-title">
+                                <Icon Type="sort-ascending" Class="section-icon" />
+                                Sắp xếp
+                            </div>
+                            <FormItem>
+                                <Select TItem="EnumOption<EProductSortField>" TItemValue="EProductSortField"
+                                    @bind-Value="filter.SortField"
+                                    OnSelectedItemChanged="async _ => await ApplyFilter()" DataSource="sortFields"
+                                    ValueName="Value" LabelName="Label" Placeholder="Chọn trường sắp xếp"
+                                    Class="filter-select">
+                                </Select>
+                            </FormItem>
+                            <FormItem>
+                                <Select TItem="EnumOption<ESortDirection>" TItemValue="ESortDirection"
+                                    @bind-Value="filter.SortDirection"
+                                    OnSelectedItemChanged="async _ => await ApplyFilter()" DataSource="sortDirections"
+                                    ValueName="Value" LabelName="Label" Placeholder="Chọn chiều sắp xếp"
+                                    Class="filter-select">
+                                </Select>
+                            </FormItem>
+                        </div>
+                    </Form>
+                </div>
+            </GridCol>
+            <GridCol Span="19" Md="19" Sm="24">
+                <ProductCard LstProduct="@products" IsGridSelected="true" />
+                @if (hasMoreProducts)
                 {
-                    <MenuItem Key="@c.Id.ToString()" Title="@c.Name" OnClick="@(async _ => await OnCategorySelected(c.Id))" />
+                    <div class="mt-4 d-flex justify-content-center">
+                        <div class="load-more-icon" @onclick="LoadMoreProducts" @onclick:preventDefault="true">
+                            <i class="fas fa-chevron-down" style="font-size: 24px; color: #1890ff;"></i>
+                        </div>
+                    </div>
                 }
-                <MenuItem Key="all" Title="Tất cả" OnClick="@(async _ => await OnCategorySelected(null))" />
-            }
-        </Menu>
-    </GridCol>
-    <GridCol Span="4" Md="4" Sm="24">
-        <div class="space-coverage">
-            <Title Level="4">Bộ lọc</Title>
-            <Divider />
-            <Form TModel="GetListProductRequestDTO" Model="filter">
-                <FormItem Label="Từ khóa">
-                    <Search Placeholder="Tìm theo tên" @bind-Value="filter.NameFilter" OnSearch="async _ => await ApplyFilter()" />
-                </FormItem>
-                <FormItem Label="Mã SKU">
-                    <Input Placeholder="SKU" @bind-Value="filter.SKUFilter" @onblur="async _ => await ApplyFilter()" />
-                </FormItem>
-                <FormItem Label="Thương hiệu">
-                    <Select TItem="BrandDTO" TItemValue="Guid?"
-                            @bind-Value="filter.BrandFilter"
-                            OnSelectedItemChanged="async _ => await ApplyFilter()"
-                            DataSource="brands"
-                            ValueName="Id"
-                            LabelName="Name"
-                            AllowClear
-                            Placeholder="Chọn thương hiệu">
-                    </Select>
-                </FormItem>
-                <FormItem Label="Chất liệu">
-                    <Select TItem="CreateOrUpdateMaterialDTO" TItemValue="Guid?"
-                            @bind-Value="filter.MaterialFilter"
-                            OnSelectedItemChanged="async _ => await ApplyFilter()"
-                            DataSource="materials"
-                            ValueName="Id"
-                            LabelName="Name"
-                            AllowClear
-                            Placeholder="Chọn chất liệu">
-                    </Select>
-                </FormItem>
-                <FormItem Label="Mùa vụ">
-                    <Select TItem="SeasonDTO" TItemValue="Guid?"
-                            @bind-Value="filter.SeasonFilter"
-                            OnSelectedItemChanged="ApplyFilter"
-                            DataSource="seasons"
-                            ValueName="Id"
-                            LabelName="Name"
-                            AllowClear
-                            Placeholder="Chọn mùa">
-                    </Select>
-                </FormItem>
-                <FormItem Label="Màu sắc">
-                    <Select TItem="ColourDTO" TItemValue="Guid?" 
-                            @bind-Value="filter.ColourFilter"
-                            OnSelectedItemChanged="async _ => await ApplyFilter()"
-                            DataSource="colours"
-                            ValueName="Id" 
-                            LabelName="Name"
-                            AllowClear
-                            Placeholder="Chọn màu">
-                    </Select>
-                </FormItem>
-                <FormItem Label="Size">
-                    <Select TItem="SizeDTO" TItemValue="Guid?" 
-                            @bind-Value="filter.SizeFilter"
-                            OnSelectedItemChanged="async _ => await ApplyFilter()"
-                            DataSource="sizes"
-                            ValueName="Id" 
-                            LabelName="Value"
-                            AllowClear
-                            Placeholder="Chọn size">
-                    </Select>
-                </FormItem>
-                <FormItem Label="Khoảng giá">
-                    <Select TItem="PriceRangeOption" TItemValue="int?" 
-                            @bind-Value="selectedPriceRange"
-                            OnSelectedItemChanged="OnPriceRangeChanged"
-                            AllowClear Placeholder="Chọn mức giá"
-                            ValueName="Id" LabelName="Label"
-                            DataSource="priceRanges">
-                    </Select>
-                </FormItem>
-                <FormItem Label="Kiểu đóng">
-                    <Select TItem="EnumOption<EClosureType>" TItemValue="EClosureType?"
-                            @bind-Value="filter.ClosureTypeFilter"
-                            OnSelectedItemChanged="async _ => await ApplyFilter()"
-                            DataSource="closureTypes"
-                            ValueName="Value" LabelName="Label"
-                            AllowClear Placeholder="Chọn kiểu đóng">
-                    </Select>
-                </FormItem>
-                <FormItem Label="Cho phép đổi trả">
-                    <Select TItem="BoolOption" TItemValue="bool?"
-                            @bind-Value="filter.AllowReturnFilter"
-                            OnSelectedItemChanged="async _ => await ApplyFilter()"
-                            DataSource="boolOptions"
-                            ValueName="Value" LabelName="Label"
-                            AllowClear Placeholder="Tất cả">
-                    </Select>
-                </FormItem>
-                <FormItem Label="Sắp xếp theo">
-                    <Select TItem="EnumOption<EProductSortField>" TItemValue="EProductSortField"
-                            @bind-Value="filter.SortField"
-                            OnSelectedItemChanged="async _ => await ApplyFilter()"
-                            DataSource="sortFields"
-                            ValueName="Value" LabelName="Label"
-                            Placeholder="Chọn trường sắp xếp">
-                    </Select>
-                </FormItem>
-                <FormItem Label="Chiều sắp xếp">
-                    <Select TItem="EnumOption<ESortDirection>" TItemValue="ESortDirection"
-                            @bind-Value="filter.SortDirection"
-                            OnSelectedItemChanged="async _ => await ApplyFilter()"
-                            DataSource="sortDirections"
-                            ValueName="Value" LabelName="Label"
-                            Placeholder="Chọn chiều">
-                    </Select>
-                </FormItem>
-                <FormItem>
-                    <Button Class="ms-2" OnClick="ResetFilter">Xóa lọc</Button>
-                </FormItem>
-            </Form>
-        </div>
-    </GridCol>
-    <GridCol Span="20" Md="20" Sm="24">
-        <ProductCard LstProduct="@products" IsGridSelected="true" />
-        <div class="mt-4 d-flex justify-content-center">
-            <Pagination Total="@totalRecords" PageSize="@filter.PageSize" Current="@filter.PageIndex" OnSelectedItemChanged="OnPageChanged" />
-        </div>
-    </GridCol>
-</GridRow>
+            </GridCol>
+        </GridRow>
     </GridCol>
 </GridRow>
 
 <!-- Best Sellers -->
-<GridRow Class="position-relative padding-large">
-    <GridCol Span="24">
-    <div class="position-relative">
-        <Title Level="2" Class="text-uppercase text-dark mb-3">Sản phẩm bán chạy trong tuần</Title>
-        @if (bestSellers.Any())
-        {
-            <Carousel Dots="false">
-                @foreach (var group in ChunkBestSellers(bestSellers, 4))
-                {
-                    <CarouselSlick>
-                        <GridRow Gutter="16">
-                            @foreach (var item in group)
-                            {
-                                <GridCol Span="6" Md="8" Sm="12">
-                                    <Card Class="h-100">
-                                        <div class="product-image">
-                                            <img src="@FormatThumbnail(item.Thumbnail)" alt="@item.Name" />
-                                        </div>
-                                        <div class="mt-2 fw-bold">@item.Name</div>
-                                        <div class="text-muted">Đã bán: @item.TotalSold</div>
-                                        <div class="mt-1">
-                                            @if (item.MinPrice.HasValue)
-                                            {
-                                                <span>
-                                                    @(((decimal)item.MinPrice.Value).ToString("C0", new System.Globalization.CultureInfo("vi-VN")))
-                                                </span>
-                                                @if (item.MaxPrice.HasValue && item.MaxPrice.Value != item.MinPrice.Value)
+<GridRow Gutter="16">
+    <GridCol Span="22" Offset="1">
+        <div class="position-relative">
+            <Title Level="2" Class="text-uppercase text-dark mb-3">Sản phẩm bán chạy trong tuần</Title>
+            @if (bestSellers.Any())
+            {
+                <Carousel Dots="false">
+                    @foreach (var group in ChunkBestSellers(bestSellers, 4))
+                    {
+                        <CarouselSlick>
+                            <GridRow Gutter="16">
+                                @foreach (var item in group)
+                                {
+                                    <GridCol Span="6" Md="6" Sm="12">
+                                        <Card Class="h-100 best-seller-card" Hoverable="true">
+                                            <div class="product-image-container">
+                                                <Image Width="100%" Fallback="@(backendUrl + "/Images/fallback.jpeg")"
+                                                    Src="@(backendUrl + "/" + item.Thumbnail)" Class="best-seller-image" />
+                                                @if (item.Discount.HasValue && item.Discount.Value > 0)
                                                 {
-                                                    <span> - @(((decimal)item.MaxPrice.Value).ToString("C0", new System.Globalization.CultureInfo("vi-VN")))</span>
+                                                    <div class="discount-badge">
+                                                        <span class="discount-text">-@((int)((item.Discount.Value / item.Price.Value) * 100))%</span>
+                                                    </div>
                                                 }
-                                            }
-                                        </div>
-                                    </Card>
-                                </GridCol>
-                            }
-                        </GridRow>
-                    </CarouselSlick>
-                }
-            </Carousel>
-        }
-        else
-        {
-            <Empty />
-        }
-    </div>
+                                                <div class="cart-concern position-absolute">
+                                                    <div class="cart-button d-flex">
+                                                        <div class="btn btn-medium btn-black" @onclick="() => AddToCartDirectly(item)">
+                                                            <span class="btn-add-to-cart">Thêm vào giỏ hàng</span>
+                                                            <Icon Type="shopping-cart" Class="cart-outline" />
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <div class="product-info">
+                                                <div class="product-name fw-bold mb-2">@item.Name</div>
+                                                <div class="product-variants">
+                                                    @if (!string.IsNullOrEmpty(item.SizeValue))
+                                                    {
+                                                        <Tag Class="me-1">Size: @item.SizeValue</Tag>
+                                                    }
+                                                    @if (!string.IsNullOrEmpty(item.ColourName))
+                                                    {
+                                                        <Tag Class="me-1">Màu: @item.ColourName</Tag>
+                                                    }
+                                                </div>
+                                                <div class="product-sold-info">
+                                                    <span class="sold-count">Đã bán: @item.TotalSold</span>
+                                                </div>
+                                                <div class="product-price">
+                                                    @if (item.Price.HasValue)
+                                                    {
+                                                        @if (item.Discount.HasValue && item.Discount.Value > 0)
+                                                        {
+                                                            <div class="price-container">
+                                                                <span class="original-price">
+                                                                    @(((decimal)item.Price.Value).ToString("C0", new System.Globalization.CultureInfo("vi-VN")))
+                                                                </span>
+                                                                <span class="discounted-price">
+                                                                    @(((decimal)(item.Price.Value - item.Discount.Value)).ToString("C0", new System.Globalization.CultureInfo("vi-VN")))
+                                                                </span>
+                                                            </div>
+                                                        }
+                                                        else
+                                                        {
+                                                            <span class="price-text">
+                                                                @(((decimal)item.Price.Value).ToString("C0", new System.Globalization.CultureInfo("vi-VN")))
+                                                            </span>
+                                                        }
+                                                    }
+                                                </div>
+                                            </div>
+                                        </Card>
+                                    </GridCol>
+                                }
+                            </GridRow>
+                        </CarouselSlick>
+                    }
+                </Carousel>
+            }
+            else
+            {
+                <Empty />
+            }
+        </div>
     </GridCol>
 </GridRow>
 
 <GridRow Class="position-relative">
     <GridCol Span="24">
-    <div class="review-content position-relative">
-        <Carousel Autoplay="@TimeSpan.FromSeconds(3)" Class="testimonial-swiper">
-            <div class="quotation text-center">
-                <Icon Type="quote" Class="quote"/>
-            </div>
-            @foreach (var testimonial in Testimonials)
-            {
-                <CarouselSlick>
-                    <div class="text-center d-flex justify-content-center">
-                        <div class="review-item GridCol-md-10">
-                            <blockquote>@testimonial.Comment</blockquote>
-                            <div class="rating">
-                                <Rate Disabled DefaultValue="@testimonial.Rating" />
-                            </div>
-                            <div class="author-detail">
-                                <div class="name text-dark text-uppercase pt-2">@testimonial.AuthorName</div>
+        <div class="review-content position-relative">
+            <Carousel Autoplay="@TimeSpan.FromSeconds(3)" Class="testimonial-swiper">
+                <div class="quotation text-center">
+                    <Icon Type="quote" Class="quote" />
+                </div>
+                @foreach (var testimonial in Testimonials)
+                {
+                    <CarouselSlick>
+                        <div class="text-center d-flex justify-content-center">
+                            <div class="review-item GridCol-md-10">
+                                <blockquote>@testimonial.Comment</blockquote>
+                                <div class="rating">
+                                    <Rate Disabled DefaultValue="@testimonial.Rating" />
+                                </div>
+                                <div class="author-detail">
+                                    <div class="name text-dark text-uppercase pt-2">@testimonial.AuthorName</div>
+                                </div>
                             </div>
                         </div>
-                    </div>
-                </CarouselSlick>
-            }
-        </Carousel>
-    </div>
+                    </CarouselSlick>
+                }
+            </Carousel>
+        </div>
     </GridCol>
 </GridRow>
 
@@ -357,44 +440,51 @@
     private List<EnumOption<EProductStatus>> productStatuses = new();
     private List<EnumOption<EProductSortField>> sortFields = new();
     private List<EnumOption<ESortDirection>> sortDirections = new();
+
     private List<BoolOption> boolOptions = new()
-    {
-        new BoolOption { Value = true, Label = "Có" },
-        new BoolOption { Value = false, Label = "Không" }
-    };
+{
+new BoolOption { Value = true, Label = "Có" },
+new BoolOption { Value = false, Label = "Không" }
+};
+
     public class PriceRangeOption
     {
-        public int Id { get; set; }   // dùng cho bind
+        public int Id { get; set; } // dùng cho bind
         public string Label { get; set; }
     }
+
     private int? selectedPriceRange;
+
     private List<PriceRangeOption> priceRanges = new()
-    {
-        new PriceRangeOption { Id = 1, Label = "Dưới 500.000đ" },
-        new PriceRangeOption { Id = 2, Label = "500.000đ - 1.000.000đ" },
-        new PriceRangeOption { Id = 3, Label = "1.000.000đ - 2.000.000đ" },
-        new PriceRangeOption { Id = 4, Label = "2.000.000đ - 3.000.000đ" },
-        new PriceRangeOption { Id = 5, Label = "3.000.000đ - 4.000.000đ" },
-        new PriceRangeOption { Id = 6, Label = "4.000.000đ - 5.000.000đ" },
-        new PriceRangeOption { Id = 7, Label = "Trên 5.000.000đ" },
-    };
+{
+new PriceRangeOption { Id = 1, Label = "Dưới 500.000đ" },
+new PriceRangeOption { Id = 2, Label = "500.000đ - 1.000.000đ" },
+new PriceRangeOption { Id = 3, Label = "1.000.000đ - 2.000.000đ" },
+new PriceRangeOption { Id = 4, Label = "2.000.000đ - 3.000.000đ" },
+new PriceRangeOption { Id = 5, Label = "3.000.000đ - 4.000.000đ" },
+new PriceRangeOption { Id = 6, Label = "4.000.000đ - 5.000.000đ" },
+new PriceRangeOption { Id = 7, Label = "Trên 5.000.000đ" },
+};
+
     private int totalRecords { get; set; }
+    private bool hasMoreProducts { get; set; } = true;
+    private bool isLoadingMore { get; set; } = false;
+    private string backendUrl = string.Empty;
+
     private decimal GetRandomRating()
     {
-    var random = new Random();
-    return Convert.ToDecimal(Math.Round(random.NextDouble() * 10) / 2);
+        var random = new Random();
+        return Convert.ToDecimal(Math.Round(random.NextDouble() * 10) / 2);
     }
 
     protected override async Task OnInitializedAsync()
     {
+        backendUrl = Configuration["ApiSettings:BaseUrl"]?.TrimEnd('/') ?? string.Empty;
         await LoadCategoriesAsync();
         await LoadFilterOptions();
         await LoadProductsAsync();
         await LoadBestSellersAsync();
         await LoadRecentlyViewedAsync();
-
-        
-        
     }
 
     private async Task LoadCategoriesAsync()
@@ -404,12 +494,10 @@
             var data = await CategoryClientService.GetAllCategoriesAsync();
             categories = data?.ToList() ?? new();
         }
-        catch { categories = new(); }
-    }
-
-    private async Task AddToCart(ProductResponseDTO product)
-    {
-        MessageService.Success($"Đã thêm {product.Name} vào giỏ hàng");
+        catch
+        {
+            categories = new();
+        }
     }
 
     private async Task HandleSubscribe()
@@ -431,30 +519,40 @@
         // colours
         var colourResp = await ColourClientService.GetAllColoursAsync();
         colours = (colourResp ?? Enumerable.Empty<MeoMeo.Domain.Entities.Colour>())
-            .Select(c => new ColourDTO { Id = c.Id, Name = c.Name, Code = c.Code, Status = c.Status })
-            .ToList();
+        .Select(c => new ColourDTO { Id = c.Id, Name = c.Name, Code = c.Code, Status = c.Status })
+        .ToList();
         // brands
         var brandResp = await BrandClientService.GetAllBrandAsync(new GetListBrandRequestDTO { PageIndex = 1, PageSize = 200 });
         brands = brandResp.Items ?? new List<BrandDTO>();
         // materials
-        var materialResp = await MaterialClientService.GetAllMaterialsAsync(new GetListMaterialRequest { PageIndex = 1, PageSize = 200 });
+        var materialResp = await MaterialClientService.GetAllMaterialsAsync(new GetListMaterialRequest
+        {
+            PageIndex = 1,
+            PageSize
+        = 200
+        });
         materials = materialResp.Items ?? new List<CreateOrUpdateMaterialDTO>();
         // seasons
-        var seasonResp = await SeasonClientService.GetAllSeasonsAsync(new GetListSeasonRequestDTO { PageIndex = 1, PageSize = 100 });
+        var seasonResp = await SeasonClientService.GetAllSeasonsAsync(new GetListSeasonRequestDTO
+        {
+            PageIndex = 1,
+            PageSize =
+        100
+        });
         seasons = seasonResp.Items ?? new List<SeasonDTO>();
         // enums
         closureTypes = Enum.GetValues(typeof(EClosureType)).Cast<EClosureType>()
-            .Select(v => new EnumOption<EClosureType> { Value = v, Label = v.ToString() })
-            .ToList();
+        .Select(v => new EnumOption<EClosureType> { Value = v, Label = v.ToString() })
+        .ToList();
         productStatuses = Enum.GetValues(typeof(EProductStatus)).Cast<EProductStatus>()
-            .Select(v => new EnumOption<EProductStatus> { Value = v, Label = v.ToString() })
-            .ToList();
+        .Select(v => new EnumOption<EProductStatus> { Value = v, Label = v.ToString() })
+        .ToList();
         sortFields = Enum.GetValues(typeof(EProductSortField)).Cast<EProductSortField>()
-            .Select(v => new EnumOption<EProductSortField> { Value = v, Label = v.ToString() })
-            .ToList();
+        .Select(v => new EnumOption<EProductSortField> { Value = v, Label = v.ToString() })
+        .ToList();
         sortDirections = Enum.GetValues(typeof(ESortDirection)).Cast<ESortDirection>()
-            .Select(v => new EnumOption<ESortDirection> { Value = v, Label = v.ToString() })
-            .ToList();
+        .Select(v => new EnumOption<ESortDirection> { Value = v, Label = v.ToString() })
+        .ToList();
     }
 
     private async Task LoadProductsAsync()
@@ -462,14 +560,123 @@
         var response = await ProductClientService.GetAllProductForPortalAsync(filter);
         products = response.Items ?? new List<ProductResponseDTO>();
         totalRecords = response.TotalRecords;
+
+        // Kiểm tra xem còn sản phẩm nào để load thêm không
+        hasMoreProducts = products.Count < totalRecords;
+
         StateHasChanged();
     }
 
-    private async Task OnCategorySelected(Guid? categoryId)
+    private async Task ApplyFilter()
     {
         filter.PageIndex = 1;
-        filter.CategoryFilter = categoryId;
+        products.Clear(); // Clear danh sách sản phẩm hiện tại
         await LoadProductsAsync();
+    }
+
+    private void ResetFilter()
+    {
+        filter = new GetListProductRequestDTO { PageIndex = 1, PageSize = 12 };
+        selectedPriceRange = null;
+        products.Clear(); // Clear danh sách sản phẩm hiện tại
+        _ = LoadProductsAsync();
+    }
+
+    private async Task LoadMoreProducts()
+    {
+        if (isLoadingMore || !hasMoreProducts) return;
+
+        try
+        {
+            isLoadingMore = true;
+            StateHasChanged();
+
+            // Tăng page index để load trang tiếp theo
+            filter.PageIndex++;
+
+            var response = await ProductClientService.GetAllProductForPortalAsync(filter);
+            var newProducts = response.Items ?? new List<ProductResponseDTO>();
+
+            // Thêm sản phẩm mới vào danh sách hiện tại
+            products.AddRange(newProducts);
+
+            // Kiểm tra xem còn sản phẩm nào để load thêm không
+            hasMoreProducts = products.Count < totalRecords;
+
+            StateHasChanged();
+        }
+        catch (Exception ex)
+        {
+            MessageService.Error($"Có lỗi khi tải thêm sản phẩm: {ex.Message}");
+        }
+        finally
+        {
+            isLoadingMore = false;
+            StateHasChanged();
+        }
+    }
+
+    // Method để thêm sản phẩm bán chạy trực tiếp vào giỏ hàng
+    private async Task AddToCartDirectly(BestSellerItemDTO item)
+    {
+        try
+        {
+            // Kiểm tra đăng nhập
+            var isLogged = await AuthClient.IsAuthenticatedAsync();
+            if (!isLogged)
+            {
+                MessageService.Warning("Vui lòng đăng nhập để thêm sản phẩm vào giỏ hàng");
+                return;
+            }
+
+            // Tạo AddToCartDTO với thông tin từ BestSellerItemDTO
+            var newItem = new AddToCartDTO()
+            {
+                PromotionId = Guid.NewGuid(), // Có thể cần điều chỉnh nếu có promotion
+                ProductDetailId = item.ProductDetailId,
+                Quantity = 1
+            };
+
+            var result = await CartClient.AddToCartAsync(newItem);
+
+            if (result != null && (int)result.ResponseStatus == 1) // Success = 1
+            {
+                MessageService.Success($"Đã thêm sản phẩm vào giỏ hàng thành công!");
+                // Reload cart to get accurate item count
+                await ReloadCartCount();
+            }
+            else
+            {
+                var errorMessage = result?.Message ?? "Có lỗi xảy ra khi thêm vào giỏ hàng";
+                MessageService.Error(errorMessage);
+            }
+        }
+        catch (Exception ex)
+        {
+            MessageService.Error($"Lỗi: {ex.Message}");
+            Console.WriteLine($"Error in AddToCartDirectly: {ex}");
+        }
+    }
+
+    private async Task ReloadCartCount()
+    {
+        try
+        {
+            var cart = await CartClient.GetCurrentCartAsync();
+            if (cart?.Items != null)
+            {
+                var itemCount = cart.Items.Count;
+                CartStateService.UpdateCartCount(itemCount);
+            }
+            else
+            {
+                CartStateService.UpdateCartCount(0);
+            }
+        }
+        catch
+        {
+            // Ignore errors
+        }
     }
 
     private async Task LoadBestSellersAsync()
@@ -485,15 +692,17 @@
             if (!string.IsNullOrWhiteSpace(ids))
             {
                 var idList = ids.Split(',', StringSplitOptions.RemoveEmptyEntries)
-                    .Select(s => Guid.TryParse(s, out var id) ? id : Guid.Empty)
-                    .Where(g => g != Guid.Empty)
-                    .Distinct()
-                    .Take(12)
-                    .ToList();
+                .Select(s => Guid.TryParse(s, out var id) ? id : Guid.Empty)
+                .Where(g => g != Guid.Empty)
+                .Distinct()
+                .Take(12)
+                .ToList();
                 // TODO: call API to get products by these ids when endpoint available
             }
         }
-        catch { }
+        catch
+        {
+        }
     }
 
     private static List<List<BestSellerItemDTO>> ChunkBestSellers(List<BestSellerItemDTO> list, int size)
@@ -503,6 +712,7 @@
         {
             result.Add(list.GetRange(i, Math.Min(size, list.Count - i)));
         }
+
         return result;
     }
 
@@ -513,41 +723,44 @@
         return $"{baseUrl.TrimEnd('/')}/{thumbnail.TrimStart('/')}";
     }
 
-    private async Task OnPageChanged(PaginationEventArgs args)
-    {
-        filter.PageIndex = args.Page;
-        filter.PageSize = args.PageSize;
-        await LoadProductsAsync();
-    }
-
-    private async Task ApplyFilter()
-    {
-        filter.PageIndex = 1;
-        await LoadProductsAsync();
-    }
-
-    private void ResetFilter()
-    {
-        filter = new GetListProductRequestDTO { PageIndex = 1, PageSize = 12 };
-        selectedPriceRange = null;
-        _ = LoadProductsAsync();
-    }
-
-
     private async Task OnPriceRangeChanged()
     {
-
         switch (selectedPriceRange)
         {
-            case 1: filter.MinPriceFilter = 0; filter.MaxPriceFilter = 500_000; break;
-            case 2: filter.MinPriceFilter = 500_000; filter.MaxPriceFilter = 1_000_000; break;
-            case 3: filter.MinPriceFilter = 1_000_000; filter.MaxPriceFilter = 2_000_000; break;
-            case 4: filter.MinPriceFilter = 2_000_000; filter.MaxPriceFilter = 3_000_000; break;
-            case 5: filter.MinPriceFilter = 3_000_000; filter.MaxPriceFilter = 4_000_000; break;
-            case 6: filter.MinPriceFilter = 4_000_000; filter.MaxPriceFilter = 5_000_000; break;
-            case 7: filter.MinPriceFilter = 5_000_000; filter.MaxPriceFilter = null; break;
-            default: filter.MinPriceFilter = null; filter.MaxPriceFilter = null; break;
+            case 1:
+                filter.MinPriceFilter = 0;
+                filter.MaxPriceFilter = 500_000;
+                break;
+            case 2:
+                filter.MinPriceFilter = 500_000;
+                filter.MaxPriceFilter = 1_000_000;
+                break;
+            case 3:
+                filter.MinPriceFilter = 1_000_000;
+                filter.MaxPriceFilter = 2_000_000;
+                break;
+            case 4:
+                filter.MinPriceFilter = 2_000_000;
+                filter.MaxPriceFilter = 3_000_000;
+                break;
+            case 5:
+                filter.MinPriceFilter = 3_000_000;
+                filter.MaxPriceFilter = 4_000_000;
+                break;
+            case 6:
+                filter.MinPriceFilter = 4_000_000;
+                filter.MaxPriceFilter = 5_000_000;
+                break;
+            case 7:
+                filter.MinPriceFilter = 5_000_000;
+                filter.MaxPriceFilter = null;
+                break;
+            default:
+                filter.MinPriceFilter = null;
+                filter.MaxPriceFilter = null;
+                break;
         }
+
         await ApplyFilter();
     }
 
@@ -564,15 +777,17 @@
         [EmailAddress(ErrorMessage = "Invalid email format")]
         public string Email { get; set; }
     }
+
     public class EnumOption<T>
     {
         public T Value { get; set; }
         public string Label { get; set; }
     }
+
     public class BoolOption
     {
         public bool Value { get; set; }
         public string Label { get; set; }
     }
-    
+
 }

@@ -356,5 +356,20 @@ namespace MeoMeo.Shared.Services
                 return null;
             }
         }
+
+        public async Task<List<ProductResponseDTO>> GetRelatedProductsAsync(Guid productId, int pageSize = 4)
+        {
+            try
+            {
+                var url = $"/api/Products/get-related-products-async/{productId}?pageSize={pageSize}";
+                var response = await _httpClient.GetAsync<List<ProductResponseDTO>>(url);
+                return response ?? new List<ProductResponseDTO>();
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Có lỗi xảy ra khi lấy sản phẩm liên quan cho sản phẩm {ProductId}: {Message}", productId, ex.Message);
+                return new List<ProductResponseDTO>();
+            }
+        }
     }
 }
