@@ -10,6 +10,6 @@ namespace MeoMeo.Shared.IServices
         Task<OrderStatisticsDTO?> GetOrderStatisticsAsync(StatisticsRequestDTO request);
         Task<CustomerStatisticsDTO?> GetCustomerStatisticsAsync(StatisticsRequestDTO request);
         Task<InventoryStatisticsDTO?> GetInventoryStatisticsAsync();
-        Task<List<TopProductDTO>?> GetTopProductsByPeriodAsync(StatisticsPeriod period, DateTime? startDate = null, DateTime? endDate = null);
+        Task<List<TopProductDTO>?> GetTopProductsByPeriodAsync(TopProductsRequestDTO request);
     }
 }

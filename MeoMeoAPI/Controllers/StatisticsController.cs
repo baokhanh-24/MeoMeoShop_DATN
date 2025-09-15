@@ -85,15 +85,12 @@ namespace MeoMeo.API.Controllers
             }
         }
 
-        [HttpGet("top-products/{period}")]
-        public async Task<ActionResult<List<TopProductDTO>>> GetTopProductsByPeriod(
-            StatisticsPeriod period,
-            [FromQuery] DateTime? startDate = null,
-            [FromQuery] DateTime? endDate = null)
+        [HttpGet("top-products")]
+        public async Task<ActionResult<List<TopProductDTO>>> GetTopProductsByPeriod([FromQuery] TopProductsRequestDTO request)
         {
             try
             {
-                var result = await _statisticsService.GetTopProductsByPeriodAsync(period, startDate, endDate);
+                var result = await _statisticsService.GetTopProductsByPeriodAsync(request);
                 return Ok(result);
             }
             catch (Exception ex)

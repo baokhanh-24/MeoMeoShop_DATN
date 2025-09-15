@@ -13,6 +13,8 @@ using MeoMeo.EntityFrameworkCore.Commons;
 using MeoMeo.Shared.Middlewares;
 using MeoMeo.Shared.VnPay;
 using MeoMeo.Shared.VnPay.Models;
+using MeoMeo.Shared.IServices;
+using MeoMeo.Shared.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -54,6 +56,8 @@ builder.Services.AddScoped<ICommuneRepository, CommuneRepository>();
 builder.Services.AddScoped<IProvinceService, ProvinceService>();
 builder.Services.AddScoped<IIventoryBatchReposiory, InventoryBatchRepository>();
 builder.Services.AddScoped<IInventoryBatchServices, InventoryBatchService>();
+builder.Services.AddScoped<IImportBatchRepository, ImportBatchRepository>();
+builder.Services.AddScoped<IImportBatchServices, ImportBatchService>();
 builder.Services.AddScoped<IInventoryTranSactionRepository, InventoryTranSactionRepository>();
 builder.Services.AddScoped<IIventoryTranSactionServices, InventoryTranSactionService>();
 builder.Services.AddScoped<IProductSeasonRepository, ProductSeasonRepository>();
@@ -82,10 +86,6 @@ builder.Services.AddScoped<ICustomerRepository, CustomerRepository>();
 builder.Services.AddScoped<ICustomerServices, CustomerServices>();
 builder.Services.AddScoped<IResetPasswordHistoryRepository, ResetPasswordHistoryRepository>();
 builder.Services.AddScoped<IResetPasswordHistoryServices, ResetPasswordHistoryServices>();
-builder.Services.AddScoped<IBankRepository, BankRepository>();
-builder.Services.AddScoped<IBankService, BankServices>();
-builder.Services.AddScoped<ICustomersBankRepository, CustomersBankRepository>();
-builder.Services.AddScoped<ICustomersBankServices, CustomersBankServices>();
 builder.Services.AddScoped<IDistrictRepository, DistrictRepository>();
 builder.Services.AddScoped<IDistrictService, DistrictService>();
 builder.Services.AddScoped<IMaterialRepository, MaterialRepository>();
@@ -118,6 +118,12 @@ builder.Services.AddScoped<IUserRoleRepository, UserRoleRepository>();
 builder.Services.AddScoped<IUserRoleService, UserRoleService>();
 builder.Services.AddScoped<IWishlistRepository, WishlistRepository>();
 builder.Services.AddScoped<IWishlistService, WishlistService>();
+
+// Email Services
+builder.Services.AddScoped<IEmailService, EmailService>();
+builder.Services.AddScoped<IPasswordResetService, PasswordResetService>();
+builder.Services.AddScoped<IReportService, ReportService>();
+builder.Services.AddScoped<IExcelReportService, ExcelReportService>();
 
 
 // Auth Service Dependencies

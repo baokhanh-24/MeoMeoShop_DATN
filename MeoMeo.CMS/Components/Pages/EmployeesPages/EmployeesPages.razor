@@ -10,6 +10,7 @@
 @using ButtonSize = AntDesign.ButtonSize
 @using ButtonType = AntDesign.ButtonType
 @inject MeoMeo.Shared.Utilities.MessageModalService MessageModalService
+@inject NavigationManager Navigation
 @rendermode InteractiveServer
 @inject IApiCaller ApiCaller
 
@@ -17,169 +18,201 @@
 <div class="d-flex justify-content-between">
     <Breadcrumb>
         <BreadcrumbItem Href="/">Trang chủ</BreadcrumbItem>
-        <BreadcrumbItem Href="/manage-customer">Quản lý khách hàng</BreadcrumbItem>
+        <BreadcrumbItem Href="/employees-pages">Quản lý nhân viên</BreadcrumbItem>
     </Breadcrumb>
     <Button OnClick="() => showAddModal = true" Type="ButtonType.Primary" Class="mb-2">
         <i class="fas fa-plus"></i> Thêm mới
     </Button>
-    <AddEmployeesPages Visible="@showAddModal"
-    VisibleChanged="@(val => showAddModal = val)"
-    OnSave="HandleCreateEmployee"
-    StatusList="@employeesStatusList" />
+    <AddEmployeesPages Visible="@showAddModal" VisibleChanged="@(val => showAddModal = val)"
+        OnSave="HandleCreateEmployee" StatusList="@employeesStatusList" />
 
-    <ChangePasswordPages Visible="@showChangePasswordModal"
-    VisibleChanged="@(val => showChangePasswordModal = val)"
-    UserId="@selectedUserId" />
+    <ChangePasswordPages Visible="@showChangePasswordModal" VisibleChanged="@(val => showChangePasswordModal = val)"
+        UserId="@selectedUserId" />
+
+    <!-- Employee Detail Modal -->
+    <Modal Title="Chi tiết nhân viên" Visible="@showDetailModal" OnCancel="HideDetailModal" Footer="null" Width="800">
+        @if (selectedEmployee != null)
+        {
+            <Descriptions Column="2" Bordered>
+                <DescriptionsItem Title="Mã nhân viên">
+                    @selectedEmployee.Code
+                </DescriptionsItem>
+                <DescriptionsItem Title="Họ và tên">
+                    @selectedEmployee.Name
+                </DescriptionsItem>
+                <DescriptionsItem Title="Số điện thoại">
+                    @selectedEmployee.PhoneNumber
+                </DescriptionsItem>
+                <DescriptionsItem Title="Email">
+                    @(selectedEmployee.Email ?? "Chưa cập nhật")
+                </DescriptionsItem>
+                <DescriptionsItem Title="Ngày sinh">
+                    @(selectedEmployee.DateOfBird?.ToString("dd/MM/yyyy") ?? "Chưa cập nhật")
+                </DescriptionsItem>
+                <DescriptionsItem Title="Trạng thái">
+                    <Tag Color="@GetEmployeeStatusColor(selectedEmployee.StatusEnum)">
+                        @GetEmployeeStatusName(selectedEmployee.StatusEnum)
+                    </Tag>
+                </DescriptionsItem>
+                <DescriptionsItem Title="Địa chỉ" Span="2">
+                    @selectedEmployee.Address
+                </DescriptionsItem>
+            </Descriptions>
+
+            <div class="text-end mt-3">
+                <Button OnClick="HideDetailModal" Type="ButtonType.Default" Class="me-2">Đóng</Button>
+                <Button OnClick="EditEmployeeFromDetail" Type="ButtonType.Primary" Class="me-2">Chỉnh sửa</Button>
+                <Button OnClick="ChangePasswordFromDetail" Type="ButtonType.Default" Class="me-2">Đổi mật khẩu</Button>
+            </div>
+        }
+    </Modal>
+
+    <!-- Employee Edit Modal -->
+    <Modal Title="Chỉnh sửa nhân viên" Visible="@showEditModal" OnCancel="HideEditModal" Footer="null" Width="800">
+        @if (editingEmployee != null)
+        {
+            <Form Model="@editingEmployee" OnFinish="HandleEditSubmit" Layout="@FormLayout.Vertical">
+                <div class="row">
+                    <div class="col-md-6">
+                        <FormItem Label="Họ và tên" Required>
+                            <Input @bind-Value="editingEmployee.Name" Placeholder="Nhập họ và tên" MaxLength="100" />
+                        </FormItem>
+                    </div>
+                    <div class="col-md-6">
+                        <FormItem Label="Mã nhân viên">
+                            <Input @bind-Value="editingEmployee.Code" Placeholder="Mã nhân viên" Disabled />
+                        </FormItem>
+                    </div>
+                </div>
+
+                <div class="row">
+                    <div class="col-md-6">
+                        <FormItem Label="Số điện thoại" Required>
+                            <Input @bind-Value="editingEmployee.PhoneNumber" Placeholder="Nhập số điện thoại"
+                                MaxLength="12" />
+                        </FormItem>
+                    </div>
+                    <div class="col-md-6">
+                        <FormItem Label="Email">
+                            <Input @bind-Value="editingEmployee.Email" Placeholder="Nhập email" />
+                        </FormItem>
+                    </div>
+                </div>
+
+                <div class="row">
+                    <div class="col-md-6">
+                        <FormItem Label="Ngày sinh">
+                            <DatePicker Style="width: 100%" @bind-Value="editingEmployee.DateOfBird" />
+                        </FormItem>
+                    </div>
+                    <div class="col-md-6">
+                        <FormItem Label="Trạng thái" Required>
+                            <Select TItem="(EEmployeesStatus Value, string Name)" TItemValue="EEmployeesStatus"
+                                @bind-Value="editingEmployee.StatusEnum" DataSource="employeesStatusList"
+                                ItemValue="item => item.Value" ItemLabel="item => item.Name" Placeholder="Chọn trạng thái">
+                            </Select>
+                        </FormItem>
+                    </div>
+                </div>
+
+                <FormItem Label="Địa chỉ">
+                    <TextArea @bind-Value="editingEmployee.Address" Placeholder="Nhập địa chỉ" Rows="3" MaxLength="255" />
+                </FormItem>
+
+                <div class="text-end">
+                    <Button OnClick="HideEditModal" Type="ButtonType.Default" Class="me-2">Hủy</Button>
+                    <Button Type="ButtonType.Primary" HtmlType="submit" Loading="@isSaving">Lưu</Button>
+                </div>
+            </Form>
+        }
+    </Modal>
 </div>
 
 <div class="d-flex justify-content-end gap-3 mb-2">
     <div style="width: 200px">
-        <Input AllowClear="true" OnClear="OnFilterChanged" @bind-Value="filter.NameFilter" Placeholder="Nhập theo tên" />
+        <Input AllowClear="true" OnClear="OnFilterChanged" @bind-Value="filter.NameFilter"
+            Placeholder="Nhập theo tên" />
     </div>
     <div style="width: 200px">
         <Input AllowClear="true" OnClear="OnFilterChanged" @bind-Value="filter.CodeFilter" Placeholder="Nhập theo mã" />
     </div>
     <div style="width: 200px">
-        <Input AllowClear="true" OnClear="OnFilterChanged" @bind-Value="filter.PhoneNumberFilter" Placeholder="Nhập theo SĐT" />
+        <Input AllowClear="true" OnClear="OnFilterChanged" @bind-Value="filter.PhoneNumberFilter"
+            Placeholder="Nhập theo SĐT" />
     </div>
     <div style="width: 200px">
-        <Input AllowClear="true" OnClear="OnFilterChanged" @bind-Value="filter.AddressFilter" Placeholder="Nhập theo địa chỉ" />
+        <Input AllowClear="true" OnClear="OnFilterChanged" @bind-Value="filter.AddressFilter"
+            Placeholder="Nhập theo địa chỉ" />
     </div>
     <div style="width: 150px">
-        <Select TItem="(EEmployeesStatus Value, string Name)"
-        TItemValue="EEmployeesStatus?"
-        AllowClear
-        DataSource="employeesStatusList"
-        @bind-Value="filter.StatusFilter"
-        Placeholder="Chọn trạng thái"
-        ItemValue="c => (EEmployeesStatus?)c.Value"
-        ItemLabel="c => c.Name">
+        <Select TItem="(EEmployeesStatus Value, string Name)" TItemValue="EEmployeesStatus ?" AllowClear
+            DataSource="employeesStatusList" @bind-Value="filter.StatusFilter" Placeholder="Chọn trạng thái"
+            ItemValue="c => (EEmployeesStatus?)c.Value" ItemLabel="c => c.Name">
         </Select>
     </div>
     <Tooltip Title="Tìm kiếm">
-        <Button @onclick="() => OnFilterChanged()" Type="ButtonType.Primary" Shape="ButtonShape.Circle" Icon="@IconType.Outline.Search" />
+        <Button @onclick="() => OnFilterChanged()" Type="ButtonType.Primary" Shape="ButtonShape.Circle"
+            Icon="@IconType.Outline.Search" />
     </Tooltip>
 </div>
 
-<Table DataSource="listOfData" TItem="CreateOrUpdateEmployeeDTO" RowClassName="@(_ => "editable-row")" Bordered TableLayout="fixed">
+<Table DataSource="listOfData" TItem="CreateOrUpdateEmployeeDTO" Bordered TableLayout="fixed">
     <ChildContent Context="data">
-        <Column TData="string" Title="Họ và tên nhân viên"> 
-            @if (editCache.ContainsKey(data.Id) && !editCache[data.Id].edit)
-            {
-                @data.Name
-            }
-            else if (editCache.ContainsKey(data.Id))
-            {
-                <Input MaxLength="100" @bind-Value="editCache[data.Id].data.Name" Placeholder="Nhập họ và tên" />
-            }
+        <Column TData="string" Title="Họ và tên nhân viên">
+            @data.Name
         </Column>
 
-        <Column TData="string" Title="Mã nhân viên"> 
-            @if (editCache.ContainsKey(data.Id) && !editCache[data.Id].edit)
-            {
-                <span>@data.Code</span>
-            }
-            else if (editCache.ContainsKey(data.Id))
-            {
-                <Input MaxLength="100" @bind-Value="editCache[data.Id].data.Code" Placeholder="Nhập mã nhân viên" />
-            }
+        <Column TData="string" Title="Mã nhân viên">
+            <span>@data.Code</span>
         </Column>
 
         <Column TData="string" Title="SĐT nhân viên">
-            @if (editCache.ContainsKey(data.Id) && !editCache[data.Id].edit)
-            {
-                <span>@data.PhoneNumber</span>
-            }
-            else if (editCache.ContainsKey(data.Id))
-            {
-                <Input MaxLength="100" @bind-Value="editCache[data.Id].data.PhoneNumber" Placeholder="Nhập SĐT" />
-            }
+            <span>@data.PhoneNumber</span>
         </Column>
 
         <Column TData="DateTime" Title="Ngày tháng năm sinh">
-            @if (editCache.ContainsKey(data.Id) && !editCache[data.Id].edit)
-            {
-                <span>@data.DateOfBird</span>
-            }
-            else if (editCache.ContainsKey(data.Id))
-            {
-                <Input MaxLength="100" @bind-Value="editCache[data.Id].data.DateOfBird" Placeholder="Nhập ngày tháng năm sinh" />
-            }
+            <span>@data.DateOfBird</span>
         </Column>
 
         <Column TData="string" Title="Địa chỉ">
-            @if (editCache.ContainsKey(data.Id) && !editCache[data.Id].edit)
-            {
-                <span>@data.Address</span>
-            }
-            else if (editCache.ContainsKey(data.Id))
-            {
-                <Input MaxLength="1000" @bind-Value="editCache[data.Id].data.Address" Placeholder="Nhập địa chỉ" />
-            }
+            <span>@data.Address</span>
         </Column>
 
         <Column TData="EEmployeesStatus" Title="Trạng thái">
-            @if (editCache.ContainsKey(data.Id) && !editCache[data.Id].edit)
-            {
-                @employeesStatusList.FirstOrDefault(x => x.Value == data.StatusEnum).Name
-            }
-            else if (editCache.ContainsKey(data.Id))
-            {
-
-                <Select TItem="(EEmployeesStatus Value, string Name)"
-                TItemValue="EEmployeesStatus"
-                DataSource="employeesStatusList"
-                @bind-Value="editCache[data.Id].data.StatusEnum"
-                ItemValue="c => c.Value"
-                ItemLabel="c => c.Name">
-                </Select>
-            }
+            <Tag Color="@GetEmployeeStatusColor(data.StatusEnum)">
+                @GetEmployeeStatusName(data.StatusEnum)
+            </Tag>
         </Column>
 
         <ActionColumn Title="Thao tác" Class="text-end gap-2">
-            @if (editCache.ContainsKey(data.Id) && !editCache[data.Id].edit)
-            {
-                <Tooltip Title="Sửa">
-                    <Button Size="ButtonSize.Small" @onclick="() => StartEdit(data.Id)" Shape="ButtonShape.Circle">
-                        <i class="fas fa-pen"></i>
+            <Tooltip Title="Xem chi tiết">
+                <Button Size="ButtonSize.Small" @onclick="() => ViewDetail(data.Id)" Shape="ButtonShape.Circle">
+                    <i class="fas fa-eye"></i>
+                </Button>
+            </Tooltip>
+
+            <Tooltip Title="Sửa">
+                <Button Size="ButtonSize.Small" @onclick="() => EditEmployeeFromTable(data.Id)"
+                    Shape="ButtonShape.Circle">
+                    <i class="fas fa-pen"></i>
+                </Button>
+            </Tooltip>
+
+            <Tooltip Title="Đổi mật khẩu">
+                <Button Size="ButtonSize.Small" Shape="ButtonShape.Circle"
+                    OnClick="() => OpenChangePasswordModal(data.UserId)">
+                    <i class="fas fa-key"></i>
+                </Button>
+            </Tooltip>
+
+            <Popconfirm Title=@($"Bạn có chắc muốn xóa nhân viên {data.Name}?")
+                OnConfirm="() => DeleteEmployee(data.Id)" OkText="Đồng ý" CancelText="Hủy">
+                <Tooltip Title="Xóa">
+                    <Button Size="ButtonSize.Small" Danger Shape="ButtonShape.Circle">
+                        <i class="fas fa-trash"></i>
                     </Button>
                 </Tooltip>
-
-                <Popconfirm Title=@($"Bạn có chắc muốn xóa khách hàng {data.Name}?")
-                OnConfirm="() => DeleteEmployee(data.Id)"
-                OkText="Đồng ý"
-                CancelText="Hủy">
-
-                    <Tooltip Title="Xóa">
-                        <Button Size="ButtonSize.Small" Danger Shape="ButtonShape.Circle">
-                            <i class="fas fa-minus"></i>
-                        </Button>
-                    </Tooltip>
-
-                    <Tooltip Title="Đổi mật khẩu">
-                        <Button Size="ButtonSize.Small" Shape="ButtonShape.Circle" OnClick="() => OpenChangePasswordModal(data.UserId)">
-                            <i class="fas fa-key"></i>
-                        </Button>
-                    </Tooltip>
-                </Popconfirm>
-            }
-            else if (editCache.ContainsKey(data.Id))
-            {
-                <Tooltip Title="Lưu">
-                    <Button Size="ButtonSize.Small" @onclick="() => saveEdit(data.Id)" Shape="ButtonShape.Circle">
-                        <i class="fas fa-check"></i>
-                    </Button>
-                </Tooltip>
-                <Popconfirm Title=@($"Bạn có chắc muốn hủy {(data.UserId==Guid.Empty ?"thêm mới":"chỉnh sửa")} khách hàng {data.Name}?")
-                OnConfirm="() => cancelEdit(data.Id)"
-                OkText="Đồng ý"
-                CancelText="Hủy">
-
-                    <Button Size="ButtonSize.Small" Shape="ButtonShape.Circle">
-                        <i class="fa-solid fa-xmark"></i>
-                    </Button>
-                </Popconfirm>
-            }
+            </Popconfirm>
         </ActionColumn>
 
 
@@ -190,32 +223,31 @@
 
     [Inject] private IEmployeesClientService EmployeeService { get; set; } = default!;
 
-    IDictionary<Guid, (bool edit, CreateOrUpdateEmployeeDTO data)> editCache = new Dictionary<Guid, (bool, CreateOrUpdateEmployeeDTO)>();
     List<CreateOrUpdateEmployeeDTO> listOfData = new();
     List<(EEmployeesStatus Value, string Name)> employeesStatusList = new();
 
     GetlistEmployeesRequestDTO filter = new GetlistEmployeesRequestDTO
     {
-            NameFilter = "",
-            CodeFilter = "",
-            PhoneNumberFilter = "",
-            DateOfBirthFilter = null,
-            AddressFilter = "",
-            StatusFilter = null,
-            PageSize = 10,
-            PageIndex = 1,
+        NameFilter = "",
+        CodeFilter = "",
+        PhoneNumberFilter = "",
+        DateOfBirthFilter = null,
+        AddressFilter = "",
+        StatusFilter = null,
+        PageSize = 10,
+        PageIndex = 1,
     };
 
     protected override async Task OnInitializedAsync()
     {
         employeesStatusList = Enum.GetValues(typeof(EEmployeesStatus))
-            .Cast<EEmployeesStatus>()
-            .Select(x => (x, x
-                .GetType()
-                .GetMember(x.ToString())
-                .First()
-                .GetCustomAttribute<DisplayAttribute>()?.Name ?? x.ToString()))
-                .ToList();
+        .Cast<EEmployeesStatus>()
+        .Select(x => (x, x
+        .GetType()
+        .GetMember(x.ToString())
+        .First()
+        .GetCustomAttribute<DisplayAttribute>()?.Name ?? x.ToString()))
+        .ToList();
         await LoadData();
     }
 
@@ -225,9 +257,14 @@
     }
 
     bool showAddModal = false;
+    private bool showDetailModal = false;
+    private bool showEditModal = false;
+    private bool isSaving = false;
 
     private bool showChangePasswordModal = false;
     private Guid selectedUserId;
+    private CreateOrUpdateEmployeeDTO? selectedEmployee;
+    private CreateOrUpdateEmployeeDTO? editingEmployee;
 
     private async Task HandleCreateEmployee(CreateOrUpdateEmployeeDTO dto)
     {
@@ -252,99 +289,173 @@
         showChangePasswordModal = true;
     }
 
-
-
-    async Task AddNewEmployees()
+    private async Task ViewDetail(Guid id)
     {
-        var newEmployee = new CreateOrUpdateEmployeeDTO
+        try
+        {
+            var result = await EmployeeService.GetEmployeesByIdAsync(id);
+            if (result.ResponseStatus == BaseStatus.Success)
             {
-                Id = Guid.NewGuid(),
-                UserId = Guid.Empty,
-                Name = "",
-                Code = "",
-                PhoneNumber = "",
-                DateOfBird = null,
-                Address = "",
-                Status = (int)EEmployeesStatus.Enabled,
-            };
-        listOfData.Insert(0, newEmployee);
-        editCache[newEmployee.Id] = (true, CloneEmpooyees(newEmployee));
-        await InvokeAsync(StateHasChanged);
-    }
-
-    async Task StartEdit(Guid Id)
-    {
-        var data = editCache[Id];
-        editCache[Id] = (true, data.data);
-        await InvokeAsync(StateHasChanged);
-    }
-
-    async Task cancelEdit(Guid id)
-    {
-        var isNew = listOfData.FirstOrDefault(x => x.Id == id)?.UserId == Guid.Empty;
-        if (isNew)
-        {
-            listOfData.RemoveAll(x => x.Id == id);
-            editCache.Remove(id);
-        }
-        else
-        {
-            var original = listOfData.First(x => x.Id == id);
-            editCache[id] = (false, CloneEmpooyees(original));
-        }
-        await InvokeAsync(StateHasChanged);
-    }
-
-
-    async Task saveEdit(Guid id)
-    {
-        var dto = editCache[id].data;
-        var createOrUpdateDto = new CreateOrUpdateEmployeeDTO
+                selectedEmployee = new CreateOrUpdateEmployeeDTO
+                {
+                    Id = result.Id,
+                    UserId = result.UserId,
+                    Name = result.Name,
+                    Code = result.Code,
+                    PhoneNumber = result.PhoneNumber,
+                    DateOfBird = result.DateOfBird,
+                    Address = result.Address,
+                    Status = (int)result.Status,
+                    Email = result.Email ?? ""
+                };
+                showDetailModal = true;
+            }
+            else
             {
-                Id = dto.Id,
-                Name = dto.Name,
-                Code = dto.Code,
-                PhoneNumber = dto.PhoneNumber,
-                DateOfBird = dto.DateOfBird,
-                Address = dto.Address,
-                Status = dto.Status,
-                UserId = dto.UserId
-            };
-
-        BaseResponse result;
-
-        if (dto.UserId == Guid.Empty)
-        {
-            result = await EmployeeService.CreateEmployeesAsync(createOrUpdateDto);
+                await MessageModalService.Error("Không tìm thấy thông tin nhân viên!");
+            }
         }
-        else
+        catch (Exception ex)
         {
-            result = await EmployeeService.UpdateEmployeesAsync(createOrUpdateDto);
-        }
-
-        if (result.ResponseStatus == BaseStatus.Success)
-        {
-            await MessageModalService.Success("Lưu khách hàng thành công!");
-            await LoadData();
-        }
-        else
-        {
-            await MessageModalService.Error(result.Message);
+            await MessageModalService.Error($"Có lỗi xảy ra: {ex.Message}");
         }
     }
+
+    // Modal handlers
+    private void HideDetailModal()
+    {
+        showDetailModal = false;
+        selectedEmployee = null;
+    }
+
+    private void EditEmployeeFromDetail()
+    {
+        if (selectedEmployee != null)
+        {
+            editingEmployee = CloneEmpooyees(selectedEmployee);
+            showDetailModal = false;
+            showEditModal = true;
+        }
+    }
+
+    private async Task EditEmployeeFromTable(Guid id)
+    {
+        try
+        {
+            var result = await EmployeeService.GetEmployeesByIdAsync(id);
+            if (result.ResponseStatus == BaseStatus.Success)
+            {
+                editingEmployee = new CreateOrUpdateEmployeeDTO
+                {
+                    Id = result.Id,
+                    UserId = result.UserId,
+                    Name = result.Name,
+                    Code = result.Code,
+                    PhoneNumber = result.PhoneNumber,
+                    DateOfBird = result.DateOfBird,
+                    Address = result.Address,
+                    Status = (int)result.Status,
+                    Email = result.Email ?? ""
+                };
+                showEditModal = true;
+            }
+            else
+            {
+                await MessageModalService.Error("Không tìm thấy thông tin nhân viên!");
+            }
+        }
+        catch (Exception ex)
+        {
+            await MessageModalService.Error($"Có lỗi xảy ra: {ex.Message}");
+        }
+    }
+
+    private void ChangePasswordFromDetail()
+    {
+        if (selectedEmployee != null)
+        {
+            selectedUserId = selectedEmployee.UserId;
+            showDetailModal = false;
+            showChangePasswordModal = true;
+        }
+    }
+
+    private void HideEditModal()
+    {
+        showEditModal = false;
+        editingEmployee = null;
+    }
+
+    private async Task HandleEditSubmit()
+    {
+        if (editingEmployee == null) return;
+
+        try
+        {
+            isSaving = true;
+            var result = await EmployeeService.UpdateEmployeesAsync(editingEmployee);
+
+            if (result.ResponseStatus == BaseStatus.Success)
+            {
+                await MessageModalService.Success("Cập nhật nhân viên thành công!");
+                showEditModal = false;
+                editingEmployee = null;
+                await LoadData();
+            }
+            else
+            {
+                await MessageModalService.Error(result.Message);
+            }
+        }
+        catch (Exception ex)
+        {
+            await MessageModalService.Error($"Có lỗi xảy ra: {ex.Message}");
+        }
+        finally
+        {
+            isSaving = false;
+        }
+    }
+
+    // Helper methods
+    private string GetEmployeeStatusName(EEmployeesStatus status)
+    {
+        return status switch
+        {
+            EEmployeesStatus.Enabled => "Hoạt động",
+            EEmployeesStatus.Disabled => "Không hoạt động",
+            EEmployeesStatus.Locked => "Bị khóa",
+            _ => status.ToString()
+        };
+    }
+
+    private string GetEmployeeStatusColor(EEmployeesStatus status)
+    {
+        return status switch
+        {
+            EEmployeesStatus.Enabled => "success",
+            EEmployeesStatus.Disabled => "error",
+            EEmployeesStatus.Locked => "warning",
+            _ => "default"
+        };
+    }
+
+    // Inline editing methods (no longer needed)
+    // async Task StartEdit(Guid Id) - removed
+    // async Task cancelEdit(Guid id) - removed
+    // async Task saveEdit(Guid id) - removed
 
     async Task DeleteEmployee(Guid id)
     {
         var success = await EmployeeService.DeleteEmployeesAsync(id);
-        if(success)
+        if (success)
         {
             listOfData.RemoveAll(x => x.Id == id);
-            editCache.Remove(id);
-            await MessageModalService.Success("Xóa khách hàng thành công!");
+            await MessageModalService.Success("Xóa nhân viên thành công!");
         }
         else
         {
-            await MessageModalService.Error("Xóa khách hàng thất bại!");
+            await MessageModalService.Error("Xóa nhân viên thất bại!");
         }
     }
 
@@ -352,24 +463,21 @@
     {
         var response = await EmployeeService.GetAllEmployeesAsync(filter);
         listOfData = response.Items;
-        editCache = listOfData.ToDictionary(
-            item => item.Id, 
-            item => (false, CloneEmpooyees(item)));
         await InvokeAsync(StateHasChanged);
     }
 
-    CreateOrUpdateEmployeeDTO CloneEmpooyees(CreateOrUpdateEmployeeDTO item )
+    CreateOrUpdateEmployeeDTO CloneEmpooyees(CreateOrUpdateEmployeeDTO item)
     {
         return new CreateOrUpdateEmployeeDTO
         {
-                Id = item.Id,
-                Name = item.Name,
-                Code = item.Code,
-                PhoneNumber = item.PhoneNumber,
-                DateOfBird = item.DateOfBird,
-                Address = item.Address,
-                Status = item.Status,
-                UserId = item.UserId
+            Id = item.Id,
+            Name = item.Name,
+            Code = item.Code, // Giữ nguyên Code từ database
+            PhoneNumber = item.PhoneNumber,
+            DateOfBird = item.DateOfBird,
+            Address = item.Address,
+            Status = item.Status,
+            UserId = item.UserId
         };
     }
 }

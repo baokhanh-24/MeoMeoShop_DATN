@@ -9,6 +9,7 @@ using MeoMeo.Domain.Commons;
 using MeoMeo.Domain.Commons.Enums;
 using MeoMeo.Domain.Entities;
 using MeoMeo.Domain.IRepositories;
+using MeoMeo.Shared.IServices;
 using Microsoft.EntityFrameworkCore;
 using System.Security.Cryptography;
 using Microsoft.Identity.Client;
@@ -35,6 +36,7 @@ namespace MeoMeo.Application.Services
         private readonly IProductRepository _productRepository;
         private readonly IPromotionDetailRepository _promotionDetailRepository;
         private readonly IVoucherRepository _voucherRepository;
+        private readonly IEmailService _emailService;
 
         public OrderService(IIventoryBatchReposiory inventoryRepository, IOrderRepository orderRepository,
             IMapper mapper, IOrderDetailRepository orderDetailRepository,
@@ -45,7 +47,8 @@ namespace MeoMeo.Application.Services
             IOrderHistoryRepository orderHistoryRepository, IUserRepository userRepository,
             IDeliveryAddressRepository deliveryAddressRepository, IEmployeeRepository employeeRepository,
             ICustomerRepository customerRepository, IProductRepository productRepository,
-            IPromotionDetailRepository promotionDetailRepository, IVoucherRepository voucherRepository)
+            IPromotionDetailRepository promotionDetailRepository, IVoucherRepository voucherRepository,
+            IEmailService emailService)
         {
             _inventoryRepository = inventoryRepository;
             _orderRepository = orderRepository;
@@ -66,6 +69,7 @@ namespace MeoMeo.Application.Services
             _productRepository = productRepository;
             _promotionDetailRepository = promotionDetailRepository;
             _voucherRepository = voucherRepository;
+            _emailService = emailService;
         }
 
 
@@ -94,6 +98,12 @@ namespace MeoMeo.Application.Services
                     statusCounts.FirstOrDefault(s => s.Status == EOrderStatus.Canceled)?.Count ?? 0;
                 metaDataValue.Completed =
                     statusCounts.FirstOrDefault(s => s.Status == EOrderStatus.Completed)?.Count ?? 0;
+                metaDataValue.PendingReturn =
+                    statusCounts.FirstOrDefault(s => s.Status == EOrderStatus.PendingReturn)?.Count ?? 0;
+                metaDataValue.Returned =
+                    statusCounts.FirstOrDefault(s => s.Status == EOrderStatus.Returned)?.Count ?? 0;
+                metaDataValue.RejectReturned =
+                    statusCounts.FirstOrDefault(s => s.Status == EOrderStatus.RejectReturned)?.Count ?? 0;
 
                 if (!string.IsNullOrEmpty(request.CodeFilter))
                 {
@@ -233,6 +243,12 @@ namespace MeoMeo.Application.Services
                     statusCounts.FirstOrDefault(s => s.Status == EOrderStatus.Canceled)?.Count ?? 0;
                 metaDataValue.Completed =
                     statusCounts.FirstOrDefault(s => s.Status == EOrderStatus.Completed)?.Count ?? 0;
+                metaDataValue.PendingReturn =
+                    statusCounts.FirstOrDefault(s => s.Status == EOrderStatus.PendingReturn)?.Count ?? 0;
+                metaDataValue.Returned =
+                    statusCounts.FirstOrDefault(s => s.Status == EOrderStatus.Returned)?.Count ?? 0;
+                metaDataValue.RejectReturned =
+                    statusCounts.FirstOrDefault(s => s.Status == EOrderStatus.RejectReturned)?.Count ?? 0;
 
                 if (!string.IsNullOrEmpty(request.CodeFilter))
                 {
@@ -791,6 +807,23 @@ namespace MeoMeo.Application.Services
                 }
 
                 await _unitOfWork.CommitAsync();
+
+                // Gửi email xác nhận đơn hàng
+                try
+                {
+                    await _emailService.SendOrderConfirmationEmailAsync(
+                        order.CustomerEmail,
+                        order.CustomerName,
+                        order.Code,
+                        order.TotalPrice
+                    );
+                }
+                catch (Exception emailEx)
+                {
+                    // Log lỗi email nhưng không làm fail transaction
+                    Console.WriteLine($"Failed to send order confirmation email: {emailEx.Message}");
+                }
+
                 return new CreateOrderResultDTO
                 {
                     ResponseStatus = BaseStatus.Success,

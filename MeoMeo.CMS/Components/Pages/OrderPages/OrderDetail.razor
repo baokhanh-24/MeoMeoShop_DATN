@@ -1,0 +1,754 @@
+@page "/order-detail/{OrderId:guid}"
+@using MeoMeo.Contract.DTOs.Order
+@using MeoMeo.Contract.DTOs.OrderDetail
+@using MeoMeo.Domain.Commons.Enums
+@using MeoMeo.Shared.IServices
+@using MeoMeo.CMS.Components.Common
+@using MeoMeo.Contract.Commons
+@using MeoMeo.Domain.Commons
+@using System.ComponentModel.DataAnnotations
+@using System.Reflection
+@using MeoMeo.Contract.DTOs.ProductReview
+@using ButtonSize = AntDesign.ButtonSize
+@using ButtonType = AntDesign.ButtonType
+@inject IOrderClientService OrderClientService
+@inject IProductReviewClientService ProductReviewClientService
+@inject IMessageService MessageService
+@inject NavigationManager Navigation
+@inject IJSRuntime JSRuntime
+@inject IConfiguration Configuration
+
+<div class="content-background layout-container">
+    <Breadcrumb>
+        <BreadcrumbItem Href="/">Trang chủ</BreadcrumbItem>
+        <BreadcrumbItem Href="/manage-order">Quản lý đơn hàng</BreadcrumbItem>
+        <BreadcrumbItem>
+            <a class="current">Chi tiết đơn hàng</a>
+        </BreadcrumbItem>
+    </Breadcrumb>
+    
+    <div class="group-breadcumb">
+        <Button Class="btn-back" Icon="arrow-left" OnClick="HandleGoBack">Quay lại</Button>
+    </div>
+    @if(OrderData != null){
+<div class="order-detail-container">
+            <!-- Order Header -->
+            <div class="order-header">
+                <div class="order-info">
+                    <h2 class="order-title">Đơn hàng #@OrderData.Code</h2>
+                    <div class="order-status">
+                        <Tag Color="@GetStatusColor(OrderData.Status)">
+                            @GetStatusDisplayName(OrderData.Status)
+                        </Tag>
+                    </div>
+                </div>
+                <div class="order-actions">
+                    @if (CanProcessRefund())
+                    {
+                        <Button Type="@AntDesign.ButtonType.Primary" 
+                                Icon="check" 
+                                OnClick="() => HandleRefundAction(true)"
+                                Loading="@IsProcessing">
+                            Chấp nhận hoàn trả
+                        </Button>
+                        <Button Type="@AntDesign.ButtonType.Primary" 
+                                Danger="true"
+                                Icon="close" 
+                                OnClick="() => HandleRefundAction(false)"
+                                Loading="@IsProcessing">
+                            Từ chối hoàn trả
+                        </Button>
+                    }
+                </div>
+            </div>
+
+            <!-- Order Information -->
+            <div class="order-sections">
+                <div class="order-section">
+                    <h3 class="section-title">Thông tin đơn hàng</h3>
+                    <div class="info-grid">
+                        <div class="info-item">
+                            <label>Mã đơn hàng:</label>
+                            <span>@OrderData.Code</span>
+                        </div>
+                        <div class="info-item">
+                            <label>Ngày tạo:</label>
+                            <span>@OrderData.CreationTime.ToString("dd/MM/yyyy HH:mm")</span>
+                        </div>
+                        <div class="info-item">
+                            <label>Ngày cập nhật cuối:</label>
+                            <span>@(OrderData.LastModifiedTime?.ToString("dd/MM/yyyy HH:mm") ?? "Chưa cập nhật")</span>
+                        </div>
+                        <div class="info-item">
+                            <label>Trạng thái:</label>
+                            <Tag Color="@GetStatusColor(OrderData.Status)">
+                                @GetStatusDisplayName(OrderData.Status)
+                            </Tag>
+                        </div>
+                        <div class="info-item">
+                            <label>Tổng tiền:</label>
+                            <span class="price">@OrderData.TotalPrice.ToString("N0") đ</span>
+                        </div>
+                        <div class="info-item">
+                            <label>Giảm giá:</label>
+                            <span class="discount">@(OrderData.DiscountPrice?.ToString("N0") ?? "0") đ</span>
+                        </div>
+                        <div class="info-item">
+                            <label>Phí vận chuyển:</label>
+                            <span>@(OrderData.ShippingFee?.ToString("N0") ?? "0") đ</span>
+                        </div>
+                        <div class="info-item">
+                            <label>Phương thức thanh toán:</label>
+                            <span>@GetPaymentMethodDisplayName(OrderData.PaymentMethod)</span>
+                        </div>
+                        <div class="info-item">
+                            <label>Loại đơn hàng:</label>
+                            <span>@GetOrderTypeDisplayName(OrderData.Type)</span>
+                        </div>
+                        <div class="info-item">
+                            <label>Ghi chú:</label>
+                            <span>@(OrderData.Note ?? "Không có")</span>
+                        </div>
+                        <div class="info-item">
+                            <label>Đã chuyển khoản:</label>
+                            <Tag Color="@("red")">
+                                Chưa chuyển
+                            </Tag>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Customer Information -->
+                <div class="order-section">
+                    <h3 class="section-title">Thông tin khách hàng</h3>
+                    <div class="info-grid">
+                        <div class="info-item">
+                            <label>Tên khách hàng:</label>
+                            <span>@OrderData.CustomerName</span>
+                        </div>
+                        <div class="info-item">
+                            <label>Số điện thoại:</label>
+                            <span>@OrderData.CustomerPhoneNumber</span>
+                        </div>
+                        <div class="info-item">
+                            <label>Email:</label>
+                            <span>@(OrderData.CustomerEmail ?? "Không có")</span>
+                        </div>
+                        <div class="info-item">
+                            <label>Mã khách hàng:</label>
+                            <span>@OrderData.CustomerId.ToString()</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Employee Information -->
+                @if (!string.IsNullOrEmpty(OrderData.EmployeeName))
+                {
+                    <div class="order-section">
+                        <h3 class="section-title">Thông tin nhân viên xử lý</h3>
+                        <div class="info-grid">
+                            <div class="info-item">
+                                <label>Tên nhân viên:</label>
+                                <span>@OrderData.EmployeeName</span>
+                            </div>
+                            <div class="info-item">
+                                <label>Số điện thoại:</label>
+                                <span>@(OrderData.EmployeePhoneNumber ?? "Không có")</span>
+                            </div>
+                            <div class="info-item">
+                                <label>Email:</label>
+                                <span>@(OrderData.EmployeeEmail ?? "Không có")</span>
+                            </div>
+                        </div>
+                    </div>
+                }
+
+                <!-- Delivery Information -->
+                <div class="order-section">
+                    <h3 class="section-title">Thông tin giao hàng</h3>
+                    <div class="info-grid">
+                        <div class="info-item">
+                            <label>Địa chỉ giao hàng:</label>
+                            <span>@(OrderData.DeliveryAddress ?? "Không có")</span>
+                        </div>
+                        <div class="info-item">
+                            <label>Ngày giao dự kiến:</label>
+                            <span>@(OrderData.ExpectReceiveDate?.ToString("dd/MM/yyyy") ?? "Chưa xác định")</span>
+                        </div>
+                        <div class="info-item">
+                            <label>Ngày giao thực tế:</label>
+                            <span>@(OrderData.ReceiveDate?.ToString("dd/MM/yyyy") ?? "Chưa giao")</span>
+                        </div>
+                        <div class="info-item">
+                            <label>Ngày giao hàng:</label>
+                            <span>@(OrderData.DeliveryDate?.ToString("dd/MM/yyyy") ?? "Chưa giao")</span>
+                        </div>
+                        <div class="info-item">
+                            <label>Phí vận chuyển:</label>
+                            <span>@(OrderData.ShippingFee?.ToString("N0") ?? "0") đ</span>
+                        </div>
+                        <div class="info-item">
+                            <label>Mã GHN:</label>
+                            <span>Không có</span>
+                        </div>
+                        <div class="info-item">
+                            <label>Phương thức vận chuyển:</label>
+                            <span>Không có</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Order Items -->
+                <div class="order-section">
+                    <h3 class="section-title">Chi tiết sản phẩm</h3>
+                    <Table TItem="OrderDetailDTO" DataSource="@OrderData.OrderDetails" 
+                           Bordered="true" Size="@AntDesign.TableSize.Small">
+                        <PropertyColumn Property="x => x.ProductName" Title="Tên sản phẩm" />
+                        <PropertyColumn Property="x => x.Sku" Title="SKU" />
+                        <PropertyColumn Property="x => x.Quantity" Title="Số lượng" />
+                        <PropertyColumn Property="x => x.Price" Title="Giá bán" Format="N0" />
+                        <PropertyColumn Property="x => x.Discount" Title="Giảm giá" Format="N0" />
+                        <PropertyColumn Property="x => x.GrandTotal" Title="Thành tiền" Format="N0" />
+                        <Column TData="OrderDetailDTO" Title="Hình ảnh">
+                            <Image Width="50" Height="50" 
+                                   Fallback="@(ApiBaseUrl + "/Images/fallback.jpeg")" 
+                                   Src="@(ApiBaseUrl + "/" + context.Image)"
+                                   Class="product-image"/>
+                        </Column>
+                    </Table>
+                </div>
+
+                <!-- Product Reviews -->
+                @if (OrderData.Status == EOrderStatus.Completed && orderReviews.Any())
+                {
+                    <div class="order-section">
+                        <h3 class="section-title">Đánh giá sản phẩm</h3>
+                        <div class="reviews-container">
+                            @foreach (var review in orderReviews)
+                            {
+                                <div class="review-item">
+                                    <div class="review-header">
+                                        <div class="review-customer">
+                                            <div class="customer-info">
+                                                <strong>@review.CustomerName</strong>
+                                                <span class="customer-phone">@review.CustomerPhone</span>
+                                            </div>
+                                            <div class="review-rating">
+                                                <Rate Disabled Value="@((int)review.Rating)" Style="font-size: 14px;" />
+                                                <span class="review-date">@review.CreationTime.ToString("dd/MM/yyyy HH:mm")</span>
+                                            </div>
+                                        </div>
+                                        <div class="review-actions">
+                                            <Button Size="@ButtonSize.Small" 
+                                                    Type="@ButtonType.Primary" 
+                                                    Icon="message" 
+                                                    OnClick="() => ShowReplyModal(review)">
+                                                Trả lời
+                                            </Button>
+                                            <Button Size="@ButtonSize.Small" 
+                                                    Type="@(review.IsHidden ? ButtonType.Default : ButtonType.Dashed)" 
+                                                    Icon="@(review.IsHidden ? "eye" : "eye-invisible")"
+                                                    OnClick="() => ToggleReviewVisibility(review)">
+                                                @(review.IsHidden ? "Hiện" : "Ẩn")
+                                            </Button>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="review-product">
+                                        <div class="product-info">
+                                            @if (!string.IsNullOrEmpty(review.ProductThumbnail))
+                                            {
+                                                <Image Src="@(ApiBaseUrl + "/" + review.ProductThumbnail)" 
+                                                       Width="40" Height="40" 
+                                                       Class="product-thumbnail" />
+                                            }
+                                            <div>
+                                                <div class="product-name">@review.ProductName</div>
+                                                <div class="product-variant">@review.ColourName - @review.SizeName</div>
+                                            </div>
+                                        </div>
+                                        <Tag Color="@(review.IsHidden ? "red" : "green")">
+                                            @(review.IsHidden ? "Đã ẩn" : "Hiển thị")
+                                        </Tag>
+                                    </div>
+                                    
+                                    <div class="review-content">
+                                        <div class="review-text">@review.Content</div>
+                                        @if (review.ProductReviewFiles?.Any() == true)
+                                        {
+                                            <div class="review-media">
+                                                @foreach (var file in review.ProductReviewFiles)
+                                                {
+                                                    <Image Src="@(ApiBaseUrl + "/" + file.FileUrl)" 
+                                                           Width="60" Height="60" 
+                                                           Class="review-image" />
+                                                }
+                                            </div>
+                                        }
+                                    </div>
+                                    
+                                    @if (!string.IsNullOrEmpty(review.Answer))
+                                    {
+                                        <div class="review-reply">
+                                            <div class="reply-header">
+                                                <Icon Type="message" />
+                                                <span>Trả lời từ shop</span>
+                                                <span class="reply-date">@review.ReplyDate?.ToString("dd/MM/yyyy HH:mm")</span>
+                                            </div>
+                                            <div class="reply-content">@review.Answer</div>
+                                        </div>
+                                    }
+                                </div>
+                            }
+                        </div>
+                    </div>
+                }
+
+                <!-- Refund Information -->
+                @if (OrderData.Status == EOrderStatus.PendingReturn || 
+                     OrderData.Status == EOrderStatus.Returned || 
+                     OrderData.Status == EOrderStatus.RejectReturned)
+                {
+                    <div class="order-section">
+                        <h3 class="section-title">Thông tin hoàn trả</h3>
+                        <div class="info-grid">
+                            <div class="info-item">
+                                <label>Lý do hoàn trả:</label>
+                                <span>@(OrderData.Reason ?? "Không có")</span>
+                            </div>
+                            <div class="info-item">
+                                <label>Ngày yêu cầu hoàn trả:</label>
+                                <span>@(OrderData.CancelDate?.ToString("dd/MM/yyyy HH:mm") ?? "Không có")</span>
+                            </div>
+                            <div class="info-item">
+                                <label>Trạng thái hoàn trả:</label>
+                                <Tag Color="@GetStatusColor(OrderData.Status)">
+                                    @GetStatusDisplayName(OrderData.Status)
+                                </Tag>
+                            </div>
+                        </div>
+                    </div>
+                }
+
+                <!-- Voucher Information -->
+                @if (OrderData.VoucherId.HasValue)
+                {
+                    <div class="order-section">
+                        <h3 class="section-title">Thông tin voucher</h3>
+                        <div class="info-grid">
+                            <div class="info-item">
+                                <label>Mã voucher:</label>
+                                <span>@OrderData.VoucherId.ToString()</span>
+                            </div>
+                        </div>
+                    </div>
+                }
+
+                <!-- Order History -->
+                <div class="order-section">
+                    <h3 class="section-title">Lịch sử đơn hàng</h3>
+                    <Timeline>
+                        <TimelineItem>
+                            <div class="history-item">
+                                <div class="history-status">@GetStatusDisplayName(OrderData.Status)</div>
+                                <div class="history-time">@OrderData.CreationTime.ToString("dd/MM/yyyy HH:mm")</div>
+                                <div class="history-actor">Trạng thái hiện tại</div>
+                            </div>
+                        </TimelineItem>
+                        @if (OrderData.LastModifiedTime.HasValue)
+                        {
+                            <TimelineItem>
+                                <div class="history-item">
+                                    <div class="history-status">Cập nhật lần cuối</div>
+                                    <div class="history-time">@OrderData.LastModifiedTime.Value.ToString("dd/MM/yyyy HH:mm")</div>
+                                    <div class="history-actor">Hệ thống</div>
+                                </div>
+                            </TimelineItem>
+                        }
+                    </Timeline>
+                </div>
+            </div>
+        </div>
+    }
+    
+
+        
+</div>
+
+<!-- Reply Modal -->
+<Modal Title="Trả lời đánh giá" 
+       @bind-Visible="replyModalVisible" 
+       OnOk="SubmitReply" 
+       OnCancel="CancelReply"
+       Width="600"
+       ConfirmLoading="@replyLoading">
+    @if (selectedReview != null)
+    {
+        <div style="margin-bottom: 16px;">
+            <h4>Đánh giá của khách hàng:</h4>
+            <div style="background: #f6f6f6; padding: 12px; border-radius: 4px; margin-bottom: 16px;">
+                <div style="margin-bottom: 8px;">
+                    <Rate Disabled Value="@((int)selectedReview.Rating)" Style="font-size: 14px;" />
+                    <span style="margin-left: 8px; color: #666;">@selectedReview.CustomerName</span>
+                </div>
+                <div>@selectedReview.Content</div>
+            </div>
+            
+            <h4>Trả lời của shop:</h4>
+            <TextArea @bind-Value="replyContent" 
+                     Placeholder="Nhập câu trả lời của bạn..." 
+                     Rows="4" 
+                     MaxLength="1000"
+                     ShowCount="true" />
+        </div>
+    }
+</Modal>
+
+<style>
+.reviews-container {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.review-item {
+    border: 1px solid #e8e8e8;
+    border-radius: 8px;
+    padding: 16px;
+    background: #fff;
+}
+
+.review-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 12px;
+}
+
+.review-customer {
+    flex: 1;
+}
+
+.customer-info {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 4px;
+}
+
+.customer-phone {
+    color: #666;
+    font-size: 12px;
+}
+
+.review-rating {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.review-date {
+    color: #666;
+    font-size: 12px;
+}
+
+.review-actions {
+    display: flex;
+    gap: 8px;
+}
+
+.review-product {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 12px;
+    padding: 8px;
+    background: #f9f9f9;
+    border-radius: 4px;
+}
+
+.product-info {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.product-thumbnail {
+    border-radius: 4px;
+    border: 1px solid #d9d9d9;
+}
+
+.product-name {
+    font-weight: 500;
+}
+
+.product-variant {
+    color: #666;
+    font-size: 12px;
+}
+
+.review-content {
+    margin-bottom: 12px;
+}
+
+.review-text {
+    margin-bottom: 8px;
+    line-height: 1.6;
+}
+
+.review-media {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+.review-image {
+    border-radius: 4px;
+    border: 1px solid #d9d9d9;
+}
+
+.review-reply {
+    background: #f0f8ff;
+    border: 1px solid #b3d8ff;
+    border-radius: 4px;
+    padding: 12px;
+}
+
+.reply-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 8px;
+    font-weight: 500;
+    color: #1890ff;
+}
+
+.reply-date {
+    margin-left: auto;
+    font-size: 12px;
+    color: #666;
+}
+
+.reply-content {
+    line-height: 1.6;
+}
+</style>
+
+@code {
+    [Parameter]
+    public Guid OrderId { get; set; }
+
+    private OrderDTO? OrderData;
+    private bool IsLoading = true;
+    private bool IsProcessing = false;
+    private string ApiBaseUrl = string.Empty;
+    
+    // Review management
+    private List<ProductReviewDTO> orderReviews = new();
+    private bool replyModalVisible = false;
+    private bool replyLoading = false;
+    private ProductReviewDTO? selectedReview;
+    private string replyContent = string.Empty;
+
+    protected override async Task OnInitializedAsync()
+    {
+        ApiBaseUrl = Configuration["ApiSettings:BaseUrl"]?.TrimEnd('/') ?? string.Empty;
+        await LoadOrderData();
+    }
+
+    private async Task LoadOrderData()
+    {
+        try
+        {
+            IsLoading = true;
+            OrderData = await OrderClientService.GetOrderByIdAsync(OrderId);
+            
+            // Load reviews for completed orders
+            if (OrderData?.Status == EOrderStatus.Completed)
+            {
+                await LoadOrderReviews();
+            }
+        }
+        catch (Exception ex)
+        {
+            MessageService.Error($"Không thể tải thông tin đơn hàng: {ex.Message}");
+        }
+        finally
+        {
+            IsLoading = false;
+        }
+    }
+
+    private async Task LoadOrderReviews()
+    {
+        try
+        {
+            orderReviews = await ProductReviewClientService.GetReviewsByOrderIdAsync(OrderId);
+        }
+        catch (Exception ex)
+        {
+            // Log error but don't show to user as reviews are optional
+            Console.WriteLine($"Error loading reviews: {ex.Message}");
+        }
+    }
+
+    private bool CanProcessRefund()
+    {
+        return OrderData?.Status == EOrderStatus.PendingReturn && !IsProcessing;
+    }
+
+    private async Task HandleRefundAction(bool approve)
+    {
+        try
+        {
+            IsProcessing = true;
+            
+            var newStatus = approve ? EOrderStatus.Returned : EOrderStatus.RejectReturned;
+            var message = approve ? "Chấp nhận hoàn trả đơn hàng?" : "Từ chối hoàn trả đơn hàng?";
+            
+            var confirmed = await JSRuntime.InvokeAsync<bool>("confirm", message);
+            if (!confirmed) return;
+
+            var request = new UpdateStatusOrderRequestDTO
+            {
+                OrderIds = new List<Guid> { OrderId },
+                Status = newStatus,
+                Reason = approve ? "Chấp nhận hoàn trả đơn hàng" : "Từ chối hoàn trả đơn hàng"
+            };
+
+            var result = await OrderClientService.UpdateStatusOrderAsync(request);
+            
+            if (result.ResponseStatus == BaseStatus.Success)
+            {
+                var successMessage = approve ? "Đã chấp nhận hoàn trả đơn hàng" : "Đã từ chối hoàn trả đơn hàng";
+                MessageService.Success(successMessage);
+                await LoadOrderData();
+            }
+            else
+            {
+                MessageService.Error(result.Message ?? "Có lỗi xảy ra khi cập nhật trạng thái");
+            }
+        }
+        catch (Exception ex)
+        {
+            MessageService.Error($"Có lỗi xảy ra: {ex.Message}");
+        }
+        finally
+        {
+            IsProcessing = false;
+        }
+    }
+
+    private void HandleGoBack()
+    {
+        Navigation.NavigateTo("/manage-order");
+    }
+
+    private string GetStatusColor(EOrderStatus status)
+    {
+        return status switch
+        {
+            EOrderStatus.Pending => "orange",
+            EOrderStatus.Confirmed => "blue",
+            EOrderStatus.InTransit => "cyan",
+            EOrderStatus.Completed => "green",
+            EOrderStatus.Canceled => "red",
+            EOrderStatus.PendingReturn => "orange",
+            EOrderStatus.Returned => "green",
+            EOrderStatus.RejectReturned => "red",
+            _ => "default"
+        };
+    }
+
+    private string GetStatusDisplayName(EOrderStatus status)
+    {
+        var field = status.GetType().GetField(status.ToString());
+        var attribute = field?.GetCustomAttribute<DisplayAttribute>();
+        return attribute?.Name ?? status.ToString();
+    }
+
+    private string GetPaymentMethodDisplayName(EOrderPaymentMethod method)
+    {
+        var field = method.GetType().GetField(method.ToString());
+        var attribute = field?.GetCustomAttribute<DisplayAttribute>();
+        return attribute?.Name ?? method.ToString();
+    }
+
+    private string GetOrderTypeDisplayName(EOrderType type)
+    {
+        var field = type.GetType().GetField(type.ToString());
+        var attribute = field?.GetCustomAttribute<DisplayAttribute>();
+        return attribute?.Name ?? type.ToString();
+    }
+
+    // Review management methods
+    private void ShowReplyModal(ProductReviewDTO review)
+    {
+        selectedReview = review;
+        replyContent = review.Answer ?? string.Empty;
+        replyModalVisible = true;
+    }
+
+    private void CancelReply()
+    {
+        replyModalVisible = false;
+        selectedReview = null;
+        replyContent = string.Empty;
+    }
+
+    private async Task SubmitReply()
+    {
+        if (selectedReview == null || string.IsNullOrWhiteSpace(replyContent))
+        {
+           MessageService.Warning("Vui lòng nhập nội dung trả lời");
+            return;
+        }
+
+        replyLoading = true;
+        try
+        {
+            var result = await ProductReviewClientService.ReplyToReviewAsync(selectedReview.Id, replyContent.Trim());
+            if (result.ResponseStatus == BaseStatus.Success)
+            {
+               MessageService.Success("Trả lời đánh giá thành công");
+                replyModalVisible = false;
+                await LoadOrderReviews(); // Refresh reviews
+                StateHasChanged();
+            }
+            else
+            {
+               MessageService.Error(result.Message ?? "Có lỗi xảy ra");
+            }
+        }
+        catch (Exception ex)
+        {
+           MessageService.Error($"Có lỗi xảy ra: {ex.Message}");
+        }
+        finally
+        {
+            replyLoading = false;
+        }
+    }
+
+    private async Task ToggleReviewVisibility(ProductReviewDTO review)
+    {
+        try
+        {
+            var result = await ProductReviewClientService.ToggleReviewVisibilityAsync(review.Id);
+            if (result.ResponseStatus == BaseStatus.Success)
+            {
+               MessageService.Success(result.Message ?? "Thay đổi trạng thái thành công");
+                await LoadOrderReviews(); // Refresh reviews
+                StateHasChanged();
+            }
+            else
+            {
+               MessageService.Error(result.Message ?? "Có lỗi xảy ra");
+            }
+        }
+        catch (Exception ex)
+        {
+           MessageService.Error($"Có lỗi xảy ra: {ex.Message}");
+        }
+    }
+}

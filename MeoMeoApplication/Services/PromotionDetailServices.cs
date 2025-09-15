@@ -79,6 +79,64 @@ namespace MeoMeo.Application.Services
             }
         }
 
+        public async Task<PagingExtensions.PagedResult<PromotionDetailWithProductInfoDTO>> GetPromotionDetailWithProductInfoAsync(GetPromotionDetailWithProductInfoRequestDTO request)
+        {
+            try
+            {
+                var query = _repository.Query()
+                    .Include(pd => pd.ProductDetail)
+                        .ThenInclude(pd => pd.Product)
+                    .Include(pd => pd.ProductDetail)
+                        .ThenInclude(pd => pd.Size)
+                    .Include(pd => pd.ProductDetail)
+                        .ThenInclude(pd => pd.Colour)
+                    .Where(pd => pd.PromotionId == request.PromotionId);
+
+                if (!string.IsNullOrEmpty(request.SearchTerm))
+                {
+                    query = query.Where(pd =>
+                        EF.Functions.Like(pd.ProductDetail.Product.Name, $"%{request.SearchTerm}%") ||
+                        EF.Functions.Like(pd.ProductDetail.Sku, $"%{request.SearchTerm}%"));
+                }
+
+                var filteredPromotionDetails = await _repository.GetPagedAsync(query, request.PageIndex, request.PageSize);
+
+                var dtoItems = filteredPromotionDetails.Items.Select(pd => new PromotionDetailWithProductInfoDTO
+                {
+                    Id = pd.Id,
+                    PromotionId = pd.PromotionId,
+                    ProductDetailId = pd.ProductDetailId,
+                    Discount = pd.Discount,
+                    Note = pd.Note,
+                    CreationTime = pd.CreationTime,
+                    LastModificationTime = pd.LastModificationTime,
+
+                    // Product Detail Information
+                    ProductName = pd.ProductDetail.Product.Name,
+                    SKU = pd.ProductDetail.Sku,
+                    Thumbnail = pd.ProductDetail.Product.Thumbnail,
+                    OriginalPrice = pd.ProductDetail.Price,
+                    DiscountPrice = pd.ProductDetail.Price * (1 - pd.Discount / 100),
+                    // Size and Colour Information
+                    SizeName = pd.ProductDetail.Size.Value,
+                    ColourName = pd.ProductDetail.Colour.Name,
+                }).ToList();
+
+                return new PagingExtensions.PagedResult<PromotionDetailWithProductInfoDTO>
+                {
+                    TotalRecords = filteredPromotionDetails.TotalRecords,
+                    PageIndex = filteredPromotionDetails.PageIndex,
+                    PageSize = filteredPromotionDetails.PageSize,
+                    Items = dtoItems
+                };
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine(ex.Message);
+                throw;
+            }
+        }
+
         public async Task<CreateOrUpdatePromotionDetailResponseDTO> GetPromotionDetailByIdAsync(Guid id)
         {
             CreateOrUpdatePromotionDetailResponseDTO responseDTO = new CreateOrUpdatePromotionDetailResponseDTO();

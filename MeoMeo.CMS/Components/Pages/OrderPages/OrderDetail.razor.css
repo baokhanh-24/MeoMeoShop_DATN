@@ -1,0 +1,165 @@
+/* Order Detail Styles */
+.order-detail-container {
+    background: white;
+    border-radius: 8px;
+    padding: 24px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.order-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 24px;
+    padding-bottom: 16px;
+    border-bottom: 1px solid #f0f0f0;
+}
+
+.order-info {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+}
+
+.order-title {
+    margin: 0;
+    font-size: 24px;
+    font-weight: 600;
+    color: #22313f;
+}
+
+.order-status {
+    margin-left: 16px;
+}
+
+.order-actions {
+    display: flex;
+    gap: 8px;
+}
+
+.order-sections {
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+}
+
+.order-section {
+    background: #fafafa;
+    border-radius: 8px;
+    padding: 20px;
+}
+
+.section-title {
+    margin: 0 0 16px 0;
+    font-size: 18px;
+    font-weight: 600;
+    color: #22313f;
+    border-bottom: 2px solid #1890ff;
+    padding-bottom: 8px;
+}
+
+.info-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 16px;
+}
+
+.info-item {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.info-item label {
+    font-weight: 600;
+    color: #666;
+    font-size: 14px;
+}
+
+.info-item span {
+    color: #22313f;
+    font-size: 16px;
+}
+
+.price {
+    font-weight: 600;
+    color: #52c41a;
+    font-size: 18px;
+}
+
+/* History Styles */
+.history-item {
+    padding: 8px 0;
+}
+
+.history-status {
+    font-weight: 600;
+    color: #22313f;
+    margin-bottom: 4px;
+}
+
+.history-time {
+    font-size: 12px;
+    color: #999;
+    margin-bottom: 4px;
+}
+
+.history-note {
+    font-size: 14px;
+    color: #666;
+    font-style: italic;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .order-header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 16px;
+    }
+
+    .order-actions {
+        width: 100%;
+        justify-content: flex-start;
+    }
+
+    .info-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .order-detail-container {
+        padding: 16px;
+    }
+}
+
+/* Status Colors */
+.ant-tag {
+    font-weight: 500;
+}
+
+/* Button Styles */
+.order-actions .ant-btn {
+    min-width: 140px;
+}
+
+/* Table Styles */
+.order-section .ant-table {
+    margin-top: 16px;
+}
+
+.order-section .ant-table-thead > tr > th {
+    background: #f5f5f5;
+    font-weight: 600;
+}
+
+/* Timeline Styles */
+.ant-timeline-item-content {
+    margin-left: 8px;
+}
+
+/* Image Styles */
+.product-image {
+    border-radius: 4px;
+    border: 1px solid #d9d9d9;
+    object-fit: cover;
+}

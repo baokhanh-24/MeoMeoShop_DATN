@@ -183,6 +183,20 @@ namespace MeoMeo.API.Controllers
             return Ok(result);
         }
 
+        [HttpGet("get-orders-by-customer/{customerId}")]
+        public async Task<IActionResult> GetOrdersByCustomerIdAsync(Guid customerId, [FromQuery] GetListOrderRequestDTO request)
+        {
+            try
+            {
+                var result = await _orderService.GetListOrderByCustomerAsync(request, customerId);
+                return Ok(result);
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new { message = $"Có lỗi xảy ra: {ex.Message}" });
+            }
+        }
+
         [HttpPut("update-status-order-async")]
         public async Task<BaseResponse> UpdateStatusOrderAsync([FromBody] UpdateStatusOrderRequestDTO request)
         {

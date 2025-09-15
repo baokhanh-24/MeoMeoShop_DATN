@@ -1,0 +1,145 @@
+@using MeoMeo.Contract.DTOs.Product
+@using PinguApps.Blazor.QRCode
+
+<div class="qr-product-container">
+    @if (Product != null)
+    {
+        <div class="qr-product-info">
+            <div class="qr-product-details">
+                <div class="qr-product-name">@Product.ProductName</div>
+                <div class="qr-product-brand">Thương hiệu: @Product.BrandName</div>
+                <div class="qr-product-price">Giá: @Product.Price.ToString("N0") đ</div>
+                <div class="qr-product-size">Size: @Product.SizeValue</div>
+                <div class="qr-product-color">Màu: @Product.ColourName</div>
+            </div>
+        </div>
+
+        <div class="qr-code-section">
+            <QRCode Data="@GenerateQRData()" Size="@QrSize" ErrorCorrection="ErrorCorrection.High" ForeColor="#000000"
+                BackColor="#ffffff" PaddingCells="2"
+                AriaDescription="@($"QR code để thanh toán sản phẩm {Product?.ProductName}")" Class="product-qr-code"
+                Id="@($"product-qr-{Product?.SKU}")" />
+
+        </div>
+    }
+    else
+    {
+        <div class="qr-product-empty">
+            <Icon Type="qr_code_2" Style="font-size: 48px; color: #ccc;" />
+            <p>Chưa có sản phẩm được chọn</p>
+        </div>
+    }
+</div>
+
+<style>
+    .qr-product-container {
+        display: flex;
+        flex-direction: column;
+        gap: 20px;
+        padding: 20px;
+        background: #fff;
+        border-radius: 8px;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        max-width: 400px;
+        margin: 0 auto;
+    }
+
+    .qr-product-header {
+        text-align: center;
+        border-bottom: 1px solid #f0f0f0;
+        padding-bottom: 15px;
+    }
+
+    .qr-product-title {
+        margin: 0 0 8px 0;
+        font-size: 18px;
+        font-weight: 600;
+        color: #1890ff;
+    }
+
+    .qr-product-sku {
+        font-size: 14px;
+        color: #666;
+        font-weight: 500;
+    }
+
+    .qr-product-details {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+    }
+
+    .qr-product-name {
+        font-size: 16px;
+        font-weight: 600;
+        color: #333;
+    }
+
+    .qr-product-brand,
+    .qr-product-price,
+    .qr-product-size,
+    .qr-product-color {
+        font-size: 14px;
+        color: #666;
+    }
+
+    .qr-product-price {
+        color: #f5222d;
+        font-weight: 600;
+    }
+
+    .qr-code-section {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 15px;
+    }
+
+    .product-qr-code {
+        border: 2px solid #f0f0f0;
+        border-radius: 8px;
+        padding: 10px;
+        background: #fff;
+    }
+
+    .qr-instructions {
+        text-align: center;
+    }
+
+    .qr-instruction-text {
+        margin: 0;
+        font-size: 14px;
+        color: #666;
+        line-height: 1.4;
+    }
+
+    .qr-product-empty {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        padding: 40px 20px;
+        color: #999;
+        text-align: center;
+    }
+
+    .qr-product-empty p {
+        margin: 10px 0 0 0;
+        font-size: 14px;
+    }
+</style>
+
+@code {
+    [Parameter] public ProductSearchResponseDTO? Product { get; set; }
+    [Parameter] public string QrSize { get; set; } = "200px";
+    [Parameter] public EventCallback<ProductSearchResponseDTO> OnProductSelected { get; set; }
+
+    private string GenerateQRData()
+    {
+        if (Product == null) return string.Empty;
+
+        // Tạo dữ liệu QR code chứa thông tin sản phẩm
+        // Format: PRODUCT:SKU:PRICE:SIZE:COLOR
+        return $"PRODUCT:{Product.SKU}:{Product.Price}:{Product.SizeValue}:{Product.ColourName}";
+    }
+}

@@ -13,7 +13,6 @@ namespace MeoMeo.Shared.IServices
         Task<BaseResponse> UpdateRoleAsync(CreateOrUpdateRoleDTO dto);
         Task<BaseResponse> DeleteRoleAsync(Guid id);
         Task<BaseResponse> AssignPermissionsToRoleAsync(AssignPermissionsToRoleDTO dto);
-        Task<List<PermissionDTO>> GetRolePermissionsAsync(Guid roleId);
-        Task<List<UserRoleDTO>> GetRoleUsersAsync(Guid roleId);
+        Task<List<PermissionGroupDTO>> GetRolePermissionsTreeAsync(Guid roleId);
     }
 }

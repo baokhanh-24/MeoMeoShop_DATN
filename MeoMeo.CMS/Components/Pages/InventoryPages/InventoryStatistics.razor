@@ -1,0 +1,469 @@
+@page "/inventory-statistics"
+@using System
+@using System.ComponentModel.DataAnnotations
+@using System.Reflection
+@using AntDesign.TableModels
+@using AntDesign
+@using AntDesign.Table
+@using MeoMeo.Contract.Commons
+@using MeoMeo.Contract.DTOs
+@using MeoMeo.Contract.DTOs.InventoryBatch
+@using MeoMeo.Contract.DTOs.Product
+@using MeoMeo.Domain.Commons
+@using MeoMeo.Domain.Commons.Enums
+@using MeoMeo.Shared.IServices
+@using MeoMeo.Shared.Utilities
+@using static MeoMeo.Domain.Commons.PagingExtensions
+@inject MessageModalService MessageModalService
+@using ButtonSize = AntDesign.ButtonSize
+@using ButtonType = AntDesign.ButtonType
+@inject IConfiguration Configuration
+@rendermode InteractiveServer
+
+<div class="d-flex justify-content-between">
+    <Breadcrumb>
+        <BreadcrumbItem Href="/">Trang chủ</BreadcrumbItem>
+        <BreadcrumbItem Href="/inventory-statistics">Thống kê tồn kho</BreadcrumbItem>
+    </Breadcrumb>
+    <Button OnClick="ExportInventoryReport" Type="ButtonType.Primary" Class="mb-2">
+        <i class="fas fa-download"></i> Xuất báo cáo
+    </Button>
+</div>
+
+<div class="mb-4">
+    <Row Gutter="(16, 16)">
+        <Col Span="6">
+        <Card>
+            <Statistic Title="Tổng sản phẩm" Value="@totalProducts" ValueStyle="color: #3f8600" />
+        </Card>
+        </Col>
+        <Col Span="6">
+        <Card>
+            <Statistic Title="Sản phẩm có tồn kho" Value="@productsInStock" ValueStyle="color: #1890ff" />
+        </Card>
+        </Col>
+        <Col Span="6">
+        <Card>
+            <Statistic Title="Sản phẩm sắp hết" Value="@productsLowStock" ValueStyle="color: #faad14" />
+        </Card>
+        </Col>
+        <Col Span="6">
+        <Card>
+            <Statistic Title="Sản phẩm hết hàng" Value="@productsOutOfStock" ValueStyle="color: #f5222d" />
+        </Card>
+        </Col>
+    </Row>
+</div>
+
+<div class="d-flex justify-content-end gap-3 mb-2">
+    <div Style="width: 250px">
+        <Input AllowClear="true" @bind-Value="filter.NameFilter" Placeholder="Tìm theo tên sản phẩm"
+            OnClear="OnFilterChanged" />
+    </div>
+    <div Style="width: 200px">
+        <Input AllowClear="true" @bind-Value="filter.SKUFilter" Placeholder="Tìm theo SKU" OnClear="OnFilterChanged" />
+    </div>
+    <div style="width: 150px">
+        <Select TItem="StockStatus" TItemValue="StockStatus ?" AllowClear DataSource="stockStatusList"
+            @bind-Value="filter.StockStatusFilter" Placeholder="Trạng thái tồn kho" ItemValue="s => (StockStatus?)s"
+            ItemLabel="s => GetStockStatusName(s)">
+        </Select>
+    </div>
+    <Tooltip Title="Tìm kiếm">
+        <Button OnClick="OnFilterChanged" Type="ButtonType.Primary" Shape="ButtonShape.Circle"
+            Icon="@IconType.Outline.Search" />
+    </Tooltip>
+</div>
+
+<Table DataSource="listOfData" TItem="InventoryStatisticsItem" RowClassName="@GetRowClassName" Bordered
+    TableLayout="fixed" Total="@totalRecords" OnChange="@OnPageChange" PageSize="@filter.PageSize">
+    <ChildContent Context="data">
+        <Column TData="int" Title="STT" Width="60">
+            @{
+                var index = listOfData.IndexOf(data);
+                @((filter.PageIndex - 1) * filter.PageSize + index + 1)
+            }
+        </Column>
+        <Column TData="string" Title="Ảnh" Width="120">
+            <Image Width="80" Height="80" Fallback="@(ApiBaseUrl + "/Images/fallback.jpeg")"
+                Src="@(ApiBaseUrl + "/" + data.ImageUrl)" Class="search-result-image" />
+        </Column>
+        <Column TData="string" DataIndex="SKU" Title="SKU" Width="120">
+            <Text Strong>@data.SKU</Text>
+        </Column>
+        <Column TData="string" DataIndex="ProductName" Title="Sản phẩm">
+            <div>
+                <div><Text Strong>@data.ProductName</Text></div>
+                <div style="color: #666; font-size: 12px;">
+                    <Tag Color="@("blue")">@data.ColourName</Tag>
+                    <Tag Color="@("green")">Size: @data.SizeValue</Tag>
+                </div>
+            </div>
+        </Column>
+        <Column TData="int" DataIndex="CurrentStock" Title="Tồn kho hiện tại" Width="120">
+            <Text Strong Style="@GetStockTextStyle(data.CurrentStock, data.OutOfStockThreshold)">
+                @data.CurrentStock
+            </Text>
+        </Column>
+        <Column TData="int" DataIndex="OutOfStockThreshold" Title="Ngưỡng cảnh báo" Width="120">
+            <Text>@data.OutOfStockThreshold</Text>
+        </Column>
+        <Column TData="StockStatus" Title="Trạng thái" Width="120">
+            <Tag Color="@GetStockStatusColor(data.StockStatus)">
+                @GetStockStatusName(data.StockStatus)
+            </Tag>
+        </Column>
+        <Column TData="DateTime" Title="Cập nhật cuối" Width="120">
+            @data.LastUpdated.ToString("dd/MM/yyyy HH:mm")
+        </Column>
+        <ActionColumn Title="Thao tác" Width="100">
+            <Tooltip Title="Xem lịch sử">
+                <Button Size="ButtonSize.Small" OnClick="() => ViewInventoryHistory(data.ProductDetailId)"
+                    Shape="ButtonShape.Circle">
+                    <i class="fas fa-history"></i>
+                </Button>
+            </Tooltip>
+        </ActionColumn>
+    </ChildContent>
+</Table>
+
+<!-- Modal lịch sử tồn kho -->
+<Modal Title="Lịch sử tồn kho" @bind-Visible="historyModalVisible" Width="800">
+    <div>
+        @if (selectedProductHistory != null)
+        {
+            <div class="mb-3">
+                <Title Level="5">@selectedProductHistory.ProductName (@selectedProductHistory.SKU)</Title>
+            </div>
+
+            <Table DataSource="inventoryHistory" TItem="InventoryHistoryItem" Size="TableSize.Small">
+                <Column TData="DateTime" Title="Thời gian" Width="150">
+                    @context.Date.ToString("dd/MM/yyyy HH:mm")
+                </Column>
+                <Column TData="string" Title="Loại giao dịch" Width="120">
+                    <Tag Color="@GetTransactionTypeColor(context.TransactionType)">
+                        @GetTransactionTypeName(context.TransactionType)
+                    </Tag>
+                </Column>
+                <Column TData="int" Title="Số lượng thay đổi" Width="120">
+                    <Text Style="@GetQuantityChangeStyle(context.QuantityChange)">
+                        @(context.QuantityChange > 0 ? "+" : "")@context.QuantityChange
+                    </Text>
+                </Column>
+                <Column TData="int" Title="Tồn kho sau" Width="100">
+                    <Text Strong>@context.StockAfter</Text>
+                </Column>
+                <Column TData="string" Title="Ghi chú">
+                    @context.Note
+                </Column>
+            </Table>
+        }
+    </div>
+</Modal>
+
+@code {
+    public enum StockStatus
+    {
+        InStock,
+        LowStock,
+        OutOfStock
+    }
+
+    public enum TransactionType
+    {
+        Import,
+        Sale,
+        Adjustment,
+        Return
+    }
+    private string ApiBaseUrl = string.Empty;
+
+    private class InventoryStatisticsItem
+    {
+        public Guid ProductDetailId { get; set; }
+        public string SKU { get; set; } = string.Empty;
+        public string ProductName { get; set; } = string.Empty;
+        public string ColourName { get; set; } = string.Empty;
+        public string SizeValue { get; set; } = string.Empty;
+        public string ImageUrl { get; set; } = string.Empty;
+        public int CurrentStock { get; set; }
+        public int OutOfStockThreshold { get; set; }
+        public StockStatus StockStatus { get; set; }
+        public DateTime LastUpdated { get; set; }
+    }
+
+    private class InventoryHistoryItem
+    {
+        public DateTime Date { get; set; }
+        public TransactionType TransactionType { get; set; }
+        public int QuantityChange { get; set; }
+        public int StockAfter { get; set; }
+        public string Note { get; set; } = string.Empty;
+    }
+
+    private class InventoryStatisticsFilter
+    {
+        public string? NameFilter { get; set; }
+        public string? SKUFilter { get; set; }
+        public StockStatus? StockStatusFilter { get; set; }
+        public int PageIndex { get; set; } = 1;
+        public int PageSize { get; set; } = 10;
+    }
+
+    private int totalProducts = 0;
+    private int productsInStock = 0;
+    private int productsLowStock = 0;
+    private int productsOutOfStock = 0;
+    private int totalRecords = 0;
+    private bool historyModalVisible = false;
+
+    [Inject] private IInventoryBatchClientService InventoryBatchClientService { get; set; } = default!;
+    [Inject] private IProductClientService ProductClientService { get; set; } = default!;
+    [Inject] private NavigationManager Navigation { get; set; } = default!;
+
+    List<InventoryStatisticsItem> listOfData = new();
+    List<InventoryHistoryItem> inventoryHistory = new();
+    InventoryStatisticsItem? selectedProductHistory = null;
+    List<StockStatus> stockStatusList = new();
+
+    InventoryStatisticsFilter filter = new InventoryStatisticsFilter();
+
+    protected override async Task OnInitializedAsync()
+    {
+        ApiBaseUrl=Configuration["ApiSettings:BaseUrl"] ?? "";
+        stockStatusList = Enum.GetValues(typeof(StockStatus)).Cast<StockStatus>().ToList();
+        await LoadDataAsync();
+    }
+
+    private async Task OnPageChange(QueryModel<InventoryStatisticsItem> query)
+    {
+        filter.PageIndex = query.PageIndex;
+        filter.PageSize = query.PageSize;
+        await LoadDataAsync();
+    }
+
+    async Task LoadDataAsync()
+    {
+        try
+        {
+            // Simulate loading inventory statistics from approved inventory batches
+            await LoadInventoryStatistics();
+            await LoadSummaryStatistics();
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine("Lỗi khi tải thống kê tồn kho: " + ex.Message);
+        }
+    }
+
+    private Task LoadInventoryStatistics()
+    {
+        // TODO: Implement actual API call to get inventory statistics
+        // This should aggregate from approved InventoryBatches
+
+        // Simulate data for now
+        var random = new Random();
+        var simulatedData = new List<InventoryStatisticsItem>();
+
+        for (int i = 1; i <= 50; i++)
+        {
+            var currentStock = random.Next(0, 100);
+            var threshold = random.Next(5, 20);
+
+            var item = new InventoryStatisticsItem
+            {
+                ProductDetailId = Guid.NewGuid(),
+                SKU = $"SKU{i:D3}",
+                ProductName = $"Sản phẩm {i}",
+                ColourName = new[] { "Đỏ", "Xanh", "Vàng", "Đen", "Trắng" }[random.Next(5)],
+                SizeValue = new[] { "S", "M", "L", "XL", "XXL" }[random.Next(5)],
+                ImageUrl = "",
+                CurrentStock = currentStock,
+                OutOfStockThreshold = threshold,
+                StockStatus = GetStockStatus(currentStock, threshold),
+                LastUpdated = DateTime.Now.AddDays(-random.Next(0, 30))
+            };
+
+            // Apply filters
+            if (!string.IsNullOrEmpty(filter.NameFilter) &&
+            !item.ProductName.Contains(filter.NameFilter, StringComparison.OrdinalIgnoreCase))
+                continue;
+
+            if (!string.IsNullOrEmpty(filter.SKUFilter) &&
+            !item.SKU.Contains(filter.SKUFilter, StringComparison.OrdinalIgnoreCase))
+                continue;
+
+            if (filter.StockStatusFilter.HasValue && item.StockStatus != filter.StockStatusFilter.Value)
+                continue;
+
+            simulatedData.Add(item);
+        }
+
+        totalRecords = simulatedData.Count;
+        listOfData = simulatedData
+        .Skip((filter.PageIndex - 1) * filter.PageSize)
+        .Take(filter.PageSize)
+        .ToList();
+
+        return Task.CompletedTask;
+    }
+
+    private Task LoadSummaryStatistics()
+    {
+        // TODO: Implement actual API calls for summary statistics
+        totalProducts = 150;
+        productsInStock = 120;
+        productsLowStock = 20;
+        productsOutOfStock = 10;
+
+        return Task.CompletedTask;
+    }
+
+    private StockStatus GetStockStatus(int currentStock, int threshold)
+    {
+        if (currentStock <= 0)
+            return StockStatus.OutOfStock;
+        if (currentStock <= threshold)
+            return StockStatus.LowStock;
+        return StockStatus.InStock;
+    }
+
+    private string GetRowClassName(RowData<InventoryStatisticsItem> rowData)
+    {
+        return rowData.Data.StockStatus switch
+        {
+            StockStatus.OutOfStock => "table-row-out-of-stock",
+            StockStatus.LowStock => "table-row-low-stock",
+            _ => ""
+        };
+    }
+
+    private string GetStockTextStyle(int currentStock, int threshold)
+    {
+        if (currentStock <= 0)
+            return "color: #f5222d; font-weight: bold;";
+        if (currentStock <= threshold)
+            return "color: #faad14; font-weight: bold;";
+        return "color: #52c41a; font-weight: bold;";
+    }
+
+    private string GetStockStatusColor(StockStatus status)
+    {
+        return status switch
+        {
+            StockStatus.InStock => "success",
+            StockStatus.LowStock => "warning",
+            StockStatus.OutOfStock => "error",
+            _ => "default"
+        };
+    }
+
+    private string GetStockStatusName(StockStatus status)
+    {
+        return status switch
+        {
+            StockStatus.InStock => "Còn hàng",
+            StockStatus.LowStock => "Sắp hết",
+            StockStatus.OutOfStock => "Hết hàng",
+            _ => status.ToString()
+        };
+    }
+
+    private string GetTransactionTypeColor(TransactionType type)
+    {
+        return type switch
+        {
+            TransactionType.Import => "success",
+            TransactionType.Sale => "processing",
+            TransactionType.Adjustment => "warning",
+            TransactionType.Return => "default",
+            _ => "default"
+        };
+    }
+
+    private string GetTransactionTypeName(TransactionType type)
+    {
+        return type switch
+        {
+            TransactionType.Import => "Nhập kho",
+            TransactionType.Sale => "Bán hàng",
+            TransactionType.Adjustment => "Điều chỉnh",
+            TransactionType.Return => "Trả hàng",
+            _ => type.ToString()
+        };
+    }
+
+    private string GetQuantityChangeStyle(int change)
+    {
+        if (change > 0)
+            return "color: #52c41a; font-weight: bold;";
+        if (change < 0)
+            return "color: #f5222d; font-weight: bold;";
+        return "";
+    }
+
+    async Task OnFilterChanged()
+    {
+        filter.PageIndex = 1;
+        await LoadDataAsync();
+    }
+
+    private async Task ViewInventoryHistory(Guid productDetailId)
+    {
+        selectedProductHistory = listOfData.FirstOrDefault(x => x.ProductDetailId == productDetailId);
+        historyModalVisible = true;
+
+        // Load history data
+        await LoadInventoryHistory(productDetailId);
+    }
+
+    private Task LoadInventoryHistory(Guid productDetailId)
+    {
+        // TODO: Implement actual API call to get inventory history
+        // Simulate history data
+        var random = new Random();
+        inventoryHistory = new List<InventoryHistoryItem>();
+
+        var currentStock = selectedProductHistory?.CurrentStock ?? 50;
+
+        for (int i = 10; i >= 0; i--)
+        {
+            var change = random.Next(-20, 30);
+            var transactionType = change > 0 ?
+            (random.Next(2) == 0 ? TransactionType.Import : TransactionType.Return) :
+            (random.Next(2) == 0 ? TransactionType.Sale : TransactionType.Adjustment);
+
+            inventoryHistory.Add(new InventoryHistoryItem
+            {
+                Date = DateTime.Now.AddDays(-i),
+                TransactionType = transactionType,
+                QuantityChange = change,
+                StockAfter = currentStock,
+                Note = $"Giao dịch {GetTransactionTypeName(transactionType)}"
+            });
+
+            currentStock -= change;
+        }
+
+        inventoryHistory = inventoryHistory.OrderByDescending(x => x.Date).ToList();
+        StateHasChanged();
+
+        return Task.CompletedTask;
+    }
+
+    private async Task ExportInventoryReport()
+    {
+        // TODO: Implement export functionality
+        await MessageModalService.Success("Xuất báo cáo thành công!");
+    }
+}
+
+<style>
+    .table-row-out-of-stock {
+        background-color: #fff2f0 !important;
+    }
+
+    .table-row-low-stock {
+        background-color: #fffbe6 !important;
+    }
+</style>

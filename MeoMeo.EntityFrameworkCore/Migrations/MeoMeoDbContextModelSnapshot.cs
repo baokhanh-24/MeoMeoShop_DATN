@@ -22,27 +22,6 @@ namespace MeoMeo.EntityFrameworkCore.Migrations
 
             SqlServerModelBuilderExtensions.UseIdentityColumns(modelBuilder);
 
-            modelBuilder.Entity("MeoMeo.Domain.Entities.Bank", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<string>("Logo")
-                        .IsRequired()
-                        .HasMaxLength(500)
-                        .HasColumnType("varchar(500)");
-
-                    b.Property<string>("Name")
-                        .IsRequired()
-                        .HasMaxLength(255)
-                        .HasColumnType("nvarchar(255)");
-
-                    b.HasKey("Id");
-
-                    b.ToTable("Banks", (string)null);
-                });
-
             modelBuilder.Entity("MeoMeo.Domain.Entities.Brand", b =>
                 {
                     b.Property<Guid>("Id")
@@ -283,46 +262,6 @@ namespace MeoMeo.EntityFrameworkCore.Migrations
                     b.ToTable("Customers", (string)null);
                 });
 
-            modelBuilder.Entity("MeoMeo.Domain.Entities.CustomersBank", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<string>("AccountNumber")
-                        .IsRequired()
-                        .HasMaxLength(15)
-                        .HasColumnType("varchar(15)");
-
-                    b.Property<Guid>("BankId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<string>("Beneficiary")
-                        .IsRequired()
-                        .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)");
-
-                    b.Property<DateTime>("CreationTime")
-                        .HasColumnType("datetime2");
-
-                    b.Property<Guid>("CustomerId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<DateTime?>("LastModifiedTime")
-                        .HasColumnType("datetime2");
-
-                    b.Property<int>("Status")
-                        .HasColumnType("int");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("BankId");
-
-                    b.HasIndex("CustomerId");
-
-                    b.ToTable("CustomersBanks", (string)null);
-                });
-
             modelBuilder.Entity("MeoMeo.Domain.Entities.DeliveryAddress", b =>
                 {
                     b.Property<Guid>("Id")
@@ -482,7 +421,7 @@ namespace MeoMeo.EntityFrameworkCore.Migrations
                     b.ToTable("Images", (string)null);
                 });
 
-            modelBuilder.Entity("MeoMeo.Domain.Entities.InventoryBatch", b =>
+            modelBuilder.Entity("MeoMeo.Domain.Entities.ImportBatch", b =>
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
@@ -490,13 +429,16 @@ namespace MeoMeo.EntityFrameworkCore.Migrations
 
                     b.Property<string>("Code")
                         .IsRequired()
-                        .HasMaxLength(10)
-                        .HasColumnType("varchar(10)");
+                        .HasMaxLength(20)
+                        .HasColumnType("varchar(20)");
 
                     b.Property<Guid>("CreatedBy")
                         .HasColumnType("uniqueidentifier");
 
                     b.Property<DateTime>("CreationTime")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime>("ImportDate")
                         .HasColumnType("datetime2");
 
                     b.Property<DateTime?>("LastModificationTime")
@@ -506,6 +448,35 @@ namespace MeoMeo.EntityFrameworkCore.Migrations
                         .IsRequired()
                         .HasMaxLength(500)
                         .HasColumnType("nvarchar(500)");
+
+                    b.Property<Guid?>("UpdatedBy")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Code")
+                        .IsUnique();
+
+                    b.ToTable("ImportBatches", (string)null);
+                });
+
+            modelBuilder.Entity("MeoMeo.Domain.Entities.InventoryBatch", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("CreatedBy")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime>("CreationTime")
+                        .HasColumnType("datetime2");
+
+                    b.Property<Guid?>("ImportBatchId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime?>("LastModificationTime")
+                        .HasColumnType("datetime2");
 
                     b.Property<float>("OriginalPrice")
                         .HasColumnType("real");
@@ -523,6 +494,8 @@ namespace MeoMeo.EntityFrameworkCore.Migrations
                         .HasColumnType("uniqueidentifier");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("ImportBatchId");
 
                     b.HasIndex("ProductDetailId");
 
@@ -1763,25 +1736,6 @@ namespace MeoMeo.EntityFrameworkCore.Migrations
                     b.Navigation("User");
                 });
 
-            modelBuilder.Entity("MeoMeo.Domain.Entities.CustomersBank", b =>
-                {
-                    b.HasOne("MeoMeo.Domain.Entities.Bank", "Bank")
-                        .WithMany("CustomersBanks")
-                        .HasForeignKey("BankId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.HasOne("MeoMeo.Domain.Entities.Customers", "Customers")
-                        .WithMany("CustomersBanks")
-                        .HasForeignKey("CustomerId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Bank");
-
-                    b.Navigation("Customers");
-                });
-
             modelBuilder.Entity("MeoMeo.Domain.Entities.DeliveryAddress", b =>
                 {
                     b.HasOne("MeoMeo.Domain.Entities.Customers", "Customers")
@@ -1832,11 +1786,18 @@ namespace MeoMeo.EntityFrameworkCore.Migrations
 
             modelBuilder.Entity("MeoMeo.Domain.Entities.InventoryBatch", b =>
                 {
+                    b.HasOne("MeoMeo.Domain.Entities.ImportBatch", "ImportBatch")
+                        .WithMany("InventoryBatches")
+                        .HasForeignKey("ImportBatchId")
+                        .OnDelete(DeleteBehavior.Cascade);
+
                     b.HasOne("MeoMeo.Domain.Entities.ProductDetail", "ProductDetail")
                         .WithMany("InventoryBatches")
                         .HasForeignKey("ProductDetailId")
-                        .OnDelete(DeleteBehavior.Cascade)
+                        .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
+
+                    b.Navigation("ImportBatch");
 
                     b.Navigation("ProductDetail");
                 });
@@ -1860,7 +1821,7 @@ namespace MeoMeo.EntityFrameworkCore.Migrations
                         .OnDelete(DeleteBehavior.NoAction)
                         .IsRequired();
 
-                    b.HasOne("MeoMeo.Domain.Entities.DeliveryAddress", "Address")
+                    b.HasOne("MeoMeo.Domain.Entities.DeliveryAddress", null)
                         .WithMany("Orders")
                         .HasForeignKey("DeliveryAddressId");
 
@@ -1871,8 +1832,6 @@ namespace MeoMeo.EntityFrameworkCore.Migrations
                     b.HasOne("MeoMeo.Domain.Entities.Voucher", "Voucher")
                         .WithMany("Orders")
                         .HasForeignKey("VoucherId");
-
-                    b.Navigation("Address");
 
                     b.Navigation("Customers");
 
@@ -2237,11 +2196,6 @@ namespace MeoMeo.EntityFrameworkCore.Migrations
                     b.Navigation("ProductDetails");
                 });
 
-            modelBuilder.Entity("MeoMeo.Domain.Entities.Bank", b =>
-                {
-                    b.Navigation("CustomersBanks");
-                });
-
             modelBuilder.Entity("MeoMeo.Domain.Entities.Brand", b =>
                 {
                     b.Navigation("Products");
@@ -2267,8 +2221,6 @@ namespace MeoMeo.EntityFrameworkCore.Migrations
                     b.Navigation("Cart")
                         .IsRequired();
 
-                    b.Navigation("CustomersBanks");
-
                     b.Navigation("DeliveryAddresses");
 
                     b.Navigation("Orders");
@@ -2289,6 +2241,11 @@ namespace MeoMeo.EntityFrameworkCore.Migrations
             modelBuilder.Entity("MeoMeo.Domain.Entities.Employee", b =>
                 {
                     b.Navigation("Orders");
+                });
+
+            modelBuilder.Entity("MeoMeo.Domain.Entities.ImportBatch", b =>
+                {
+                    b.Navigation("InventoryBatches");
                 });
 
             modelBuilder.Entity("MeoMeo.Domain.Entities.InventoryBatch", b =>

@@ -28,6 +28,22 @@ namespace MeoMeo.Shared.Services
             return response ?? new PagingExtensions.PagedResult<CreateOrUpdatePromotionDetailDTO>();
         }
 
+        public async Task<PagingExtensions.PagedResult<PromotionDetailWithProductInfoDTO>> GetPromotionDetailWithProductInfoAsync(GetPromotionDetailWithProductInfoRequestDTO request)
+        {
+            try
+            {
+                var query = BuildQuery.ToQueryString(request);
+                var url = $"/api/PromotionDetails/get-promotion-detail-with-product-info?{query}";
+                var response = await _httpClient.GetAsync<PagingExtensions.PagedResult<PromotionDetailWithProductInfoDTO>>(url);
+                return response ?? new PagingExtensions.PagedResult<PromotionDetailWithProductInfoDTO>();
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Lỗi khi lấy PromotionDetail với ProductInfo: {Message}", ex.Message);
+                return new PagingExtensions.PagedResult<PromotionDetailWithProductInfoDTO>();
+            }
+        }
+
         public async Task<CreateOrUpdatePromotionDetailDTO> GetPromotionDetailByIdAsync(Guid id)
         {
             var url = $"/api/PromotionDetails/find-promotion-detail-by-id-async/{id}";

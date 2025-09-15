@@ -1,5 +1,6 @@
 using MeoMeo.Contract.Commons;
 using MeoMeo.Contract.DTOs;
+using MeoMeo.Contract.DTOs.Customer;
 using MeoMeo.Domain.Commons;
 using Microsoft.AspNetCore.Http;
 
@@ -16,5 +17,6 @@ public interface ICustomerClientService
     Task<BaseResponse> ChangePasswordAsync(ChangePasswordDTO model);
     Task<CreateOrUpdateCustomerResponse> UpdateProfileAsync(CreateOrUpdateCustomerDTO createOrUpdateCustomerDto);
     Task<QuickCustomerResponseDTO> CreateQuickCustomerAsync(CreateQuickCustomerDTO request);
+    Task<CustomerDetailDTO> GetCustomerDetailAsync(Guid customerId);
 
 }

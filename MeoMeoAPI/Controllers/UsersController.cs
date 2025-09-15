@@ -3,8 +3,10 @@ using MeoMeo.Application.Services;
 using MeoMeo.Contract.Commons;
 using MeoMeo.Contract.DTOs;
 using MeoMeo.Contract.DTOs.Employees;
+using MeoMeo.Contract.DTOs.Auth;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using MeoMeo.API.Extensions;
 
 namespace MeoMeo.API.Controllers
 {
@@ -47,11 +49,40 @@ namespace MeoMeo.API.Controllers
             return Ok(result);
         }
 
-        [HttpPut("update-user-async/{id}")]
-        public async Task<IActionResult> UpdateUserAsync(Guid id, [FromBody] CreateOrUpdateUserDTO user)
+        [HttpPut("update-user-async")]
+        public async Task<IActionResult> UpdateUserAsync([FromBody] CreateOrUpdateUserDTO user)
         {
             var result = await _userServices.UpdateUserAsync(user);
             return Ok(result);
         }
+
+        [HttpGet("get-current-user")]
+        public async Task<IActionResult> GetCurrentUserAsync()
+        {
+            try
+            {
+                var userId = HttpContext.GetCurrentUserId();
+                if (userId == Guid.Empty)
+                {
+                    return Unauthorized(new BaseResponse
+                    {
+                        ResponseStatus = BaseStatus.Error,
+                        Message = "Vui lòng đăng nhập"
+                    });
+                }
+
+                var result = await _userServices.GetUserByIdAsync(userId);
+                return Ok(result);
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new BaseResponse
+                {
+                    ResponseStatus = BaseStatus.Error,
+                    Message = $"Có lỗi xảy ra: {ex.Message}"
+                });
+            }
+        }
+        
     }
 }

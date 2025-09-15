@@ -37,7 +37,9 @@ namespace MeoMeo.EntityFrameworkCore.Repositories
 
         public async Task<Employee> GetEmployeeByIdAsync(Guid id)
         {
-            var employee = await GetByIdAsync(id);
+            var employee = await _context.employees
+                .Include(e => e.User)
+                .FirstOrDefaultAsync(e => e.Id == id);
             return employee;
         }
 

@@ -9,9 +9,8 @@ namespace MeoMeo.Application.IServices
     {
         Task<List<PermissionDTO>> GetAllPermissionsAsync();
         Task<PermissionDTO> GetPermissionByIdAsync(Guid id);
-        Task<BaseResponse> CreatePermissionAsync(CreateOrUpdatePermissionDTO dto);
-        Task<BaseResponse> UpdatePermissionAsync(CreateOrUpdatePermissionDTO dto);
-        Task<BaseResponse> DeletePermissionAsync(Guid id);
+        // CRUD operations removed - Permissions are fixed in database
+        // Only GET operations are allowed
         Task<List<PermissionDTO>> GetPermissionsByGroupIdAsync(Guid groupId);
         Task<List<PermissionDTO>> GetPermissionsByRoleIdAsync(Guid roleId);
     }

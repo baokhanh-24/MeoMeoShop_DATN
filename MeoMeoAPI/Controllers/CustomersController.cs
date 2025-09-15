@@ -19,7 +19,8 @@ namespace MeoMeo.API.Controllers
         private readonly IWebHostEnvironment _environment;
         private readonly IHttpContextAccessor _httpContextAccessor;
 
-        public CustomersController(ICustomerServices customerServices, IWebHostEnvironment environment, IHttpContextAccessor httpContextAccessor)
+        public CustomersController(ICustomerServices customerServices, IWebHostEnvironment environment,
+            IHttpContextAccessor httpContextAccessor)
         {
             _customerServices = customerServices;
             _environment = environment;
@@ -27,7 +28,8 @@ namespace MeoMeo.API.Controllers
         }
 
         [HttpGet("get-all-customer-async")]
-        public async Task<PagingExtensions.PagedResult<CustomerDTO>> GetAllCustomersAsync([FromQuery] GetListCustomerRequestDTO request)
+        public async Task<PagingExtensions.PagedResult<CustomerDTO>> GetAllCustomersAsync(
+            [FromQuery] GetListCustomerRequestDTO request)
         {
             var result = await _customerServices.GetAllCustomersAsync(request);
             return result;
@@ -41,7 +43,8 @@ namespace MeoMeo.API.Controllers
         }
 
         [HttpPost("create-customer-async")]
-        public async Task<CreateOrUpdateCustomerResponse> CreateCustomersAsync([FromBody] CreateOrUpdateCustomerDTO customer)
+        public async Task<CreateOrUpdateCustomerResponse> CreateCustomersAsync(
+            [FromBody] CreateOrUpdateCustomerDTO customer)
         {
             var result = await _customerServices.CreateCustomersAsync(customer);
             return result;
@@ -62,13 +65,16 @@ namespace MeoMeo.API.Controllers
         }
 
         [HttpPut("update-customer-async/{id}")]
-        public async Task<CreateOrUpdateCustomerResponse> UpdateCustomersAsync(Guid id, [FromBody] CreateOrUpdateCustomerDTO customer)
+        public async Task<CreateOrUpdateCustomerResponse> UpdateCustomersAsync(Guid id,
+            [FromBody] CreateOrUpdateCustomerDTO customer)
         {
             var result = await _customerServices.UpdateCustomersAsync(customer);
             return result;
         }
+
         [HttpPut("update-profile")]
-        public async Task<CreateOrUpdateCustomerResponse> UpdateCustomersAsync([FromBody] CreateOrUpdateCustomerDTO customer)
+        public async Task<CreateOrUpdateCustomerResponse> UpdateCustomersAsync(
+            [FromBody] CreateOrUpdateCustomerDTO customer)
         {
             var customerId = _httpContextAccessor.HttpContext.GetCurrentCustomerId();
             var userId = _httpContextAccessor.HttpContext.GetCurrentUserId();
@@ -80,6 +86,7 @@ namespace MeoMeo.API.Controllers
                     Message = "Vui lòng đăng nhập"
                 };
             }
+
             customer.Id = customerId;
             customer.UserId = userId;
             var result = await _customerServices.UpdateCustomersAsync(customer);
@@ -100,6 +107,7 @@ namespace MeoMeo.API.Controllers
                         Message = "Vui lòng đăng nhập"
                     };
                 }
+
                 if (request.AvatarFile == null || request.AvatarFile.Length == 0)
                 {
                     return new BaseResponse()
@@ -109,6 +117,7 @@ namespace MeoMeo.API.Controllers
                     };
 
                 }
+
                 var acceptedExtensions = new List<string>
                 {
                     "jpg", "jpeg", "png", "gif", "bmp", "tiff", "tif", "webp", "svg", "heic", "heif"
@@ -128,7 +137,9 @@ namespace MeoMeo.API.Controllers
                 {
                     return response;
                 }
-                FileUploadHelper.DeleteUploadedFiles(_environment, new List<FileUploadResult> { new FileUploadResult { RelativePath = oldAvatar } });
+
+                FileUploadHelper.DeleteUploadedFiles(_environment,
+                    new List<FileUploadResult> { new FileUploadResult { RelativePath = oldAvatar } });
                 return response;
 
 
@@ -144,31 +155,17 @@ namespace MeoMeo.API.Controllers
             }
         }
 
-        [HttpPut("change-password-async")]
-        public async Task<BaseResponse> ChangePasswordAsync([FromBody] ChangePasswordDTO changePasswordDTO)
+        [HttpGet("get-customer-detail-async/{customerId}")]
+        public async Task<IActionResult> GetCustomerDetailAsync(Guid customerId)
         {
             try
             {
-                var userId = _httpContextAccessor.HttpContext.GetCurrentUserId();
-                if (userId == Guid.Empty)
-                {
-                    return new BaseResponse()
-                    {
-                        ResponseStatus = BaseStatus.Error,
-                        Message = "Vui lòng đăng nhập"
-                    };
-                }
-                var response = await _customerServices.ChangePasswordAsync(userId, changePasswordDTO);
-                return response;
+                var result = await _customerServices.GetCustomerDetailAsync(customerId);
+                return Ok(result);
             }
             catch (Exception ex)
             {
-                return new BaseResponse()
-                {
-                    ResponseStatus = BaseStatus.Error,
-                    Message = $"Có lỗi xảy ra: {ex.Message}"
-                };
-
+                return BadRequest(new { message = $"Có lỗi xảy ra: {ex.Message}" });
             }
         }
     }

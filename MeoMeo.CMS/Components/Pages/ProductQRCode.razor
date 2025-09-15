@@ -1,0 +1,282 @@
+@page "/product-qr-code"
+@page "/product-qr-code/{sku}"
+@using MeoMeo.Contract.DTOs.Product
+@using MeoMeo.Shared.IServices
+@using MeoMeo.CMS.Components.Common
+@inject IProductClientService ProductClientService
+@inject IMessageService MessageService
+@inject NavigationManager Navigation
+@inject IJSRuntime JSRuntime
+
+<div class="content-background layout-container">
+    <Breadcrumb>
+        <BreadcrumbItem>Quản lý hệ thống</BreadcrumbItem>
+        <BreadcrumbItem>
+            <a class="current">Tạo QR Code Sản Phẩm</a>
+        </BreadcrumbItem>
+    </Breadcrumb>
+
+    <div class="group-breadcumb">
+        <Button Class="btn-back" Icon="arrow-left" OnClick="HandleGoBack">Quay lại</Button>
+    </div>
+
+    <div class="qr-generator-container">
+        <div class="qr-generator-header">
+            <h2 class="qr-generator-title">Tạo QR Code Thanh Toán Sản Phẩm</h2>
+            <p class="qr-generator-description">
+                Nhập mã SKU sản phẩm để tạo QR code thanh toán
+            </p>
+        </div>
+
+        <div class="qr-generator-form">
+            <Form Model="@SearchModel" Layout="@AntDesign.FormLayout.Vertical">
+                <FormItem Label="Mã SKU Sản Phẩm" Required>
+                    <Input @bind-Value="@SearchModel.Sku" Placeholder="Nhập mã SKU sản phẩm..."
+                        OnPressEnter="HandleSearchProduct" Disabled="@IsLoading" />
+                </FormItem>
+
+                <FormItem>
+                    <Button Type="@AntDesign.ButtonType.Primary" Icon="search" OnClick="HandleSearchProduct"
+                        Loading="@IsLoading" Block>
+                        Tìm Sản Phẩm
+                    </Button>
+                </FormItem>
+            </Form>
+        </div>
+
+        @if (IsLoading)
+        {
+            <div class="qr-loading">
+                <Spin Size="@AntDesign.SpinSize.Large" />
+                <p>Đang tìm kiếm sản phẩm...</p>
+            </div>
+        }
+        else if (SelectedProduct != null)
+        {
+            <div class="qr-result">
+                <QRCodeProduct Product="@SelectedProduct" QrSize="250px" />
+
+                <div class="qr-actions">
+                    <Button Type="@AntDesign.ButtonType.Primary" Icon="printer" OnClick="HandlePrintQR" Block>
+                        In QR Code
+                    </Button>
+                    <Button Icon="reload" OnClick="HandleReset" Block>
+                        Tạo QR Code Khác
+                    </Button>
+                </div>
+            </div>
+        }
+        else if (!string.IsNullOrEmpty(SearchModel.Sku) && !IsLoading)
+        {
+            <div class="qr-not-found">
+                <Icon Type="exclamation-circle" Style="font-size: 48px; color: #ff4d4f;" />
+                <h3>Không tìm thấy sản phẩm</h3>
+                <p>Mã SKU "@SearchModel.Sku" không tồn tại trong hệ thống</p>
+                <Button Type="@AntDesign.ButtonType.Primary" OnClick="HandleReset">
+                    Thử lại
+                </Button>
+            </div>
+        }
+    </div>
+</div>
+
+<style>
+    .qr-generator-container {
+        max-width: 600px;
+        margin: 0 auto;
+        padding: 20px;
+    }
+
+    .qr-generator-header {
+        text-align: center;
+        margin-bottom: 30px;
+    }
+
+    .qr-generator-title {
+        margin: 0 0 10px 0;
+        font-size: 24px;
+        font-weight: 600;
+        color: #333;
+    }
+
+    .qr-generator-description {
+        margin: 0;
+        font-size: 14px;
+        color: #666;
+    }
+
+    .qr-generator-form {
+        background: #fff;
+        padding: 24px;
+        border-radius: 8px;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        margin-bottom: 20px;
+    }
+
+    .qr-loading {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        padding: 40px;
+        background: #fff;
+        border-radius: 8px;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    }
+
+    .qr-loading p {
+        margin: 15px 0 0 0;
+        color: #666;
+    }
+
+    .qr-result {
+        background: #fff;
+        border-radius: 8px;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        overflow: hidden;
+    }
+
+    .qr-actions {
+        padding: 20px;
+        border-top: 1px solid #f0f0f0;
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+    }
+
+    .qr-not-found {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        padding: 40px;
+        background: #fff;
+        border-radius: 8px;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        text-align: center;
+    }
+
+    .qr-not-found h3 {
+        margin: 15px 0 10px 0;
+        color: #333;
+        font-size: 18px;
+    }
+
+    .qr-not-found p {
+        margin: 0 0 20px 0;
+        color: #666;
+        font-size: 14px;
+    }
+</style>
+
+@code {
+    [Parameter] public string? Sku { get; set; }
+
+    private ProductSearchModel SearchModel = new();
+    private ProductSearchResponseDTO? SelectedProduct = null;
+    private bool IsLoading = false;
+
+    private class ProductSearchModel
+    {
+        public string Sku { get; set; } = string.Empty;
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        // Nếu có SKU từ URL parameter thì tự động search
+        if (!string.IsNullOrEmpty(Sku))
+        {
+            SearchModel.Sku = Sku;
+            await HandleSearchProduct();
+        }
+
+        // Nếu có SKU từ query string thì tự động search
+        var uri = new Uri(Navigation.Uri);
+        var query = System.Web.HttpUtility.ParseQueryString(uri.Query);
+        var skuFromQuery = query["sku"];
+        if (!string.IsNullOrEmpty(skuFromQuery))
+        {
+            SearchModel.Sku = skuFromQuery;
+            await HandleSearchProduct();
+        }
+    }
+
+    private async Task HandleSearchProduct()
+    {
+        if (string.IsNullOrWhiteSpace(SearchModel.Sku))
+        {
+            MessageService.Warning("Vui lòng nhập mã SKU sản phẩm");
+            return;
+        }
+
+        IsLoading = true;
+        StateHasChanged();
+
+        try
+        {
+            SelectedProduct = await ProductClientService.GetProductBySkuAsync(SearchModel.Sku.Trim());
+
+            if (SelectedProduct == null)
+            {
+                MessageService.Error($"Không tìm thấy sản phẩm với mã SKU: {SearchModel.Sku}");
+            }
+            else
+            {
+                MessageService.Success($"Đã tìm thấy sản phẩm: {SelectedProduct.ProductName}");
+            }
+        }
+        catch (Exception ex)
+        {
+            MessageService.Error($"Có lỗi xảy ra khi tìm kiếm sản phẩm: {ex.Message}");
+            SelectedProduct = null;
+        }
+        finally
+        {
+            IsLoading = false;
+            StateHasChanged();
+        }
+    }
+
+    private async Task HandlePrintQR()
+    {
+        if (SelectedProduct == null) return;
+
+        try
+        {
+            // Tạo dữ liệu để in QR code
+            var printData = new
+            {
+                Title = "QR Code Thanh Toán Sản Phẩm",
+                ProductName = SelectedProduct.ProductName,
+                Sku = SelectedProduct.SKU,
+                Price = SelectedProduct.Price,
+                Brand = SelectedProduct.BrandName,
+                Size = SelectedProduct.SizeValue,
+                Color = SelectedProduct.ColourName,
+                QRData =
+            $"PRODUCT:{SelectedProduct.SKU}:{SelectedProduct.Price}:{SelectedProduct.SizeValue}:{SelectedProduct.ColourName}",
+                PrintTime = DateTime.Now.ToString("dd/MM/yyyy HH:mm:ss")
+            };
+
+            // Gọi JavaScript để in
+            await JSRuntime.InvokeVoidAsync("printQRCode", printData);
+            MessageService.Success("Đã gửi lệnh in QR code");
+        }
+        catch (Exception ex)
+        {
+            MessageService.Error($"Không thể in QR code: {ex.Message}");
+        }
+    }
+
+    private void HandleReset()
+    {
+        SearchModel.Sku = string.Empty;
+        SelectedProduct = null;
+        StateHasChanged();
+    }
+
+    private void HandleGoBack()
+    {
+        Navigation.NavigateTo("/orders");
+    }
+}

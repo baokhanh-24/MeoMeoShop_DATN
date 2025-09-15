@@ -1,3 +1,5 @@
+using MeoMeo.Contract.DTOs;
+
 namespace MeoMeo.Contract.DTOs.Auth;
 
 public class UserDTO
@@ -15,4 +17,6 @@ public class UserDTO
     public DateTime? LockedEndDate { get; set; }
     public int Status { get; set; }
 
+    // Navigation properties
+    public EmployeeDTO? Employee { get; set; }
 }

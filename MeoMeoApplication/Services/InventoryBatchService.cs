@@ -33,11 +33,10 @@ namespace MeoMeo.Application.Services
                 var inventoryBatch = new InventoryBatch
                 {
                     Id = Guid.NewGuid(),
+                    ImportBatchId = dtos.ImportBatchId,
                     ProductDetailId = dtos.ProductDetailId,
                     OriginalPrice = dtos.OriginalPrice,
-                    Code = dtos.Code,
                     Quantity = dtos.Quantity,
-                    Note = dtos.Note,
                     Status = dtos.Status
                 };
 
@@ -79,15 +78,23 @@ namespace MeoMeo.Application.Services
                 metaDataValue.Rejected = statusCounts.FirstOrDefault(s => s.Status == EInventoryBatchStatus.Rejected)?.Count ?? 0;
                 if (!string.IsNullOrEmpty(request.CodeFilter))
                 {
-                    query = query.Where(c => EF.Functions.Like(c.Code, $"%{request.CodeFilter}%"));
+                    query = query.Where(c => EF.Functions.Like(c.ImportBatch.Code, $"%{request.CodeFilter}%"));
                 }
                 if (!string.IsNullOrEmpty(request.NoteFilter))
                 {
-                    query = query.Where(c => EF.Functions.Like(c.Note, $"%{request.NoteFilter}%"));
+                    query = query.Where(c => EF.Functions.Like(c.ImportBatch.Note, $"%{request.NoteFilter}%"));
                 }
                 if (request.StatusFilter != null)
                 {
                     query = query.Where(c => c.Status == request.StatusFilter);
+                }
+                if (request.ImportBatchIdFilter.HasValue)
+                {
+                    query = query.Where(c => c.ImportBatchId == request.ImportBatchIdFilter.Value);
+                }
+                if (request.ProductDetailIdFilter.HasValue)
+                {
+                    query = query.Where(c => c.ProductDetailId == request.ProductDetailIdFilter.Value);
                 }
                 var filtedInventorryBatch = await _inventoryBatchRepository.GetPagedAsync(query, request.PageIndex, request.PageSize);
                 var dtoItems = _mapper.Map<List<InventoryBatchDTO>>(filtedInventorryBatch.Items);
@@ -118,11 +125,10 @@ namespace MeoMeo.Application.Services
             return new InventoryBatchResponseDTO
             {
                 Id = inventoryBatch.Id,
+                ImportBatchId = inventoryBatch.ImportBatchId.Value,
                 ProductDetailId = inventoryBatch.ProductDetailId,
                 OriginalPrice = inventoryBatch.OriginalPrice,
-                Code = inventoryBatch.Code,
                 Quantity = inventoryBatch.Quantity,
-                Note = inventoryBatch.Note,
                 Status = inventoryBatch.Status,
                 ResponseStatus = BaseStatus.Success,
                 Message = ""

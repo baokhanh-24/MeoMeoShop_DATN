@@ -3,9 +3,14 @@
 @using MeoMeo.Contract.Commons
 @using MeoMeo.Domain.Commons.Enums
 @using MeoMeo.Shared.IServices
+@using MeoMeo.Contract.DTOs.Order
 @using ButtonSize = AntDesign.ButtonSize
 @using ButtonType = AntDesign.ButtonType
+@using AntDesign
 @inject MeoMeo.Shared.Utilities.MessageModalService MessageModalService
+@inject IVoucherClientService VoucherClientService
+@inject IOrderClientService OrderClientService
+@inject NavigationManager Navigation
 @rendermode InteractiveServer
 
 <div class="d-flex justify-content-between mb-3">
@@ -72,116 +77,229 @@
 <Table DataSource="listOfData" TItem="VoucherDTO" Bordered TableLayout="fixed">
     <ChildContent Context="data">
         <Column TData="int" Title="STT">
-            @(listOfData.IndexOf(data) + 1)
+            @((filter.PageIndex - 1) * filter.PageSize + listOfData.IndexOf(data) + 1)
         </Column>
         <Column TData="string" Title="Mã Voucher">
-            @if (editCache.ContainsKey(data.Id) && !editCache[data.Id].edit)
-            {
+            <a class="text-primary" style="cursor:pointer" @onclick="() => ViewVoucherDetail(data.Id)">
                 @data.Code
-            }
-            else if (editCache.ContainsKey(data.Id))
-            {
-                <Input @bind-Value="editCache[data.Id].data.Code" />
-            }
+            </a>
+        </Column>
+        <Column TData="string" Title="Tên Voucher">
+            @data.Code
         </Column>
         <Column TData="EVoucherType" Title="Loại">
-            @if (editCache.ContainsKey(data.Id) && !editCache[data.Id].edit)
-            {
+            <Tag Color="@GetVoucherTypeColor(data.Type)">
                 @GetVoucherTypeName(data.Type)
-            }
-            else if (editCache.ContainsKey(data.Id))
-            {
-                <Select TItem="EVoucherType" TItemValue="EVoucherType" DataSource="voucherTypeList"
-                        @bind-Value="editCache[data.Id].data.Type"
-                        ItemValue="x => x" ItemLabel="x => GetVoucherTypeName(x)" />
-            }
+            </Tag>
         </Column>
         <Column TData="float" Title="Giảm giá">
-            @if (editCache.ContainsKey(data.Id) && !editCache[data.Id].edit)
-            {
+            <span class="text-success font-weight-bold">
                 @FormatDiscount(data.Discount, data.Type)
-            }
-            else if (editCache.ContainsKey(data.Id))
-            {
-                <Input @bind-Value="editCache[data.Id].data.Discount" />
-            }
+            </span>
         </Column>
-
         <Column TData="DateTime" Title="Ngày bắt đầu">
-            @if (editCache.ContainsKey(data.Id) && !editCache[data.Id].edit)
-            {
-                @data.StartDate.ToString("dd-MM-yyyy")
-            }
-            else if (editCache.ContainsKey(data.Id))
-            {
-                <DatePicker @bind-Value="editCache[data.Id].data.StartDate" />
-            }
+            @data.StartDate.ToString("dd/MM/yyyy")
         </Column>
         <Column TData="DateTime" Title="Ngày kết thúc">
-            @if (editCache.ContainsKey(data.Id) && !editCache[data.Id].edit)
-            {
-                @data.EndDate.ToString("dd-MM-yyyy")
-            }
-            else if (editCache.ContainsKey(data.Id))
-            {
-                <DatePicker @bind-Value="editCache[data.Id].data.EndDate" />
-            }
+            @data.EndDate.ToString("dd/MM/yyyy")
+        </Column>
+        <Column TData="int" Title="Đã sử dụng">
+            <span class="text-info">
+                @(data.MaxTotalUse ?? 0) / @(data.MaxTotalUse > 0 ? data.MaxTotalUse.ToString() : "∞")
+            </span>
         </Column>
         <Column TData="string" Title="Trạng thái">
-            @GetVoucherStatusName(GetVoucherStatus(data))
+            <Tag Color="@GetVoucherStatusColor(GetVoucherStatus(data))">
+                @GetVoucherStatusName(GetVoucherStatus(data))
+            </Tag>
         </Column>
-
         <ActionColumn Title="Thao tác" Class="text-end gap-2">
             @{
                 var status = GetVoucherStatus(data);
-                var isEditing = editCache.ContainsKey(data.Id) && editCache[data.Id].edit;
                 var isLocked = status == VoucherStatus.Ongoing || status == VoucherStatus.Expired;
             }
 
-            @if (!isEditing)
-            {
-                if (!isLocked)
-                {
-                    <Tooltip Title="Sửa">
-                        <Button Size="ButtonSize.Small" @onclick="() => StartEdit(data.Id)" Shape="ButtonShape.Circle">
-                            <i class="fas fa-pen"></i>
-                        </Button>
-                    </Tooltip>
-                    <Popconfirm Title="Bạn có chắc muốn xóa voucher" OnConfirm="() => DeleteVoucher(data.Id)" OkText="Đồng ý" CancelText="Hủy">
-                        <Tooltip Title="Xóa">
-                            <Button Size="ButtonSize.Small" Danger Shape="ButtonShape.Circle">
-                                <i class="fas fa-minus"></i>
-                            </Button>
-                        </Tooltip>
-                    </Popconfirm>
-                }
+            <Tooltip Title="Xem chi tiết">
+                <Button Size="ButtonSize.Small" Type="ButtonType.Primary" @onclick="() => ViewVoucherDetail(data.Id)" Shape="ButtonShape.Circle">
+                    <i class="fas fa-eye"></i>
+                </Button>
+            </Tooltip>
 
-                <Tooltip Title="Nhân bản">
-                    <Button Size="ButtonSize.Small" @onclick="() => AddCloneVoucherAsync(data)" Shape="ButtonShape.Circle">
-                        <i class="fa fa-copy"></i>
+            @if (!isLocked)
+            {
+                <Tooltip Title="Sửa">
+                    <Button Size="ButtonSize.Small" @onclick="() => EditVoucher(data)" Shape="ButtonShape.Circle">
+                        <i class="fas fa-pen"></i>
                     </Button>
                 </Tooltip>
+                <Popconfirm Title="Bạn có chắc muốn xóa voucher này?" OnConfirm="() => DeleteVoucher(data.Id)" OkText="Đồng ý" CancelText="Hủy">
+                    <Tooltip Title="Xóa">
+                        <Button Size="ButtonSize.Small" Danger Shape="ButtonShape.Circle">
+                            <i class="fas fa-trash"></i>
+                        </Button>
+                    </Tooltip>
+                </Popconfirm>
             }
             else
             {
-                <Tooltip Title="Lưu">
-                    <Button Size="ButtonSize.Small" @onclick="() => SaveEdit(data.Id)" Shape="ButtonShape.Circle">
-                        <i class="fas fa-check"></i>
+                <Tooltip Title="Không thể sửa voucher đang diễn ra hoặc đã kết thúc">
+                    <Button Size="ButtonSize.Small" Disabled Shape="ButtonShape.Circle">
+                        <i class="fas fa-lock"></i>
                     </Button>
                 </Tooltip>
-                <Popconfirm Title="Bạn có chắc muốn hủy chỉnh sửa voucher" OnConfirm="() => CancelEdit(data.Id)" OkText="Đồng ý" CancelText="Hủy">
-                    <Button Size="ButtonSize.Small" Shape="ButtonShape.Circle">
-                        <i class="fa-solid fa-xmark"></i>
-                    </Button>
-                </Popconfirm>
             }
+
+            <Tooltip Title="Nhân bản">
+                <Button Size="ButtonSize.Small" @onclick="() => CloneVoucher(data)" Shape="ButtonShape.Circle">
+                    <i class="fas fa-copy"></i>
+                </Button>
+            </Tooltip>
+
+            <Tooltip Title="Xem đơn hàng đã sử dụng">
+                <Button Size="ButtonSize.Small" @onclick="() => ViewVoucherUsage(data.Id)" Shape="ButtonShape.Circle">
+                    <i class="fas fa-shopping-cart"></i>
+                </Button>
+            </Tooltip>
         </ActionColumn>
     </ChildContent>
 </Table>
 
+<div class="d-flex justify-content-end mt-3">
+    <Pagination Current="@filter.PageIndex" 
+                Total="@totalRecords" 
+                PageSize="@filter.PageSize" 
+                OnChange="@OnPageChange" 
+                ShowSizeChanger="true" 
+                ShowQuickJumper="true" 
+                 />
+</div>
+
+<!-- Voucher Modal -->
+<Modal Title="@(isEditMode ? "Cập nhật Voucher" : "Tạo mới Voucher")" 
+       @bind-Visible="showVoucherModal" 
+       OnOk="SaveVoucher" 
+       OnCancel="CancelVoucherModal"
+       Width="800">
+    <Form Model="voucherForm" Layout="FormLayout.Vertical">
+        <GridRow Gutter="16">
+            <GridCol Span="12">
+                <FormItem Label="Mã Voucher" Required>
+                    <Input @bind-Value="voucherForm.Code" Placeholder="Nhập mã voucher" />
+                </FormItem>
+            </GridCol>
+            <GridCol Span="12">
+                <FormItem Label="Giá trị đơn hàng tối thiểu">
+                    <AntDesign.InputNumber TValue="decimal" @bind-Value="voucherForm.MinOrder" 
+                                Min="0" Step="1000" 
+                                Placeholder="Giá trị đơn hàng tối thiểu" />
+                </FormItem>
+            </GridCol>
+        </GridRow>
+        
+        <GridRow Gutter="16">
+            <GridCol Span="12">
+                <FormItem Label="Loại giảm giá" Required>
+                    <Select TItem="EVoucherType" TItemValue="EVoucherType" 
+                            DataSource="voucherTypeList"
+                            @bind-Value="voucherForm.Type"
+                            ItemValue="x => x" 
+                            ItemLabel="x => GetVoucherTypeName(x)" />
+                </FormItem>
+            </GridCol>
+            <GridCol Span="12">
+                <FormItem Label="Giá trị giảm" Required>
+                    <AntDesign.InputNumber TValue="float" @bind-Value="voucherForm.Discount" 
+                                Min="0" Step="1000" 
+                                Placeholder="Nhập giá trị giảm" />
+                </FormItem>
+            </GridCol>
+        </GridRow>
+
+        <GridRow Gutter="16">
+            <GridCol Span="12">
+                <FormItem Label="Ngày bắt đầu" Required>
+                    <DatePicker @bind-Value="voucherForm.StartDate" Style="width: 100%" />
+                </FormItem>
+            </GridCol>
+            <Col Span="12">
+                <FormItem Label="Ngày kết thúc" Required>
+                    <DatePicker @bind-Value="voucherForm.EndDate" Style="width: 100%" />
+                </FormItem>
+            </Col>
+        </GridRow>
+
+        <GridRow Gutter="16">
+            <GridCol Span="12">
+                <FormItem Label="Giới hạn sử dụng">
+                    <AntDesign.InputNumber TValue="int?" @bind-Value="voucherForm.MaxTotalUse" 
+                                Min="0" Placeholder="0 = không giới hạn" />
+                </FormItem>
+            </GridCol>
+            <GridCol Span="12">
+                <FormItem Label="Giới hạn sử dụng/khách">
+                    <AntDesign.InputNumber TValue="int?" @bind-Value="voucherForm.MaxTotalUsePerCustomer" 
+                                Min="0" Placeholder="0 = không giới hạn" />
+                </FormItem>
+            </GridCol>
+        </GridRow>
+
+        <GridRow Gutter="16">
+            <GridCol Span="12">
+                <FormItem Label="Giảm giá tối đa">
+                    <AntDesign.InputNumber TValue="float" @bind-Value="voucherForm.MaxDiscount" 
+                                Min="0" Step="1000" 
+                                Placeholder="Giảm giá tối đa" />
+                </FormItem>
+            </GridCol>
+        </GridRow>
+    </Form>
+</Modal>
+
+<!-- Voucher Usage Modal -->
+<Modal Title="Đơn hàng đã sử dụng Voucher" 
+       @bind-Visible="showUsageModal" 
+       OnCancel="() => showUsageModal = false"
+       Width="1000"
+       Footer="null">
+    @if (voucherUsageOrders.Any())
+    {
+        <Table DataSource="voucherUsageOrders" TItem="OrderDTO" Bordered>
+            <ChildContent Context="order">
+                <Column TData="string" Title="Mã đơn hàng">
+                    <a class="text-primary" @onclick="() => ViewOrderDetail(order.Id)">
+                        @order.Code
+                    </a>
+                </Column>
+                <Column TData="string" Title="Khách hàng">
+                    @order.CustomerName
+                </Column>
+                <Column TData="decimal" Title="Tổng tiền">
+                    @order.TotalPrice.ToString("N0") ₫
+                </Column>
+                <Column TData="decimal" Title="Giảm giá">
+                    <span class="text-success">@(order.DiscountPrice?.ToString("N0") ?? "0") ₫</span>
+                </Column>
+                <Column TData="DateTime" Title="Ngày đặt">
+                    @order.CreationTime.ToString("dd/MM/yyyy HH:mm")
+                </Column>
+                <Column TData="string" Title="Trạng thái">
+                    <Tag Color="@GetOrderStatusColor(order.Status)">
+                        @GetOrderStatusName(order.Status)
+                    </Tag>
+                </Column>
+            </ChildContent>
+        </Table>
+    }
+    else
+    {
+        <div class="text-center p-4">
+            <i class="fas fa-shopping-cart fa-3x text-muted mb-3"></i>
+            <p class="text-muted">Chưa có đơn hàng nào sử dụng voucher này</p>
+        </div>
+    }
+</Modal>
 @code {
-    [Inject] private IVoucherClientService VoucherClientService { get; set; } = default!;
-    IDictionary<Guid, (bool edit, VoucherDTO data)> editCache = new Dictionary<Guid, (bool, VoucherDTO)>();
+    // Services
     List<VoucherDTO> listOfData = new();
     List<EVoucherType> voucherTypeList = Enum.GetValues(typeof(EVoucherType)).Cast<EVoucherType>().ToList();
     List<(EVoucherStatus Value, string Name)> voucherStatusList = Enum.GetValues(typeof(EVoucherStatus))
@@ -189,21 +307,32 @@
         .Select(x => (x, x.ToString()))
         .ToList();
 
+    // UI State
     private string currentTab = "All";
+    private bool showVoucherModal = false;
+    private bool showUsageModal = false;
+    private bool isEditMode = false;
+    private bool isSaving = false;
+    private int totalRecords = 0;
 
+    // Forms
+    private CreateOrUpdateVoucherDTO voucherForm = new();
+    private List<OrderDTO> voucherUsageOrders = new();
+
+    // Filter
     GetListVoucherRequestDTO filter = new GetListVoucherRequestDTO()
-        {
-            CodeFilter = "",
-            NameFilter = "",
-            TypeFilter = null,
-            StartDateFromFilter = null,
-            StartDateToFilter = null,
-            EndDateFromFilter = null,
-            EndDateToFilter = null,
-            Status = null,
-            PageIndex = 1,
-            PageSize = 20
-        };
+    {
+        CodeFilter = "",
+        NameFilter = "",
+        TypeFilter = null,
+        StartDateFromFilter = null,
+        StartDateToFilter = null,
+        EndDateFromFilter = null,
+        EndDateToFilter = null,
+        Status = null,
+        PageIndex = 1,
+        PageSize = 20
+    };
 
     protected override async Task OnInitializedAsync()
     {
@@ -212,11 +341,17 @@
 
     async Task LoadDataAsync()
     {
-        filter.PageIndex = 1; // reset trang khi filter thay đổi
         var response = await VoucherClientService.GetAllVoucherAsync(filter);
         listOfData = response.Items;
-        editCache = listOfData.ToDictionary(x => x.Id, x => (false, CloneVoucher(x)));
+        totalRecords = response.TotalRecords;
         await InvokeAsync(StateHasChanged);
+    }
+
+    async Task OnPageChange(PaginationEventArgs args)
+    {
+        filter.PageIndex = args.Page;
+        filter.PageSize = args.PageSize;
+        await LoadDataAsync();
     }
 
     void OnFilterChanged()
@@ -237,64 +372,106 @@
         _ = LoadDataAsync();
     }
 
-    async Task AddNewVoucher()
+    // Voucher CRUD Operations
+    void AddNewVoucher()
     {
-        var newVoucher = new VoucherDTO
-            {
-                Id = Guid.Empty,
-                Code = "",
-                Type = EVoucherType.byFixedAmount,
-                Discount = 0,
-                StartDate = DateTime.Now,
-                EndDate = DateTime.Now.AddDays(7)
-            };
-        listOfData.Insert(0, newVoucher);
-        editCache[newVoucher.Id] = (true, CloneVoucher(newVoucher));
-        await InvokeAsync(StateHasChanged);
-    }
-
-    async Task StartEdit(Guid id)
-    {
-        var data = editCache[id];
-        editCache[id] = (true, data.data);
-        await InvokeAsync(StateHasChanged);
-    }
-
-    async Task CancelEdit(Guid id)
-    {
-        var isNew = !listOfData.Any(x => x.Id == id);
-        if (isNew) listOfData.RemoveAll(x => x.Id == id);
-        else editCache[id] = (false, CloneVoucher(listOfData.First(x => x.Id == id)));
-        await InvokeAsync(StateHasChanged);
-    }
-
-    async Task SaveEdit(Guid id)
-    {
-        var dto = editCache[id].data;
-
-        var request = new CreateOrUpdateVoucherDTO
-            {
-                Id = dto.Id == Guid.Empty ? null : dto.Id,
-                Code = dto.Code,
-                Type = dto.Type,
-                Discount = dto.Discount,
-                StartDate = dto.StartDate,
-                EndDate = dto.EndDate
-            };
-
-        var result = dto.Id == Guid.Empty
-            ? await VoucherClientService.CreateVoucherAsync(request)
-            : await VoucherClientService.UpdateVoucherAsync(request);
-
-        if (result.ResponseStatus == BaseStatus.Success)
+        isEditMode = false;
+        voucherForm = new CreateOrUpdateVoucherDTO
         {
-            await MessageModalService.Success("Lưu thành công");
-            await LoadDataAsync();
-        }
-        else
+            Code = $"VOUCHER-{DateTime.Now:yyyyMMdd}-{Guid.NewGuid().ToString("N")[..8].ToUpper()}",
+            Type = EVoucherType.byFixedAmount,
+            Discount = 0,
+            StartDate = DateTime.Now,
+            EndDate = DateTime.Now.AddDays(30),
+            MaxTotalUse = 0,
+            MaxTotalUsePerCustomer = 0,
+            MinOrder = 0,
+            MaxDiscount = 0
+        };
+        showVoucherModal = true;
+    }
+
+    void EditVoucher(VoucherDTO voucher)
+    {
+        isEditMode = true;
+        voucherForm = new CreateOrUpdateVoucherDTO
         {
-            await MessageModalService.Error(result.Message);
+            Id = voucher.Id,
+            Code = voucher.Code,
+            Type = voucher.Type,
+            Discount = voucher.Discount,
+            StartDate = voucher.StartDate,
+            EndDate = voucher.EndDate,
+            MaxTotalUse = voucher.MaxTotalUse,
+            MaxTotalUsePerCustomer = voucher.MaxTotalUsePerCustomer,
+            MinOrder = voucher.MinOrder,
+            MaxDiscount = voucher.MaxDiscount
+        };
+        showVoucherModal = true;
+    }
+
+    async Task SaveVoucher()
+    {
+        if (!await ValidateVoucherForm())
+        {
+            return;
         }
+
+        isSaving = true;
+        try
+        {
+            var result = isEditMode
+                ? await VoucherClientService.UpdateVoucherAsync(voucherForm)
+                : await VoucherClientService.CreateVoucherAsync(voucherForm);
+
+            if (result.ResponseStatus == BaseStatus.Success)
+            {
+                await MessageModalService.Success(isEditMode ? "Cập nhật voucher thành công!" : "Tạo voucher thành công!");
+                showVoucherModal = false;
+                await LoadDataAsync();
+            }
+            else
+            {
+                await MessageModalService.Error(result.Message);
+            }
+        }
+        catch (Exception ex)
+        {
+            await MessageModalService.Error($"Lỗi: {ex.Message}");
+        }
+        finally
+        {
+            isSaving = false;
+        }
+    }
+
+    void CancelVoucherModal()
+    {
+        showVoucherModal = false;
+        voucherForm = new CreateOrUpdateVoucherDTO();
+    }
+
+    async Task<bool> ValidateVoucherForm()
+    {
+        if (string.IsNullOrWhiteSpace(voucherForm.Code))
+        {
+            await MessageModalService.Error("Vui lòng nhập mã voucher");
+            return false;
+        }
+
+        if (voucherForm.Discount <= 0)
+        {
+            await MessageModalService.Error("Giá trị giảm phải lớn hơn 0");
+            return false;
+        }
+
+        if (voucherForm.StartDate >= voucherForm.EndDate)
+        {
+            await MessageModalService.Error("Ngày kết thúc phải sau ngày bắt đầu");
+            return false;
+        }
+
+        return true;
     }
 
     async Task DeleteVoucher(Guid id)
@@ -302,40 +479,60 @@
         var success = await VoucherClientService.DeleteVoucherAsync(id);
         if (success)
         {
-            listOfData.RemoveAll(x => x.Id == id);
-            editCache.Remove(id);
-            await MessageModalService.Success("Xóa thành công");
+            await MessageModalService.Success("Xóa voucher thành công!");
+            await LoadDataAsync();
         }
-        else await MessageModalService.Error("Xóa thất bại");
-    }
-
-    async Task AddCloneVoucherAsync(VoucherDTO original)
-    {
-        var clonedVoucher = new VoucherDTO
-            {
-                Id = Guid.Empty,
-                Code = original.Code + "_COPY",
-                Discount = original.Discount,
-                StartDate = DateTime.Now,
-                EndDate = DateTime.Now.AddDays(7),
-                Type = original.Type
-            };
-
-        listOfData.Insert(0, clonedVoucher);
-        editCache[clonedVoucher.Id] = (true, CloneVoucher(clonedVoucher));
-        await InvokeAsync(StateHasChanged);
-    }
-
-    VoucherDTO CloneVoucher(VoucherDTO dto) => new()
+        else
         {
-            Id = dto.Id,
-            Code = dto.Code,
-            Discount = dto.Discount,
-            StartDate = dto.StartDate,
-            EndDate = dto.EndDate,
-            Type = dto.Type
-        };
+            await MessageModalService.Error("Xóa voucher thất bại!");
+        }
+    }
 
+    void CloneVoucher(VoucherDTO original)
+    {
+        isEditMode = false;
+        voucherForm = new CreateOrUpdateVoucherDTO
+        {
+            Code = $"{original.Code}_COPY_{DateTime.Now:yyyyMMdd}",
+            Type = original.Type,
+            Discount = original.Discount,
+            StartDate = DateTime.Now,
+            EndDate = DateTime.Now.AddDays(30),
+            MaxTotalUse = original.MaxTotalUse,
+            MaxTotalUsePerCustomer = original.MaxTotalUsePerCustomer,
+            MinOrder = original.MinOrder,
+            MaxDiscount = original.MaxDiscount
+        };
+        showVoucherModal = true;
+    }
+
+    // Additional Features
+    void ViewVoucherDetail(Guid id)
+    {
+        Navigation.NavigateTo($"/voucher-detail/{id}");
+    }
+
+    async Task ViewVoucherUsage(Guid voucherId)
+    {
+        try
+        {
+            // TODO: Implement API to get orders that used this voucher
+            // For now, showing empty state
+            voucherUsageOrders = new List<OrderDTO>();
+            showUsageModal = true;
+        }
+        catch (Exception ex)
+        {
+            await MessageModalService.Error($"Lỗi khi tải danh sách đơn hàng: {ex.Message}");
+        }
+    }
+
+    void ViewOrderDetail(Guid orderId)
+    {
+        Navigation.NavigateTo($"/order-detail/{orderId}");
+    }
+
+    // Helper Methods
     enum VoucherStatus { Upcoming, Ongoing, Expired }
 
     VoucherStatus GetVoucherStatus(VoucherDTO v)
@@ -348,19 +545,18 @@
 
     private string GetVoucherStatusName(VoucherStatus status) => status switch
     {
-       
         VoucherStatus.Upcoming => "Sắp diễn ra",
         VoucherStatus.Ongoing => "Đang diễn ra",
         VoucherStatus.Expired => "Đã kết thúc",
         _ => "Không xác định"
     };
-   private  string GetStatusTabName(string key) => key switch
+
+    private string GetVoucherStatusColor(VoucherStatus status) => status switch
     {
-        "All" => "Tất cả",
-        "Upcoming" => "Sắp diễn ra",
-        "Ongoing" => "Đang diễn ra",
-        "Expired" => "Đã kết thúc",
-        _ => key
+        VoucherStatus.Upcoming => "default",
+        VoucherStatus.Ongoing => "processing",
+        VoucherStatus.Expired => "error",
+        _ => "default"
     };
 
     private string GetVoucherTypeName(EVoucherType type) => type switch
@@ -368,6 +564,13 @@
         EVoucherType.byFixedAmount => "Giảm theo số tiền",
         EVoucherType.byPercentage => "Giảm theo phần trăm",
         _ => "Không xác định"
+    };
+
+    private string GetVoucherTypeColor(EVoucherType type) => type switch
+    {
+        EVoucherType.byFixedAmount => "blue",
+        EVoucherType.byPercentage => "green",
+        _ => "default"
     };
 
     private string FormatDiscount(float discount, EVoucherType type)
@@ -379,4 +582,30 @@
             _ => discount.ToString()
         };
     }
+
+    private string GetOrderStatusName(EOrderStatus status) => status switch
+    {
+        EOrderStatus.Pending => "Chờ xác nhận",
+        EOrderStatus.Confirmed => "Đã xác nhận",
+        EOrderStatus.InTransit => "Đang vận chuyển",
+        EOrderStatus.Completed => "Hoàn thành",
+        EOrderStatus.Canceled => "Đã hủy",
+        EOrderStatus.PendingReturn => "Chờ xác nhận hoàn hàng",
+        EOrderStatus.Returned => "Đã hoàn hàng",
+        EOrderStatus.RejectReturned => "Từ chối cho phép hoàn hàng",
+        _ => status.ToString()
+    };
+
+    private string GetOrderStatusColor(EOrderStatus status) => status switch
+    {
+        EOrderStatus.Pending => "default",
+        EOrderStatus.Confirmed => "processing",
+        EOrderStatus.InTransit => "warning",
+        EOrderStatus.Completed => "success",
+        EOrderStatus.Canceled => "error",
+        EOrderStatus.PendingReturn => "default",
+        EOrderStatus.Returned => "error",
+        EOrderStatus.RejectReturned => "error",
+        _ => "default"
+    };
 }

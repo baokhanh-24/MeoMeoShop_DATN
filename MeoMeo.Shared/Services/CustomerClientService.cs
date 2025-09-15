@@ -184,5 +184,20 @@ namespace MeoMeo.Shared.Services
                 };
             }
         }
+
+        public async Task<CustomerDetailDTO> GetCustomerDetailAsync(Guid customerId)
+        {
+            try
+            {
+                var url = $"/api/Customers/get-customer-detail-async/{customerId}";
+                var response = await _httpClient.GetAsync<CustomerDetailDTO>(url);
+                return response ?? new CustomerDetailDTO();
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Có lỗi xảy ra khi lấy chi tiết Customer {CustomerId}: {Message}", customerId, ex.Message);
+                return new CustomerDetailDTO();
+            }
+        }
     }
 }

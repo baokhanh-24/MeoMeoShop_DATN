@@ -16,10 +16,11 @@ namespace MeoMeo.Contract.DTOs.ProductDetail
         public float? Discount { get; set; }
         public Guid? PromotionDetailId { get; set; }
         public string? Description { get; set; }
+        public EProductDetailGender Gender { get; set; }
         public float StockHeight { get; set; }
         
         public EClosureType ClosureType { get; set; }
-        public int  OutOfStock{ get; set; }  // Thay thế OutOfStock
+        public int OutOfStock { get; set; }
         public bool AllowReturn { get; set; }
         public int Status { get; set; }
         public string Images { get; set; }

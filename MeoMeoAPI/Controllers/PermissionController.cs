@@ -30,26 +30,8 @@ namespace MeoMeo.CMS.Controllers
             return Ok(permission);
         }
 
-        [HttpPost]
-        public async Task<ActionResult<BaseResponse>> CreatePermission([FromBody] CreateOrUpdatePermissionDTO dto)
-        {
-            var result = await _permissionService.CreatePermissionAsync(dto);
-            return Ok(result);
-        }
-
-        [HttpPut]
-        public async Task<ActionResult<BaseResponse>> UpdatePermission([FromBody] CreateOrUpdatePermissionDTO dto)
-        {
-            var result = await _permissionService.UpdatePermissionAsync(dto);
-            return Ok(result);
-        }
-
-        [HttpDelete("{id}")]
-        public async Task<ActionResult<BaseResponse>> DeletePermission(Guid id)
-        {
-            var result = await _permissionService.DeletePermissionAsync(id);
-            return Ok(result);
-        }
+        // CRUD operations removed - Permissions are fixed in database
+        // Only GET operations are allowed
 
         [HttpGet("group/{groupId}")]
         public async Task<ActionResult<List<PermissionDTO>>> GetPermissionsByGroup(Guid groupId)

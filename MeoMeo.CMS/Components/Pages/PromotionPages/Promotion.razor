@@ -3,6 +3,7 @@
 @using MeoMeo.Shared.IServices;
 @using MeoMeo.Contract.Commons
 @using MeoMeo.Contract.DTOs.Promotion
+@using MeoMeo.Contract.DTOs.PromotionDetail
 @using MeoMeo.Domain.Commons.Enums
 @using System.Reflection
 @using System.ComponentModel.DataAnnotations
@@ -22,7 +23,6 @@
 </div>
 <Tabs DefaultActiveKey="All" @bind-ActiveKey="@activeTab" OnChange="OnTabChange">
     <TabPane Key="All" Tab=@($"Tất cả ({metaData.TotalAll})") />
-    <TabPane Key="Draft" Tab=@($"Nháp ({metaData.Draft})") />
     <TabPane Key="NotHappenedYet" Tab=@($"Chưa diễn ra ({metaData.NotHappenedYet})") />
     <TabPane Key="IsGoingOn" Tab=@($"Đang diễn ra ({metaData.IsGoingOn})") />
     <TabPane Key="Ended" Tab=@($"Đã kết thúc ({metaData.Ended})") />
@@ -38,19 +38,13 @@
         <Input AllowClear="true" @bind-Value="filter.DescriptionFilter" Placeholder="Nhập mô tả"
             OnClear="OnFilterChanged" />
     </div>
-    <div style="width: 150px">
-        <Select TItem="(EPromotionStatus Value, string Name)" TItemValue="EPromotionStatus ?" AllowClear
-            DataSource="promotionStatusList" @bind-Value="filter.StatusFilter" Placeholder="Chọn trạng thái"
-            ItemValue="s => (EPromotionStatus?)s.Value" ItemLabel="s => s.Name">
-        </Select>
-    </div>
     <Tooltip Title="Tìm kiếm">
         <Button @onclick="() => OnFilterChanged()" Type="ButtonType.Primary" Shape="ButtonShape.Circle"
             Icon="@IconType.Outline.Search" />
     </Tooltip>
 </div>
-<Table DataSource="listOfData" TItem="CreateOrUpdatePromotionDTO" RowClassName="@(_ => "editable-row")" Bordered
-    TableLayout="fixed" OnChange="@OnPageChange" PageSize="@filter.PageSize" Total="@totalRecords">
+<Table DataSource="listOfData" TItem="CreateOrUpdatePromotionDTO" Bordered TableLayout="fixed" OnChange="@OnPageChange"
+    PageSize="@filter.PageSize" Total="@totalRecords" OnExpand="@OnRowExpand">
     <ChildContent Context="data">
         <Column TData="int" Title="STT">
             @{
@@ -60,103 +54,99 @@
         </Column>
         <Column TData="string" Title="Tên chương trình">
             <a class="text-primary" style="cursor:pointer" @onclick="() => ViewPromotionDetail(data.Id)">
-                @if (editCache.ContainsKey(data.Id) && !editCache[data.Id].edit)
-                {
-                    @data.Title
-                }
-                else if (editCache.ContainsKey(data.Id))
-                {
-                    <Input MaxLength="500" @bind-Value="editCache[data.Id].data.Title" />
-                }
+                @data.Title
             </a>
         </Column>
         <Column TData="DateTime ?" Title="Ngày bắt đầu">
-            @if (editCache.ContainsKey(data.Id) && !editCache[data.Id].edit)
-            {
-                @data.StartDate?.ToString("dd-MM-yyyy")
-            }
-            else if (editCache.ContainsKey(data.Id))
-            {
-                <DatePicker @bind-Value="editCache[data.Id].data.StartDate" />
-            }
+            @data.StartDate?.ToString("dd-MM-yyyy")
         </Column>
         <Column TData="DateTime ?" Title="Ngày kết thúc">
-            @if (editCache.ContainsKey(data.Id) && !editCache[data.Id].edit)
-            {
-                @data.EndDate?.ToString("dd-MM-yyyy")
-            }
-            else if (editCache.ContainsKey(data.Id))
-            {
-                <DatePicker @bind-Value="editCache[data.Id].data.EndDate" />
-            }
+            @data.EndDate?.ToString("dd-MM-yyyy")
         </Column>
         <Column TData="string" Title="Mô tả">
-            @if (editCache.ContainsKey(data.Id) && !editCache[data.Id].edit)
-            {
-                @data.Description
-            }
-            else if (editCache.ContainsKey(data.Id))
-            {
-                <Input MaxLength="1000" @bind-Value="editCache[data.Id].data.Description" />
-            }
+            @data.Description
         </Column>
-        <Column TData="EInventoryBatchStatus" Title="Trạng thái">
-            @if (editCache.ContainsKey(data.Id) && !editCache[data.Id].edit)
-            {
-                @promotionStatusList.FirstOrDefault(p => p.Value == data.Status).Name
+        <Column TData="string" Title="Trạng thái">
+            @{
+                var status = CalculatePromotionStatus(data.StartDate, data.EndDate);
+                var statusInfo = GetStatusInfo(status);
             }
-            else if (editCache.ContainsKey(data.Id))
-            {
-                <Select TItem="(EPromotionStatus Value, string Name)" TItemValue="EPromotionStatus"
-                    DataSource="promotionStatusList" @bind-Value="editCache[data.Id].data.Status" ItemValue="p => p.Value"
-                    ItemLabel="p => p.Name" />
-            }
+            <Tag Color="@statusInfo.Color">@statusInfo.Name</Tag>
         </Column>
         <ActionColumn Title="Thao tác" Class="text-end gap-2">
-            @if (editCache.ContainsKey(data.Id) && !editCache[data.Id].edit)
-            {
-                <Tooltip Title="Sửa">
-                    <Button Size="ButtonSize.Small" @onclick="() => startEdit(data.Id)" Shape="ButtonShape.Circle">
-                        <i class="fas fa-pen"></i>
-                    </Button>
-                </Tooltip>
+            <Tooltip Title="Sửa">
+                <Button Size="ButtonSize.Small" @onclick="() => EditPromotion(data.Id)" Shape="ButtonShape.Circle">
+                    <i class="fas fa-pen"></i>
+                </Button>
+            </Tooltip>
 
-                <Popconfirm Title=@($"Bạn có chắc muốn xóa {data.Title}?") OnConfirm="() => DeletePromotion(data.Id)"
-                    OkText="Đồng ý" CancelText="Hủy">
-
-                    <Tooltip Title="Xóa">
-                        <Button Size="ButtonSize.Small" Danger Shape="ButtonShape.Circle">
-                            <i class="fas fa-minus"></i>
-                        </Button>
-                    </Tooltip>
-                </Popconfirm>
-            }
-            else if (editCache.ContainsKey(data.Id))
-            {
-                <Tooltip Title="Lưu">
-                    <Button Size="ButtonSize.Small" @onclick="() => SaveEdit(data.Id)" Shape="ButtonShape.Circle">
-                        <i class="fas fa-check"></i>
+            <Popconfirm Title=@($"Bạn có chắc muốn xóa {data.Title}?") OnConfirm="() => DeletePromotion(data.Id)"
+                OkText="Đồng ý" CancelText="Hủy">
+                <Tooltip Title="Xóa">
+                    <Button Size="ButtonSize.Small" Danger Shape="ButtonShape.Circle">
+                        <i class="fas fa-minus"></i>
                     </Button>
                 </Tooltip>
-                <Tooltip Title="Hủy">
-                    <Button Size="ButtonSize.Small" @onclick="() => CancelEdit(data.Id)" Shape="ButtonShape.Circle">
-                        <i class="fa-solid fa-xmark"></i>
-                    </Button>
-                </Tooltip>
-            }
+            </Popconfirm>
         </ActionColumn>
     </ChildContent>
+    <ExpandTemplate Context="data">
+        <div>
+            <h4>Sản phẩm trong chương trình khuyến mãi</h4>
+            @if (expandedPromotionProducts.ContainsKey(data.Data.Id) && expandedPromotionProducts[data.Data.Id].Any())
+            {
+                <Table DataSource="expandedPromotionProducts[data.Data.Id]" TItem="PromotionDetailWithProductInfoDTO"
+                    Size="TableSize.Small">
+                    <Column TData="string" Title="Ảnh" Width="80">
+                        <Image Width="60" Height="60" Fallback="@(ApiBaseUrl + "/Images/fallback.jpeg")"
+                            Src="@GetProductImageUrl(context.Thumbnail)" Class="search-result-image" />
+                    </Column>
+                    <Column TData="string" Title="Sản phẩm" Width="200">
+                        <div>
+                            <div><Text Strong>@context.ProductName</Text></div>
+                            <div style="color: #666; font-size: 12px;">
+                                <Tag>@context.ColourName</Tag>
+                                <Tag>Size: @context.SizeName</Tag>
+                            </div>
+                        </div>
+                    </Column>
+                    <Column TData="decimal" Title="Giá gốc" Width="120" Align="@ColumnAlign.Right">
+                        @($"{context.OriginalPrice:N0} ₫")
+                    </Column>
+                    <Column TData="decimal" Title="Giá khuyến mãi" Width="120" Align="@ColumnAlign.Right">
+                        <Text Strong Style="color: #ff4d4f;">@($"{context.DiscountPrice:N0} ₫")</Text>
+                    </Column>
+                    <Column TData="decimal" Title="Giảm giá" Width="100" Align="@ColumnAlign.Center">
+                        @{
+                            var discountPercent = context.OriginalPrice > 0 ? ((context.OriginalPrice - context.DiscountPrice) /
+                            context.OriginalPrice * 100) : 0;
+                        }
+                        <Tag>@discountPercent.ToString("F0")%</Tag>
+                    </Column>
+                </Table>
+            }
+            else
+            {
+                <div class="text-center p-3">
+                    <p>Chưa có sản phẩm nào trong chương trình khuyến mãi này</p>
+                </div>
+            }
+        </div>
+    </ExpandTemplate>
 </Table>
+
 @code {
     [Inject] private IPromotionClientService PromotionClientService { get; set; } = default!;
+    [Inject] private IPromotionDetailClientService PromotionDetailService { get; set; } = default!;
+    [Inject] private NavigationManager Navigation { get; set; } = default!;
+    [Inject] private IConfiguration Configuration { get; set; } = default!;
+
     private string activeTab = "All";
     private GetListPromotionResponseDTO metaData = new();
     private int totalRecords = 0;
-    IDictionary<Guid, (bool edit, CreateOrUpdatePromotionDTO data)> editCache = new Dictionary<Guid, (bool,
-    CreateOrUpdatePromotionDTO)>();
     List<CreateOrUpdatePromotionDTO> listOfData = new();
-    List<(EPromotionStatus Value, string Name)> promotionStatusList = new();
-    [Inject] private NavigationManager Navigation { get; set; } = default!;
+    private Dictionary<Guid, List<PromotionDetailWithProductInfoDTO>> expandedPromotionProducts = new();
+    private string ApiBaseUrl = string.Empty;
 
     GetListPromotionRequestDTO filter = new GetListPromotionRequestDTO()
     {
@@ -164,163 +154,147 @@
         StartDateFilter = null,
         EndDateFilter = null,
         DescriptionFilter = "",
-        StatusFilter = null,
         PageIndex = 1,
         PageSize = 10
     };
+
+    // Calculate promotion status based on dates
+    private EPromotionStatus CalculatePromotionStatus(DateTime? startDate, DateTime? endDate)
+    {
+        if (!startDate.HasValue || !endDate.HasValue)
+            return EPromotionStatus.NotHappenedYet;
+
+        var now = DateTime.Now;
+
+        if (startDate.Value > now)
+            return EPromotionStatus.NotHappenedYet;
+        else if (startDate.Value <= now && endDate.Value >= now)
+            return EPromotionStatus.IsGoingOn;
+        else
+            return EPromotionStatus.Ended;
+    }
+
+    // Get status display info
+    private (string Name, string Color) GetStatusInfo(EPromotionStatus status)
+    {
+        return status switch
+        {
+            EPromotionStatus.NotHappenedYet => ("Chưa diễn ra", "blue"),
+            EPromotionStatus.IsGoingOn => ("Đang diễn ra", "green"),
+            EPromotionStatus.Ended => ("Đã kết thúc", "red"),
+            _ => (status.ToString(), "default")
+        };
+    }
+
     protected override async Task OnInitializedAsync()
     {
-        promotionStatusList = Enum.GetValues(typeof(EPromotionStatus))
-        .Cast<EPromotionStatus>()
-        .Select(x => (
-        x,
-        x.GetType().GetMember(x.ToString())
-        .First()
-        .GetCustomAttribute<DisplayAttribute>()?.Name ?? x.ToString()
-        ))
-        .ToList();
+        ApiBaseUrl = Configuration["ApiSettings:BaseUrl"]?.TrimEnd('/') ?? string.Empty;
+        await LoadDataAsync();
+    }
 
-        await LoadDataAsync();
-    }
-    private async Task OnStatusChanged(EPromotionStatus? value)
-    {
-        filter.StatusFilter = value;
-        filter.PageIndex = 1;
-        await LoadDataAsync();
-    }
     private async Task OnPageChange(QueryModel<CreateOrUpdatePromotionDTO> query)
     {
         filter.PageIndex = query.PageIndex;
         filter.PageSize = query.PageSize;
         await LoadDataAsync();
     }
+
     private void AddPromotion()
     {
         Navigation.NavigateTo("/promotion-create");
     }
+
     private async Task OnTabChange()
     {
-        if (activeTab == "All")
-        {
-            filter.StatusFilter = null;
-        }
-        else if (Enum.TryParse<EPromotionStatus>(activeTab, out var status))
-        {
-            filter.StatusFilter = status;
-        }
-
+        // Tab filtering is now handled by status calculation, no need to set StatusFilter
         await LoadDataAsync();
         await InvokeAsync(StateHasChanged);
     }
+
     private async Task LoadDataAsync()
     {
-
         var response = await PromotionClientService.GetAllPromotionAsync(filter);
         listOfData = response.Items;
         metaData = response.Metadata;
         totalRecords = response.TotalRecords;
-        editCache = listOfData.ToDictionary(
-        item => item.Id,
-        item => (false, ClonePromotion(item))
-        );
         await InvokeAsync(StateHasChanged);
     }
+
     async void OnFilterChanged()
     {
         await LoadDataAsync();
     }
+
     void ViewPromotionDetail(Guid id)
     {
         Navigation.NavigateTo($"/promotion-detail/{id}");
     }
-    async Task startEdit(Guid id)
-    {
-        var data = editCache[id];
-        editCache[id] = (true, data.data);
-        await InvokeAsync(StateHasChanged);
-    }
-    async Task CancelEdit(Guid Id)
-    {
-        var Item = listOfData.FirstOrDefault(x => x.Id == Id);
-        var isNew = Item == null || Item.Id == Guid.Empty;
 
-        if (isNew)
-        {
-            listOfData.RemoveAll(x => x.Id == Id);
-            editCache.Remove(Id);
-        }
-        else
-        {
-            var Original = listOfData.FirstOrDefault(x => x.Id == Id);
-            editCache[Id] = (false, ClonePromotion(Original));
-        }
-        await InvokeAsync(StateHasChanged);
-    }
-    async Task SaveEdit(Guid id)
+    void EditPromotion(Guid id)
     {
-        var dto = editCache[id].data;
-        var CreateOrUpdateDTO = new CreateOrUpdatePromotionDTO
-        {
-            Id = dto.Id,
-            Title = dto.Title,
-            StartDate = dto.StartDate,
-            EndDate = dto.EndDate,
-            Description = dto.Description,
-            CreationTime = dto.CreationTime,
-            LastModificationTime = dto.LastModificationTime,
-            CreatedBy = dto.CreatedBy,
-            UpdatedBy = dto.UpdatedBy,
-            Status = dto.Status
-        };
-
-        BaseResponse result;
-        if (dto.Id == Guid.Empty)
-        {
-            result = result = await PromotionClientService.CreatePromotionAsync(CreateOrUpdateDTO);
-        }
-        else
-        {
-            result = await PromotionClientService.UpdatePromotionAsync(CreateOrUpdateDTO);
-        }
-
-        if (result.ResponseStatus == BaseStatus.Success)
-        {
-            await MessageModalService.Success("Lưu thành công!");
-            await LoadDataAsync();
-        }
-        else
-        {
-            await MessageModalService.Error(result.Message);
-        }
+        Navigation.NavigateTo($"/promotion-create/{id}");
     }
+
+
     async Task DeletePromotion(Guid id)
     {
         var success = await PromotionClientService.DeletePromotionAsync(id);
         if (success)
         {
             listOfData.RemoveAll(x => x.Id == id);
-            editCache.Remove(id);
             await MessageModalService.Success("Xoá thành công!");
+            await LoadDataAsync();
         }
         else
         {
             await MessageModalService.Error("Xoá thất bại!");
         }
     }
-    CreateOrUpdatePromotionDTO ClonePromotion(CreateOrUpdatePromotionDTO dto)
+
+
+    private async Task OnRowExpand(RowData<CreateOrUpdatePromotionDTO> args)
     {
-        return new CreateOrUpdatePromotionDTO
+        if (args.Expanded)
         {
-            Id = dto.Id,
-            Title = dto.Title,
-            StartDate = dto.StartDate,
-            EndDate = dto.EndDate,
-            Description = dto.Description,
-            CreationTime = dto.CreationTime,
-            LastModificationTime = dto.LastModificationTime,
-            CreatedBy = dto.CreatedBy,
-            UpdatedBy = dto.UpdatedBy,
-            Status = dto.Status
-        };
+            await LoadPromotionProducts(args.Data.Id);
+        }
+    }
+
+    private async Task LoadPromotionProducts(Guid promotionId)
+    {
+        try
+        {
+            if (!expandedPromotionProducts.ContainsKey(promotionId))
+            {
+                var request = new GetPromotionDetailWithProductInfoRequestDTO
+                {
+                    PromotionId = promotionId,
+                    PageIndex = 1,
+                    PageSize = 1000 // Load all products for this promotion
+                };
+
+                var response = await PromotionDetailService.GetPromotionDetailWithProductInfoAsync(request);
+                if (response.Items.Any())
+                {
+                    expandedPromotionProducts[promotionId] = response.Items.ToList();
+                    StateHasChanged();
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine("Lỗi khi lấy danh sách sản phẩm trong promotion: " + ex.Message);
+        }
+    }
+
+    private string GetProductImageUrl(string? imageUrl)
+    {
+        if (string.IsNullOrEmpty(imageUrl))
+            return $"{ApiBaseUrl}/Images/fallback.jpeg";
+
+        if (imageUrl.StartsWith("http"))
+            return imageUrl;
+
+        return $"{ApiBaseUrl}/{imageUrl.TrimStart('/')}";
     }
 }

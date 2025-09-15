@@ -9,6 +9,7 @@ using MeoMeo.Shared.Utilities;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.Http;
 using System.Text;
+using MeoMeo.Contract.DTOs.ProductDetail;
 using MeoMeo.Domain.Commons;
 using MeoMeo.Domain.Commons.Enums;
 using Microsoft.Extensions.Logging;
@@ -273,19 +274,6 @@ namespace MeoMeo.Application.Services
                                     ResponseStatus = BaseStatus.Error
                                 };
                             }
-
-                            // // Kiểm tra xem biến thể có đánh giá từ khách hàng không
-                            // var reviews = await _reviewRepository.Query()
-                            //     .Where(r => r.ProductDetailId == variant.Id)
-                            //     .AnyAsync();
-                            // if (reviews)
-                            // {
-                            //     return new BaseResponse
-                            //     {
-                            //         Message = $"Không thể xóa biến thể {variant.Sku} vì đang có đánh giá từ khách hàng",
-                            //         ResponseStatus = BaseStatus.Error
-                            //     };
-                            // }
                         }
 
                         // Nếu tất cả kiểm tra đều pass, tiến hành xóa các biến thể
@@ -880,6 +868,20 @@ namespace MeoMeo.Application.Services
                     };
                 }).ToList();
 
+                // Calculate metadata counts from ALL products in database (fixed numbers, not affected by filters)
+                var totalAllProducts = await _repository.Query().CountAsync();
+
+                // Get status counts in one query for better performance
+                var statusCounts = await _productDetailRepository.Query()
+                    .GroupBy(pd => pd.Status)
+                    .Select(g => new { Status = g.Key, Count = g.Select(x => x.ProductId).Distinct().Count() })
+                    .ToListAsync();
+
+                var sellingCount = statusCounts.FirstOrDefault(x => x.Status == EProductStatus.Selling)?.Count ?? 0;
+                var stopSellingCount = statusCounts.FirstOrDefault(x => x.Status == EProductStatus.StopSelling)?.Count ?? 0;
+                var pendingCount = statusCounts.FirstOrDefault(x => x.Status == EProductStatus.Pending)?.Count ?? 0;
+                var rejectedCount = statusCounts.FirstOrDefault(x => x.Status == EProductStatus.Rejected)?.Count ?? 0;
+
                 return new PagingExtensions.PagedResult<ProductResponseDTO, GetListProductResponseDTO>
                 {
                     TotalRecords = totalRecords,
@@ -888,11 +890,11 @@ namespace MeoMeo.Application.Services
                     Items = items,
                     Metadata = new GetListProductResponseDTO
                     {
-                        TotalAll = totalRecords,
-                        Selling = items.Count(x => x.ProductVariants?.Any(v => v.Status == EProductStatus.Selling) == true),
-                        StopSelling = items.Count(x => x.ProductVariants?.Any(v => v.Status == EProductStatus.StopSelling) == true),
-                        Pending = items.Count(x => x.ProductVariants?.Any(v => v.Status == EProductStatus.Pending) == true),
-                        Rejected = items.Count(x => x.ProductVariants?.Any(v => v.Status == EProductStatus.Rejected) == true)
+                        TotalAll = totalAllProducts,
+                        Selling = sellingCount,
+                        StopSelling = stopSellingCount,
+                        Pending = pendingCount,
+                        Rejected = rejectedCount
                     }
                 };
             }
@@ -1620,7 +1622,6 @@ namespace MeoMeo.Application.Services
                 var activePromotionsDict = await _promotionDetailRepository.Query()
                     .Include(pd => pd.Promotion)
                     .Where(pd => productDetailIds.Contains(pd.ProductDetailId) &&
-                                pd.Promotion.Status == EPromotionStatus.IsGoingOn &&
                                 pd.Promotion.StartDate <= now &&
                                 pd.Promotion.EndDate >= now)
                     .GroupBy(pd => pd.ProductDetailId)
@@ -1748,7 +1749,6 @@ namespace MeoMeo.Application.Services
                 var activePromotion = await _promotionDetailRepository.Query()
                     .Include(pd => pd.Promotion)
                     .Where(pd => pd.ProductDetailId == productDetail.Id &&
-                                pd.Promotion.Status == EPromotionStatus.IsGoingOn &&
                                 pd.Promotion.StartDate <= now &&
                                 pd.Promotion.EndDate >= now)
                     .OrderByDescending(pd => pd.Discount)
@@ -1790,6 +1790,29 @@ namespace MeoMeo.Application.Services
             {
                 _logger.LogError(ex, "Error getting product by SKU {Sku}: {Message}", sku, ex.Message);
                 return null;
+            }
+        }
+
+
+
+
+
+        public async Task<bool> DeleteProductDetailAsync(Guid id)
+        {
+            try
+            {
+                await _unitOfWork.BeginTransactionAsync();
+
+                var result = await _productDetailRepository.DeleteProductDetailAsync(id);
+                await _unitOfWork.CommitAsync();
+
+                return result;
+            }
+            catch (Exception ex)
+            {
+                await _unitOfWork.RollbackAsync();
+                _logger.LogError(ex, "Error deleting product detail {Id}: {Message}", id, ex.Message);
+                return false;
             }
         }
 

@@ -9,6 +9,7 @@ namespace MeoMeo.Shared.IServices
     public interface IPromotionDetailClientService
     {
         Task<PagingExtensions.PagedResult<CreateOrUpdatePromotionDetailDTO>> GetAllPromotionDetailAsync(GetListPromotionDetailRequestDTO request);
+        Task<PagingExtensions.PagedResult<PromotionDetailWithProductInfoDTO>> GetPromotionDetailWithProductInfoAsync(GetPromotionDetailWithProductInfoRequestDTO request);
         Task<CreateOrUpdatePromotionDetailDTO> GetPromotionDetailByIdAsync(Guid id);
         Task<CreateOrUpdatePromotionDetailResponseDTO> CreateAsync(CreateOrUpdatePromotionDetailDTO dto);
         Task<CreateOrUpdatePromotionDetailResponseDTO> UpdateAsync(CreateOrUpdatePromotionDetailDTO dto);

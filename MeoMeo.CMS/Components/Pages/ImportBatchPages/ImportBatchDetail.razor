@@ -1,0 +1,266 @@
+@page "/import-batch-detail/{Id:guid}"
+@using MeoMeo.Contract.DTOs.ImportBatch
+@using MeoMeo.Contract.DTOs
+@using MeoMeo.Contract.DTOs.InventoryBatch
+@using MeoMeo.Domain.Commons.Enums
+@using MeoMeo.Shared.IServices
+@using MeoMeo.Shared.Utilities
+@using ButtonSize = AntDesign.ButtonSize
+@using ButtonType = AntDesign.ButtonType
+@inject NavigationManager Navigation
+@inject IImportBatchClientService ImportBatchClientService
+@inject IInventoryBatchClientService InventoryBatchClientService
+@inject IMessageService MessageService
+
+@if (importBatch != null)
+{
+    <div class="content-background layout-container">
+    <Breadcrumb>
+        <BreadcrumbItem Href="/">Trang chủ</BreadcrumbItem>
+        <BreadcrumbItem Href="/manage-importBatch">Quản lý lô nhập</BreadcrumbItem>
+        <BreadcrumbItem>
+            <a class="current">Chi tiết lô nhập</a>
+        </BreadcrumbItem>
+    </Breadcrumb>
+
+    <div class="group-breadcumb">
+        <Button Class="btn-back" Icon="arrow-left" OnClick="HandleGoBack">Quay lại</Button>
+        <Button Type="ButtonType.Primary" OnClick="EditImportBatch">
+            <i class="fas fa-edit"></i> Chỉnh sửa
+        </Button>
+    </div>
+    <div class="import-batch-detail-container">
+        <!-- Import Batch Information -->
+        <Card Title="Thông tin lô nhập" Class="mb-4">
+            <Descriptions Bordered Column="2">
+                <DescriptionsItem Title="Mã lô nhập">
+                    <Tag>@importBatch.Code</Tag>
+                </DescriptionsItem>
+                <DescriptionsItem Title="Ngày nhập">
+                    @importBatch.ImportDate.ToString("dd/MM/yyyy HH:mm")
+                </DescriptionsItem>
+                <DescriptionsItem Title="Ngày tạo">
+                    @importBatch.ImportDate.ToString("dd/MM/yyyy HH:mm")
+                </DescriptionsItem>
+                <DescriptionsItem Title="Ghi chú" Span="2">
+                    @if (string.IsNullOrWhiteSpace(importBatch.Note))
+                    {
+                        <span class="text-muted">Không có ghi chú</span>
+                    }
+                    else
+                    {
+                        @importBatch.Note
+                    }
+                </DescriptionsItem>
+            </Descriptions>
+        </Card>
+
+        <!-- Inventory Batches -->
+        <Card Title="Chi tiết sản phẩm trong lô" Class="mb-4">
+            @if (inventoryBatches.Any())
+            {
+                <Table DataSource="inventoryBatches" TItem="InventoryBatchDTO" Bordered>
+                    <ChildContent Context="batch">
+                        <Column TData="string" Title="Sản phẩm">
+                            @(productNames.ContainsKey(batch.ProductDetailId) ? productNames[batch.ProductDetailId] : "Không rõ")
+                        </Column>
+                        <Column TData="float" Title="Giá nhập">
+                                <span class="text-success font-weight-bold">
+                                    @batch.OriginalPrice.ToString("N0") VNĐ
+                                </span>
+                        </Column>
+                        <Column TData="int" Title="Số lượng">
+                            <Tag>@batch.Quantity</Tag>
+                        </Column>
+                        <Column TData="EInventoryBatchStatus" Title="Trạng thái">
+                            <Tag Color="@GetInventoryStatusColor(batch.Status)">
+                                @GetInventoryStatusName(batch.Status)
+                            </Tag>
+                        </Column>
+                        <Column TData="float" Title="Tổng giá trị">
+                                <span class="text-primary font-weight-bold">
+                                    @((batch.OriginalPrice * batch.Quantity).ToString("N0")) VNĐ
+                                </span>
+                        </Column>
+                    </ChildContent>
+                </Table>
+
+                <div class="mt-3 p-3 bg-light rounded">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="statistic-item">
+                                <div class="statistic-title">Tổng sản phẩm</div>
+                                <div class="statistic-value">@inventoryBatches.Count <span
+                                        class="statistic-suffix">loại</span></div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="statistic-item">
+                                <div class="statistic-title">Tổng số lượng</div>
+                                <div class="statistic-value">@inventoryBatches.Sum(x => x.Quantity) <span
+                                        class="statistic-suffix">sản phẩm</span></div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row mt-3">
+                        <div class="col-12">
+                            <div class="statistic-item">
+                                <div class="statistic-title">Tổng giá trị lô nhập</div>
+                                <div
+                                    class="statistic-value-large">@inventoryBatches.Sum(x => x.OriginalPrice * x.Quantity).ToString("N0") <span
+                                        class="statistic-suffix">VNĐ</span></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            }
+            else
+            {
+                <div class="text-center p-4 text-muted">
+                    <i class="fas fa-box-open fa-3x mb-3"></i>
+                    <p>Lô nhập này chưa có sản phẩm nào</p>
+                </div>
+            }
+        </Card>
+
+    </div>
+</div>
+}
+
+
+<style>
+    .statistic-item {
+        text-align: center;
+        padding: 16px;
+    }
+
+    .statistic-title {
+        font-size: 14px;
+        color: #666;
+        margin-bottom: 8px;
+    }
+
+    .statistic-value {
+        font-size: 24px;
+        font-weight: bold;
+        color: #1890ff;
+    }
+
+    .statistic-value-large {
+        font-size: 32px;
+        font-weight: bold;
+        color: #1890ff;
+    }
+
+    .statistic-suffix {
+        font-size: 14px;
+        color: #666;
+        font-weight: normal;
+    }
+</style>
+
+@code {
+    [Parameter] public Guid Id { get; set; }
+
+    private bool IsLoading = true;
+    private ImportBatchDTO? importBatch;
+    private List<InventoryBatchDTO> inventoryBatches = new();
+    private Dictionary<Guid, string> productNames = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadData();
+    }
+
+    private async Task LoadData()
+    {
+        IsLoading = true;
+        try
+        {
+            // Load import batch với đầy đủ thông tin sản phẩm
+            var importBatchDetail = await ImportBatchClientService.GetImportBatchDetailAsync(Id);
+            
+            if (importBatchDetail != null)
+            {
+                // Map ImportBatchDetailDTO to ImportBatchDTO
+                importBatch = new ImportBatchDTO
+                {
+                    Id = importBatchDetail.Id,
+                    Code = importBatchDetail.Code,
+                    ImportDate = importBatchDetail.ImportDate,
+                    Note = importBatchDetail.Note
+                };
+
+                // Convert products to InventoryBatchDTO
+                inventoryBatches = importBatchDetail.Products.Select(p => new InventoryBatchDTO
+                {
+                    Id = p.InventoryBatchId,
+                    ImportBatchId = importBatchDetail.Id,
+                    ProductDetailId = p.ProductDetailId,
+                    OriginalPrice = p.OriginalPrice,
+                    Quantity = p.Quantity,
+                    Status = p.Status
+                }).ToList();
+
+                // Load product names with full info
+                LoadProductNamesFromDetail(importBatchDetail.Products);
+            }
+        }
+        catch (Exception ex)
+        {
+            MessageService.Error($"Lỗi khi tải dữ liệu: {ex.Message}");
+        }
+        finally
+        {
+            IsLoading = false;
+        }
+    }
+
+    private void LoadProductNamesFromDetail(List<ImportBatchProductDTO> products)
+    {
+        // Load product names from ImportBatchDetailDTO
+        foreach (var product in products)
+        {
+            if (!productNames.ContainsKey(product.ProductDetailId))
+            {
+                productNames[product.ProductDetailId] = $"{product.ProductName} ({product.ColourName}, Size: {product.SizeValue})";
+            }
+        }
+    }
+
+    private void HandleGoBack()
+    {
+        Navigation.NavigateTo("/manage-importBatch");
+    }
+
+    private void EditImportBatch()
+    {
+        Navigation.NavigateTo($"/ImportBatchCreate/{Id}");
+    }
+
+
+    private string GetInventoryStatusName(EInventoryBatchStatus status)
+    {
+        return status switch
+        {
+            EInventoryBatchStatus.Draft => "Lưu tạm",
+            EInventoryBatchStatus.PendingApproval => "Chờ duyệt",
+            EInventoryBatchStatus.Approved => "Đã phê duyệt",
+            EInventoryBatchStatus.Rejected => "Bị từ chối",
+            _ => status.ToString()
+        };
+    }
+
+    private string GetInventoryStatusColor(EInventoryBatchStatus status)
+    {
+        return status switch
+        {
+            EInventoryBatchStatus.Draft => "default",
+            EInventoryBatchStatus.PendingApproval => "processing",
+            EInventoryBatchStatus.Approved => "success",
+            EInventoryBatchStatus.Rejected => "error",
+            _ => "default"
+        };
+    }
+
+}

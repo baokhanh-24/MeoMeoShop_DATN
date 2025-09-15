@@ -1,5 +1,4 @@
 ﻿using MeoMeo.Contract.Commons;
-using MeoMeo.Domain.Commons.Enums;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -14,6 +13,5 @@ namespace MeoMeo.Contract.DTOs.Promotion
         public DateOnly? StartDateFilter { get; set; }
         public DateOnly? EndDateFilter { get; set; }
         public string? DescriptionFilter { get; set; }
-        public EPromotionStatus? StatusFilter { get; set; }
     }
 }

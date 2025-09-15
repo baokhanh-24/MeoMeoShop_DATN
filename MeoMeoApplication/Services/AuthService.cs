@@ -327,7 +327,6 @@ public class AuthService : IAuthService
             new Claim(ClaimTypeConst.FullName, user.FullName ?? ""),
             new Claim(ClaimTypeConst.CustomerId, user.CustomerId?.ToString() ?? ""),
             new Claim(ClaimTypeConst.EmployeeId, user.EmployeeId?.ToString() ?? ""),
-            new Claim(ClaimTypeConst.FullName, user.FullName ?? ""),
             new Claim(ClaimTypeConst.Permissions, string.Join(";", listPermission))
         };
 

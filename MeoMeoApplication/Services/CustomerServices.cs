@@ -2,7 +2,9 @@
 using MeoMeo.Application.IServices;
 using MeoMeo.Contract.Commons;
 using MeoMeo.Contract.DTOs;
+using MeoMeo.Contract.DTOs.Customer;
 using MeoMeo.Domain.Commons;
+using MeoMeo.Domain.Commons.Enums;
 using MeoMeo.Domain.Entities;
 using MeoMeo.Domain.IRepositories;
 using MeoMeo.Shared.Utilities;
@@ -295,7 +297,7 @@ namespace MeoMeo.Application.Services
                     Address = request.Address ?? string.Empty,
                     UserId = null,
                     Status = Domain.Commons.Enums.ECustomerStatus.Enabled,
-                    Gender = 0, 
+                    Gender = 0,
                     CreationTime = DateTime.Now,
                     LastModificationTime = DateTime.Now
                 };
@@ -331,7 +333,7 @@ namespace MeoMeo.Application.Services
             int sequence = 1;
             if (lastCustomer != null)
             {
-                var sequencePart = lastCustomer.Code.Substring(2); 
+                var sequencePart = lastCustomer.Code.Substring(2);
                 if (int.TryParse(sequencePart, out int lastSequence))
                 {
                     sequence = lastSequence + 1;
@@ -341,5 +343,73 @@ namespace MeoMeo.Application.Services
             return $"KH{sequence:D3}"; // Format: KH001, KH002, KH003,...
         }
 
+        public async Task<CustomerDetailDTO> GetCustomerDetailAsync(Guid customerId)
+        {
+            try
+            {
+                // Lấy thông tin customer
+                var customer = await _repository.Query()
+                    .Include(c => c.User)
+                    .FirstOrDefaultAsync(c => c.Id == customerId);
+
+                if (customer == null)
+                {
+                    throw new Exception("Khách hàng không tồn tại");
+                }
+
+                // Lấy thống kê đơn hàng
+                var orderStats = await _repository.Query()
+                    .Where(c => c.Id == customerId)
+                    .SelectMany(c => c.Orders)
+                    .GroupBy(o => o.Status)
+                    .Select(g => new
+                    {
+                        Status = g.Key,
+                        Count = g.Count(),
+                        TotalAmount = g.Sum(o => o.TotalPrice)
+                    })
+                    .ToListAsync();
+
+                var totalSpent = orderStats.Sum(s => s.TotalAmount);
+                var totalOrders = orderStats.Sum(s => s.Count);
+                var completedOrders = orderStats.FirstOrDefault(s => s.Status == EOrderStatus.Completed)?.Count ?? 0;
+                var pendingOrders = orderStats.FirstOrDefault(s => s.Status == EOrderStatus.Pending)?.Count ?? 0;
+                var canceledOrders = orderStats.FirstOrDefault(s => s.Status == EOrderStatus.Canceled)?.Count ?? 0;
+
+                // Lấy ngày đơn hàng cuối cùng
+                var lastOrderDate = await _repository.Query()
+                    .Where(c => c.Id == customerId)
+                    .SelectMany(c => c.Orders)
+                    .OrderByDescending(o => o.CreationTime)
+                    .Select(o => o.CreationTime)
+                    .FirstOrDefaultAsync();
+
+                return new CustomerDetailDTO
+                {
+                    Id = customer.Id,
+                    UserId = customer.UserId,
+                    Name = customer.Name,
+                    Code = customer.Code,
+                    PhoneNumber = customer.PhoneNumber,
+                    DateOfBirth = customer.DateOfBirth,
+                    CreationTime = customer.CreationTime,
+                    TaxCode = customer.TaxCode,
+                    Address = customer.Address,
+                    Status = customer.Status,
+                    Avatar = customer.User?.Avatar ?? "",
+                    Gender = customer.Gender,
+                    TotalSpent = totalSpent,
+                    TotalOrders = totalOrders,
+                    CompletedOrders = completedOrders,
+                    PendingOrders = pendingOrders,
+                    CanceledOrders = canceledOrders,
+                    LastOrderDate = lastOrderDate
+                };
+            }
+            catch (Exception ex)
+            {
+                throw new Exception($"Lỗi khi lấy thông tin chi tiết khách hàng: {ex.Message}");
+            }
+        }
     }
 }

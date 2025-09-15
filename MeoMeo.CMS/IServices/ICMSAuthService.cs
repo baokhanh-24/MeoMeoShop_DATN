@@ -19,5 +19,6 @@ namespace MeoMeo.CMS.IServices
         Task<List<string>> GetUserRolesAsync();
         Task<List<string>> GetUserPermissionsAsync();
         Task<Dictionary<string, string>> GetTokenClaimsAsync();
+        Task RefreshUserInfoAsync();
     }
 }

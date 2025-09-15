@@ -6,8 +6,8 @@ namespace MeoMeo.Shared.IServices;
 
 public interface IOrderClientService
 {
-    Task<PagingExtensions.PagedResult<OrderDTO, GetListOrderResponseDTO>> GetListOrderAsync(
-        GetListOrderRequestDTO request);
+    Task<PagingExtensions.PagedResult<OrderDTO, GetListOrderResponseDTO>> GetOrdersByCustomerIdAsync(
+        GetListOrderRequestDTO request, Guid customerId);
     Task<PagingExtensions.PagedResult<OrderDTO, GetListOrderResponseDTO>> GetMyOrdersAsync(
         GetListOrderRequestDTO request);
     Task<OrderDTO?> GetOrderByIdAsync(Guid orderId);
@@ -16,4 +16,7 @@ public interface IOrderClientService
     Task<GetListOrderHistoryResponseDTO> GetListOrderHistoryAsync(Guid orderId);
     Task<string> CreateVnpayPaymentUrlAsync(CreatePaymentUrlDTO request);
     Task<CreatePosOrderResultDTO> CreatePosOrderAsync(CreatePosOrderDTO request);
+
+    Task<PagingExtensions.PagedResult<OrderDTO, GetListOrderResponseDTO>> GetListOrderAsync(
+        GetListOrderRequestDTO filter);
 }

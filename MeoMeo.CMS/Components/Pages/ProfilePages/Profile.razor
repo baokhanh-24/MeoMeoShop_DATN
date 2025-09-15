@@ -1,0 +1,750 @@
+@page "/profile"
+@using MeoMeo.CMS.IServices
+@using MeoMeo.Contract.DTOs
+@using MeoMeo.Contract.DTOs.Auth
+@using MeoMeo.Contract.Commons
+@using MeoMeo.Shared.IServices
+@using MeoMeo.Shared.Utilities
+@using MeoMeo.Domain.Commons.Enums
+@using Microsoft.AspNetCore.Components.Forms
+@using MeoMeo.CMS.Utilities
+@using ButtonType = AntDesign.ButtonType
+@inject ICMSAuthService AuthService
+@inject ICMSUserInfoService UserInfoService
+@inject IUserRoleClientService UserRoleService
+@inject IUserProfileClientService UserProfileService
+@inject IEmployeesClientService EmployeeService
+@inject ICustomerClientService CustomerService
+@inject MessageModalService MessageModalService
+@inject NavigationManager Navigation
+@inject IConfiguration Configuration
+@inject CMSAuthStateProvider AuthStateProvider
+@rendermode InteractiveServer
+
+<div class="content-background layout-container">
+    <div class="d-flex justify-content-between mb-3">
+        <Breadcrumb>
+            <BreadcrumbItem Href="/">Trang chủ</BreadcrumbItem>
+            <BreadcrumbItem>
+                <a class="current">Hồ sơ cá nhân</a>
+            </BreadcrumbItem>
+        </Breadcrumb>
+        <div>
+            @if (isEditing)
+            {
+                <Button Type="ButtonType.Primary" OnClick="SaveProfile" Loading="@isSaving" Icon="@IconType.Outline.Save">
+                    Lưu thay đổi
+                </Button>
+                <Button Icon="@IconType.Outline.Close" OnClick="CancelEdit" Class="me-2">Hủy</Button>
+            }
+            else
+            {
+                <Button Icon="@IconType.Outline.Edit" OnClick="StartEdit" Class="me-2">Chỉnh sửa</Button>
+            }
+            <Button Icon="@IconType.Outline.Key" OnClick="ChangePassword">Đổi mật khẩu</Button>
+        </div>
+    </div>
+    @if (currentUser != null)
+    {
+        <GridRow Gutter="24">
+            <!-- Avatar Section -->
+            <GridCol Span="6">
+                <Card Title="Ảnh đại diện" Class="avatar-card">
+                    <div class="text-center">
+                        <div class="avatar-container">
+                            @if (!string.IsNullOrEmpty(GetUserAvatar()))
+                            {
+                                <Avatar Size="AvatarSize.Large" Src="@GetUserAvatar()" Class="profile-avatar" />
+                            }
+                            else
+                            {
+                                <Avatar Size="AvatarSize.Large" Icon="user" Class="profile-avatar" />
+                            }
+                        </div>
+                        <div class="mt-3">
+                            <div class="avatar-upload-container" style="position: relative;">
+                                <Button Type="ButtonType.Primary" Icon="@IconType.Outline.Camera" Block>
+                                    Thay đổi ảnh
+                                </Button>
+                                <InputFile @ref="avatarInput" OnChange="OnAvatarSelected" accept="image/*"
+                                    style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; opacity: 0; cursor: pointer;" />
+                            </div>
+                        </div>
+                        <p class="avatar-note">JPG, PNG hoặc GIF. Tối đa 5MB.</p>
+                    </div>
+                </Card>
+
+                <!-- Quick Actions -->
+                <Card Title="Thao tác nhanh" Class="mt-3">
+                    <div class="quick-actions">
+                        <Button Type="ButtonType.Primary" Icon="@IconType.Outline.Lock" OnClick="ShowChangePasswordModal"
+                            Block Class="mb-2">
+                            Đổi mật khẩu
+                        </Button>
+                        <Button Type="ButtonType.Default" Icon="@IconType.Outline.Logout" OnClick="Logout" Block>
+                            Đăng xuất
+                        </Button>
+                    </div>
+                </Card>
+            </GridCol>
+
+            <!-- Form Section -->
+            <GridCol Span="18">
+                <Card Title="Thông tin cá nhân" Class="form-card">
+                    @if (isEditing)
+                    {
+                        <Form Model="@profileModel" Layout="@FormLayout.Vertical" ValidateOnChange="true">
+                            <GridRow Gutter="16">
+                                <GridCol Span="12">
+                                    <FormItem Label="Tên đăng nhập">
+                                        <Input @bind-Value="profileModel.UserName" Placeholder="Tên đăng nhập" Disabled />
+                                    </FormItem>
+                                </GridCol>
+                                <GridCol Span="12">
+                                    <FormItem Label="Email" Required>
+                                        <Input @bind-Value="profileModel.Email" Placeholder="Nhập email" />
+                                    </FormItem>
+                                </GridCol>
+                            </GridRow>
+
+                            @if (currentUser?.EmployeeId.HasValue == true)
+                            {
+                                <Divider>Thông tin nhân viên</Divider>
+
+                                <GridRow Gutter="16">
+                                    <GridCol Span="12">
+                                        <FormItem Label="Mã nhân viên">
+                                            <Input @bind-Value="employeeModel.Code" Placeholder="Mã nhân viên" Disabled />
+                                        </FormItem>
+                                    </GridCol>
+                                    <GridCol Span="12">
+                                        <FormItem Label="Tên nhân viên" Required>
+                                            <Input @bind-Value="employeeModel.Name" Placeholder="Nhập tên nhân viên" />
+                                        </FormItem>
+                                    </GridCol>
+                                </GridRow>
+
+                                <GridRow Gutter="16">
+                                    <GridCol Span="12">
+                                        <FormItem Label="Số điện thoại" Required>
+                                            <Input @bind-Value="employeeModel.PhoneNumber" Placeholder="Nhập số điện thoại" />
+                                        </FormItem>
+                                    </GridCol>
+                                    <GridCol Span="12">
+                                        <FormItem Label="Ngày sinh">
+                                            <DatePicker Style="width: 100%" @bind-Value="employeeModel.DateOfBird"
+                                                DisabledDate="DisableFutureDate" />
+                                        </FormItem>
+                                    </GridCol>
+                                </GridRow>
+
+                                <FormItem Label="Địa chỉ" Required>
+                                    <Input @bind-Value="employeeModel.Address" Placeholder="Nhập địa chỉ" />
+                                </FormItem>
+                            }
+                        </Form>
+                    }
+                    else
+                    {
+                        <Descriptions Column="2" Bordered>
+                            <DescriptionsItem Title="Tên đăng nhập">
+                                @currentUser.UserName
+                            </DescriptionsItem>
+                            <DescriptionsItem Title="Email">
+                                @(currentUser.Email ?? "Chưa cập nhật")
+                            </DescriptionsItem>
+                            <DescriptionsItem Title="Họ và tên">
+                                @(currentUser.FullName ?? "Chưa cập nhật")
+                            </DescriptionsItem>
+                            <DescriptionsItem Title="Vai trò">
+                                @if (userRoles.Any())
+                                {
+                                    @foreach (var role in userRoles)
+                                    {
+                                        <Tag Class="me-1">@role</Tag>
+                                    }
+                                }
+                                else
+                                {
+                                    <Tag Color="default">Chưa có vai trò</Tag>
+                                }
+                            </DescriptionsItem>
+                            <DescriptionsItem Title="Trạng thái tài khoản">
+                                @if (currentUser?.IsLocked == true)
+                                {
+                                    <Tag Color="@("error")">Bị khóa</Tag>
+                                }
+                                else
+                                {
+                                    <Tag Color="@("success")">Hoạt động</Tag>
+                                }
+                            </DescriptionsItem>
+                            <DescriptionsItem Title="Lần đăng nhập cuối">
+                                @(currentUser?.LastLogin.ToString("dd/MM/yyyy HH:mm") ?? "N/A")
+                            </DescriptionsItem>
+                            @if (currentUser.Employee != null)
+                            {
+                                <DescriptionsItem Title="Mã nhân viên">
+                                    @currentUser.Employee.Code
+                                </DescriptionsItem>
+                                <DescriptionsItem Title="Tên nhân viên">
+                                    @currentUser.Employee.Name
+                                </DescriptionsItem>
+                                <DescriptionsItem Title="Số điện thoại">
+                                    @currentUser.Employee.PhoneNumber
+                                </DescriptionsItem>
+                                <DescriptionsItem Title="Ngày sinh">
+                                    @currentUser.Employee.DateOfBird.ToString("dd/MM/yyyy")
+                                </DescriptionsItem>
+                                <DescriptionsItem Title="Địa chỉ" Span="2">
+                                    @currentUser.Employee.Address
+                                </DescriptionsItem>
+                                <DescriptionsItem Title="Trạng thái nhân viên">
+                                    <Tag Color="@GetEmployeeStatusColor(currentUser.Employee.StatusEnum)">
+                                        @GetEmployeeStatusName(currentUser.Employee.StatusEnum)
+                                    </Tag>
+                                </DescriptionsItem>
+                            }
+                            <DescriptionsItem Title="Ngày tạo">
+                                @DateTime.Now.ToString("dd/MM/yyyy HH:mm")
+                            </DescriptionsItem>
+                            @if (currentUser.LockedEndDate.HasValue)
+                            {
+                                <DescriptionsItem Title="Khóa đến">
+                                    @currentUser.LockedEndDate.Value.ToString("dd/MM/yyyy HH:mm")
+                                </DescriptionsItem>
+                            }
+                        </Descriptions>
+                    }
+                </Card>
+            </GridCol>
+        </GridRow>
+    }
+
+    <!-- Change Password Modal -->
+    <Modal Title="Đổi mật khẩu" Visible="@isChangePasswordVisible" OnOk="@HandleChangePassword"
+        OnCancel="@HideChangePasswordModal" ConfirmLoading="@isChangingPassword">
+        <Form Model="@passwordModel" Layout="@FormLayout.Vertical">
+            <FormItem Label="Mật khẩu hiện tại" Required>
+                <InputPassword @bind-Value="passwordModel.CurrentPassword" Placeholder="Nhập mật khẩu hiện tại" />
+            </FormItem>
+            <FormItem Label="Mật khẩu mới" Required>
+                <InputPassword @bind-Value="passwordModel.NewPassword" Placeholder="Nhập mật khẩu mới" />
+            </FormItem>
+            <FormItem Label="Xác nhận mật khẩu mới" Required>
+                <InputPassword @bind-Value="passwordModel.ConfirmPassword" Placeholder="Xác nhận mật khẩu mới" />
+            </FormItem>
+        </Form>
+    </Modal>
+</div>
+
+@code {
+    private UserDTO? currentUser;
+    private List<string> userRoles = new();
+    private bool isLoading = true;
+    private bool isEditing = false;
+    private bool isSaving = false;
+    private bool isChangePasswordVisible = false;
+    private bool isChangingPassword = false;
+    private bool isUploadingAvatar = false;
+    private CreateOrUpdateUserDTO profileModel = new();
+    private CreateOrUpdateEmployeeDTO employeeModel = new();
+    private ChangePasswordDTO passwordModel = new();
+    private InputFile? avatarInput;
+    private string currentAvatarUrl = string.Empty;
+    private string backendUrl = string.Empty;
+
+    protected override async Task OnInitializedAsync()
+    {
+        // Subscribe to user info changes
+        UserInfoService.OnUserInfoChanged += OnUserInfoChanged;
+
+        // Debug: Kiểm tra token và user info
+        var token = await AuthService.GetAccessTokenAsync();
+        Console.WriteLine($"Token exists: {!string.IsNullOrEmpty(token)}");
+
+        var userFromToken = await AuthService.GetCurrentUserAsync();
+        Console.WriteLine($"User from token: {userFromToken?.UserName ?? "null"}");
+
+        // Load user info khi component khởi tạo
+        await UserInfoService.LoadUserInfoAsync();
+
+        // Debug logging
+        Console.WriteLine($"UserInfoService.CurrentUser is null: {UserInfoService.CurrentUser == null}");
+        if (UserInfoService.CurrentUser != null)
+        {
+            Console.WriteLine($"Current user loaded: {UserInfoService.CurrentUser.UserName}");
+        }
+
+        // Get backend URL from configuration
+        backendUrl = Configuration["ApiSettings:BaseUrl"] ?? "";
+        await LoadUserProfile();
+    }
+
+    private void OnUserInfoChanged()
+    {
+        InvokeAsync(StateHasChanged);
+    }
+
+    private async Task LoadUserProfile()
+    {
+        try
+        {
+            isLoading = true;
+
+            // Lấy thông tin user từ UserInfoService (đã fetch từ backend)
+            currentUser = UserInfoService.CurrentUser;
+
+            if (currentUser != null)
+            {
+                // Initialize profile model
+                profileModel = new CreateOrUpdateUserDTO
+                {
+                    Id = currentUser.Id,
+                    UserName = currentUser.UserName,
+                    Email = currentUser.Email ?? "",
+                    Avatar = currentUser.Avatar ?? ""
+                };
+
+                // Load Employee data if exists
+                if (currentUser.EmployeeId.HasValue)
+                {
+                    var employeeResponse = await EmployeeService.GetEmployeesByIdAsync(currentUser.EmployeeId.Value);
+                    if (employeeResponse.ResponseStatus == BaseStatus.Success)
+                    {
+                        employeeModel = new CreateOrUpdateEmployeeDTO
+                        {
+                            Id = employeeResponse.Id,
+                            UserId = employeeResponse.UserId,
+                            Name = employeeResponse.Name,
+                            Code = employeeResponse.Code,
+                            PhoneNumber = employeeResponse.PhoneNumber,
+                            DateOfBird = employeeResponse.DateOfBird,
+                            Address = employeeResponse.Address,
+                            Status = (int)employeeResponse.Status
+                        };
+                    }
+                }
+
+                // Lấy danh sách roles của user
+                userRoles = await AuthService.GetUserRolesAsync();
+
+                // Set current avatar URL for display
+                if (!string.IsNullOrEmpty(currentUser.Avatar))
+                {
+                    currentAvatarUrl = $"{backendUrl}/{currentUser.Avatar}";
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            await MessageModalService.Error($"Có lỗi xảy ra khi tải thông tin hồ sơ: {ex.Message}");
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    private void StartEdit()
+    {
+        isEditing = true;
+    }
+
+    private async void CancelEdit()
+    {
+        isEditing = false;
+        // Reload data to reset form
+        await LoadUserProfile();
+    }
+
+    private async Task SaveProfile()
+    {
+        try
+        {
+            isSaving = true;
+
+            // Validation
+            if (string.IsNullOrWhiteSpace(profileModel.Email))
+            {
+                await MessageModalService.Error("Vui lòng nhập email!");
+                return;
+            }
+
+            if (!IsValidEmail(profileModel.Email))
+            {
+                await MessageModalService.Error("Email không hợp lệ!");
+                return;
+            }
+
+            // Validate Employee data if exists
+            if (currentUser?.EmployeeId.HasValue == true)
+            {
+                if (string.IsNullOrWhiteSpace(employeeModel.Name))
+                {
+                    await MessageModalService.Error("Vui lòng nhập tên nhân viên!");
+                    return;
+                }
+
+                if (employeeModel.Name.Trim().Length < 2)
+                {
+                    await MessageModalService.Error("Tên nhân viên phải có ít nhất 2 ký tự!");
+                    return;
+                }
+
+                if (string.IsNullOrWhiteSpace(employeeModel.PhoneNumber))
+                {
+                    await MessageModalService.Error("Vui lòng nhập số điện thoại!");
+                    return;
+                }
+
+                if (!IsValidPhoneNumber(employeeModel.PhoneNumber))
+                {
+                    await MessageModalService.Error("Số điện thoại không hợp lệ!");
+                    return;
+                }
+
+                if (string.IsNullOrWhiteSpace(employeeModel.Address))
+                {
+                    await MessageModalService.Error("Vui lòng nhập địa chỉ!");
+                    return;
+                }
+
+                if (employeeModel.Address.Trim().Length < 10)
+                {
+                    await MessageModalService.Error("Địa chỉ phải có ít nhất 10 ký tự!");
+                    return;
+                }
+            }
+            employeeModel.Email = profileModel.Email;
+            // Gộp chung việc update User và Employee trong một API call
+            var combinedResult = await EmployeeService.UpdateProfileAsync(employeeModel);
+            if (combinedResult.ResponseStatus != BaseStatus.Success)
+            {
+                await MessageModalService.Error(combinedResult.Message);
+                return;
+            }
+
+            // Refresh user info để cập nhật UI
+            await UserInfoService.RefreshUserInfoAsync();
+
+            await MessageModalService.Success("Cập nhật thông tin thành công!");
+            isEditing = false;
+            await LoadUserProfile(); // Reload to get updated data
+        }
+        catch (Exception ex)
+        {
+            await MessageModalService.Error($"Có lỗi xảy ra khi cập nhật hồ sơ: {ex.Message}");
+        }
+        finally
+        {
+            isSaving = false;
+        }
+    }
+
+    private void ChangePassword()
+    {
+        ShowChangePasswordModal();
+    }
+
+    private void ShowChangePasswordModal()
+    {
+        passwordModel = new ChangePasswordDTO();
+        isChangePasswordVisible = true;
+    }
+
+    private void HideChangePasswordModal()
+    {
+        isChangePasswordVisible = false;
+        passwordModel = new ChangePasswordDTO();
+    }
+
+    private async Task HandleChangePassword()
+    {
+        try
+        {
+            isChangingPassword = true;
+
+            // Validation
+            if (string.IsNullOrWhiteSpace(passwordModel.CurrentPassword))
+            {
+                await MessageModalService.Error("Vui lòng nhập mật khẩu hiện tại!");
+                return;
+            }
+
+            if (string.IsNullOrWhiteSpace(passwordModel.NewPassword))
+            {
+                await MessageModalService.Error("Vui lòng nhập mật khẩu mới!");
+                return;
+            }
+
+            if (passwordModel.NewPassword.Length < 6)
+            {
+                await MessageModalService.Error("Mật khẩu mới phải có ít nhất 6 ký tự!");
+                return;
+            }
+
+            if (passwordModel.NewPassword != passwordModel.ConfirmPassword)
+            {
+                await MessageModalService.Error("Mật khẩu xác nhận không khớp!");
+                return;
+            }
+
+            if (passwordModel.CurrentPassword == passwordModel.NewPassword)
+            {
+                await MessageModalService.Error("Mật khẩu mới phải khác mật khẩu hiện tại!");
+                return;
+            }
+
+            // Trong CMS, tất cả user đều là Employee
+            var result = await EmployeeService.ChangePasswordAsync(passwordModel);
+
+            if (result.ResponseStatus == BaseStatus.Success)
+            {
+                await MessageModalService.Success("Đổi mật khẩu thành công! Vui lòng đăng nhập lại.");
+                HideChangePasswordModal();
+                // Logout và redirect về login
+                await AuthService.LogoutAsync(new RefreshTokenRequest());
+                Navigation.NavigateTo("/login");
+            }
+            else
+            {
+                await MessageModalService.Error(result.Message);
+            }
+        }
+        catch (Exception ex)
+        {
+            await MessageModalService.Error($"Có lỗi xảy ra khi đổi mật khẩu: {ex.Message}");
+        }
+        finally
+        {
+            isChangingPassword = false;
+        }
+    }
+
+    private async Task Logout()
+    {
+        try
+        {
+            var refreshToken = await AuthService.GetRefreshTokenAsync();
+            if (!string.IsNullOrEmpty(refreshToken))
+            {
+                var logoutRequest = new RefreshTokenRequest { RefreshToken = refreshToken };
+                await AuthService.LogoutAsync(logoutRequest);
+            }
+
+            Navigation.NavigateTo("/cms/login", forceLoad: true);
+        }
+        catch (Exception ex)
+        {
+            await MessageModalService.Error($"Có lỗi xảy ra khi đăng xuất: {ex.Message}");
+        }
+    }
+
+    private void GoToLogin()
+    {
+        Navigation.NavigateTo("/cms/login");
+    }
+
+    private string GetUserAvatar()
+    {
+        if (currentUser != null && !string.IsNullOrEmpty(currentUser.Avatar))
+        {
+            // Kết hợp với backend URL nếu có avatar path
+            return backendUrl + "/" + currentUser.Avatar;
+        }
+        return string.Empty;
+    }
+
+    // Avatar functions
+    private async Task OnAvatarSelected(InputFileChangeEventArgs e)
+    {
+        var file = e.File;
+        if (file == null) return;
+
+        if (!file.ContentType.StartsWith("image/"))
+        {
+            await MessageModalService.Error("Vui lòng chọn file ảnh!");
+            return;
+        }
+
+        if (file.Size > 5 * 1024 * 1024) // 5MB
+        {
+            await MessageModalService.Error("File ảnh không được vượt quá 5MB!");
+            return;
+        }
+
+        try
+        {
+            isUploadingAvatar = true;
+            var base64 = await ConvertToBase64(file);
+            var fileUpload = await ConvertBase64ToFormFile(base64, file.Name, file.ContentType);
+
+            // Trong CMS, tất cả user đều là Employee
+            var response = await EmployeeService.UploadAvatarAsync(fileUpload);
+            if (response.ResponseStatus == BaseStatus.Success)
+            {
+                await MessageModalService.Success("Cập nhật ảnh đại diện thành công!");
+                // Refresh user info từ backend để cập nhật header và sidebar
+                await UserInfoService.RefreshUserInfoAsync();
+                await LoadUserProfile();
+            }
+            else
+            {
+                await MessageModalService.Error(response.Message);
+            }
+        }
+        catch (Exception ex)
+        {
+            await MessageModalService.Error($"Có lỗi xảy ra khi tải ảnh: {ex.Message}");
+        }
+        finally
+        {
+            isUploadingAvatar = false;
+            StateHasChanged();
+        }
+    }
+
+    private async Task<string> ConvertToBase64(IBrowserFile file)
+    {
+        var maxSize = 5 * 1024 * 1024; // 5MB
+        using var stream = file.OpenReadStream(maxAllowedSize: maxSize);
+        using var memoryStream = new MemoryStream();
+        await stream.CopyToAsync(memoryStream);
+        var bytes = memoryStream.ToArray();
+        return Convert.ToBase64String(bytes);
+    }
+
+    private Task<IFormFile> ConvertBase64ToFormFile(string base64Data, string fileName, string contentType)
+    {
+        var bytes = Convert.FromBase64String(base64Data);
+        var stream = new MemoryStream(bytes);
+
+        return Task.FromResult<IFormFile>(new FormFile(stream, 0, bytes.Length, fileName, fileName)
+        {
+            Headers = new HeaderDictionary(),
+            ContentType = contentType
+        });
+    }
+
+    // Validation methods
+    private bool IsValidEmail(string email)
+    {
+        try
+        {
+            var addr = new System.Net.Mail.MailAddress(email);
+            return addr.Address == email;
+        }
+        catch
+        {
+            return false;
+        }
+    }
+
+    private bool IsValidPhoneNumber(string phoneNumber)
+    {
+        // Remove all non-digit characters
+        var digits = System.Text.RegularExpressions.Regex.Replace(phoneNumber, @"\D", "");
+
+        // Check if it's 10 or 11 digits and starts with 0
+        return digits.Length == 10 || digits.Length == 11;
+    }
+
+    private bool DisableFutureDate(DateTime date)
+    {
+        return date.Date > DateTime.Today;
+    }
+
+    private string GetEmployeeStatusName(EEmployeesStatus status)
+    {
+        return status switch
+        {
+            EEmployeesStatus.Enabled => "Hoạt động",
+            EEmployeesStatus.Disabled => "Không hoạt động",
+            EEmployeesStatus.Locked => "Bị khóa",
+            _ => status.ToString()
+        };
+    }
+
+    private string GetEmployeeStatusColor(EEmployeesStatus status)
+    {
+        return status switch
+        {
+            EEmployeesStatus.Enabled => "success",
+            EEmployeesStatus.Disabled => "error",
+            EEmployeesStatus.Locked => "warning",
+            _ => "default"
+        };
+    }
+}
+
+<style>
+    .avatar-card {
+        text-align: center;
+    }
+
+    .avatar-container {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        margin-bottom: 16px;
+    }
+
+    .profile-avatar {
+        border: 3px solid #f0f0f0;
+    }
+
+    .avatar-note {
+        font-size: 12px;
+        color: #999;
+        margin-top: 8px;
+        text-align: center;
+    }
+
+    .avatar-upload-container {
+        position: relative;
+    }
+
+    .account-info {
+        .info-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 8px 0;
+            border-bottom: 1px solid #f0f0f0;
+
+            &:last-child {
+                border-bottom: none;
+            }
+
+            .label {
+                font-weight: 500;
+                color: #666;
+            }
+
+            .value {
+                color: #333;
+            }
+        }
+    }
+
+    .form-card {
+        .ant-form-item-label {
+            font-weight: 500;
+        }
+    }
+
+    .security-card {
+        .security-actions {
+            text-align: center;
+        }
+    }
+
+    .mt-3 {
+        margin-top: 16px;
+    }
+
+    .gap-2 {
+        gap: 8px;
+    }
+</style>

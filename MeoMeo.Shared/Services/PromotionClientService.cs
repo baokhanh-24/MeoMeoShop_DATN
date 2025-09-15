@@ -31,6 +31,29 @@ namespace MeoMeo.Shared.Services
             var response = await _httpClient.GetAsync<CreateOrUpdatePromotionDTO>(url);
             return response;
         }
+
+        public async Task<GetPromotionDetailResponseDTO> GetPromotionDetailAsync(Guid id)
+        {
+            try
+            {
+                var url = $"/api/Promotions/get-promotion-detail-async/{id}";
+                var response = await _httpClient.GetAsync<GetPromotionDetailResponseDTO>(url);
+                return response ?? new GetPromotionDetailResponseDTO
+                {
+                    ResponseStatus = BaseStatus.Error,
+                    Message = "Không có dữ liệu trả về"
+                };
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Lỗi khi lấy chi tiết promotion {Id}: {Message}", id, ex.Message);
+                return new GetPromotionDetailResponseDTO
+                {
+                    ResponseStatus = BaseStatus.Error,
+                    Message = ex.Message
+                };
+            }
+        }
         public async Task<CreateOrUpdatePromotionResponseDTO> CreatePromotionAsync(CreateOrUpdatePromotionDTO dto)
         {
             try
@@ -87,12 +110,12 @@ namespace MeoMeo.Shared.Services
                 }
                 return result;
             }
-            catch(Exception ex)
+            catch (Exception ex)
             {
                 _logger.LogError(ex, "Có lỗi xảy ra khi xóa InventoryBatch {Id} : {Message}", id, ex.Message);
                 return false;
             }
         }
     }
-    
+
 }

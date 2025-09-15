@@ -7,6 +7,7 @@
 @using MeoMeo.Domain.Commons.Enums
 @using ButtonSize = AntDesign.ButtonSize
 @using ButtonType = AntDesign.ButtonType
+@using AntDesign
 @inject MeoMeo.Shared.Utilities.MessageModalService MessageModalService
 @rendermode InteractiveServer
 
@@ -21,174 +22,145 @@
 </div>
 
 <div class="d-flex justify-content-end gap-3 mb-2">
-    
+
     <div style="width: 200px">
-        <Input AllowClear="true"  OnClear="OnFilterChanged"  @bind-Value="filter.FullNameFilter" Placeholder="Nhập theo tên" />
-    </div>
-    
-    <div style="width: 150px">
-        <Input AllowClear="true"   OnClear="OnFilterChanged"  @bind-Value="filter.PhoneNumberFilter" Placeholder="Nhập SĐT" />
+        <Input AllowClear="true" OnClear="OnFilterChanged" @bind-Value="filter.FullNameFilter"
+            Placeholder="Nhập theo tên" />
     </div>
 
     <div style="width: 150px">
-        <Input AllowClear="true"   OnClear="OnFilterChanged"  @bind-Value="filter.TaxCodeFilter" Placeholder="Nhập mã số thuế" />
+        <Input AllowClear="true" OnClear="OnFilterChanged" @bind-Value="filter.PhoneNumberFilter"
+            Placeholder="Nhập SĐT" />
     </div>
 
     <div style="width: 150px">
-        <Input AllowClear="true"   OnClear="OnFilterChanged"  @bind-Value="filter.AddressFilter" Placeholder="Nhập địa chỉ" />
-    </div> 
-    <div >
-        <DatePicker Class="w-full" TValue="DateOnly?" @bind-Value="filter.DateOfBirthFilter"   />
-    </div>  
+        <Input AllowClear="true" OnClear="OnFilterChanged" @bind-Value="filter.TaxCodeFilter"
+            Placeholder="Nhập mã số thuế" />
+    </div>
+
     <div style="width: 150px">
-        <Select TItem="(ECustomerStatus Value, string Name)"
-                TItemValue="ECustomerStatus?"
-                AllowClear
-                DataSource="customerStatusList"
-                @bind-Value="filter.StatusFilter"
-                Placeholder="Chọn trạng thái"
-                ItemValue="c => (ECustomerStatus?)c.Value"
-                ItemLabel="c => c.Name">
+        <Input AllowClear="true" OnClear="OnFilterChanged" @bind-Value="filter.AddressFilter"
+            Placeholder="Nhập địa chỉ" />
+    </div>
+    <div>
+        <DatePicker Class="w-full" TValue="DateOnly ?" @bind-Value="filter.DateOfBirthFilter" />
+    </div>
+    <div style="width: 150px">
+        <Select TItem="(ECustomerStatus Value, string Name)" TItemValue="ECustomerStatus ?" AllowClear
+            DataSource="customerStatusList" @bind-Value="filter.StatusFilter" Placeholder="Chọn trạng thái"
+            ItemValue="c => (ECustomerStatus?)c.Value" ItemLabel="c => c.Name">
         </Select>
     </div>
     <Tooltip Title="Tìm kiếm">
-        <Button @onclick="() => OnFilterChanged()" Type="ButtonType.Primary" Shape="ButtonShape.Circle" Icon="@IconType.Outline.Search"/>
+        <Button @onclick="() => OnFilterChanged()" Type="ButtonType.Primary" Shape="ButtonShape.Circle"
+            Icon="@IconType.Outline.Search" />
     </Tooltip>
 </div>
-<Table DataSource="listOfData" TItem="CustomerDTO" RowClassName="@(_ => "editable-row")" Bordered TableLayout="fixed">
+<Table DataSource="listOfData" TItem="CustomerDTO" Bordered TableLayout="fixed">
     <ChildContent Context="data">
         <Column TData="string" Title="Họ và tên">
-            @if (editCache.ContainsKey(data.Id) && !editCache[data.Id].edit)
-            {
-                @data.Name
-            }
-            else if (editCache.ContainsKey(data.Id))
-            {
-                <Input MaxLength="100" @bind-Value="editCache[data.Id].data.Name" />
-            }
+            @data.Name
         </Column>
 
         <Column TData="string" Title="Mã KH">
-            @if (editCache.ContainsKey(data.Id) && !editCache[data.Id].edit)
-            {
-                @data.Code
-            }
-            else if (editCache.ContainsKey(data.Id))
-            {
-                <Input  MaxLength="10"  @bind-Value="editCache[data.Id].data.Code" />
-            }
+            @data.Code
         </Column>
 
         <Column TData="string" Title="Số điện thoại">
-            @if (editCache.ContainsKey(data.Id) && !editCache[data.Id].edit)
-            {
-                @data.PhoneNumber
-            }
-            else if (editCache.ContainsKey(data.Id))
-            {
-                <Input  MaxLength="12" @bind-Value="editCache[data.Id].data.PhoneNumber" />
-            }
+            @data.PhoneNumber
         </Column>
 
-        <Column TData="DateTime?" Title="Ngày sinh">
-            @if (editCache.ContainsKey(data.Id) && !editCache[data.Id].edit)
-            {
-                @data.DateOfBirth?.ToString("dd-MM-yyyy")
-            }
-            else if (editCache.ContainsKey(data.Id))
-            {
-                <DatePicker @bind-Value="editCache[data.Id].data.DateOfBirth" />
-            }
+        <Column TData="DateTime ?" Title="Ngày sinh">
+            @data.DateOfBirth?.ToString("dd-MM-yyyy")
         </Column>
 
         <Column TData="string" Title="Mã số thuế">
-            @if (editCache.ContainsKey(data.Id) && !editCache[data.Id].edit)
-            {
-                @data.TaxCode
-            }
-            else if (editCache.ContainsKey(data.Id))
-            {
-                <Input  MaxLength="14" @bind-Value="editCache[data.Id].data.TaxCode" />
-            }
+            @data.TaxCode
         </Column>
 
         <Column TData="string" Title="Địa chỉ">
-            @if (editCache.ContainsKey(data.Id) && !editCache[data.Id].edit)
-            {
-                @data.Address
-            }
-            else if (editCache.ContainsKey(data.Id))
-            {
-                <Input  MaxLength="500" @bind-Value="editCache[data.Id].data.Address" />
-            }
+            @data.Address
         </Column>
 
         <Column TData="ECustomerStatus" Title="Trạng thái">
-            @if (editCache.ContainsKey(data.Id) && !editCache[data.Id].edit){
-                @customerStatusList.FirstOrDefault(x => x.Value == data.Status).Name
-            }
-            else if (editCache.ContainsKey(data.Id))
-            {
-
-                <Select TItem="(ECustomerStatus Value, string Name)"
-                        TItemValue="ECustomerStatus"
-                        DataSource="customerStatusList"
-                        @bind-Value="editCache[data.Id].data.Status"
-                        ItemValue="c => c.Value"
-                        ItemLabel="c => c.Name">
-                </Select>
-            }
+            @customerStatusList.FirstOrDefault(x => x.Value == data.Status).Name
         </Column>
 
         <ActionColumn Title="Thao tác" Class="text-end gap-2">
-            @if (editCache.ContainsKey(data.Id) && !editCache[data.Id].edit)
-            {
-                <Tooltip Title="Sửa">
-                    <Button Size="ButtonSize.Small" @onclick="() => startEdit(data.Id)" Shape="ButtonShape.Circle">
-                        <i class="fas fa-pen"></i>
-                    </Button>
-                </Tooltip>               
-                
-                <Popconfirm Title=@($"Bạn có chắc muốn xóa khách hàng {data.Name}?")
-                            OnConfirm="() => deleteCustomer(data.Id)"
-                            OkText="Đồng ý"
-                            CancelText="Hủy">
-
-                    <Tooltip Title="Xóa">
-                        <Button Size="ButtonSize.Small" Danger Shape="ButtonShape.Circle">
-                            <i class="fas fa-minus"></i>
-                        </Button>
-                    </Tooltip>
-                </Popconfirm>
-            }
-            else if (editCache.ContainsKey(data.Id))
-            {
-                <Tooltip Title="Lưu">
-                <Button Size="ButtonSize.Small" @onclick="() => saveEdit(data.Id)"  Shape="ButtonShape.Circle">
-                    <i class="fas fa-check"></i>
+            <Tooltip Title="Xem chi tiết">
+                <Button Size="ButtonSize.Small" @onclick="() => ViewCustomerDetail(data.Id)" Shape="ButtonShape.Circle">
+                    <i class="fas fa-eye"></i>
                 </Button>
-                </Tooltip>
-                <Popconfirm Title=@($"Bạn có chắc muốn hủy {(data.UserId==Guid.Empty ?"thêm mới":"chỉnh sửa")} khách hàng {data.Name}?")
-                            OnConfirm="() => cancelEdit(data.Id)"
-                            OkText="Đồng ý"
-                            CancelText="Hủy">
-                 
-                    <Button Size="ButtonSize.Small"  Shape="ButtonShape.Circle">
-                        <i class="fa-solid fa-xmark"></i>
-                    </Button>
-                </Popconfirm>
-            }
+            </Tooltip>
 
+            <Tooltip Title="Sửa">
+                <Button Size="ButtonSize.Small" @onclick="() => EditCustomer(data)" Shape="ButtonShape.Circle">
+                    <i class="fas fa-pen"></i>
+                </Button>
+            </Tooltip>
+
+            <Popconfirm Title=@($"Bạn có chắc muốn xóa khách hàng {data.Name}?")
+                OnConfirm="() => DeleteCustomer(data.Id)" OkText="Đồng ý" CancelText="Hủy">
+                <Tooltip Title="Xóa">
+                    <Button Size="ButtonSize.Small" Danger Shape="ButtonShape.Circle">
+                        <i class="fas fa-minus"></i>
+                    </Button>
+                </Tooltip>
+            </Popconfirm>
         </ActionColumn>
     </ChildContent>
 </Table>
 
+<!-- Customer Modal -->
+<Modal Title="@(isEditMode ? "Chỉnh sửa khách hàng" : "Thêm mới khách hàng")" Visible="@isModalVisible"
+    OnOk="@HandleSave" OnCancel="@HandleCancel" ConfirmLoading="@isSaving" Width="600">
+    <Form Model="@customerForm" Layout="@FormLayout.Vertical" ValidateOnChange="true">
+        <FormItem Label="Họ và tên" Required>
+            <Input @bind-Value="customerForm.Name" Placeholder="Nhập họ và tên" MaxLength="100" />
+        </FormItem>
+
+        <FormItem Label="Mã khách hàng" Required>
+            <Input @bind-Value="customerForm.Code" Placeholder="Nhập mã khách hàng" MaxLength="10" />
+        </FormItem>
+
+        <FormItem Label="Số điện thoại" Required>
+            <Input @bind-Value="customerForm.PhoneNumber" Placeholder="Nhập số điện thoại" MaxLength="12" />
+        </FormItem>
+
+        <FormItem Label="Ngày sinh">
+            <DatePicker @bind-Value="customerForm.DateOfBirth" />
+        </FormItem>
+
+        <FormItem Label="Mã số thuế">
+            <Input @bind-Value="customerForm.TaxCode" Placeholder="Nhập mã số thuế" MaxLength="14" />
+        </FormItem>
+
+        <FormItem Label="Địa chỉ" Required>
+            <TextArea @bind-Value="customerForm.Address" Placeholder="Nhập địa chỉ" MaxLength="500" Rows="3" />
+        </FormItem>
+
+        <FormItem Label="Trạng thái" Required>
+            <Select TItem="(ECustomerStatus Value, string Name)" TItemValue="ECustomerStatus"
+                DataSource="customerStatusList" @bind-Value="customerForm.Status" Placeholder="Chọn trạng thái"
+                ItemValue="c => c.Value" ItemLabel="c => c.Name">
+            </Select>
+        </FormItem>
+    </Form>
+</Modal>
+
 @code {
     [Inject] private ICustomerClientService CustomerClientService { get; set; } = default!;
+    [Inject] private NavigationManager NavigationManager { get; set; } = default!;
 
-    IDictionary<Guid, (bool edit, CustomerDTO data)> editCache = new Dictionary<Guid, (bool, CustomerDTO)>();
+    // Data
     List<CustomerDTO> listOfData = new();
     List<(ECustomerStatus Value, string Name)> customerStatusList = new();
+
+    // Modal state
+    bool isModalVisible = false;
+    bool isEditMode = false;
+    bool isSaving = false;
+    CreateOrUpdateCustomerDTO customerForm = new();
 
     GetListCustomerRequestDTO filter = new GetListCustomerRequestDTO()
     {
@@ -207,14 +179,14 @@
     protected override async Task OnInitializedAsync()
     {
         customerStatusList = Enum.GetValues(typeof(ECustomerStatus))
-            .Cast<ECustomerStatus>()
-            .Select(x => (
-                x,
-                x.GetType().GetMember(x.ToString())
-                    .First()
-                    .GetCustomAttribute<DisplayAttribute>()?.Name ?? x.ToString()
-            ))
-            .ToList();
+        .Cast<ECustomerStatus>()
+        .Select(x => (
+        x,
+        x.GetType().GetMember(x.ToString())
+        .First()
+        .GetCustomAttribute<DisplayAttribute>()?.Name ?? x.ToString()
+        ))
+        .ToList();
 
         await LoadDataAsync();
     }
@@ -226,13 +198,8 @@
     }
     private async Task LoadDataAsync()
     {
-        
         var response = await CustomerClientService.GetAllCustomersAsync(filter);
-        listOfData =response.Items ;
-        editCache = listOfData.ToDictionary(
-            item => item.Id,
-            item => (false, CloneCustomer(item))
-        );
+        listOfData = response.Items;
         await InvokeAsync(StateHasChanged);
     }
 
@@ -241,9 +208,11 @@
         await LoadDataAsync();
     }
 
-    async Task addNewCustomer()
+    // Modal methods
+    void addNewCustomer()
     {
-        var newCustomer = new CustomerDTO
+        isEditMode = false;
+        customerForm = new CreateOrUpdateCustomerDTO
         {
             Id = Guid.NewGuid(),
             Name = "",
@@ -255,101 +224,119 @@
             Status = ECustomerStatus.Enabled,
             UserId = Guid.Empty
         };
-
-        listOfData.Insert(0, newCustomer);
-        editCache[newCustomer.Id] = (true, CloneCustomer(newCustomer));
-        await InvokeAsync(StateHasChanged);
+        isModalVisible = true;
     }
 
-    async Task startEdit(Guid id)
+    void EditCustomer(CustomerDTO customer)
     {
-        var data = editCache[id];
-        editCache[id] = (true, data.data);
-        await InvokeAsync(StateHasChanged);
-    }
-
-    async Task cancelEdit(Guid id)
-    {
-        var isNew = listOfData.FirstOrDefault(x => x.Id == id)?.UserId == Guid.Empty;
-        if (isNew)
+        isEditMode = true;
+        customerForm = new CreateOrUpdateCustomerDTO
         {
-            listOfData.RemoveAll(x => x.Id == id);
-            editCache.Remove(id);
-        }
-        else
-        {
-            var original = listOfData.First(x => x.Id == id);
-            editCache[id] = (false, CloneCustomer(original));
-        }
-        await InvokeAsync(StateHasChanged);
-    }
-
-    async Task saveEdit(Guid id)
-    {
-        var dto = editCache[id].data;
-        var createOrUpdateDto = new CreateOrUpdateCustomerDTO
-        {
-            Id = dto.Id,
-            Name = dto.Name,
-            Code = dto.Code,
-            PhoneNumber = dto.PhoneNumber,
-            DateOfBirth = dto.DateOfBirth,
-            TaxCode = dto.TaxCode,
-            Address = dto.Address,
-            Status = dto.Status,
-            UserId = dto.UserId
+            Id = customer.Id,
+            Name = customer.Name,
+            Code = customer.Code,
+            PhoneNumber = customer.PhoneNumber,
+            DateOfBirth = customer.DateOfBirth,
+            TaxCode = customer.TaxCode,
+            Address = customer.Address,
+            Status = customer.Status,
+            UserId = customer.UserId
         };
+        isModalVisible = true;
+    }
 
-        BaseResponse result;
+    async Task HandleSave()
+    {
+        try
+        {
+            isSaving = true;
 
-        if (dto.UserId == Guid.Empty)
-        {
-            result = await CustomerClientService.CreateCustomersAsync(createOrUpdateDto);
-        }
-        else
-        {
-            result = await CustomerClientService.UpdateCustomersAsync(createOrUpdateDto);
-        }
+            // Validation
+            if (string.IsNullOrWhiteSpace(customerForm.Name))
+            {
+                await MessageModalService.Error("Vui lòng nhập họ và tên!");
+                return;
+            }
 
-        if (result.ResponseStatus == BaseStatus.Success)
-        {
-            await MessageModalService.Success("Lưu khách hàng thành công!");
-            await LoadDataAsync();
+            if (string.IsNullOrWhiteSpace(customerForm.Code))
+            {
+                await MessageModalService.Error("Vui lòng nhập mã khách hàng!");
+                return;
+            }
+
+            if (string.IsNullOrWhiteSpace(customerForm.PhoneNumber))
+            {
+                await MessageModalService.Error("Vui lòng nhập số điện thoại!");
+                return;
+            }
+
+            if (string.IsNullOrWhiteSpace(customerForm.Address))
+            {
+                await MessageModalService.Error("Vui lòng nhập địa chỉ!");
+                return;
+            }
+
+            BaseResponse result;
+
+            if (isEditMode)
+            {
+                result = await CustomerClientService.UpdateCustomersAsync(customerForm);
+            }
+            else
+            {
+                result = await CustomerClientService.CreateCustomersAsync(customerForm);
+            }
+
+            if (result.ResponseStatus == BaseStatus.Success)
+            {
+                await MessageModalService.Success(isEditMode ? "Cập nhật khách hàng thành công!" : "Thêm mới khách hàng thành công!");
+                isModalVisible = false;
+                await LoadDataAsync();
+            }
+            else
+            {
+                await MessageModalService.Error(result.Message);
+            }
         }
-        else
+        catch (Exception ex)
         {
-            await MessageModalService.Error(result.Message);
+            await MessageModalService.Error($"Có lỗi xảy ra: {ex.Message}");
+        }
+        finally
+        {
+            isSaving = false;
         }
     }
 
-    async Task deleteCustomer(Guid id)
+    void HandleCancel()
     {
-        var response = await CustomerClientService.DeleteCustomersAsync(id);
-        if (response.ResponseStatus==BaseStatus.Success)
-        {
-            listOfData.RemoveAll(x => x.Id == id);
-            editCache.Remove(id);
-            await MessageModalService.Success("Xóa khách hàng thành công!");
-        }
-        else
-        {
-            await MessageModalService.Error("Xóa khách hàng thất bại");
-        }
+        isModalVisible = false;
+        customerForm = new CreateOrUpdateCustomerDTO();
     }
 
-    CustomerDTO CloneCustomer(CustomerDTO dto)
+    void ViewCustomerDetail(Guid customerId)
     {
-        return new CustomerDTO
+        NavigationManager.NavigateTo($"/customer-detail/{customerId}");
+    }
+
+    async Task DeleteCustomer(Guid id)
+    {
+        try
         {
-            Id = dto.Id,
-            UserId = dto.UserId,
-            Name = dto.Name,
-            Code = dto.Code,
-            PhoneNumber = dto.PhoneNumber,
-            DateOfBirth = dto.DateOfBirth,
-            TaxCode = dto.TaxCode,
-            Address = dto.Address,
-            Status = dto.Status
-        };
+            var response = await CustomerClientService.DeleteCustomersAsync(id);
+            if (response.ResponseStatus == BaseStatus.Success)
+            {
+                await MessageModalService.Success("Xóa khách hàng thành công!");
+                await LoadDataAsync();
+            }
+            else
+            {
+                await MessageModalService.Error("Xóa khách hàng thất bại");
+            }
+        }
+        catch (Exception ex)
+        {
+            await MessageModalService.Error($"Có lỗi xảy ra: {ex.Message}");
+        }
     }
 }

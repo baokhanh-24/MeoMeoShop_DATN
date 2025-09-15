@@ -28,7 +28,6 @@ else
         </Result>
     </div>
 }
-
 @code {
     [Parameter] public RenderFragment? ChildContent { get; set; }
     [Parameter] public string[] RequiredRoles { get; set; } = new[] { "Admin", "Employee" };
@@ -83,7 +82,7 @@ else
 
     private void GoToLogin()
     {
-        NavigationManager.NavigateTo("/cms/login");
+        NavigationManager.NavigateTo("/cms/login", forceLoad: true);
     }
 }
 

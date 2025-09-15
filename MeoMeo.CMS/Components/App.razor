@@ -14,18 +14,21 @@
     <link rel="stylesheet" href="app.css" />
     <link rel="stylesheet" href="css/pos-styles.css" />
     <HeadOutlet @rendermode="new InteractiveServerRenderMode(prerender: false)" />
-    @* <RadzenTheme Theme="material" @rendermode="RenderMode.InteractiveServer" /> *@
 </head>
 
 <body>
-    <Routes @rendermode="RenderMode.InteractiveServer" />
+    <Routes @rendermode="new InteractiveServerRenderMode(prerender: false)" />
 
     <script src="_framework/blazor.web.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/js/all.min.js"></script>
     <script src="_content/AntDesign/js/ant-design-blazor.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/jquery@3.6.0/dist/jquery.min.js"></script>
     <script src="_content/Radzen.Blazor/Radzen.Blazor.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/quagga/0.12.1/quagga.min.js"></script>
     <script src="js/pos-functions.js"></script>
+    <script src="js/global-functions.js"></script>
+    <script src="js/qr-code-helper.js"></script>
 </body>
 
 </html>

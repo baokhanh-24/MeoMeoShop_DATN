@@ -1,11 +1,10 @@
 ﻿@using MeoMeo.CMS.Components.Loading
 @using MeoMeo.CMS.Components.Common
+@using MeoMeo.CMS.Components.Layout
 @using MeoMeo.CMS.IServices
 @using MeoMeo.Contract.DTOs.Auth
 @using Microsoft.AspNetCore.Components.Authorization
 @inherits LayoutComponentBase
-@inject ICMSAuthService AuthService
-@inject NavigationManager NavigationManager
 <RadzenDialog />
 <RadzenNotification />
 <RadzenTooltip />
@@ -20,9 +19,7 @@
             <RadzenColumn Size="7">
                 <RadzenStack AlignItems="AlignItems.Center" Orientation="Orientation.Horizontal"
                     JustifyContent="JustifyContent.End">
-                    <RadzenText Text="@($"Xin chào, {currentUser?.FullName ?? currentUser?.UserName ?? "User"}")"
-                        Style="margin-right: 16px;" />
-                    <RadzenButton Text="Đăng xuất" ButtonStyle="ButtonStyle.Light" Click="@Logout" Icon="logout" />
+                    <UserMenu />
                 </RadzenStack>
             </RadzenColumn>
         </RadzenRow>
@@ -59,51 +56,9 @@
 
 @code {
     bool sidebarExpanded = true;
-    private MeoMeo.Contract.DTOs.Auth.UserDTO? currentUser;
-
-    protected override async Task OnInitializedAsync()
-    {
-        await LoadCurrentUser();
-    }
-
-    private async Task LoadCurrentUser()
-    {
-        try
-        {
-            currentUser = await AuthService.GetCurrentUserAsync();
-        }
-        catch (Exception ex)
-        {
-            Console.WriteLine($"Error loading current user: {ex.Message}");
-        }
-    }
 
     void SidebarToggleClick()
     {
         sidebarExpanded = !sidebarExpanded;
-    }
-
-    private async Task Logout()
-    {
-        try
-        {
-            var refreshToken = await AuthService.GetRefreshTokenAsync();
-            if (!string.IsNullOrEmpty(refreshToken))
-            {
-                await AuthService.LogoutAsync(new RefreshTokenRequest { RefreshToken = refreshToken });
-            }
-            else
-            {
-                await AuthService.ClearTokensAsync();
-            }
-
-            NavigationManager.NavigateTo("/cms/login", forceLoad: true);
-        }
-        catch (Exception ex)
-        {
-            Console.WriteLine($"Error during logout: {ex.Message}");
-            await AuthService.ClearTokensAsync();
-            NavigationManager.NavigateTo("/cms/login", forceLoad: true);
-        }
     }
 }

@@ -25,6 +25,13 @@ namespace MeoMeo.API.Controllers
             return result;
         }
 
+        [HttpGet("get-promotion-detail-with-product-info")]
+        public async Task<PagingExtensions.PagedResult<PromotionDetailWithProductInfoDTO>> GetPromotionDetailWithProductInfoAsync([FromQuery] GetPromotionDetailWithProductInfoRequestDTO request)
+        {
+            var result = await _promotionDetailServices.GetPromotionDetailWithProductInfoAsync(request);
+            return result;
+        }
+
         [HttpGet("find-promotion-detail-by-id-async/{id}")]
         public async Task<IActionResult> GetPromotionDetailByIdAsync(Guid id)
         {
@@ -47,7 +54,7 @@ namespace MeoMeo.API.Controllers
         }
 
         [HttpPut("update-promotion-detail-async/{id}")]
-        public async Task<IActionResult> UpdatePromotionDetailAsync(Guid id,[FromBody] CreateOrUpdatePromotionDetailDTO promotionDetail)
+        public async Task<IActionResult> UpdatePromotionDetailAsync(Guid id, [FromBody] CreateOrUpdatePromotionDetailDTO promotionDetail)
         {
             var result = await _promotionDetailServices.UpdatePromotionDetailAsync(promotionDetail);
             return Ok(result);

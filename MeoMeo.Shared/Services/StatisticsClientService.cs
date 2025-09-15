@@ -20,8 +20,8 @@ namespace MeoMeo.Shared.Services
         {
             try
             {
-                var queryString = BuildQueryString(request);
-                var url = $"api/Statistics/dashboard{queryString}";
+                var queryString = BuildQuery.ToQueryString(request);
+                var url = $"api/Statistics/dashboard?{queryString}";
                 var result = await _apiCaller.GetAsync<DashboardStatisticsDTO>(url);
                 return result;
             }
@@ -36,8 +36,8 @@ namespace MeoMeo.Shared.Services
         {
             try
             {
-                var queryString = BuildQueryString(request);
-                var url = $"api/Statistics/revenue{queryString}";
+                var queryString = BuildQuery.ToQueryString(request);
+                var url = $"api/Statistics/revenue?{queryString}";
                 var result = await _apiCaller.GetAsync<RevenueStatisticsDTO>(url);
                 return result;
             }
@@ -52,8 +52,8 @@ namespace MeoMeo.Shared.Services
         {
             try
             {
-                var queryString = BuildQueryString(request);
-                var url = $"api/Statistics/orders{queryString}";
+                var queryString = BuildQuery.ToQueryString(request);
+                var url = $"api/Statistics/orders?{queryString}";
                 var result = await _apiCaller.GetAsync<OrderStatisticsDTO>(url);
                 return result;
             }
@@ -68,8 +68,8 @@ namespace MeoMeo.Shared.Services
         {
             try
             {
-                var queryString = BuildQueryString(request);
-                var url = $"api/Statistics/customers{queryString}";
+                var queryString = BuildQuery.ToQueryString(request);
+                var url = $"api/Statistics/customers?{queryString}";
                 var result = await _apiCaller.GetAsync<CustomerStatisticsDTO>(url);
                 return result;
             }
@@ -95,20 +95,12 @@ namespace MeoMeo.Shared.Services
             }
         }
 
-        public async Task<List<TopProductDTO>?> GetTopProductsByPeriodAsync(StatisticsPeriod period, DateTime? startDate = null, DateTime? endDate = null)
+        public async Task<List<TopProductDTO>?> GetTopProductsByPeriodAsync(TopProductsRequestDTO request)
         {
             try
             {
-                var queryParams = new List<string>();
-
-                if (startDate.HasValue)
-                    queryParams.Add($"startDate={startDate.Value:yyyy-MM-dd}");
-
-                if (endDate.HasValue)
-                    queryParams.Add($"endDate={endDate.Value:yyyy-MM-dd}");
-
-                var queryString = queryParams.Count > 0 ? "?" + string.Join("&", queryParams) : string.Empty;
-                var url = $"api/Statistics/top-products/{period}{queryString}";
+                var queryString = BuildQuery.ToQueryString(request);
+                var url = $"api/Statistics/top-products?{queryString}";
                 var result = await _apiCaller.GetAsync<List<TopProductDTO>>(url);
                 return result;
             }
@@ -117,21 +109,6 @@ namespace MeoMeo.Shared.Services
                 Console.WriteLine($"Error getting top products by period: {ex.Message}");
                 return null;
             }
-        }
-
-        private string BuildQueryString(StatisticsRequestDTO request)
-        {
-            var queryParams = new List<string>();
-
-            if (request.StartDate.HasValue)
-                queryParams.Add($"StartDate={request.StartDate.Value:yyyy-MM-dd}");
-
-            if (request.EndDate.HasValue)
-                queryParams.Add($"EndDate={request.EndDate.Value:yyyy-MM-dd}");
-
-            queryParams.Add($"Period={request.Period}");
-
-            return queryParams.Count > 0 ? "?" + string.Join("&", queryParams) : string.Empty;
         }
     }
 }

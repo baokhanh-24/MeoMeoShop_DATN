@@ -10,9 +10,17 @@ namespace MeoMeo.EntityFrameworkCore.Configurations
         {
             builder.ToTable("InventoryBatches");
             builder.HasKey(x => x.Id);
-            builder.Property(x => x.Code).HasMaxLength(10).HasColumnType("varchar(10)");
-            builder.Property(x => x.Note).HasMaxLength(500).HasColumnType("nvarchar(500)");
-            builder.HasOne(x => x.ProductDetail).WithMany(x => x.InventoryBatches).HasForeignKey(x => x.ProductDetailId);
+
+            // Foreign key relationships
+            builder.HasOne(x => x.ImportBatch)
+                   .WithMany(x => x.InventoryBatches)
+                   .HasForeignKey(x => x.ImportBatchId)
+                   .OnDelete(DeleteBehavior.Cascade).IsRequired(false);
+
+            builder.HasOne(x => x.ProductDetail)
+                   .WithMany(x => x.InventoryBatches)
+                   .HasForeignKey(x => x.ProductDetailId)
+                   .OnDelete(DeleteBehavior.Restrict);
         }
     }
 }

@@ -6,240 +6,165 @@
 @using MeoMeo.CMS.Components.Common
 @using MeoMeo.CMS.Components
 @inject IStatisticsClientService StatisticsService
-@inject ICMSAuthService AuthService
 
-<div class="dashboard-header">
-    <div class="header-content">
-        <h3>📈 Dashboard Thống kê bán giày</h3>
-        @if (currentUser != null)
-        {
-            <div class="user-info">
-                <span class="user-role">@GetUserRoleDisplay()</span>
-                <span class="user-name">@currentUser.FullName</span>
-            </div>
-        }
-    </div>
-</div>
-
-@if (isLoading)
+@if (dashboardData != null)
 {
-    <RadzenProgressBar Value="100" ShowValue="false" Mode="ProgressBarMode.Indeterminate" />
-    <p>Đang tải dữ liệu thống kê...</p>
-}
-else if (dashboardData != null)
-{
-    <RadzenStack class="rz-p-4 rz-gap-6" Direction="Direction.Column">
+   <RadzenStack class="rz-p-4 rz-gap-6" Direction="Direction.Column">
+    <RadzenRow Gap="1rem">
+        <RadzenColumn Size="3">
+            <RadzenCard class="rz-p-4">
+                <RadzenText TextStyle="TextStyle.H6" class="rz-color-primary">💰 Doanh thu hôm nay</RadzenText>
+                <RadzenText TextStyle="TextStyle.H4">@FormatAsVNĐ(dashboardData.Revenue.TodayRevenue)</RadzenText>
+            </RadzenCard>
+        </RadzenColumn>
+        <RadzenColumn Size="3">
+            <RadzenCard class="rz-p-4">
+                <RadzenText TextStyle="TextStyle.H6" class="rz-color-success">📦 Đơn hàng hôm nay</RadzenText>
+                <RadzenText TextStyle="TextStyle.H4">@dashboardData.Orders.TodayOrders</RadzenText>
+            </RadzenCard>
+        </RadzenColumn>
+        <RadzenColumn Size="3">
+            <RadzenCard class="rz-p-4">
+                <RadzenText TextStyle="TextStyle.H6" class="rz-color-info">👥 Khách hàng mới</RadzenText>
+                <RadzenText TextStyle="TextStyle.H4">@dashboardData.Customers.NewCustomersToday</RadzenText>
+            </RadzenCard>
+        </RadzenColumn>
+        <RadzenColumn Size="3">
+            <RadzenCard class="rz-p-4">
+                <RadzenText TextStyle="TextStyle.H6" class="rz-color-warning">⏳ Chờ xác nhận</RadzenText>
+                <RadzenText TextStyle="TextStyle.H4">@dashboardData.Orders.PendingOrders</RadzenText>
+            </RadzenCard>
+        </RadzenColumn>
+    </RadzenRow>
 
-        <!-- Thống kê tổng quan -->
-        <RadzenRow Gap="1rem">
-            <RadzenColumn Size="3">
-                <RadzenCard class="rz-p-4">
-                    <RadzenText TextStyle="TextStyle.H6" class="rz-color-primary">💰 Doanh thu hôm nay</RadzenText>
-                    <RadzenText TextStyle="TextStyle.H4">@FormatAsVNĐ(dashboardData.Revenue.TodayRevenue)</RadzenText>
-                </RadzenCard>
-            </RadzenColumn>
-            <RadzenColumn Size="3">
-                <RadzenCard class="rz-p-4">
-                    <RadzenText TextStyle="TextStyle.H6" class="rz-color-success">📦 Đơn hàng hôm nay</RadzenText>
-                    <RadzenText TextStyle="TextStyle.H4">@dashboardData.Orders.TodayOrders</RadzenText>
-                </RadzenCard>
-            </RadzenColumn>
-            <RadzenColumn Size="3">
-                <RadzenCard class="rz-p-4">
-                    <RadzenText TextStyle="TextStyle.H6" class="rz-color-info">👥 Khách hàng mới</RadzenText>
-                    <RadzenText TextStyle="TextStyle.H4">@dashboardData.Customers.NewCustomersToday</RadzenText>
-                </RadzenCard>
-            </RadzenColumn>
-            <RadzenColumn Size="3">
-                <RadzenCard class="rz-p-4">
-                    <RadzenText TextStyle="TextStyle.H6" class="rz-color-warning">⏳ Chờ xác nhận</RadzenText>
-                    <RadzenText TextStyle="TextStyle.H4">@dashboardData.Orders.PendingOrders</RadzenText>
-                </RadzenCard>
-            </RadzenColumn>
-        </RadzenRow>
+    <!-- Doanh thu theo thời gian -->
+    <RadzenCard class="rz-p-4">
+        <RadzenText TextStyle="TextStyle.H5" class="rz-mb-4">📈 Doanh thu theo thời gian</RadzenText>
+        <RadzenChart>
+            <RadzenLineSeries Smooth="true" Data="@dashboardData.RevenueByPeriod" CategoryProperty="Period"
+                ValueProperty="Revenue" Title="Doanh thu">
+                <RadzenSeriesDataLabels Visible="true" />
+            </RadzenLineSeries>
+            <RadzenCategoryAxis Padding="20" />
+            <RadzenValueAxis Formatter="@FormatAsVNĐ">
+                <RadzenAxisTitle Text="Doanh thu (VNĐ)" />
+            </RadzenValueAxis>
+        </RadzenChart>
+    </RadzenCard>
 
-        <!-- Doanh thu theo thời gian -->
-        <RadzenCard class="rz-p-4">
-            <RadzenText TextStyle="TextStyle.H5" class="rz-mb-4">📈 Doanh thu theo thời gian</RadzenText>
-            <RadzenChart>
-                <RadzenLineSeries Smooth="true" Data="@dashboardData.RevenueByPeriod" CategoryProperty="Period"
-                    ValueProperty="Revenue" Title="Doanh thu">
-                    <RadzenSeriesDataLabels Visible="true" />
-                </RadzenLineSeries>
-                <RadzenCategoryAxis Padding="20" />
-                <RadzenValueAxis Formatter="@FormatAsVNĐ">
-                    <RadzenAxisTitle Text="Doanh thu (VNĐ)" />
-                </RadzenValueAxis>
-            </RadzenChart>
-        </RadzenCard>
+    <!-- Top sản phẩm bán chạy -->
+    <RadzenCard class="rz-p-4">
+        <RadzenText TextStyle="TextStyle.H5" class="rz-mb-4">🏆 Top sản phẩm bán chạy</RadzenText>
+        <RadzenTabs>
+            <Tabs>
+                <RadzenTabsItem Text="Hôm nay">
+                    <RadzenChart>
+                        <RadzenColumnSeries Data="@dashboardData.TopProducts" CategoryProperty="ProductVariant"
+                            ValueProperty="QuantitySold" Title="Sản phẩm bán chạy hôm nay">
+                            <RadzenSeriesDataLabels Visible="true" />
+                        </RadzenColumnSeries>
+                        <RadzenCategoryAxis />
+                        <RadzenValueAxis />
+                    </RadzenChart>
+                </RadzenTabsItem>
+                <RadzenTabsItem Text="Tuần này">
+                    <RadzenChart>
+                        <RadzenColumnSeries Data="@dashboardData.TopProductsThisWeek" CategoryProperty="ProductVariant"
+                            ValueProperty="QuantitySold" Title="Sản phẩm bán chạy tuần này">
+                            <RadzenSeriesDataLabels Visible="true" />
+                        </RadzenColumnSeries>
+                        <RadzenCategoryAxis />
+                        <RadzenValueAxis />
+                    </RadzenChart>
+                </RadzenTabsItem>
+                <RadzenTabsItem Text="Tháng này">
+                    <RadzenChart>
+                        <RadzenColumnSeries Data="@dashboardData.TopProductsThisMonth" CategoryProperty="ProductVariant"
+                            ValueProperty="QuantitySold" Title="Sản phẩm bán chạy tháng này">
+                            <RadzenSeriesDataLabels Visible="true" />
+                        </RadzenColumnSeries>
+                        <RadzenCategoryAxis />
+                        <RadzenValueAxis />
+                    </RadzenChart>
+                </RadzenTabsItem>
+            </Tabs>
+        </RadzenTabs>
+    </RadzenCard>
 
-        <!-- Top sản phẩm bán chạy -->
-        <RadzenCard class="rz-p-4">
-            <RadzenText TextStyle="TextStyle.H5" class="rz-mb-4">🏆 Top sản phẩm bán chạy</RadzenText>
-            <RadzenTabs>
-                <Tabs>
-                    <RadzenTabsItem Text="Hôm nay">
-                        <RadzenChart>
-                            <RadzenColumnSeries Data="@dashboardData.TopProducts" CategoryProperty="ProductName"
-                                ValueProperty="QuantitySold" Title="Sản phẩm bán chạy hôm nay">
-                                <RadzenSeriesDataLabels Visible="true" />
-                            </RadzenColumnSeries>
-                            <RadzenCategoryAxis />
-                            <RadzenValueAxis />
-                        </RadzenChart>
-                    </RadzenTabsItem>
-                    <RadzenTabsItem Text="Tuần này">
-                        <RadzenChart>
-                            <RadzenColumnSeries Data="@dashboardData.TopProductsThisWeek" CategoryProperty="ProductName"
-                                ValueProperty="QuantitySold" Title="Sản phẩm bán chạy tuần này">
-                                <RadzenSeriesDataLabels Visible="true" />
-                            </RadzenColumnSeries>
-                            <RadzenCategoryAxis />
-                            <RadzenValueAxis />
-                        </RadzenChart>
-                    </RadzenTabsItem>
-                    <RadzenTabsItem Text="Tháng này">
-                        <RadzenChart>
-                            <RadzenColumnSeries Data="@dashboardData.TopProductsThisMonth" CategoryProperty="ProductName"
-                                ValueProperty="QuantitySold" Title="Sản phẩm bán chạy tháng này">
-                                <RadzenSeriesDataLabels Visible="true" />
-                            </RadzenColumnSeries>
-                            <RadzenCategoryAxis />
-                            <RadzenValueAxis />
-                        </RadzenChart>
-                    </RadzenTabsItem>
-                </Tabs>
-            </RadzenTabs>
-        </RadzenCard>
+    <!-- Thống kê đơn hàng -->
+    <RadzenRow Gap="1rem">
+        <RadzenColumn Size="6">
+            <RadzenCard class="rz-p-4">
+                <RadzenText TextStyle="TextStyle.H5" class="rz-mb-4">📊 Thống kê đơn hàng</RadzenText>
+                <RadzenStack Gap="1rem">
+                    <RadzenRow>
+                        <RadzenColumn Size="6">🛒 Tại quầy: @dashboardData.Orders.PosOrders</RadzenColumn>
+                        <RadzenColumn Size="6">🌐 Online: @dashboardData.Orders.OnlineOrders</RadzenColumn>
+                    </RadzenRow>
+                    <RadzenRow>
+                        <RadzenColumn Size="6">✅ Hoàn thành: @dashboardData.Orders.CompletedOrders</RadzenColumn>
+                        <RadzenColumn Size="6">❌ Đã hủy: @dashboardData.Orders.CancelledOrders</RadzenColumn>
+                    </RadzenRow>
+                    <RadzenRow>
+                        <RadzenColumn Size="6">🚚 Đang giao: @dashboardData.Orders.InTransitOrders</RadzenColumn>
+                        <RadzenColumn Size="6">✔️ Đã xác nhận: @dashboardData.Orders.ConfirmedOrders</RadzenColumn>
+                    </RadzenRow>
+                </RadzenStack>
+            </RadzenCard>
+        </RadzenColumn>
+        <RadzenColumn Size="6">
+            <RadzenCard class="rz-p-4">
+                <RadzenText TextStyle="TextStyle.H5" class="rz-mb-4">📦 Thống kê tồn kho</RadzenText>
+                <RadzenStack Gap="1rem">
+                    <div>📋 Tổng sản phẩm: @dashboardData.Inventory.TotalProducts</div>
+                    <div>⚠️ Sắp hết hàng: @dashboardData.Inventory.LowStockProducts</div>
+                    <div>🚫 Hết hàng: @dashboardData.Inventory.OutOfStockProducts</div>
+                    <div>💎 Giá trị tồn kho: @FormatAsVNĐ(dashboardData.Inventory.TotalInventoryValue)</div>
+                </RadzenStack>
+            </RadzenCard>
+        </RadzenColumn>
+    </RadzenRow>
 
-        <!-- Thống kê đơn hàng -->
-        <RadzenRow Gap="1rem">
-            <RadzenColumn Size="6">
-                <RadzenCard class="rz-p-4">
-                    <RadzenText TextStyle="TextStyle.H5" class="rz-mb-4">📊 Thống kê đơn hàng</RadzenText>
-                    <RadzenStack Gap="1rem">
-                        <RadzenRow>
-                            <RadzenColumn Size="6">🛒 POS: @dashboardData.Orders.PosOrders</RadzenColumn>
-                            <RadzenColumn Size="6">🌐 Online: @dashboardData.Orders.OnlineOrders</RadzenColumn>
-                        </RadzenRow>
-                        <RadzenRow>
-                            <RadzenColumn Size="6">✅ Hoàn thành: @dashboardData.Orders.CompletedOrders</RadzenColumn>
-                            <RadzenColumn Size="6">❌ Đã hủy: @dashboardData.Orders.CancelledOrders</RadzenColumn>
-                        </RadzenRow>
-                        <RadzenRow>
-                            <RadzenColumn Size="6">🚚 Đang giao: @dashboardData.Orders.InTransitOrders</RadzenColumn>
-                            <RadzenColumn Size="6">✔️ Đã xác nhận: @dashboardData.Orders.ConfirmedOrders</RadzenColumn>
-                        </RadzenRow>
-                    </RadzenStack>
-                </RadzenCard>
-            </RadzenColumn>
-            <RadzenColumn Size="6">
-                <RadzenCard class="rz-p-4">
-                    <RadzenText TextStyle="TextStyle.H5" class="rz-mb-4">📦 Thống kê tồn kho</RadzenText>
-                    <RadzenStack Gap="1rem">
-                        <div>📋 Tổng sản phẩm: @dashboardData.Inventory.TotalProducts</div>
-                        <div>⚠️ Sắp hết hàng: @dashboardData.Inventory.LowStockProducts</div>
-                        <div>🚫 Hết hàng: @dashboardData.Inventory.OutOfStockProducts</div>
-                        <div>💎 Giá trị tồn kho: @FormatAsVNĐ(dashboardData.Inventory.TotalInventoryValue)</div>
-                    </RadzenStack>
-                </RadzenCard>
-            </RadzenColumn>
-        </RadzenRow>
+    <!-- Tồn kho theo sản phẩm -->
+    <RadzenCard class="rz-p-4">
+        <RadzenText TextStyle="TextStyle.H5" class="rz-mb-4">📦 Tồn kho theo sản phẩm</RadzenText>
+        <RadzenChart>
+            <RadzenPieSeries Data="@dashboardData.Inventory.StockByProduct" CategoryProperty="ProductVariant"
+                ValueProperty="StockQuantity" Title="Tồn kho">
+                <RadzenSeriesDataLabels Visible="true" />
+            </RadzenPieSeries>
+        </RadzenChart>
+    </RadzenCard>
 
-        <!-- Tồn kho theo sản phẩm -->
-        <RadzenCard class="rz-p-4">
-            <RadzenText TextStyle="TextStyle.H5" class="rz-mb-4">📦 Tồn kho theo sản phẩm</RadzenText>
-            <RadzenChart>
-                <RadzenPieSeries Data="@dashboardData.Inventory.StockByProduct" CategoryProperty="ProductName"
-                    ValueProperty="StockQuantity" Title="Tồn kho">
-                    <RadzenSeriesDataLabels Visible="true" />
-                </RadzenPieSeries>
-            </RadzenChart>
-        </RadzenCard>
+    <!-- Đơn hàng theo giờ -->
+    <RadzenCard class="rz-p-4">
+        <RadzenText TextStyle="TextStyle.H5" class="rz-mb-4">⏰ Đơn hàng theo giờ trong ngày</RadzenText>
+        <RadzenChart>
+            <RadzenLineSeries Data="@dashboardData.OrdersByHour" CategoryProperty="Hour" ValueProperty="OrderCount"
+                LineType="LineType.Dashed" Title="Số đơn hàng">
+                <RadzenSeriesDataLabels Visible="true" />
+            </RadzenLineSeries>
+            <RadzenCategoryAxis />
+            <RadzenValueAxis />
+        </RadzenChart>
+    </RadzenCard>
 
-        <!-- Đơn hàng theo giờ -->
-        <RadzenCard class="rz-p-4">
-            <RadzenText TextStyle="TextStyle.H5" class="rz-mb-4">⏰ Đơn hàng theo giờ trong ngày</RadzenText>
-            <RadzenChart>
-                <RadzenLineSeries Data="@dashboardData.OrdersByHour" CategoryProperty="Hour" ValueProperty="OrderCount"
-                    LineType="LineType.Dashed" Title="Số đơn hàng">
-                    <RadzenSeriesDataLabels Visible="true" />
-                </RadzenLineSeries>
-                <RadzenCategoryAxis />
-                <RadzenValueAxis />
-            </RadzenChart>
-        </RadzenCard>
-
-    </RadzenStack>
-}
-else
-{
-    <RadzenAlert Variant="Variant.Filled" AlertStyle="AlertStyle.Danger">
-        <RadzenIcon Icon="error" /> Không thể tải dữ liệu thống kê. Vui lòng thử lại sau.
-    </RadzenAlert>
+</RadzenStack> 
 }
 
-<!-- Debug component để kiểm tra token -->
-<TokenDebugInfo />
 
 @code {
     private DashboardStatisticsDTO? dashboardData;
     private bool isLoading = true;
-    private MeoMeo.Contract.DTOs.Auth.UserDTO? currentUser;
     private string userRole = "";
 
     protected override async Task OnInitializedAsync()
     {
-        await LoadUserInfo();
+
         await LoadDashboardData();
     }
 
-    private async Task LoadUserInfo()
-    {
-        try
-        {
-            currentUser = await AuthService.GetCurrentUserAsync();
-            if (currentUser != null)
-            {
-                // Lấy roles từ token thay vì gọi API
-                var userRoles = await AuthService.GetUserRolesAsync();
 
-                // Kiểm tra role từ token (có thể là "Admin", "Employee", "Customer")
-                if (userRoles.Contains("Admin"))
-                    userRole = "Admin";
-                else if (userRoles.Contains("Employee"))
-                    userRole = "Employee";
-                else if (userRoles.Contains("Customer"))
-                    userRole = "Customer";
-                else
-                {
-                    // Fallback: kiểm tra adminOrUser claim
-                    var hasAdminRole = await AuthService.HasRoleAsync("Admin");
-                    var hasEmployeeRole = await AuthService.HasRoleAsync("Employee");
-
-                    if (hasAdminRole)
-                        userRole = "Admin";
-                    else if (hasEmployeeRole)
-                        userRole = "Employee";
-                }
-            }
-        }
-        catch (Exception ex)
-        {
-            Console.WriteLine($"Error loading user info: {ex.Message}");
-        }
-    }
-
-    private string GetUserRoleDisplay()
-    {
-        return userRole switch
-        {
-            "Admin" => "👑 Quản trị viên",
-            "Employee" => "👤 Nhân viên",
-            "Customer" => "🛒 Khách hàng",
-            _ => "👤 Người dùng"
-        };
-    }
 
     private async Task LoadDashboardData()
     {
@@ -285,36 +210,3 @@ else
         return value.ToString() + " ₫";
     }
 }
-
-<style>
-    .dashboard-header {
-        margin-bottom: 24px;
-        padding: 16px 0;
-        border-bottom: 1px solid #e8e8e8;
-    }
-
-    .header-content {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-    }
-
-    .user-info {
-        display: flex;
-        flex-direction: column;
-        align-items: flex-end;
-        gap: 4px;
-    }
-
-    .user-role {
-        font-size: 14px;
-        color: #1890ff;
-        font-weight: 500;
-    }
-
-    .user-name {
-        font-size: 16px;
-        color: #333;
-        font-weight: 600;
-    }
-</style>

@@ -17,6 +17,13 @@ namespace MeoMeo.Contract.DTOs
         public string PhoneNumber { get; set; }
         public DateTime DateOfBird { get; set; }
         public string Address { get; set; }
+        public string Email { get; set; }
         public EEmployeesStatus Status { get; set; }
+
+        // User fields
+        public string UserName { get; set; }
+        public string Avatar { get; set; }
+        public DateTime LastLogin { get; set; }
+        public DateTime CreationTime { get; set; }
     }
 }

@@ -12,6 +12,7 @@
 @using MeoMeo.Shared.Utilities
 @inject IOrderClientService OrderClientService
 @inject MeoMeo.Shared.Utilities.MessageModalService MessageModalService
+@inject NavigationManager Navigation
 @using ButtonSize = AntDesign.ButtonSize
 @using ButtonType = AntDesign.ButtonType
 <div class="d-flex justify-content-between">
@@ -46,6 +47,21 @@
                     <i class="fa-solid fa-xmark"></i>  Hủy đơn
                 </Button>
             }
+            else if (filter.OrderStatusFilter == EOrderStatus.PendingReturn)
+            {
+                <Button Class="mb-2" OnClick="()=>ShowPopUpConfirm(EOrderStatus.Returned)">
+                    <i class="fa-solid fa-check"></i>  Chấp nhận hoàn trả
+                </Button>     
+                <Button Class="mb-2" OnClick="()=>ShowPopUpConfirm(EOrderStatus.RejectReturned)">
+                    <i class="fa-solid fa-times"></i>  Từ chối hoàn trả
+                </Button>
+            }
+            else if (filter.OrderStatusFilter == EOrderStatus.Returned)
+            {
+                <Button Class="mb-2" OnClick="()=>ShowPopUpConfirm(EOrderStatus.Completed)">
+                    <i class="fa-solid fa-check-double"></i>  Hoàn tất hoàn trả
+                </Button>
+            }
         }
         <Button OnClick="()=>ExpandCollapseOrder()" Type="ButtonType.Primary" Class="mb-2">
             <i class="fa-solid @(isExpaned ? "fa-minimize" : "fa-up-right-and-down-left-from-center")"></i>
@@ -69,10 +85,12 @@
     <TabPane Key="All" Tab=@($"Tất cả ({metaData.TotalAll})")/>
     <TabPane Key="Pending" Tab=@($"Chờ xác nhận ({metaData.Pending})")/>
     <TabPane Key="Confirmed" Tab=@($"Đã xác nhận ({metaData.Confirmed})")/>
-    <TabPane Key="Confirmed" Tab=@($"Đã xác nhận ({metaData.Confirmed})")/>
     <TabPane Key="InTransit" Tab=@($"Đang giao ({metaData.InTransit})")/>
     <TabPane Key="Canceled" Tab=@($"Đã huỷ ({metaData.Canceled})")/>
     <TabPane Key="Completed" Tab=@($"Hoàn thành ({metaData.Completed})")/>
+    <TabPane Key="PendingReturn" Tab=@($"Chờ hoàn hàng ({metaData.PendingReturn})")/>
+    <TabPane Key="Returned" Tab=@($"Đã hoàn hàng ({metaData.Returned})")/>
+    <TabPane Key="RejectReturned" Tab=@($"Từ chối hoàn hàng ({metaData.RejectReturned})")/>
 </Tabs>
 <div class="d-flex justify-content-end gap-3 mb-2">
     
@@ -190,9 +208,37 @@
                 </Button>
             </Tooltip>
         }
+        else if (context.Status == EOrderStatus.PendingReturn)
+        {
+            <Tooltip Title="Chấp nhận hoàn trả">
+                <Button Size="ButtonSize.Small" Shape="ButtonShape.Circle" OnClick="@(() => OnClickConfirm(EOrderStatus.Returned, context))">
+                    <i class="fa-solid fa-check text-success"></i>
+                </Button>
+            </Tooltip>
+            <Tooltip Title="Từ chối hoàn trả">
+                <Button Size="ButtonSize.Small" Shape="ButtonShape.Circle" OnClick="@(() => OnClickConfirm(EOrderStatus.RejectReturned, context))">
+                    <i class="fa-solid fa-times text-danger"></i>
+                </Button>
+            </Tooltip>
+        }
+        else if (context.Status == EOrderStatus.Returned)
+        {
+            <Tooltip Title="Hoàn tất hoàn trả">
+                <Button Size="ButtonSize.Small" Shape="ButtonShape.Circle" OnClick="@(() => OnClickConfirm(EOrderStatus.Completed, context))">
+                    <i class="fa-solid fa-check-double text-success"></i>
+                </Button>
+            </Tooltip>
+        }
+        
         <Tooltip Title="Lịch sử">
             <Button Size="ButtonSize.Small" Shape="ButtonShape.Circle" OnClick="@(() => ShowHistory(context.Id))">
                 <i class="fa-solid fa-clock-rotate-left"></i>
+            </Button>
+        </Tooltip>
+
+        <Tooltip Title="Xem chi tiết">
+            <Button Size="ButtonSize.Small" Shape="ButtonShape.Circle"    OnClick="() => NavigateToOrderDetail(context.Id)">
+             <i class="fas fa-eye"></i>
             </Button>
         </Tooltip>
     </CellRender>
@@ -415,8 +461,12 @@
                 txtStatus = "hủy";
                 break;
 
-            default:
-                txtStatus = "";
+            case EOrderStatus.Returned:
+                txtStatus = "chấp nhận hoàn trả";
+                break;
+
+            case EOrderStatus.RejectReturned:
+                txtStatus = "từ chối hoàn trả";
                 break;
         };
         _modalText = $"Bạn có chắc chắn muốn {txtStatus} đơn hàng {string.Join(",", selectedRows.Reverse().Select(c => c.Code))}";
@@ -541,8 +591,16 @@
             EOrderStatus.InTransit => "Đang giao",
             EOrderStatus.Canceled => "Đã huỷ",
             EOrderStatus.Completed => "Hoàn thành",
+            EOrderStatus.PendingReturn => "Chờ xác nhận hoàn hàng",
+            EOrderStatus.Returned => "Đã hoàn hàng",
+            EOrderStatus.RejectReturned => "Từ chối cho phép hoàn hàng",
             _ => status.ToString()
         };
+    }
+
+    private void NavigateToOrderDetail(Guid orderId)
+    {
+        Navigation.NavigateTo($"/order-detail/{orderId}");
     }
 
 }

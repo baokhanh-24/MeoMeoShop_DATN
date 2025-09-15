@@ -1,4 +1,5 @@
 ﻿using MeoMeo.Contract.DTOs.Product;
+using MeoMeo.Contract.DTOs.ProductDetail;
 using MeoMeo.Domain.Entities;
 using System;
 using System.Collections.Generic;
@@ -37,5 +38,7 @@ namespace MeoMeo.Application.IServices
         // Search methods
         Task<PagingExtensions.PagedResult<ProductSearchResponseDTO>> SearchProductsAsync(ProductSearchRequestDTO request);
         Task<ProductSearchResponseDTO?> GetProductBySkuAsync(string sku);
+        
+        Task<bool> DeleteProductDetailAsync(Guid id);
     }
 }

@@ -1,0 +1,316 @@
+@page "/customer-detail/{CustomerId:guid}"
+@using MeoMeo.Contract.DTOs
+@using MeoMeo.Contract.DTOs.Customer
+@using MeoMeo.Contract.DTOs.Order
+@using MeoMeo.Shared.IServices
+@using MeoMeo.Domain.Commons.Enums
+@using AntDesign
+@using ButtonSize = AntDesign.ButtonSize
+@using ButtonType = AntDesign.ButtonType
+@inject MeoMeo.Shared.Utilities.MessageModalService MessageModalService
+@inject IConfiguration Configuration
+@rendermode InteractiveServer
+
+<div class="d-flex justify-content-between">
+    <Breadcrumb>
+        <BreadcrumbItem Href="/">Trang chủ</BreadcrumbItem>
+        <BreadcrumbItem Href="/manage-customer">Quản lý khách hàng</BreadcrumbItem>
+        <BreadcrumbItem>Chi tiết khách hàng</BreadcrumbItem>
+    </Breadcrumb>
+    <Button OnClick="GoBack" Type="ButtonType.Default" Class="mb-2">
+        <i class="fas fa-arrow-left"></i> Quay lại
+    </Button>
+</div>
+@if (customerDetail != null)
+{
+    <!-- Customer Information Card -->
+    <AntDesign.Card Title="Thông tin khách hàng" Class="mb-4">
+        <AntDesign.Row Gutter="16">
+            <AntDesign.Col Span="6">
+                <div class="text-center">
+                    @if (!string.IsNullOrEmpty(customerDetail.Avatar))
+                    {
+                        <AntDesign.Image Src="@($"{backendUrl}/{customerDetail.Avatar}")" 
+                                         Width="120" Height="120" 
+                                         Style="border-radius: 50%;" />
+                    }
+                    else
+                    {
+                        <div class="avatar-placeholder" style="width: 120px; height: 120px; border-radius: 50%; background: #f0f0f0; display: flex; align-items: center; justify-content: center; margin: 0 auto;">
+                            <i class="fas fa-user" style="font-size: 48px; color: #999;"></i>
+                        </div>
+                    }
+                </div>
+            </AntDesign.Col>
+            <AntDesign.Col Span="18">
+                <AntDesign.Descriptions Column="2" Bordered>
+                    <AntDesign.DescriptionsItem Title="Họ và tên">@customerDetail.Name</AntDesign.DescriptionsItem>
+                    <AntDesign.DescriptionsItem Title="Mã khách hàng">@customerDetail.Code</AntDesign.DescriptionsItem>
+                    <AntDesign.DescriptionsItem Title="Số điện thoại">@customerDetail.PhoneNumber</AntDesign.DescriptionsItem>
+                    <AntDesign.DescriptionsItem Title="Ngày sinh">@customerDetail.DateOfBirth?.ToString("dd-MM-yyyy")</AntDesign.DescriptionsItem>
+                    <AntDesign.DescriptionsItem Title="Mã số thuế">@customerDetail.TaxCode</AntDesign.DescriptionsItem>
+                    <AntDesign.DescriptionsItem Title="Trạng thái">
+                        <AntDesign.Tag Color="@(customerDetail.Status == ECustomerStatus.Enabled ? "green" : "red")">
+                            @(customerDetail.Status == ECustomerStatus.Enabled ? "Hoạt động" : "Không hoạt động")
+                        </AntDesign.Tag>
+                    </AntDesign.DescriptionsItem>
+                    <AntDesign.DescriptionsItem Title="Địa chỉ" Span="2">@customerDetail.Address</AntDesign.DescriptionsItem>
+                    <AntDesign.DescriptionsItem Title="Ngày tạo">@customerDetail.CreationTime.ToString("dd-MM-yyyy HH:mm")</AntDesign.DescriptionsItem>
+                    <AntDesign.DescriptionsItem Title="Đơn hàng cuối">@customerDetail.LastOrderDate?.ToString("dd-MM-yyyy HH:mm")</AntDesign.DescriptionsItem>
+                </AntDesign.Descriptions>
+            </AntDesign.Col>
+        </AntDesign.Row>
+    </AntDesign.Card>
+
+    <!-- Statistics Cards -->
+    <AntDesign.Row Gutter="16" Class="mb-4">
+        <AntDesign.Col Span="6">
+            <AntDesign.Card>
+                <AntDesign.Statistic Title="Tổng tiền đã chi" Value="@customerDetail.TotalSpent.ToString("N0")" Suffix="VNĐ" ValueStyle="color: #3f8600" />
+            </AntDesign.Card>
+        </AntDesign.Col>
+        <AntDesign.Col Span="6">
+            <AntDesign.Card>
+                <AntDesign.Statistic Title="Tổng đơn hàng" Value="@customerDetail.TotalOrders" ValueStyle="color: #1890ff" />
+            </AntDesign.Card>
+        </AntDesign.Col>
+        <AntDesign.Col Span="6">
+            <AntDesign.Card>
+                <AntDesign.Statistic Title="Đơn hoàn thành" Value="@customerDetail.CompletedOrders" ValueStyle="color: #52c41a" />
+            </AntDesign.Card>
+        </AntDesign.Col>
+        <AntDesign.Col Span="6">
+            <AntDesign.Card>
+                <AntDesign.Statistic Title="Đơn đang chờ" Value="@customerDetail.PendingOrders" ValueStyle="color: #faad14" />
+            </AntDesign.Card>
+        </AntDesign.Col>
+    </AntDesign.Row>
+
+    <!-- Orders Table -->
+    <AntDesign.Card Title="Lịch sử đơn hàng">
+        <div class="d-flex justify-content-end gap-3 mb-3">
+            <div style="width: 200px">
+                <AntDesign.Input AllowClear="true" OnClear="OnFilterChanged" @bind-Value="orderFilter.CodeFilter" Placeholder="Mã đơn hàng" />
+            </div>
+            <div style="width: 150px">
+                <AntDesign.DatePicker TValue="DateTime?" @bind-Value="orderFilter.CreationDateStartFilter"  />
+            </div>
+            <div style="width: 150px">
+                <AntDesign.DatePicker TValue="DateTime?" @bind-Value="orderFilter.CreationDateEndFilter"  />
+            </div>
+            <div style="width: 150px">
+                <AntDesign.Select TItem="(EOrderStatus Value, string Name)"
+                        TItemValue="EOrderStatus?"
+                        AllowClear
+                        DataSource="orderStatusList"
+                        @bind-Value="orderFilter.OrderStatusFilter"
+                        Placeholder="Trạng thái"
+                        ItemValue="c => (EOrderStatus?)c.Value"
+                        ItemLabel="c => c.Name">
+                </AntDesign.Select>
+            </div>
+            <AntDesign.Tooltip Title="Tìm kiếm">
+                <AntDesign.Button @onclick="() => LoadOrdersAsync()" Type="ButtonType.Primary" Shape="ButtonShape.Circle" Icon="@IconType.Outline.Search" />
+            </AntDesign.Tooltip>
+        </div>
+
+        <AntDesign.Table DataSource="orders" TItem="OrderDTO" Bordered TableLayout="fixed" Loading="@isLoadingOrders">
+            <ChildContent Context="order">
+                <AntDesign.Column TData="string" Title="Mã đơn hàng">
+                    <AntDesign.Button Type="ButtonType.Link" @onclick="() => ViewOrderDetail(order.Id)">
+                        @order.Code
+                    </AntDesign.Button>
+                </AntDesign.Column>
+                <AntDesign.Column TData="decimal" Title="Tổng tiền">
+                    @order.TotalPrice.ToString("N0") VNĐ
+                </AntDesign.Column>
+                <AntDesign.Column TData="EOrderStatus" Title="Trạng thái">
+                    <AntDesign.Tag Color="@GetOrderStatusColor(order.Status)">
+                        @GetOrderStatusText(order.Status)
+                    </AntDesign.Tag>
+                </AntDesign.Column>
+                <AntDesign.Column TData="EOrderPaymentMethod" Title="Phương thức thanh toán">
+                    @GetPaymentMethodText(order.PaymentMethod)
+                </AntDesign.Column>
+                <AntDesign.Column TData="DateTime" Title="Ngày tạo">
+                    @order.CreationTime.ToString("dd-MM-yyyy HH:mm")
+                </AntDesign.Column>
+                <AntDesign.Column TData="DateTime?" Title="Ngày giao">
+                    @order.DeliveryDate?.ToString("dd-MM-yyyy HH:mm")
+                </AntDesign.Column>
+                <AntDesign.ActionColumn Title="Thao tác">
+                    <AntDesign.Tooltip Title="Xem chi tiết">
+                        <AntDesign.Button Size="ButtonSize.Small" @onclick="() => ViewOrderDetail(order.Id)" Shape="ButtonShape.Circle">
+                            <i class="fas fa-eye"></i>
+                        </AntDesign.Button>
+                    </AntDesign.Tooltip>
+                </AntDesign.ActionColumn>
+            </ChildContent>
+        </AntDesign.Table>
+
+        @if (orders.Any())
+        {
+            <div class="d-flex justify-content-end mt-3">
+                <AntDesign.Pagination Total="@totalOrders" 
+                           Current="@orderFilter.PageIndex" 
+                           PageSize="@orderFilter.PageSize"
+                           OnChange="@OnPageChange"
+                           ShowSizeChanger="true"
+                           OnShowSizeChange="@OnPageSizeChange" />
+            </div>
+        }
+    </AntDesign.Card>
+}
+
+@code {
+    [Parameter] public Guid CustomerId { get; set; }
+    [Inject] private ICustomerClientService CustomerClientService { get; set; } = default!;
+    [Inject] private IOrderClientService OrderClientService { get; set; } = default!;
+    [Inject] private NavigationManager NavigationManager { get; set; } = default!;
+    private string backendUrl = "";
+    // Data
+    CustomerDetailDTO? customerDetail;
+    List<OrderDTO> orders = new();
+    List<(EOrderStatus Value, string Name)> orderStatusList = new();
+
+    // State
+    bool isLoading = true;
+    bool isLoadingOrders = false;
+    int totalOrders = 0;
+
+    // Filter
+    GetListOrderRequestDTO orderFilter = new()
+    {
+        PageIndex = 1,
+        PageSize = 10
+    };
+
+    protected override async Task OnInitializedAsync()
+    {
+        backendUrl = Configuration["ApiSettings:BaseUrl"] ?? "";
+        // Load order status list
+        orderStatusList = Enum.GetValues(typeof(EOrderStatus))
+            .Cast<EOrderStatus>()
+            .Select(x => (x, GetOrderStatusText(x)))
+            .ToList();
+
+        await LoadCustomerDetailAsync();
+        await LoadOrdersAsync();
+    }
+
+    async Task LoadCustomerDetailAsync()
+    {
+        try
+        {
+            isLoading = true;
+            customerDetail = await CustomerClientService.GetCustomerDetailAsync(CustomerId);
+        }
+        catch (Exception ex)
+        {
+            await MessageModalService.Error($"Lỗi khi tải thông tin khách hàng: {ex.Message}");
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    async Task LoadOrdersAsync()
+    {
+        try
+        {
+            isLoadingOrders = true;
+            var request = new GetListOrderRequestDTO
+            {
+                CodeFilter = orderFilter.CodeFilter,
+                CreationDateStartFilter = orderFilter.CreationDateStartFilter,
+                CreationDateEndFilter = orderFilter.CreationDateEndFilter,
+                OrderStatusFilter = orderFilter.OrderStatusFilter,
+                PageIndex = orderFilter.PageIndex,
+                PageSize = orderFilter.PageSize
+            };
+            var response = await OrderClientService.GetOrdersByCustomerIdAsync(request, CustomerId);
+            orders = response.Items.ToList();
+            totalOrders = response.TotalRecords;
+        }
+        catch (Exception ex)
+        {
+            await MessageModalService.Error($"Lỗi khi tải danh sách đơn hàng: {ex.Message}");
+        }
+        finally
+        {
+            isLoadingOrders = false;
+        }
+    }
+
+    async void OnFilterChanged()
+    {
+        orderFilter.PageIndex = 1;
+        await LoadOrdersAsync();
+    }
+
+    async Task OnPageChange(PaginationEventArgs args)
+    {
+        orderFilter.PageIndex = args.Page;
+        await LoadOrdersAsync();
+    }
+
+    async Task OnPageSizeChange(PaginationEventArgs args)
+    {
+        orderFilter.PageSize = args.PageSize;
+        orderFilter.PageIndex = 1;
+        await LoadOrdersAsync();
+    }
+
+    void ViewOrderDetail(Guid orderId)
+    {
+        NavigationManager.NavigateTo($"/order-detail/{orderId}");
+    }
+
+    void GoBack()
+    {
+        NavigationManager.NavigateTo("/manage-customer");
+    }
+
+    string GetOrderStatusText(EOrderStatus status)
+    {
+        return status switch
+        {
+            EOrderStatus.Pending => "Chờ xác nhận",
+            EOrderStatus.Confirmed => "Đã xác nhận",
+            EOrderStatus.InTransit => "Đang giao",
+            EOrderStatus.Completed => "Hoàn thành",
+            EOrderStatus.Canceled => "Đã hủy",
+            EOrderStatus.PendingReturn => "Chờ trả hàng",
+            EOrderStatus.Returned => "Đã trả hàng",
+            EOrderStatus.RejectReturned => "Từ chối trả hàng",
+            _ => status.ToString()
+        };
+    }
+
+    string GetOrderStatusColor(EOrderStatus status)
+    {
+        return status switch
+        {
+            EOrderStatus.Pending => "orange",
+            EOrderStatus.Confirmed => "blue",
+            EOrderStatus.InTransit => "purple",
+            EOrderStatus.Completed => "green",
+            EOrderStatus.Canceled => "red",
+            EOrderStatus.PendingReturn => "yellow",
+            EOrderStatus.Returned => "gray",
+            EOrderStatus.RejectReturned => "red",
+            _ => "default"
+        };
+    }
+
+    string GetPaymentMethodText(EOrderPaymentMethod method)
+    {
+        return method switch
+        {
+            EOrderPaymentMethod.Cash => "Tiền mặt",
+            EOrderPaymentMethod.Transfer => "Chuyển khoản",
+            _ => method.ToString()
+        };
+    }
+}

@@ -18,7 +18,6 @@ namespace MeoMeo.Domain.Entities
         public virtual User User { get; set; }
         public virtual Cart Cart { get; set; }
         public virtual ICollection<Order> Orders { get; set; }
-        public virtual ICollection<CustomersBank> CustomersBanks { get; set; }
         public virtual ICollection<DeliveryAddress> DeliveryAddresses { get; set; }
         public virtual ICollection<Wishlist> Wishlists { get; set; }
     }

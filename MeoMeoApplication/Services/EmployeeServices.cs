@@ -7,12 +7,14 @@ using MeoMeo.Domain.Commons;
 using MeoMeo.Domain.Entities;
 using MeoMeo.Domain.IRepositories;
 using MeoMeo.Shared.Utilities;
+using MeoMeo.Shared.IServices;
 using Microsoft.EntityFrameworkCore;
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using MeoMeo.Domain.Commons.Enums;
 
 namespace MeoMeo.Application.Services
 {
@@ -24,9 +26,11 @@ namespace MeoMeo.Application.Services
         private readonly IUserRepository _userRepository;
         private readonly IRoleRepository _roleRepository;
         private readonly IUserRoleRepository _userRoleRepository;
+        private readonly IEmailService _emailService;
 
-        public EmployeeServices(IEmployeeRepository repository, IMapper mapper, IUnitOfWork unitOfWork, 
-            IUserRepository userRepository, IRoleRepository roleRepository, IUserRoleRepository userRoleRepository)
+        public EmployeeServices(IEmployeeRepository repository, IMapper mapper, IUnitOfWork unitOfWork,
+            IUserRepository userRepository, IRoleRepository roleRepository, IUserRoleRepository userRoleRepository,
+            IEmailService emailService)
         {
             _repository = repository;
             _mapper = mapper;
@@ -34,6 +38,7 @@ namespace MeoMeo.Application.Services
             _userRepository = userRepository;
             _roleRepository = roleRepository;
             _userRoleRepository = userRoleRepository;
+            _emailService = emailService;
         }
 
         public async Task<CreateOrUpdateEmployeeResponseDTO> CreateEmployeeAsync(CreateOrUpdateEmployeeDTO employee)
@@ -41,12 +46,54 @@ namespace MeoMeo.Application.Services
             try
             {
                 await _unitOfWork.BeginTransactionAsync();
-                
+
+                // Check trùng số điện thoại
+                var existingPhoneEmployee = await _repository.Query()
+                    .FirstOrDefaultAsync(e => e.PhoneNumber == employee.PhoneNumber);
+                if (existingPhoneEmployee != null)
+                {
+                    await _unitOfWork.RollbackAsync();
+                    return new CreateOrUpdateEmployeeResponseDTO
+                    {
+                        ResponseStatus = BaseStatus.Error,
+                        Message = "Số điện thoại này đã được sử dụng bởi nhân viên khác."
+                    };
+                }
+
+                // Check trùng email
+                if (!string.IsNullOrEmpty(employee.Email))
+                {
+                    var existingEmailUser = await _userRepository.Query()
+                        .FirstOrDefaultAsync(u => u.Email == employee.Email);
+                    if (existingEmailUser != null)
+                    {
+                        await _unitOfWork.RollbackAsync();
+                        return new CreateOrUpdateEmployeeResponseDTO
+                        {
+                            ResponseStatus = BaseStatus.Error,
+                            Message = "Email này đã được sử dụng bởi tài khoản khác."
+                        };
+                    }
+
+                    // Check trùng userName
+                    var existingUserNameUser = await _userRepository.Query()
+                        .FirstOrDefaultAsync(u => u.UserName == employee.Email);
+                    if (existingUserNameUser != null)
+                    {
+                        await _unitOfWork.RollbackAsync();
+                        return new CreateOrUpdateEmployeeResponseDTO
+                        {
+                            ResponseStatus = BaseStatus.Error,
+                            Message = "Tên đăng nhập này đã được sử dụng bởi tài khoản khác."
+                        };
+                    }
+                }
+
                 var userId = Guid.NewGuid();
                 var usertoAdd = new User()
                 {
                     Id = userId,
-                    PasswordHash = FunctionHelper.ComputerSha256Hash(employee.Password ?? "Ab@12345"), 
+                    PasswordHash = FunctionHelper.ComputerSha256Hash(employee.Password ?? "Ab@12345"),
                     Avatar = "//////",
                     LastLogin = DateTime.Now,
                     CreationTime = DateTime.Now,
@@ -56,7 +103,7 @@ namespace MeoMeo.Application.Services
                     IsLocked = false
                 };
                 await _userRepository.AddAsync(usertoAdd);
-                
+
                 // Tìm role Employee và gán cho user
                 var employeeRole = await _roleRepository.GetRoleByName("Employee");
                 if (employeeRole != null)
@@ -68,15 +115,35 @@ namespace MeoMeo.Application.Services
                     };
                     await _userRoleRepository.AddUserRole(userRole);
                 }
-                
+
                 // Tạo employee
                 var mappedEmployee = _mapper.Map<Employee>(employee);
                 mappedEmployee.Id = Guid.NewGuid();
                 mappedEmployee.UserId = userId;
+
+                // Tự động sinh mã nhân viên theo format NV00001, NV00002...
+                mappedEmployee.Code = await GenerateEmployeeCodeAsync();
+
                 var response = await _repository.CreateEmployeeAsync(mappedEmployee);
-                
+
                 await _unitOfWork.SaveChangesAsync();
                 await _unitOfWork.CommitAsync();
+
+                // Gửi email thông báo tạo nhân viên
+                try
+                {
+                    await _emailService.SendEmployeeNotificationAsync(
+                        employee.Email ?? "employee@meomeo.com",
+                        employee.Name,
+                        "tạo mới"
+                    );
+                }
+                catch (Exception emailEx)
+                {
+                    // Log lỗi email nhưng không làm fail transaction
+                    Console.WriteLine($"Failed to send employee creation email: {emailEx.Message}");
+                }
+
                 return _mapper.Map<CreateOrUpdateEmployeeResponseDTO>(response);
             }
             catch (Exception ex)
@@ -155,7 +222,7 @@ namespace MeoMeo.Application.Services
             }
         }
 
-        public async Task<CreateOrUpdateEmployeeResponseDTO> GetEmployeeByIdAsyncccc(Guid id)
+        public async Task<CreateOrUpdateEmployeeResponseDTO> GetEmployeeByIdAsync(Guid id)
         {
             CreateOrUpdateEmployeeResponseDTO responseDTO = new CreateOrUpdateEmployeeResponseDTO();
 
@@ -175,25 +242,250 @@ namespace MeoMeo.Application.Services
 
         public async Task<CreateOrUpdateEmployeeResponseDTO> UpdateEmployeeAsync(CreateOrUpdateEmployeeDTO employee)
         {
-            var existing = await _repository.GetEmployeeByIdAsync(employee.Id);
-            if (existing == null)
+            try
             {
+                await _unitOfWork.BeginTransactionAsync();
+
+                var existing = await _repository.GetEmployeeByIdAsync(employee.Id);
+                if (existing == null)
+                {
+                    await _unitOfWork.RollbackAsync();
+                    return new CreateOrUpdateEmployeeResponseDTO
+                    {
+                        ResponseStatus = BaseStatus.Error,
+                        Message = "Không tìm thấy nhân viên này."
+                    };
+                }
+
+                // Check trùng số điện thoại (khác với employee hiện tại)
+                var existingPhoneEmployee = await _repository.Query()
+                    .FirstOrDefaultAsync(e => e.PhoneNumber == employee.PhoneNumber && e.Id != employee.Id);
+                if (existingPhoneEmployee != null)
+                {
+                    await _unitOfWork.RollbackAsync();
+                    return new CreateOrUpdateEmployeeResponseDTO
+                    {
+                        ResponseStatus = BaseStatus.Error,
+                        Message = "Số điện thoại này đã được sử dụng bởi nhân viên khác."
+                    };
+                }
+
+                // Check trùng email (khác với user hiện tại)
+                if (!string.IsNullOrEmpty(employee.Email))
+                {
+                    var existingEmailUser = await _userRepository.Query()
+                        .FirstOrDefaultAsync(u => u.Email == employee.Email && u.Id != existing.UserId);
+                    if (existingEmailUser != null)
+                    {
+                        await _unitOfWork.RollbackAsync();
+                        return new CreateOrUpdateEmployeeResponseDTO
+                        {
+                            ResponseStatus = BaseStatus.Error,
+                            Message = "Email này đã được sử dụng bởi tài khoản khác."
+                        };
+                    }
+
+                    // Check trùng userName (khác với user hiện tại)
+                    var existingUserNameUser = await _userRepository.Query()
+                        .FirstOrDefaultAsync(u => u.UserName == employee.Email && u.Id != existing.UserId);
+                    if (existingUserNameUser != null)
+                    {
+                        await _unitOfWork.RollbackAsync();
+                        return new CreateOrUpdateEmployeeResponseDTO
+                        {
+                            ResponseStatus = BaseStatus.Error,
+                            Message = "Tên đăng nhập này đã được sử dụng bởi tài khoản khác."
+                        };
+                    }
+                }
+
+                // Không update Code khi edit, chỉ update các field khác
+                existing.Name = employee.Name;
+                existing.PhoneNumber = employee.PhoneNumber;
+                existing.DateOfBird = employee.DateOfBird ?? DateTime.Now;
+                existing.Address = employee.Address;
+                existing.Status = employee.Status;
+
+                await _repository.UpdateEmployeeAsync(existing);
+
+                // Update User data if UserId exists
+                if (existing.UserId != Guid.Empty)
+                {
+                    var user = await _userRepository.GetUserByIdAsync(existing.UserId);
+                    if (user != null)
+                    {
+                        // Luôn update email và userName từ employee.Email
+                        if (!string.IsNullOrEmpty(employee.Email))
+                        {
+                            user.Email = employee.Email;
+                        }
+                        await _userRepository.UpdateAsync(user);
+                    }
+                }
+
+                await _unitOfWork.CommitAsync();
+                Console.WriteLine($"[Update] Nhận ID: {employee.Id}");
+                var response = _mapper.Map<CreateOrUpdateEmployeeResponseDTO>(existing);
+                response.Message = "Update nhân viên successfully.";
+                response.ResponseStatus = BaseStatus.Success;
+                return response;
+            }
+            catch (Exception ex)
+            {
+                await _unitOfWork.RollbackAsync();
                 return new CreateOrUpdateEmployeeResponseDTO
                 {
                     ResponseStatus = BaseStatus.Error,
-                    Message = "Không tìm thấy nhân viên này."
-
+                    Message = $"Có lỗi xảy ra: {ex.Message}"
                 };
             }
+        }
 
-            _mapper.Map(employee, existing);
-            await _repository.UpdateEmployeeAsync(existing);
-            Console.WriteLine($"[Update] Nhận ID: {employee.Id}");
+        public async Task<string> GetOldUrlAvatar(Guid userId)
+        {
+            var user = await _userRepository.Query().FirstOrDefaultAsync(u => u.Id == userId);
+            if (user == null)
+            {
+                return "";
+            }
+            return user.Avatar ?? "";
+        }
 
-            var response = _mapper.Map<CreateOrUpdateEmployeeResponseDTO>(existing);
-            response.Message = "Update nhân viên successfully.";
-            response.ResponseStatus = BaseStatus.Success;
-            return response;
+        public async Task<CreateOrUpdateEmployeeResponseDTO> UpdateProfileAsync(CreateOrUpdateEmployeeDTO employee)
+        {
+            try
+            {
+                await _unitOfWork.BeginTransactionAsync();
+
+                // Update Employee
+                var existingEmployee = await _repository.GetEmployeeByIdAsync(employee.Id);
+                if (existingEmployee == null)
+                {
+                    await _unitOfWork.RollbackAsync();
+                    return new CreateOrUpdateEmployeeResponseDTO
+                    {
+                        ResponseStatus = BaseStatus.Error,
+                        Message = "Không tìm thấy nhân viên này."
+                    };
+                }
+
+                // Map Employee data
+                existingEmployee.Name = employee.Name;
+                existingEmployee.PhoneNumber = employee.PhoneNumber;
+                existingEmployee.DateOfBird = employee.DateOfBird ?? DateTime.Now;
+                existingEmployee.Address = employee.Address;
+
+                await _repository.UpdateEmployeeAsync(existingEmployee);
+
+                // Update User data if UserId exists
+                if (existingEmployee.UserId != Guid.Empty && !string.IsNullOrEmpty(employee.Email))
+                {
+                    var user = await _userRepository.GetUserByIdAsync(existingEmployee.UserId);
+                    if (user != null)
+                    {
+                        user.Email = employee.Email;
+                        await _userRepository.UpdateAsync(user);
+                    }
+                }
+
+                await _unitOfWork.CommitAsync();
+
+                var response = _mapper.Map<CreateOrUpdateEmployeeResponseDTO>(existingEmployee);
+                response.Message = "Cập nhật profile thành công.";
+                response.ResponseStatus = BaseStatus.Success;
+                return response;
+            }
+            catch (Exception ex)
+            {
+                await _unitOfWork.RollbackAsync();
+                return new CreateOrUpdateEmployeeResponseDTO
+                {
+                    ResponseStatus = BaseStatus.Error,
+                    Message = $"Có lỗi xảy ra: {ex.Message}"
+                };
+            }
+        }
+
+        public async Task<BaseResponse> UploadAvatarAsync(Guid userId, FileUploadResult file)
+        {
+            var user = await _userRepository.Query().FirstOrDefaultAsync(u => u.Id == userId);
+            if (user == null)
+            {
+                return new BaseResponse()
+                {
+                    ResponseStatus = BaseStatus.Error,
+                    Message = "User not found"
+                };
+            }
+            user.Avatar = file.RelativePath;
+            await _userRepository.UpdateAsync(user);
+            return new BaseResponse()
+            {
+                ResponseStatus = BaseStatus.Success,
+                Message = "Cập nhật avatar thành công"
+            };
+        }
+
+        public async Task<BaseResponse> ChangePasswordAsync(Guid userId, ChangePasswordDTO request)
+        {
+            var user = await _userRepository.Query().FirstOrDefaultAsync(u => u.Id == userId);
+            if (user == null)
+            {
+                return new BaseResponse()
+                {
+                    ResponseStatus = BaseStatus.Error,
+                    Message = "User not found"
+                };
+            }
+            var currentPassword = FunctionHelper.ComputerSha256Hash(request.CurrentPassword);
+            if (user.PasswordHash != currentPassword)
+            {
+                return new BaseResponse()
+                {
+                    ResponseStatus = BaseStatus.Error,
+                    Message = "Mật khẩu hiện tại không chính xác"
+                };
+            }
+            var newPassword = FunctionHelper.ComputerSha256Hash(request.NewPassword);
+            user.PasswordHash = newPassword;
+            await _userRepository.UpdateAsync(user);
+            return new BaseResponse()
+            {
+                ResponseStatus = BaseStatus.Success,
+                Message = "Thay đổi mật khẩu thành công"
+            };
+        }
+
+        private async Task<string> GenerateEmployeeCodeAsync()
+        {
+            try
+            {
+                // Lấy mã nhân viên lớn nhất hiện tại
+                var lastEmployee = await _repository.Query()
+                    .Where(e => e.Code.StartsWith("NV"))
+                    .OrderByDescending(e => e.Code)
+                    .FirstOrDefaultAsync();
+
+                int nextNumber = 1;
+                if (lastEmployee != null && !string.IsNullOrEmpty(lastEmployee.Code))
+                {
+                    // Extract số từ mã cuối cùng (VD: NV00001 -> 1)
+                    var codeNumber = lastEmployee.Code.Substring(2); // Bỏ "NV"
+                    if (int.TryParse(codeNumber, out int lastNumber))
+                    {
+                        nextNumber = lastNumber + 1;
+                    }
+                }
+
+                // Format thành NV00001, NV00002, NV00003...
+                return $"NV{nextNumber:D5}";
+            }
+            catch (Exception ex)
+            {
+                // Fallback nếu có lỗi
+                var randomNumber = new Random().Next(1, 99999);
+                return $"NV{randomNumber:D5}";
+            }
         }
     }
 }

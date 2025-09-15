@@ -5,6 +5,7 @@ using MeoMeo.Contract.DTOs.Material;
 using MeoMeo.Contract.DTOs.Order;
 using MeoMeo.Contract.DTOs.OrderDetail;
 using MeoMeo.Contract.DTOs.InventoryBatch;
+using MeoMeo.Contract.DTOs.ImportBatch;
 using MeoMeo.Contract.DTOs.Product;
 using MeoMeo.Contract.DTOs.ProductDetail;
 using MeoMeo.Contract.DTOs.ProductReview;
@@ -44,8 +45,6 @@ namespace MeoMeo.Contract
             CreateMap<CreateOrUpdateEmployeeDTO, Employee>();
             CreateMap<CreateOrUpdateCustomerDTO, Customers>();
             CreateMap<CreateOrUpdateResetPasswordHistoryDTO, ResetPasswordHistory>();
-            CreateMap<CreateOrUpdateBankDTO, Bank>();
-            CreateMap<CreateOrUpdateCustomersBankDTO, CustomersBank>();
             CreateMap<CartDTO, Cart>();
             CreateMap<CartDetailDTO, CartDetail>();
             CreateMap<ImageDTO, Image>();
@@ -60,16 +59,27 @@ namespace MeoMeo.Contract
             CreateMap<InventoryBatchDTO, InventoryBatch>();
             CreateMap<InventoryBatch, InventoryBatchResponseDTO>();
             CreateMap<InventoryBatchResponseDTO, InventoryBatch>();
+
+            // ImportBatch mappings
+            CreateMap<ImportBatch, ImportBatchDTO>();
+            CreateMap<ImportBatchDTO, ImportBatch>();
+            CreateMap<ImportBatch, ImportBatchResponseDTO>();
+            CreateMap<ImportBatchResponseDTO, ImportBatch>();
             CreateMap<CreateOrUpdateMaterialDTO, Material>();
             CreateMap<Voucher, CreateOrUpdateVoucherResponseDTO>();
             CreateMap<Promotion, CreateOrUpdatePromotionResponseDTO>();
             CreateMap<PromotionDetail, CreateOrUpdatePromotionDetailResponseDTO>();
             CreateMap<PromotionDetail, CreateOrUpdatePromotionDetailDTO>();
             CreateMap<CreateOrUpdatePromotionDetailDTO, PromotionDetail>();
-            CreateMap<Bank, CreateOrUpdateBankResponseDTO>();
             CreateMap<User, CreateOrUpdateUserResponseDTO>();
-            CreateMap<User, UserDTO>();
-            CreateMap<Employee, CreateOrUpdateEmployeeResponseDTO>();
+            CreateMap<User, UserDTO>()
+                .ForMember(dest => dest.FullName, opt => opt.MapFrom(src => src.Employee != null ? src.Employee.Name : src.UserName));
+            CreateMap<Employee, CreateOrUpdateEmployeeResponseDTO>()
+                .ForMember(dest => dest.UserName, opt => opt.MapFrom(src => src.User.UserName))
+                .ForMember(dest => dest.Avatar, opt => opt.MapFrom(src => src.User.Avatar))
+                .ForMember(dest => dest.LastLogin, opt => opt.MapFrom(src => src.User.LastLogin))
+                .ForMember(dest => dest.CreationTime, opt => opt.MapFrom(src => src.User.CreationTime))
+                .ForMember(dest => dest.Email, opt => opt.MapFrom(src => src.User.Email));
             CreateMap<CreateOrUpdateDistrictDTO, District>();
             CreateMap<Order, CreateOrUpdateOrderResponse>();
             CreateMap<Customers, CreateOrUpdateCustomerResponse>();
@@ -81,7 +91,6 @@ namespace MeoMeo.Contract
             CreateMap<CreateOrUpdateSeasonDTO, Season>();
             CreateMap<Customers, CreateOrUpdateCustomerResponse>();
             CreateMap<Customers, CustomerDTO>();
-            CreateMap<Bank, BankDTO>();
             CreateMap<Material, CreateOrUpdateMaterialDTO>();
             CreateMap<Material, CreateOrUpdateMaterialResponse>();
             CreateMap<Size, SizeDTO>();
@@ -89,7 +98,12 @@ namespace MeoMeo.Contract
             CreateMap<Employee, CreateOrUpdateEmployeeDTO>();
             CreateMap<CreateOrUpdateEmployeeDTO, Employee>();
             CreateMap<CreateOrUpdateEmployeeResponseDTO, Employee>();
-            CreateMap<Employee, CreateOrUpdateEmployeeResponseDTO>();
+            CreateMap<Employee, CreateOrUpdateEmployeeResponseDTO>()
+                .ForMember(dest => dest.UserName, opt => opt.MapFrom(src => src.User.UserName))
+                .ForMember(dest => dest.Avatar, opt => opt.MapFrom(src => src.User.Avatar))
+                .ForMember(dest => dest.LastLogin, opt => opt.MapFrom(src => src.User.LastLogin))
+                .ForMember(dest => dest.CreationTime, opt => opt.MapFrom(src => src.User.CreationTime))
+                .ForMember(dest => dest.Email, opt => opt.MapFrom(src => src.User.Email));
             CreateMap<Order, OrderDTO>();
             CreateMap<OrderDetail, OrderDetailDTO>()
                 .ForMember(dest => dest.SizeName, opt => opt.MapFrom(src => src.ProductDetail.Size.Value))
@@ -104,7 +118,8 @@ namespace MeoMeo.Contract
             CreateMap<SystemConfigDTO, CreateOrUpdateSystemConfigResponseDTO>();
             CreateMap<SystemConfigDTO, CreateOrUpdateSystemConfigDTO>();
             CreateMap<SystemConfigDTO, SystemConfig>();
-            CreateMap<User, UserDTO>();
+            CreateMap<User, UserDTO>()
+                .ForMember(dest => dest.FullName, opt => opt.MapFrom(src => src.Employee != null ? src.Employee.Name : src.UserName));
             CreateMap<ProductDetail, ProductDetailGrid>().IgnoreAllNonExisting();
             CreateMap<Image, ProductMediaUpload>()
                 .ForMember(dest => dest.ImageUrl, opt => opt.MapFrom(src => src.URL))

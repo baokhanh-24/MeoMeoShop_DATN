@@ -33,105 +33,89 @@
                 Thêm địa chỉ mới
             </Button>
         </div>
-
-        <!-- Addresses List -->
-        @if (isLoading)
-        {
-            <div class="loading-section">
-                <Spin Size="SpinSize.Large"/>
-                <p>Đang tải danh sách địa chỉ...</p>
-            </div>
-        }
-        else if (addresses.Any())
-        {
-            <div class="address-list">
-                @for (int i = 0; i < addresses.Count; i++)
-                {
-                    var address = addresses[i];
-                    <div class="address-item">
-                        <div class="d-flex justify-content-between">
-                            <div class="address-content">
-                                <div class="address-info">
-                                    <div class="d-flex gap-1 justify-items-center">
-                                        <div class="address-name">
-                                            <i class="fas fa-user"></i> @address.Name
-                                        </div>
-                                        <div class=""> | </div>
-                                        <div class="address-phone">
-                                            <i class="fas fa-phone"></i> @address.PhoneNumber
-                                        </div>
+        <div class="address-list">
+            @for (int i = 0; i < addresses.Count; i++)
+            {
+                var address = addresses[i];
+                <div class="address-item">
+                    <div class="d-flex justify-content-between">
+                        <div class="address-content">
+                            <div class="address-info">
+                                <div class="d-flex gap-1 justify-items-center">
+                                    <div class="address-name">
+                                        <i class="fas fa-user"></i> @address.Name
                                     </div>
-                                    <div class="d-flex gap-1 justify-items-center">
-                                        <div class="address-detail">
-                                            <i class="fas fa-location-arrow"></i>
-                                            @address.FullAddress
-                                        </div>
+                                    <div class=""> | </div>
+                                    <div class="address-phone">
+                                        <i class="fas fa-phone"></i> @address.PhoneNumber
+                                    </div>
+                                </div>
+                                <div class="d-flex gap-1 justify-items-center">
+                                    <div class="address-detail">
+                                        <i class="fas fa-location-arrow"></i>
+                                        @address.FullAddress
                                     </div>
                                 </div>
                             </div>
-                            <div class="address-actions">
-                                <Button Type="@ButtonType.Link" Icon="edit" OnClick="() => EditAddress(address)">
-                                    Sửa
-                                </Button>
-                                <Button Type="@ButtonType.Link" Icon="delete" Danger="true" OnClick="() => DeleteAddress(address)">
-                                    Xóa
-                                </Button>
-                            </div>
+                        </div>
+                        <div class="address-actions">
+                            <Button Type="@ButtonType.Link" Icon="edit" OnClick="() => EditAddress(address)">
+                                Sửa
+                            </Button>
+                            <Button Type="@ButtonType.Link" Icon="delete" Danger="true"
+                                OnClick="() => DeleteAddress(address)">
+                                Xóa
+                            </Button>
                         </div>
                     </div>
-                    @if (i < addresses.Count - 1)
-                    {
-                        <hr />
-                    }
+                </div>
+                @if (i < addresses.Count - 1)
+                {
+                    <hr />
                 }
+            }
 
-            </div>
-        }
+        </div>
         else
         {
-            <div class="empty-state">
-                <Empty>
-                    <Button Type="@ButtonType.Primary" Icon="plus" OnClick="ShowCreateAddressModal">
-                        Thêm địa chỉ đầu tiên
-                    </Button>
-                </Empty>
-            </div>
+        <div class="empty-state">
+            <Empty>
+                <Button Type="@ButtonType.Primary" Icon="plus" OnClick="ShowCreateAddressModal">
+                    Thêm địa chỉ đầu tiên
+                </Button>
+            </Empty>
+        </div>
         }
     </div>
 </div>
 
 <!-- Create/Edit Address Modal -->
 <Modal Title="@(editingAddress.Id == Guid.Empty ? "Thêm địa chỉ mới" : "Sửa địa chỉ")"
-       Visible="@showCreateOrUpdateModal" 
-       OnOk="HandleOkAddress" 
-       OnCancel="HandleCancelAddress"
-       Width="600">
+    Visible="@showCreateOrUpdateModal" OnOk="HandleOkAddress" OnCancel="HandleCancelAddress" Width="600">
     <Form Model="@editingAddress" LabelAlign="AntLabelAlignType.Left" LabelColSpan="6" WrapperColSpan="18">
         <FormItem Label="Họ tên" Required>
             <Input @bind-Value="editingAddress.Name" MaxLength="255" Placeholder="Nhập họ tên..." />
         </FormItem>
         <FormItem Label="Điện thoại" Required>
-            <Input @bind-Value="editingAddress.PhoneNumber" MaxLength="11" Placeholder="SĐT..." 
-                   inputmode="numeric" pattern="[0-9]*" />
+            <Input @bind-Value="editingAddress.PhoneNumber" MaxLength="11" Placeholder="SĐT..." inputmode="numeric"
+                pattern="[0-9]*" />
         </FormItem>
         <FormItem Label="Tỉnh/Thành phố" Required>
             <Select TItem="GhnLocationItem" TItemValue="int?" @bind-Value="selectedProvinceId"
-                    Placeholder="Chọn tỉnh/thành phố..." OnSelectedItemChanged="OnProvinceChange"
-                    DataSource="provinces" ValueName="Id" LabelName="Name">
+                Placeholder="Chọn tỉnh/thành phố..." OnSelectedItemChanged="OnProvinceChange" DataSource="provinces"
+                ValueName="Id" LabelName="Name">
             </Select>
         </FormItem>
         <FormItem Label="Quận/Huyện" Required>
             <Select TItem="GhnLocationItem" TItemValue="int?" @bind-Value="selectedDistrictId"
-                    Placeholder="Chọn quận/huyện..." OnSelectedItemChanged="OnDistrictChange"
-                    Disabled="@(!selectedProvinceId.HasValue)" DataSource="districts" ValueName="Id"
-                    LabelName="Name">
+                Placeholder="Chọn quận/huyện..." OnSelectedItemChanged="OnDistrictChange"
+                Disabled="@(!selectedProvinceId.HasValue)" DataSource="districts" ValueName="Id" LabelName="Name">
             </Select>
         </FormItem>
         <FormItem Label="Phường/Xã" Required>
             <Select TItem="GhnLocationItem" TItemValue="int?" @bind-Value="selectedCommuneId"
-                    Placeholder="Chọn phường/xã..." OnSelectedItemChanged="OnCommuneChange"
-                    Disabled="@(!selectedProvinceId.HasValue)" DataSource="wards" ValueName="Id"
-                    LabelName="Name">
+                Placeholder="Chọn phường/xã..." OnSelectedItemChanged="OnCommuneChange"
+                Disabled="@(!selectedProvinceId.HasValue)" DataSource="wards" ValueName="Id" LabelName="Name">
             </Select>
         </FormItem>
         <FormItem Label="Địa chỉ chi tiết" Required>

@@ -19,18 +19,33 @@ namespace MeoMeo.Application.Services
             _repository = repository;
             _mapper = mapper;
         }
+        
+        
 
-        public async Task<CreateOrUpdateUserResponseDTO> ChangePasswordAsync(ChangePasswordRequestDTO request)
+        public async Task<CreateOrUpdateUserResponseDTO> ChangePasswordAsync(Guid userId, ChangePasswordDTO changePasswordDto)
         {
-            var user = await _repository.GetUserByIdAsync(request.UserId);
+            var user = await _repository.GetUserByIdAsync(userId);
             if (user == null)
             {
                 return new CreateOrUpdateUserResponseDTO
                 {
                     ResponseStatus = BaseStatus.Error,
-                    Message = "Tài khỏan không tồn tại."
+                    Message = "Tài khoản không tồn tại."
                 };
-            } await _repository.UpdateUserAsync(user);
+            }
+
+            // Kiểm tra mật khẩu hiện tại (có thể thêm logic hash password)
+            if (user.PasswordHash != changePasswordDto.CurrentPassword)
+            {
+                return new CreateOrUpdateUserResponseDTO
+                {
+                    ResponseStatus = BaseStatus.Error,
+                    Message = "Mật khẩu hiện tại không đúng."
+                };
+            }
+
+            user.PasswordHash = changePasswordDto.NewPassword;
+            await _repository.UpdateUserAsync(user);
 
             return new CreateOrUpdateUserResponseDTO
             {

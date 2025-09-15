@@ -177,5 +177,95 @@ namespace MeoMeo.Shared.Services
                 return new PagingExtensions.PagedResult<ProductReviewDTO>();
             }
         }
+
+        // Admin methods implementation
+        public async Task<PagingExtensions.PagedResult<ProductReviewDTO>> GetAllReviewsForAdminAsync(GetListProductReviewForAdminDTO request)
+        {
+            try
+            {
+                var queryString = BuildQuery.ToQueryString(request);
+                var url = $"/api/ProductReviews/admin/all?{queryString}";
+                var response = await _httpClient.GetAsync<PagingExtensions.PagedResult<ProductReviewDTO>>(url);
+                return response ?? new PagingExtensions.PagedResult<ProductReviewDTO>();
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Có lỗi xảy ra khi lấy danh sách đánh giá cho admin: {Message}", ex.Message);
+                return new PagingExtensions.PagedResult<ProductReviewDTO>();
+            }
+        }
+
+        public async Task<BaseResponse> ReplyToReviewAsync(Guid reviewId, string answer)
+        {
+            try
+            {
+                var url = $"/api/ProductReviews/admin/{reviewId}/reply";
+                var dto = new ReplyToReviewDTO { Answer = answer };
+                var response = await _httpClient.PutAsync<ReplyToReviewDTO, BaseResponse>(url, dto);
+                return response ?? new BaseResponse { ResponseStatus = BaseStatus.Error, Message = "Có lỗi xảy ra" };
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Có lỗi xảy ra khi trả lời đánh giá: {Message}", ex.Message);
+                return new BaseResponse { ResponseStatus = BaseStatus.Error, Message = ex.Message };
+            }
+        }
+
+        public async Task<BaseResponse> ToggleReviewVisibilityAsync(Guid reviewId, string? reason = null)
+        {
+            try
+            {
+                var url = $"/api/ProductReviews/admin/{reviewId}/toggle-visibility";
+                var dto = new ToggleReviewVisibilityDTO
+                {
+                    ReviewId = reviewId,
+                    IsHidden = null, // null means toggle
+                    Reason = reason
+                };
+                var response = await _httpClient.PutAsync<ToggleReviewVisibilityDTO, BaseResponse>(url, dto);
+                return response ?? new BaseResponse { ResponseStatus = BaseStatus.Error, Message = "Có lỗi xảy ra" };
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Có lỗi xảy ra khi thay đổi trạng thái hiển thị đánh giá: {Message}", ex.Message);
+                return new BaseResponse { ResponseStatus = BaseStatus.Error, Message = ex.Message };
+            }
+        }
+
+        public async Task<BaseResponse> SetReviewVisibilityAsync(Guid reviewId, bool isHidden, string? reason = null)
+        {
+            try
+            {
+                var url = $"/api/ProductReviews/admin/{reviewId}/toggle-visibility";
+                var dto = new ToggleReviewVisibilityDTO
+                {
+                    ReviewId = reviewId,
+                    IsHidden = isHidden, // Specific value instead of toggle
+                    Reason = reason
+                };
+                var response = await _httpClient.PutAsync<ToggleReviewVisibilityDTO, BaseResponse>(url, dto);
+                return response ?? new BaseResponse { ResponseStatus = BaseStatus.Error, Message = "Có lỗi xảy ra" };
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Có lỗi xảy ra khi thiết lập trạng thái hiển thị đánh giá: {Message}", ex.Message);
+                return new BaseResponse { ResponseStatus = BaseStatus.Error, Message = ex.Message };
+            }
+        }
+
+        public async Task<List<ProductReviewDTO>> GetReviewsByOrderIdAsync(Guid orderId)
+        {
+            try
+            {
+                var url = $"/api/ProductReviews/admin/by-order/{orderId}";
+                var response = await _httpClient.GetAsync<List<ProductReviewDTO>>(url);
+                return response ?? new List<ProductReviewDTO>();
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Có lỗi xảy ra khi lấy đánh giá theo đơn hàng: {Message}", ex.Message);
+                return new List<ProductReviewDTO>();
+            }
+        }
     }
 }

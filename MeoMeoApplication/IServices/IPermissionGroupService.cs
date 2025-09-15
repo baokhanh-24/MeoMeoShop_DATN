@@ -10,8 +10,7 @@ namespace MeoMeo.Application.IServices
         Task<List<PermissionGroupDTO>> GetAllPermissionGroupsAsync();
         Task<List<PermissionGroupDTO>> GetPermissionGroupsTreeAsync();
         Task<PermissionGroupDTO> GetPermissionGroupByIdAsync(Guid id);
-        Task<BaseResponse> CreatePermissionGroupAsync(CreateOrUpdatePermissionGroupDTO dto);
-        Task<BaseResponse> UpdatePermissionGroupAsync(CreateOrUpdatePermissionGroupDTO dto);
-        Task<BaseResponse> DeletePermissionGroupAsync(Guid id);
+        // CRUD operations removed - PermissionGroups are fixed in database
+        // Only GET operations are allowed
     }
 }

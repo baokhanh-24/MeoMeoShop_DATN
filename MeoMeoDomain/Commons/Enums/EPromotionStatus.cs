@@ -4,8 +4,6 @@ namespace MeoMeo.Domain.Commons.Enums
 {
     public enum EPromotionStatus
     {
-        [Display(Name = "Nháp")]
-        Draft,
         [Display(Name = "Chưa diễn ra")]
         NotHappenedYet,
         [Display(Name = "Đang diễn ra")]

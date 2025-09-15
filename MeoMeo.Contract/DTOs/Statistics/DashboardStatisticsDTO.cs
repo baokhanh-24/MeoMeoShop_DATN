@@ -1,9 +1,10 @@
 using System;
 using System.Collections.Generic;
+using MeoMeo.Contract.Commons;
 
 namespace MeoMeo.Contract.DTOs.Statistics
 {
-    public class DashboardStatisticsDTO
+    public class DashboardStatisticsDTO : BaseResponse
     {
         public RevenueStatisticsDTO Revenue { get; set; } = new();
         public OrderStatisticsDTO Orders { get; set; } = new();
@@ -16,7 +17,7 @@ namespace MeoMeo.Contract.DTOs.Statistics
         public List<OrdersByHourDTO> OrdersByHour { get; set; } = new();
     }
 
-    public class RevenueStatisticsDTO
+    public class RevenueStatisticsDTO : BaseResponse
     {
         public decimal TotalRevenue { get; set; }
         public decimal TodayRevenue { get; set; }
@@ -25,7 +26,7 @@ namespace MeoMeo.Contract.DTOs.Statistics
         public decimal GrowthPercentage { get; set; }
     }
 
-    public class OrderStatisticsDTO
+    public class OrderStatisticsDTO : BaseResponse
     {
         public int TotalOrders { get; set; }
         public int TodayOrders { get; set; }
@@ -38,7 +39,7 @@ namespace MeoMeo.Contract.DTOs.Statistics
         public int InTransitOrders { get; set; }
     }
 
-    public class CustomerStatisticsDTO
+    public class CustomerStatisticsDTO : BaseResponse
     {
         public int TotalCustomers { get; set; }
         public int NewCustomersToday { get; set; }
@@ -46,12 +47,12 @@ namespace MeoMeo.Contract.DTOs.Statistics
         public int ActiveCustomers { get; set; }
     }
 
-    public class InventoryStatisticsDTO
+    public class InventoryStatisticsDTO : BaseResponse
     {
         public int TotalProducts { get; set; }
         public int LowStockProducts { get; set; }
         public int OutOfStockProducts { get; set; }
-        public int TotalInventoryValue { get; set; }
+        public decimal TotalInventoryValue { get; set; }
         public List<StockByProductDTO> StockByProduct { get; set; } = new();
     }
 
@@ -65,19 +66,25 @@ namespace MeoMeo.Contract.DTOs.Statistics
     public class TopProductDTO
     {
         public string ProductName { get; set; } = string.Empty;
+        public string SizeValue { get; set; } = string.Empty;
+        public string ColourName { get; set; } = string.Empty;
+        public string ProductVariant { get; set; } = string.Empty; // Format: "ProductName - SizeValue - ColourName"
         public int QuantitySold { get; set; }
         public decimal Revenue { get; set; }
     }
 
-    public class StockByProductDTO
+    public class StockByProductDTO : BaseResponse
     {
         public string ProductName { get; set; } = string.Empty;
+        public string SizeValue { get; set; } = string.Empty;
+        public string ColourName { get; set; } = string.Empty;
+        public string ProductVariant { get; set; } = string.Empty; // Format: "ProductName - SizeValue - ColourName"
         public int StockQuantity { get; set; }
         public int LowStockThreshold { get; set; }
         public bool IsLowStock => StockQuantity <= LowStockThreshold;
     }
 
-    public class OrdersByHourDTO
+    public class OrdersByHourDTO : BaseResponse
     {
         public string Hour { get; set; } = string.Empty;
         public int OrderCount { get; set; }

@@ -1,5 +1,4 @@
-﻿using MeoMeo.Domain.Commons.Enums;
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -14,7 +13,6 @@ namespace MeoMeo.Contract.DTOs.Promotion
         public DateTime? StartDate { get; set; }
         public DateTime? EndDate { get; set; }
         public string Description { get; set; }
-        public EPromotionStatus Status { get; set; }
         public DateTime CreationTime { get; set; } = DateTime.Now;
         public DateTime? LastModificationTime { get; set; }
         public Guid CreatedBy { get; set; }

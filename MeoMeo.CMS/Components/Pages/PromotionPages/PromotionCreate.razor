@@ -1,118 +1,209 @@
 ﻿@page "/promotion-create"
+@page "/promotion-create/{Id:guid}"
 @using MeoMeo.Shared.IServices;
 @using MeoMeo.Contract.Commons
 @using MeoMeo.Contract.DTOs.Promotion
 @using MeoMeo.Contract.DTOs.PromotionDetail
 @using MeoMeo.Contract.DTOs.ProductDetail
-@using MeoMeo.Domain.Commons.Enums
+@using MeoMeo.Contract.DTOs.Product
+@using System.ComponentModel.DataAnnotations
 @inject IPromotionClientService PromotionService
 @inject IPromotionDetailClientService PromotionDetailService
-@inject IProductDetailClientService ProductDetailService
+@inject IProductClientService ProductClientService
 @inject NavigationManager Navigation
+@inject IMessageService MessageService
+@inject IConfiguration Configuration
 
-<div class="d-flex justify-content-between">
-    <Breadcrumb>
-        <BreadcrumbItem Href="/">Trang chủ</BreadcrumbItem>
-        <BreadcrumbItem Href="/manage-promotion">Chương trình khuyến mãi</BreadcrumbItem>
-        <BreadcrumbItem Href="/promotion-create">Thêm mới chương trình khuyến mãi</BreadcrumbItem>
-    </Breadcrumb>
-</div>
-<h3>Thêm mới chương trình khuyến mãi</h3>
-
-<EditForm Model="promotion" OnValidSubmit="HandleSave">
-    <DataAnnotationsValidator />
-    <ValidationSummary />
-
-    <div class="row">
-        <div class="col-md-6">
-            <InputText @bind-Value="promotion.Title" class="form-control" placeholder="Tên chương trình" />
-            <InputDate @bind-Value="promotion.StartDate" class="form-control mt-2" placeholder="Bắt đầu" />
-            <InputDate @bind-Value="promotion.EndDate" class="form-control mt-2" placeholder="Kết thúc" />
-            <InputTextArea @bind-Value="promotion.Description" class="form-control mt-2" placeholder="Mô tả" />
+<div class="content-background layout-container">
+    <div class="d-flex justify-content-between mb-3">
+        <Breadcrumb>
+            <BreadcrumbItem Href="/">Trang chủ</BreadcrumbItem>
+            <BreadcrumbItem Href="/manage-promotion">Chương trình khuyến mãi</BreadcrumbItem>
+            <BreadcrumbItem>
+                <a class="current">@(IsEdit ? "Cập nhật" : "Thêm mới") chương trình khuyến mãi</a>
+            </BreadcrumbItem>
+        </Breadcrumb>
+        <div class="group-breadcumb">
+            <Button Class="btn-back" Icon="arrow-left" OnClick="HandleGoBack">Quay lại</Button>
         </div>
     </div>
 
-    <h5 class="mt-4">Danh sách sản phẩm khuyến mãi</h5>
+    @if (promotion != null)
+    {
+<div class="promotion-form-container">
+                <!-- Promotion Information -->
+                <Card Title="@(IsEdit ? "Cập nhật chương trình khuyến mãi" : "Thông tin chương trình khuyến mãi")" Class="mb-4">
+                    <Form Model="promotion" OnFinish="HandleSave">
+                        <GridRow Gutter="(16, 16)">
+                            <GridCol Span="12">
+                                <FormItem Label="Tên chương trình" Required>
+                                    <Input @bind-Value="promotion.Title" Placeholder="Nhập tên chương trình khuyến mãi" />
+                                </FormItem>
+                            </GridCol>
+                        <GridCol Span="12">
+                            <FormItem Label="Ngày bắt đầu" Required>
+                                <DatePicker @bind-Value="promotion.StartDate" 
+                                           Style="width: 100%" 
+                                           DisabledDate="@(date => date < DateTime.Today)" />
+                            </FormItem>
+                        </GridCol>
+                        <GridCol Span="12">
+                            <FormItem Label="Ngày kết thúc" Required>
+                                <DatePicker @bind-Value="promotion.EndDate" 
+                                           Style="width: 100%" 
+                                           DisabledDate="@(date => date <= promotion.StartDate)" />
+                            </FormItem>
+                        </GridCol>
+                            <GridCol Span="24">
+                                <FormItem Label="Mô tả">
+                                    <TextArea @bind-Value="promotion.Description" Placeholder="Nhập mô tả chương trình" 
+                                             Rows="3" />
+                                </FormItem>
+                            </GridCol>
+                        </GridRow>
+                    </Form>
+                </Card>
 
-    <div class="table-responsive">
-        <table class="table table-bordered">
-            <thead>
-                <tr>
-                    <th>STT</th>
-                    <th>Mã SP</th>
-                    <th>Tên sản phẩm</th>
-                    <th>Giá gốc</th>
-                    <th>% Giảm</th>
-                    <th>Giá sau giảm</th>
-                    <th>Mô tả</th>
-                    <th></th>
-                </tr>
-            </thead>
-            <tbody>
-                @foreach (var item in selectedProducts)
-                {
-                    var discountedPrice = item.OriginalPrice * (1 - item.Discount / 100);
-                    <tr>
-                        <td>@(selectedProducts.IndexOf(item) + 1)</td>
-                        <td>@item.ProductCode</td>
-                        <td>@item.ProductName</td>
-                        <td>@item.OriginalPrice.ToString("N0")</td>
-                        <td>
-                            <AntDesign.InputNumber @bind-Value="item.Discount" class="form-control" Min="0" Max="100" />
-                        </td>
-                        <td>@discountedPrice.ToString("N0")</td>
-                        <td>
-                            <InputText @bind-Value="item.Note" class="form-control" />
-                        </td>
-                        <td>
-                            <button class="btn btn-danger btn-sm"
-                                @onclick="() => RemoveProduct(item.ProductDetailId)">X</button>
-                        </td>
-                    </tr>
-                }
-            </tbody>
-        </table>
-    </div>
+                <!-- Product Selection -->
+                <Card Title="Chọn sản phẩm khuyến mãi" Class="mb-4">
+                    <div class="product-transfer-section">
+                        <Transfer DataSource="transferItems" 
+                                  TargetKeys="targetKeys" 
+                                  Titles="@(new[] { "Tất cả sản phẩm", "Sản phẩm khuyến mãi" })"
+                                  Operations="@(new[] { "Xóa khỏi khuyến mãi", "Thêm vào khuyến mãi" })"
+                                  ShowSearch="true" 
+                                  OnChange="HandleTransferChange" 
+                                  Render="@(item => item.Title)"
+                                  Key="@($"transfer-{transferRefreshKey}")" />
+            </div>
+                </Card>
 
-    <h5 class="mt-4">Chọn sản phẩm</h5>
+                <!-- Selected Products -->
+                <Card Title="Sản phẩm khuyến mãi" Class="mb-4">
+                    @if (selectedProducts.Any())
+                    {
+                            <Table TItem="PromotionProductViewModel" DataSource="@selectedProducts" 
+                                   Bordered="true" Size="@AntDesign.TableSize.Small">
+                                <Column TData="int" Title="STT">
+                                    @(selectedProducts.IndexOf(context) + 1)
+                                </Column>
+                                <Column TData="PromotionProductViewModel" Title="Hình ảnh">
+                                    <Image Width="50" Height="50" 
+                                           Fallback="@(ApiBaseUrl + "/Images/fallback.jpeg")" 
+                                           Src="@(ApiBaseUrl + "/" + context.ImageUrl)"
+                                           Class="product-image"/>
+                                </Column>
+                                <PropertyColumn Property="x => x.ProductCode" Title="Mã SP" />
+                                <PropertyColumn Property="x => x.ProductName" Title="Tên sản phẩm" />
+                                <PropertyColumn Property="x => x.OriginalPrice" Title="Giá gốc" Format="N0" />
+                                <Column TData="PromotionProductViewModel" Title="% Giảm giá">
+                                    <AntDesign.InputNumber @bind-Value="context.Discount" Min="0" Max="100" 
+                                                Style="width: 100%" OnChange="@((float value) => CalculateDiscountedPrice(context))" />
+                                </Column>
+                                <Column TData="PromotionProductViewModel" Title="Giá sau giảm">
+                                    <span class="discounted-price">@CalculateDiscountedPrice(context).ToString("N0") đ</span>
+                                </Column>
+                                <Column TData="PromotionProductViewModel" Title="Mô tả">
+                                    <Input @bind-Value="context.Note" Placeholder="Nhập mô tả" />
+                                </Column>
+                                <ActionColumn Title="Thao tác" Width="100">
+                                    <Button Type="@AntDesign.ButtonType.Primary" Danger="true" 
+                                            Icon="delete" Size="@AntDesign.ButtonSize.Small"
+                                            OnClick="() => RemoveProduct(context.ProductDetailId)"></Button>
+                                </ActionColumn>
+                            </Table>
+                    }
+                    else
+                    {
+                            <Empty />
+                    }
+                </Card>
 
-    <Transfer DataSource="transferItems" TargetKeys="targetKeys" Titles="@(new[] { "Tất cả sản phẩm", "Đã chọn" })"
-        ShowSearch="true" OnChange="HandleTransferChange" Render="@(item => item.Title)" />
-
-    <div class="mt-4 d-flex justify-content-end gap-2">
-        <button class="btn btn-secondary" @onclick="Huy">Huỷ</button>
-        <button class="btn btn-primary" type="submit">Lưu</button>
-    </div>
-</EditForm>
+                <!-- Actions -->
+                <div class="form-actions">
+                    <Button Type="@AntDesign.ButtonType.Default" OnClick="HandleGoBack">
+                        Hủy
+                    </Button>
+                    <Button Type="@AntDesign.ButtonType.Primary" OnClick="@(() => HandleSave(new EditContext(promotion)))" 
+                            Loading="@IsSaving" Disabled="@(!selectedProducts.Any())">
+                        @(IsEdit ? "Cập nhật" : "Tạo mới")
+                    </Button>
+                </div>
+            </div>
+    }
+</div>
 
 @code {
+    [Parameter]
+    public Guid? Id { get; set; }
+
     private CreateOrUpdatePromotionDTO promotion = new();
     private List<PromotionProductViewModel> selectedProducts = new();
-    private List<ProductDetailDTO> allProducts = new();
     private List<TransferItem> transferItems = new();
     private List<string> targetKeys = new();
-    private string message = "";
-    private bool isSuccess = false;
+    private bool IsLoading = true;
+    private bool IsSaving = false;
+    private bool IsEdit => Id.HasValue;
+    private string ApiBaseUrl = string.Empty;
+    private int transferRefreshKey = 0;
 
     protected override async Task OnInitializedAsync()
     {
-        var request = new GetListProductDetailRequestDTO();
-        var result = await ProductDetailService.GetAllProductDetailAsync(request);
-        allProducts = result.Items;
-
-        transferItems = allProducts.Select(p => new TransferItem
+        try
         {
-            Key = p.Id.ToString(),
-            Title = $"{p.Sku} - {p.ProductName}"
-        }).ToList();
+            IsLoading = true;
+            ApiBaseUrl = Configuration["ApiSettings:BaseUrl"]?.TrimEnd('/') ?? string.Empty;
+            
+            // Load all products for transfer first
+            await LoadAllProducts();
 
-        targetKeys = selectedProducts.Select(x => x.ProductDetailId.ToString()).ToList();
+            if (IsEdit && Id.HasValue)
+            {
+                await LoadPromotionData();
+            }
+            else
+            {
+                // Set default values for new promotion
+                promotion.StartDate = DateTime.Now;
+                promotion.EndDate = DateTime.Now.AddDays(30);
+            }
+        }
+        catch (Exception ex)
+        {
+            MessageService.Error($"Có lỗi khi khởi tạo trang: {ex.Message}");
+        }
+        finally
+        {
+            IsLoading = false;
+        }
     }
 
-    private void Huy()
+    private async Task LoadAllProducts()
     {
-        Navigation.NavigateTo("/manage-promotion");
+        try
+        {
+            var request = new ProductSearchRequestDTO
+            {
+                PageIndex = 1,
+                PageSize = int.MaxValue,
+                InStockOnly = true
+            };
+
+            var result = await ProductClientService.SearchProductsAsync(request);
+            var products = result.Items ?? new List<ProductSearchResponseDTO>();
+
+            transferItems = products.Select(p => new TransferItem
+            {
+                Key = p.ProductDetailId.ToString(),
+                Title = $"{p.SKU} - {p.ProductName} ({p.ColourName}, Size: {p.SizeValue}) - {p.Price.ToString("N0")} đ"
+            }).ToList();
+        }
+        catch (Exception ex)
+        {
+            MessageService.Error($"Không thể tải danh sách sản phẩm: {ex.Message}");
+        }
     }
+
 
     private void HandleTransferChange(TransferChangeArgs args)
     {
@@ -123,82 +214,316 @@
         // Remove products no longer selected
         selectedProducts.RemoveAll(sp => !keysSet.Contains(sp.ProductDetailId.ToString()));
 
-        // Add newly selected products, preserving existing edits if already present
+        // Add newly selected products
         foreach (var key in targetKeys)
         {
             var guid = Guid.Parse(key);
             if (selectedProducts.All(sp => sp.ProductDetailId != guid))
             {
-                var product = allProducts.FirstOrDefault(p => p.Id == guid);
-                if (product != null)
+                // Find product info from transfer items
+                var transferItem = transferItems.FirstOrDefault(t => t.Key == key);
+                if (transferItem != null)
                 {
-                    selectedProducts.Add(new PromotionProductViewModel
+                    // Extract product info from transfer item title
+                    var titleParts = transferItem.Title.Split(" - ");
+                    if (titleParts.Length >= 3)
                     {
-                        ProductDetailId = product.Id,
-                        ProductName = product.ProductName,
-                        ProductCode = product.Sku,
-                        OriginalPrice = product.Price,
-                        Discount = 0
-                    });
+                        var sku = titleParts[0];
+                        var productName = titleParts[1];
+                        var priceText = titleParts[2].Split(" đ")[0];
+                        
+                        if (decimal.TryParse(priceText.Replace(",", ""), out decimal price))
+                        {
+                            selectedProducts.Add(new PromotionProductViewModel
+                            {
+                                ProductDetailId = guid,
+                                ProductCode = sku,
+                                ProductName = productName,
+                                OriginalPrice = (float)price,
+                                Discount = 0,
+                                Note = "",
+                                ImageUrl = ""
+                            });
+                        }
+                    }
                 }
             }
         }
+
+        StateHasChanged();
     }
 
     private void RemoveProduct(Guid productId)
     {
+        // Remove from selected products
         selectedProducts.RemoveAll(p => p.ProductDetailId == productId);
-        var key = productId.ToString();
-        if (targetKeys.Contains(key))
-        {
-            targetKeys.Remove(key);
-        }
+        
+        // Also remove from target keys to sync with Transfer component
+        targetKeys.Remove(productId.ToString());
+        
+        // Force Transfer component refresh by changing its key
+        transferRefreshKey++;
+        
+        // Force UI update
+        StateHasChanged();
     }
 
-    private async Task HandleSave()
+    private decimal CalculateDiscountedPrice(PromotionProductViewModel product)
     {
-        // 1. Kiểm tra tất cả ProductDetailId có hợp lệ không
-        var validProducts = new List<PromotionProductViewModel>();
-        foreach (var item in selectedProducts)
+        return (decimal)(product.OriginalPrice * (1 - product.Discount / 100));
+    }
+
+    private async Task LoadPromotionData()
+    {
+        try
         {
-            var productDetail = await ProductDetailService.GetProductDetailByIdAsync(item.ProductDetailId);
-            if (productDetail != null && productDetail.Id == item.ProductDetailId)
+            if (!Id.HasValue)
             {
-                validProducts.Add(item);
+                MessageService.Error("Không tìm thấy ID chương trình khuyến mãi");
+                return;
+            }
+
+            // Load promotion details - GetPromotionByIdAsync returns CreateOrUpdatePromotionDTO directly
+            var promotionResult = await PromotionService.GetPromotionByIdAsync(Id.Value);
+            if (promotionResult != null)
+            {
+                promotion = promotionResult;
             }
             else
             {
-                Console.WriteLine($"❌ ProductDetailId {item.ProductDetailId} không tồn tại trong hệ thống");
+                MessageService.Error("Không tìm thấy thông tin chương trình khuyến mãi");
+                return;
+            }
+
+            // Load promotion details (products) - use PromotionIdFilter to filter by promotion ID
+            var detailsRequest = new GetListPromotionDetailRequestDTO
+            {
+                PageSize = int.MaxValue,
+                PageIndex = 1,
+                PromotionIdFilter = Id.Value
+            };
+            
+            var detailsResult = await PromotionDetailService.GetAllPromotionDetailAsync(detailsRequest);
+            if (detailsResult?.Items != null && detailsResult.Items.Any())
+            {
+                selectedProducts = new List<PromotionProductViewModel>();
+                var validProductIds = new List<string>();
+                
+                // Load detailed product information for each promotion detail
+                foreach (var detail in detailsResult.Items)
+                {
+                    // Find product info from transfer items
+                    var transferItem = transferItems.FirstOrDefault(t => t.Key == detail.ProductDetailId.ToString());
+                    if (transferItem != null)
+                    {
+                        // Extract product info from transfer item title
+                        var titleParts = transferItem.Title.Split(" - ");
+                        if (titleParts.Length >= 3)
+                        {
+                            var sku = titleParts[0];
+                            var productName = titleParts[1];
+                            var priceText = titleParts[2].Split(" đ")[0].Replace(",", "");
+                            
+                            if (decimal.TryParse(priceText, out decimal price))
+                            {
+                                selectedProducts.Add(new PromotionProductViewModel
+                                {
+                                    ProductDetailId = detail.ProductDetailId,
+                                    ProductCode = sku,
+                                    ProductName = productName,
+                                    OriginalPrice = (float)price,
+                                    Discount = detail.Discount,
+                                    Note = detail.Note ?? "",
+                                    ImageUrl = "" // Will be loaded from API if needed
+                                });
+
+                                validProductIds.Add(detail.ProductDetailId.ToString());
+                            }
+                        }
+                    }
+                    else
+                    {
+                        // Product not found in transfer items, might be deleted or out of stock
+                        // Log this for debugging but don't break the flow
+                        Console.WriteLine($"Product with ID {detail.ProductDetailId} not found in available products");
+                    }
+                }
+
+                // Update target keys for transfer - only include valid products
+                targetKeys = validProductIds;
+                
+                // Trigger UI update
+                StateHasChanged();
+            }
+            else
+            {
+                // No promotion details found
+                selectedProducts = new List<PromotionProductViewModel>();
+                targetKeys = new List<string>();
             }
         }
-
-        if (validProducts.Count == 0)
+        catch (Exception ex)
         {
-            message = "Không có sản phẩm hợp lệ để thêm.";
-            isSuccess = false;
+            MessageService.Error($"Không thể tải dữ liệu chương trình khuyến mãi: {ex.Message}");
+            Console.WriteLine($"LoadPromotionData Error: {ex}");
+        }
+    }
+
+    private async Task HandleSave(EditContext editContext)
+    {
+        // Validation
+        if (string.IsNullOrWhiteSpace(promotion.Title))
+        {
+            MessageService.Warning("Vui lòng nhập tên chương trình khuyến mãi");
             return;
         }
 
-        // 2. Tạo Promotion
+        if (promotion.StartDate == default)
+        {
+            MessageService.Warning("Vui lòng chọn ngày bắt đầu");
+            return;
+        }
+
+        if (promotion.EndDate == default)
+        {
+            MessageService.Warning("Vui lòng chọn ngày kết thúc");
+            return;
+        }
+
+        if (promotion.StartDate < DateTime.Today)
+        {
+            MessageService.Warning("Ngày bắt đầu không được nhỏ hơn ngày hiện tại");
+            return;
+        }
+
+        if (promotion.StartDate >= promotion.EndDate)
+        {
+            MessageService.Warning("Ngày bắt đầu phải nhỏ hơn ngày kết thúc");
+            return;
+        }
+
+        if (!selectedProducts.Any())
+        {
+            MessageService.Warning("Vui lòng chọn ít nhất một sản phẩm");
+            return;
+        }
+
+        // Validate discount values
+        var invalidDiscounts = selectedProducts.Where(p => p.Discount <= 0 || p.Discount > 100).ToList();
+        if (invalidDiscounts.Any())
+        {
+            MessageService.Warning("Tất cả sản phẩm phải có phần trăm giảm giá từ 1% đến 100%");
+            return;
+        }
+
+        try
+        {
+            IsSaving = true;
+
+            if (IsEdit && Id.HasValue)
+            {
+                await UpdatePromotion();
+            }
+            else
+            {
+                await CreatePromotion();
+            }
+
+            MessageService.Success(IsEdit ? "Cập nhật chương trình khuyến mãi thành công!" : "Tạo mới chương trình khuyến mãi thành công!");
+            Navigation.NavigateTo("/manage-promotion");
+        }
+        catch (Exception ex)
+        {
+            MessageService.Error($"Có lỗi xảy ra: {ex.Message}");
+            Console.WriteLine($"HandleSave Error: {ex}");
+        }
+        finally
+        {
+            IsSaving = false;
+        }
+    }
+
+    private async Task CreatePromotion()
+    {
+        // 1. Tạo Promotion
         promotion.Id = Guid.NewGuid();
-        promotion.Status = EPromotionStatus.Draft;
         promotion.CreationTime = DateTime.Now;
 
         var promotionResult = await PromotionService.CreatePromotionAsync(promotion);
-        if (promotionResult.ResponseStatus != BaseStatus.Success)
+        if (promotionResult?.ResponseStatus == BaseStatus.Success)
         {
-            message = $"❌ Lỗi khi tạo Promotion: {promotionResult.Message}";
-            isSuccess = false;
-            return;
+            // 2. Tạo các PromotionDetail
+            foreach (var item in selectedProducts)
+            {
+                var detail = new CreateOrUpdatePromotionDetailDTO
+                {
+                    Id = Guid.NewGuid(),
+                    PromotionId = promotion.Id,
+                    ProductDetailId = item.ProductDetailId,
+                    Discount = item.Discount,
+                    Note = item.Note,
+                    CreationTime = DateTime.UtcNow,
+                    LastModificationTime = DateTime.UtcNow
+                };
+
+                var result = await PromotionDetailService.CreateAsync(detail);
+                if (result?.ResponseStatus != BaseStatus.Success)
+                {
+                    throw new Exception($"Lỗi khi thêm PromotionDetail: {result?.Message}");
+                }
+            }
+        }
+        else
+        {
+            throw new Exception($"Lỗi khi tạo Promotion: {promotionResult?.Message}");
+        }
+    }
+
+    private async Task UpdatePromotion()
+    {
+        if (!Id.HasValue)
+        {
+            throw new Exception("Không tìm thấy ID chương trình khuyến mãi để cập nhật");
         }
 
-        // 3. Tạo các PromotionDetail
-        foreach (var item in validProducts)
+        // 1. Cập nhật Promotion
+        promotion.Id = Id.Value; // Ensure ID is set
+        promotion.LastModificationTime = DateTime.Now;
+
+        var promotionResult = await PromotionService.UpdatePromotionAsync(promotion);
+        if (promotionResult?.ResponseStatus != BaseStatus.Success)
+        {
+            throw new Exception($"Lỗi khi cập nhật Promotion: {promotionResult?.Message ?? "Không có phản hồi từ server"}");
+        }
+
+        // 2. Xóa các PromotionDetail cũ
+        var existingDetailsRequest = new GetListPromotionDetailRequestDTO
+        {
+            PromotionIdFilter = Id.Value,
+            PageSize = int.MaxValue,
+            PageIndex = 1
+        };
+        
+        var existingDetails = await PromotionDetailService.GetAllPromotionDetailAsync(existingDetailsRequest);
+        if (existingDetails?.Items != null && existingDetails.Items.Any())
+        {
+            foreach (var detail in existingDetails.Items)
+            {
+                var deleteResult = await PromotionDetailService.DeleteAsync(detail.Id);
+                if (!deleteResult)
+                {
+                    Console.WriteLine($"Warning: Could not delete promotion detail {detail.Id}");
+                }
+            }
+        }
+
+        // 3. Tạo lại các PromotionDetail
+        foreach (var item in selectedProducts)
         {
             var detail = new CreateOrUpdatePromotionDetailDTO
             {
                 Id = Guid.NewGuid(),
-                PromotionId = promotion.Id,
+                PromotionId = Id.Value,
                 ProductDetailId = item.ProductDetailId,
                 Discount = item.Discount,
                 Note = item.Note,
@@ -207,19 +532,15 @@
             };
 
             var result = await PromotionDetailService.CreateAsync(detail);
-            if (result.ResponseStatus != BaseStatus.Success)
+            if (result?.ResponseStatus != BaseStatus.Success)
             {
-                Console.WriteLine($"❌ Lỗi khi thêm PromotionDetail: {result.Message}");
-            }
-            else
-            {
-                Console.WriteLine("✅ Thêm thành công PromotionDetail");
+                throw new Exception($"Lỗi khi thêm PromotionDetail cho sản phẩm {item.ProductCode}: {result?.Message ?? "Không có phản hồi từ server"}");
             }
         }
+    }
 
-        // Thành công
-        message = "Thêm chương trình khuyến mãi thành công!";
-        isSuccess = true;
+    private void HandleGoBack()
+    {
         Navigation.NavigateTo("/manage-promotion");
     }
 
@@ -231,5 +552,6 @@
         public float OriginalPrice { get; set; }
         public string Note { get; set; } = string.Empty;
         public float Discount { get; set; }
+        public string ImageUrl { get; set; } = string.Empty;
     }
 }

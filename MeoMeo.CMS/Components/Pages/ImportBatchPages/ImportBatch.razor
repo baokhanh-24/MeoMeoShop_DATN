@@ -1,0 +1,470 @@
+@page "/manage-inventoryBatch"
+@using System
+@using System.ComponentModel.DataAnnotations
+@using System.Reflection
+@using AntDesign.TableModels
+@using AntDesign
+@using AntDesign.Table
+@using MeoMeo.Contract.Commons
+@using MeoMeo.Contract.DTOs
+@using MeoMeo.Contract.DTOs.InventoryBatch
+@using MeoMeo.Contract.DTOs.ImportBatch
+@using MeoMeo.Contract.DTOs.Product
+@using MeoMeo.Domain.Commons
+@using MeoMeo.Domain.Commons.Enums
+@using MeoMeo.Shared.IServices
+@using MeoMeo.Shared.Utilities
+@using static MeoMeo.Domain.Commons.PagingExtensions
+@inject MessageModalService MessageModalService
+@using ButtonSize = AntDesign.ButtonSize
+@using ButtonType = AntDesign.ButtonType
+@rendermode InteractiveServer
+
+<div class="d-flex justify-content-between">
+    <Breadcrumb>
+        <BreadcrumbItem Href="/">Trang chủ</BreadcrumbItem>
+        <BreadcrumbItem Href="/manage-inventoryBatch">Quản lý lô nhập</BreadcrumbItem>
+    </Breadcrumb>
+    <Button OnClick="AddImportBatch" Type="ButtonType.Primary" Class="mb-2">
+        <i class="fas fa-plus"></i> Tạo lô nhập mới
+    </Button>
+</div>
+
+
+<div class="d-flex justify-content-end gap-3 mb-2">
+    <div Style="width: 250px">
+        <Input AllowClear="true" @bind-Value="filter.CodeFilter" Placeholder="Nhập mã lô nhập"
+            OnClear="OnFilterChanged" />
+    </div>
+    <div Style="width: 250px">
+        <Input AllowClear="true" @bind-Value="filter.NoteFilter" Placeholder="Nhập ghi chú lô nhập"
+            OnClear="OnFilterChanged" />
+    </div>
+    <Tooltip Title="Tìm kiếm">
+        <Button OnClick="OnFilterChanged" Type="ButtonType.Primary" Shape="ButtonShape.Circle"
+            Icon="@IconType.Outline.Search" />
+    </Tooltip>
+</div>
+
+<Table DataSource="listOfData" TItem="ImportBatchDTO" RowClassName="@(_ => "editable-row")" Bordered TableLayout="fixed"
+    Total="@totalRecords" OnChange="@OnPageChange" PageSize="@filter.PageSize" OnExpand="@OnRowExpand">
+    <ChildContent Context="data">
+        <Column TData="int" Title="STT">
+            @{
+                var index = listOfData.IndexOf(data);
+                @((filter.PageIndex - 1) * filter.PageSize + index + 1)
+            }
+        </Column>
+        <Column TData="string" Title="Mã lô nhập">
+            <a class="text-primary" style="cursor:pointer" @onclick="() => ViewImportBatchDetail(data.Id)">
+                @data.Code
+            </a>
+        </Column>
+        <Column TData="DateTime" Title="Ngày nhập">
+            @data.ImportDate.ToString("dd/MM/yyyy")
+        </Column>
+        <Column TData="string" Title="Ghi chú">
+            @(string.IsNullOrEmpty(data.Note) ? "Không có" : data.Note)
+        </Column>
+        <Column TData="int" Title="Số sản phẩm">
+            @(inventoryBatchCounts.ContainsKey(data.Id) ? inventoryBatchCounts[data.Id] : 0)
+        </Column>
+        <ActionColumn Title="Thao tác" Class="text-end gap-2" Context="data">
+
+            <Tooltip Title="Sửa thông tin lô">
+                <Button Size="ButtonSize.Small" OnClick="() => EditImportBatch(data.Id)" Shape="ButtonShape.Circle">
+                    <i class="fas fa-pen"></i>
+                </Button>
+            </Tooltip>
+
+            <Popconfirm Title=@($"Bạn có chắc muốn xóa lô nhập '{data.Code}'?")
+                OnConfirm="() => DeleteImportBatch(data.Id)" OkText="Đồng ý" CancelText="Hủy">
+                <Tooltip Title="Xóa">
+                    <Button Size="ButtonSize.Small" Type="ButtonType.Default" Shape="ButtonShape.Circle">
+                        <i class="fas fa-minus"></i>
+                    </Button>
+                </Tooltip>
+            </Popconfirm>
+        </ActionColumn>
+    </ChildContent>
+    <ExpandTemplate Context="data">
+        <div style="padding: 16px; background-color: #fafafa;">
+            <h4>Sản phẩm trong lô nhập</h4>
+            @if (expandedInventoryBatches.ContainsKey(data.Data.Id) && expandedInventoryBatches[data.Data.Id].Any())
+            {
+                <Table DataSource="expandedInventoryBatches[data.Data.Id]" TItem="InventoryBatchDetailItem"
+                    Size="TableSize.Small">
+                    <Column TData="string" Title="Ảnh" Width="80">
+  <Image Width="80" Height="80" Fallback="@(ApiBaseUrl + "/Images/fallback.jpeg")"
+                                   Src="@(ApiBaseUrl + "/" + context.Thumbnail)" Class="search-result-image" />
+                    </Column>
+                    <Column TData="string" DataIndex="SKU" Title="SKU">
+                        <Text Strong>@context.SKU</Text>
+                    </Column>
+                    <Column TData="string" DataIndex="ProductName" Title="Sản phẩm">
+                        <div>
+                            <div><Text Strong>@context.ProductName</Text></div>
+                            <div style="color: #666; font-size: 12px;">
+                                <Tag Color="@("blue")">@context.ColourName</Tag>
+                                <Tag Color="@("green")">Size: @context.SizeValue</Tag>
+                            </div>
+                        </div>
+                    </Column>
+                    <Column TData="float" DataIndex="OriginalPrice" Title="Giá nhập">
+                        @($"{context.OriginalPrice:N0} VNĐ")
+                    </Column>
+                    <Column TData="int" DataIndex="Quantity" Title="Số lượng">
+                        <Text Strong>@context.Quantity</Text>
+                    </Column>
+                    <Column TData="EInventoryBatchStatus" DataIndex="Status" Title="Trạng thái">
+                        <Tag Color="@GetInventoryBatchStatusColor(context.Status)">
+                            @inventoryBatchStatusList.FirstOrDefault(p => p.Value == context.Status).Name
+                        </Tag>
+                    </Column>
+                    <ActionColumn Title="Thao tác" Width="200">
+                        <Space>
+                            @if (context.Status == EInventoryBatchStatus.Draft)
+                            {
+                                <Tooltip Title="Gửi duyệt">
+                                    <Button Size="ButtonSize.Small" Type="ButtonType.Primary"
+                                        OnClick="() => OnClickConfirm(context, EInventoryBatchStatus.PendingApproval)"
+                                        Shape="ButtonShape.Circle">
+                                        <i class="fas fa-paper-plane"></i>
+                                    </Button>
+                                </Tooltip>
+                            }
+                            @if (context.Status == EInventoryBatchStatus.PendingApproval)
+                            {
+                                <Tooltip Title="Phê duyệt">
+                                    <Button Size="ButtonSize.Small" Type="ButtonType.Primary"
+                                        OnClick="() => OnClickConfirm(context, EInventoryBatchStatus.Approved)"
+                                        Shape="ButtonShape.Circle">
+                                        <i class="fas fa-check"></i>
+                                    </Button>
+                                </Tooltip>
+                                <Tooltip Title="Từ chối">
+                                    <Button Size="ButtonSize.Small" Type="ButtonType.Default"
+                                        OnClick="() => OnClickConfirm(context, EInventoryBatchStatus.Rejected)"
+                                        Shape="ButtonShape.Circle">
+                                        <i class="fas fa-times"></i>
+                                    </Button>
+                                </Tooltip>
+                            }
+                            @if (context.Status == EInventoryBatchStatus.Rejected)
+                            {
+                                <Tooltip Title="Gửi lại duyệt">
+                                    <Button Size="ButtonSize.Small" Type="ButtonType.Primary"
+                                        OnClick="() => OnClickConfirm(context, EInventoryBatchStatus.PendingApproval)"
+                                        Shape="ButtonShape.Circle">
+                                        <i class="fas fa-redo"></i>
+                                    </Button>
+                                </Tooltip>
+                            }
+                        </Space>
+                    </ActionColumn>
+                </Table>
+            }
+            else
+            {
+                <p style="color: #999; font-style: italic;">Chưa có sản phẩm nào trong lô nhập này</p>
+            }
+        </div>
+    </ExpandTemplate>
+</Table>
+
+<!-- Modal confirm theo pattern Order -->
+<Modal Mask="true" Style="width: 40vw" Title="Xác nhận cập nhật trạng thái sản phẩm"
+       Visible="@_visible"
+       OnOk="@ConfirmStatusUpdate"
+       OnCancel="@CancelShowModal"
+       ConfirmLoading="@_confirmLoading">
+    <p>@_modalText</p>
+    @if (targetStatus == EInventoryBatchStatus.Rejected)
+    {   
+        <div class="mb-2">Lý do từ chối: <span class="text-danger"> *</span> </div>
+        <TextArea @bind-Value="rejectReason" Placeholder="Nhập lý do từ chối..."></TextArea>
+    }
+</Modal>
+
+@code {
+    private class InventoryBatchDetailItem
+    {
+        public Guid Id { get; set; }
+        public Guid ImportBatchId { get; set; }
+        public Guid ProductDetailId { get; set; }
+        public float OriginalPrice { get; set; }
+        public int Quantity { get; set; }
+        public EInventoryBatchStatus Status { get; set; }
+        // Extended properties
+        public string ProductName { get; set; } = string.Empty;
+        public string SKU { get; set; } = string.Empty;
+        public string ColourName { get; set; } = string.Empty;
+        public string SizeValue { get; set; } = string.Empty;
+        public string Thumbnail { get; set; } = string.Empty;
+    }
+
+    private Dictionary<Guid, int> inventoryBatchCounts = new();
+    private Dictionary<Guid, List<InventoryBatchDetailItem>> expandedInventoryBatches = new();
+    private GetListImportBatchResponseDTO metaData = new();
+    private int totalRecords = 0;
+    [Inject] private IInventoryBatchClientService InventoryBatchClientService { get; set; } = default!;
+    [Inject] private IImportBatchClientService ImportBatchClientService { get; set; } = default!;
+    [Inject] private NavigationManager Navigation { get; set; } = default!;
+    [Inject] private IConfiguration Configuration { get; set; } = default!;
+    List<ImportBatchDTO> listOfData = new();
+    List<(EInventoryBatchStatus Value, string Name)> inventoryBatchStatusList = new();
+    private string ApiBaseUrl = string.Empty;
+
+    GetListImportBatchRequestDTO filter = new GetListImportBatchRequestDTO()
+    {
+        CodeFilter = "",
+        NoteFilter = "",
+        PageIndex = 1,
+        PageSize = 10
+    };
+
+    private async Task OnPageChange(QueryModel<ImportBatchDTO> query)
+    {
+        filter.PageIndex = query.PageIndex;
+        filter.PageSize = query.PageSize;
+        await LoadDataAsync();
+    }
+
+    private void AddImportBatch()
+    {
+        Navigation.NavigateTo("/InventoryBatchCreate");
+    }
+
+    private void ManageInventoryBatch(Guid importBatchId)
+    {
+        Navigation.NavigateTo($"/InventoryBatchCreate/{importBatchId}");
+    }
+
+    private void EditImportBatch(Guid id)
+    {
+        Navigation.NavigateTo($"/InventoryBatchCreate/{id}");
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        // Initialize ApiBaseUrl
+        ApiBaseUrl = Configuration["ApiSettings:BaseUrl"]?.TrimEnd('/') ?? string.Empty;
+        
+        // Load Inventory Batch Status List
+        inventoryBatchStatusList = Enum.GetValues(typeof(EInventoryBatchStatus))
+        .Cast<EInventoryBatchStatus>()
+        .Select(x => (x, x.GetType().GetMember(x.ToString())?.First()?.GetCustomAttribute<DisplayAttribute>()?.Name ??
+        x.ToString()))
+        .ToList();
+
+        await LoadDataAsync();
+    }
+
+    async Task LoadDataAsync()
+    {
+        // Load ImportBatch list
+        var response = await ImportBatchClientService.GetAllImportBatchAsync(filter);
+        totalRecords = response.TotalRecords;
+        metaData = response.Metadata ?? new GetListImportBatchResponseDTO();
+        listOfData = response.Items;
+
+        // Load InventoryBatch counts for each ImportBatch
+        await LoadInventoryBatchCounts();
+
+        await InvokeAsync(StateHasChanged);
+    }
+
+    private async Task LoadInventoryBatchCounts()
+    {
+        try
+        {
+            foreach (var importBatch in listOfData)
+            {
+                var inventoryFilter = new GetListInventoryBatchRequestDTO
+                {
+                    ImportBatchIdFilter = importBatch.Id,
+                    PageSize = 1000,
+                    PageIndex = 1
+                };
+                var inventoryResponse = await InventoryBatchClientService.GetAllInventoryBatchAsync(inventoryFilter);
+                inventoryBatchCounts[importBatch.Id] = inventoryResponse.TotalRecords;
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine("Lỗi khi lấy số lượng sản phẩm trong lô: " + ex.Message);
+        }
+    }
+
+    // Load InventoryBatches when expand row với đầy đủ thông tin sản phẩm
+    private async Task LoadInventoryBatchesForImportBatch(Guid importBatchId)
+    {
+        try
+        {
+            if (!expandedInventoryBatches.ContainsKey(importBatchId))
+            {
+                // Sử dụng API GetImportBatchDetailAsync để lấy đầy đủ thông tin sản phẩm
+                var importBatchDetail = await ImportBatchClientService.GetImportBatchDetailAsync(importBatchId);
+
+                // Convert ImportBatchProductDTO thành InventoryBatchDetailItem với thông tin mở rộng
+                var inventoryBatches = importBatchDetail.Products.Select(p => new InventoryBatchDetailItem
+                {
+                    Id = p.InventoryBatchId,
+                    ImportBatchId = importBatchId,
+                    ProductDetailId = p.ProductDetailId,
+                    OriginalPrice = p.OriginalPrice,
+                    Quantity = p.Quantity,
+                    Status = p.Status,
+                    // Thêm thông tin mở rộng
+                    ProductName = p.ProductName,
+                    SKU = p.SKU,
+                    ColourName = p.ColourName,
+                    SizeValue = p.SizeValue,
+                    Thumbnail = p.Thumbnail
+                }).ToList();
+
+                expandedInventoryBatches[importBatchId] = inventoryBatches;
+                StateHasChanged();
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine("Lỗi khi lấy danh sách sản phẩm trong lô: " + ex.Message);
+        }
+    }
+
+    async Task OnFilterChanged()
+    {
+        await LoadDataAsync();
+    }
+
+    //xem chi tiết
+    void ViewImportBatchDetail(Guid importBatchId)
+    {
+        Navigation.NavigateTo($"/import-batch-detail/{importBatchId}");
+    }
+
+    async Task DeleteImportBatch(Guid id)
+    {
+        var success = await ImportBatchClientService.DeleteImportBatchAsync(id);
+        if (success)
+        {
+            await MessageModalService.Success("Xoá lô nhập thành công!");
+            await LoadDataAsync();
+        }
+        else
+        {
+            await MessageModalService.Error("Xoá lô nhập thất bại!");
+        }
+    }
+
+    private async Task OnRowExpand(RowData<ImportBatchDTO> args)
+    {
+        if (args.Expanded)
+        {
+            await LoadInventoryBatchesForImportBatch(args.Data.Id);
+        }
+    }
+
+    // Modal variables theo pattern Order
+    private bool _visible = false;
+    private bool _confirmLoading = false;
+    private string _modalText = "";
+    private EInventoryBatchStatus targetStatus;
+    private InventoryBatchDetailItem selectedInventoryBatch = null!;
+    private string rejectReason = "";
+
+    // OnClickConfirm theo pattern Order
+    private void OnClickConfirm(InventoryBatchDetailItem inventoryBatch, EInventoryBatchStatus status)
+    {
+        selectedInventoryBatch = inventoryBatch;
+        ShowPopUpConfirm(status);
+    }
+
+    // ShowPopUpConfirm theo pattern Order
+    private void ShowPopUpConfirm(EInventoryBatchStatus status)
+    {
+        targetStatus = status;
+        string txtStatus = "";
+        switch (targetStatus)
+        {
+            case EInventoryBatchStatus.PendingApproval:
+                txtStatus = "gửi duyệt";
+                break;
+            case EInventoryBatchStatus.Approved:
+                txtStatus = "phê duyệt";
+                break;
+            case EInventoryBatchStatus.Rejected:
+                txtStatus = "từ chối";
+                break;
+        }
+        _modalText = $"Bạn có chắc chắn muốn {txtStatus} sản phẩm {selectedInventoryBatch.ProductName} ({selectedInventoryBatch.SKU})?";
+        _visible = true;
+        rejectReason = ""; // Reset reject reason
+    }
+
+    // CancelShowModal theo pattern Order
+    private async Task CancelShowModal()
+    {
+        _visible = false;
+        _confirmLoading = false;
+        rejectReason = "";
+        await InvokeAsync(StateHasChanged);
+    }
+
+    // ConfirmStatusUpdate theo pattern Order
+    private async Task ConfirmStatusUpdate()
+    {
+        if (targetStatus == EInventoryBatchStatus.Rejected && string.IsNullOrWhiteSpace(rejectReason))
+        {
+            await MessageModalService.Warning("Vui lòng điền lý do từ chối");
+            return;
+        }
+
+        _confirmLoading = true;
+        try
+        {
+            var updateDto = new InventoryBatchDTO
+            {
+                Id = selectedInventoryBatch.Id,
+                Status = targetStatus
+            };
+
+            var result = await InventoryBatchClientService.UpdateInventoryBatchAsync(updateDto);
+            if (result.ResponseStatus == BaseStatus.Success)
+            {
+                // Update local data
+                selectedInventoryBatch.Status = targetStatus;
+                
+                await MessageModalService.Success($"Cập nhật trạng thái thành công!");
+                _visible = false;
+                StateHasChanged();
+            }
+            else
+            {
+                await MessageModalService.Error("Cập nhật trạng thái thất bại!");
+            }
+        }
+        catch (Exception ex)
+        {
+            await MessageModalService.Error($"Lỗi: {ex.Message}");
+        }
+        finally
+        {
+            _confirmLoading = false;
+            rejectReason = "";
+        }
+    }
+
+    private string GetInventoryBatchStatusColor(EInventoryBatchStatus status)
+    {
+        return status switch
+        {
+            EInventoryBatchStatus.Draft => "default",
+            EInventoryBatchStatus.PendingApproval => "processing",
+            EInventoryBatchStatus.Approved => "success",
+            EInventoryBatchStatus.Rejected => "error",
+            _ => "default"
+        };
+    }
+}

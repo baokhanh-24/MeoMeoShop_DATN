@@ -1,0 +1,126 @@
+@using MeoMeo.Contract.DTOs.Product
+@using MeoMeo.CMS.Components.Common
+@inject IJSRuntime JSRuntime
+@inject IMessageService MessageService
+
+<Modal Title="QR Code Sản Phẩm" Visible="@IsVisible" OnCancel="@HandleCancel" Footer="null" Width="500" Centered="true"
+    Destroyable="true">
+
+    @if (Product != null)
+    {
+        <div class="qr-modal-content">
+            <QRCodeProduct Product="@Product" QrSize="250px" />
+
+            <div class="qr-modal-actions">
+                <Button Type="@AntDesign.ButtonType.Primary" Icon="printer" OnClick="HandlePrintQR" Block Class="mb-2">
+                    In QR Code
+                </Button>
+
+                <Button Icon="download" OnClick="HandleDownloadQR" Block Class="mb-2">
+                    Tải về QR Code
+                </Button>
+
+                <Button OnClick="HandleCancel" Block>
+                    Đóng
+                </Button>
+            </div>
+        </div>
+    }
+    else
+    {
+        <div class="qr-modal-empty">
+            <Icon Type="exclamation-circle" Style="font-size: 48px; color: #ccc;" />
+            <p>Không có dữ liệu sản phẩm</p>
+        </div>
+    }
+</Modal>
+
+<style>
+    .qr-modal-content {
+        display: flex;
+        flex-direction: column;
+        gap: 20px;
+    }
+
+    .qr-modal-actions {
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+        padding: 0 20px;
+    }
+
+    .qr-modal-empty {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        padding: 40px;
+        text-align: center;
+        color: #999;
+    }
+
+    .qr-modal-empty p {
+        margin: 10px 0 0 0;
+        font-size: 14px;
+    }
+</style>
+
+@code {
+    [Parameter] public bool IsVisible { get; set; }
+    [Parameter] public ProductSearchResponseDTO? Product { get; set; }
+    [Parameter] public EventCallback OnCancel { get; set; }
+
+    private async Task HandleCancel()
+    {
+        await OnCancel.InvokeAsync();
+    }
+
+    private async Task HandlePrintQR()
+    {
+        if (Product == null) return;
+
+        try
+        {
+            // Tạo dữ liệu để in QR code
+            var printData = new
+            {
+                Title = "QR Code Thanh Toán Sản Phẩm",
+                ProductName = Product.ProductName,
+                Sku = Product.SKU,
+                Price = Product.Price,
+                Brand = Product.BrandName,
+                Size = Product.SizeValue,
+                Color = Product.ColourName,
+                QRData = $"PRODUCT:{Product.SKU}:{Product.Price}:{Product.SizeValue}:{Product.ColourName}",
+                PrintTime = DateTime.Now.ToString("dd/MM/yyyy HH:mm:ss")
+            };
+
+            // Gọi JavaScript để in
+            await JSRuntime.InvokeVoidAsync("printQRCode", printData);
+            MessageService.Success("Đã gửi lệnh in QR code");
+        }
+        catch (Exception ex)
+        {
+            MessageService.Error($"Không thể in QR code: {ex.Message}");
+        }
+    }
+
+    private async Task HandleDownloadQR()
+    {
+        if (Product == null) return;
+
+        try
+        {
+            // Tạo tên file download
+            var fileName = $"QR_{Product.SKU}_{DateTime.Now:yyyyMMdd_HHmmss}.png";
+
+            // Gọi JavaScript để download QR code
+            await JSRuntime.InvokeVoidAsync("downloadQRCode", $"product-qr-{Product.SKU}", fileName);
+            MessageService.Success("Đã tải về QR code");
+        }
+        catch (Exception ex)
+        {
+            MessageService.Error($"Không thể tải về QR code: {ex.Message}");
+        }
+    }
+}

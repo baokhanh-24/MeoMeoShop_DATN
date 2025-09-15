@@ -1,0 +1,372 @@
+@page "/product-reviews"
+@using MeoMeo.Contract.DTOs.ProductReview
+@using MeoMeo.Contract.Commons
+@using MeoMeo.Domain.Commons
+@using MeoMeo.Shared.IServices
+@using AntDesign
+@using ButtonSize = AntDesign.ButtonSize
+@using ButtonType = AntDesign.ButtonType
+@using AntDesign.TableModels
+@inject IProductReviewClientService ProductReviewClientService
+@inject IMessageService MessageService
+@inject IConfiguration Configuration
+
+<div class="d-flex justify-content-between mb-3">
+    <Breadcrumb>
+        <BreadcrumbItem Href="/">Trang chủ</BreadcrumbItem>
+        <BreadcrumbItem Href="/product-reviews">Quản lý đánh giá sản phẩm</BreadcrumbItem>
+    </Breadcrumb>
+</div>
+
+<div class="product-review-management">
+    <Form Model="@filterModel" Layout="@FormLayout.Inline" OnFinish="OnFilterSubmit" Class="mb-3">
+        <FormItem Label="Tìm kiếm">
+            <Input @bind-Value="@filterModel.SearchTerm" Placeholder="Tên khách hàng, nội dung đánh giá..."
+                Style="width: 200px;" />
+        </FormItem>
+        <FormItem Label="Trạng thái">
+            <Select TItemValue="bool?" TItem="SelectItem<bool?>" @bind-Value="@filterModel.IsHidden"
+                DataSource="@statusOptions" ValueName="Value" LabelName="Label" Placeholder="Chọn trạng thái"
+                Style="width: 150px;" AllowClear>
+            </Select>
+        </FormItem>
+        <FormItem Label="Đánh giá">
+            <Select TItemValue="decimal?" TItem="SelectItem<decimal?>" @bind-Value="@filterModel.MinRating"
+                DataSource="@ratingOptions" ValueName="Value" LabelName="Label" Placeholder="Từ" Style="width: 100px;"
+                AllowClear>
+            </Select>
+        </FormItem>
+        <FormItem Label="Có trả lời">
+            <Select TItemValue="bool?" TItem="SelectItem<bool?>" @bind-Value="@filterModel.HasReply"
+                DataSource="@replyOptions" ValueName="Value" LabelName="Label" Placeholder="Chọn" Style="width: 120px;"
+                AllowClear>
+            </Select>
+        </FormItem>
+        <FormItem>
+            <Button Type="@ButtonType.Primary" HtmlType="submit" Icon="search">Tìm kiếm</Button>
+        </FormItem>
+        <FormItem>
+            <Button OnClick="ClearFilters" Icon="clear">Xóa bộ lọc</Button>
+        </FormItem>
+    </Form>
+    <div>
+        <Table @ref="reviewTable" OnChange="@OnPageChangeHandler" PageSize="@filterModel.PageSize" Total="@totalRecords"
+            DataSource="@reviews" Loading="@loading" Bordered="true" >
+            <Column TData="ProductReviewDTO" Title="STT" Width="60" Align="@ColumnAlign.Center">
+                @{
+                    var indexInPage = reviews.IndexOf(context);
+                    var stt = (filterModel.PageIndex - 1) * filterModel.PageSize + indexInPage + 1;
+                }
+                @stt
+            </Column>
+            <Column TData="ProductReviewDTO" Title="Ngày đánh giá" Width="120">
+                <div>
+                    <div><strong>@context.CreationTime.ToString("dd/MM/yyyy")</strong></div>
+                    <div style="color: #666; font-size: 12px;">@context.CreationTime.ToString("HH:mm")</div>
+                </div>
+            </Column>
+            <Column TData="ProductReviewDTO" Title="Khách hàng" Width="150">
+                <div>
+                    <div><strong>@context.CustomerName</strong></div>
+                    <div style="color: #666; font-size: 12px;">@context.CustomerPhone</div>
+                </div>
+            </Column>
+            <Column TData="ProductReviewDTO" Title="Đơn hàng" Width="120">
+                <div>
+                    <div><strong>#@context.OrderCode</strong></div>
+                </div>
+            </Column>
+            <Column TData="ProductReviewDTO" Title="Sản phẩm" Width="200">
+                <div style="display: flex; align-items: center; gap:16px">
+                    <Image Src="@GetProductImageUrl(context.ProductThumbnail)" 
+                           Fallback="@(ApiBaseUrl + "/Images/fallback.jpeg")"
+                           Width="80" Height="80"
+                           Style="margin-right: 8px; border-radius: 4px; object-fit: cover;" />
+                    <div style="flex: 1">
+                        <div><strong>@context.ProductName</strong></div>
+                        <div style="color: #666; font-size: 12px;">
+                            @context.ColourName - @context.SizeName
+                        </div>
+                    </div>
+                </div>
+            </Column>
+            <Column TData="ProductReviewDTO" Title="Đánh giá" Width="100" Align="@ColumnAlign.Center">
+                <Rate Disabled Value="@((int)context.Rating)" Style="font-size: 14px;" />
+            </Column>
+            <Column TData="ProductReviewDTO" Title="Nội dung" Width="300">
+                <div>
+                    <Paragraph Ellipsis Class="paragraph-ellipsis">
+                        @context.Content
+                    </Paragraph>
+                    @if (context.ProductReviewFiles?.Any() == true)
+                    {
+                        <div style="margin-top: 8px; display: flex; flex-wrap: wrap; gap: 4px;">
+                            @foreach (var file in context.ProductReviewFiles)
+                            {
+                                @if (file.FileType == 0) // Image
+                                {
+                                    <Image Src="@GetProductImageUrl(file.FileUrl)" 
+                                           Fallback="@(ApiBaseUrl + "/Images/fallback.jpeg")"
+                                           Width="60" Height="60"
+                                           Style="border-radius: 4px; object-fit: cover;" />
+                                }
+                                else // Video
+                                {
+                                    <div style="position: relative; width: 60px; height: 60px; border-radius: 4px; overflow: hidden; background: #f0f0f0;">
+                                        <video style="width: 100%; height: 100%; object-fit: cover;">
+                                            <source src="@GetProductImageUrl(file.FileUrl)" type="video/mp4" />
+                                        </video>
+                                        <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); color: #666; font-size: 12px;">
+                                            📹
+                                        </div>
+                                    </div>
+                                }
+                            }
+                        </div>
+                    }
+                </div>
+            </Column>
+            <Column TData="ProductReviewDTO" Title="Trả lời" Width="250">
+                @if (!string.IsNullOrEmpty(context.Answer))
+                {
+                    <div>
+                        <Paragraph Class="paragraph-ellipsis" Style="background: #f6f6f6; padding: 8px; border-radius: 4px;">
+                            @context.Answer
+                        </Paragraph>
+
+                        <div style="color: #666; font-size: 12px;">
+                            @context.ReplyDate?.ToString("dd/MM/yyyy HH:mm")
+                        </div>
+                    </div>
+                }
+                else
+                {
+                    <span style="color: #ccc;">Chưa trả lời</span>
+                }
+            </Column>
+            <Column TData="ProductReviewDTO" Title="Trạng thái" Width="100" Align="@ColumnAlign.Center">
+                <Tag Color="@(context.IsHidden ? "red" : "green")">
+                    @(context.IsHidden ? "Đã ẩn" : "Hiển thị")
+                </Tag>
+            </Column>
+            <ActionColumn Title="Thao tác" Width="120" Fixed="ColumnFixPlacement.Right">
+                <Space>
+                    <SpaceItem>
+                        <Button Size="@ButtonSize.Small" Type="@ButtonType.Primary" Icon="message"
+                            OnClick="() => ShowReplyModal(context)">
+                            Trả lời
+                        </Button>
+                    </SpaceItem>
+                    <SpaceItem>
+                        <Button Size="@ButtonSize.Small"
+                            Type="@(context.IsHidden? ButtonType.Default: ButtonType.Dashed)"
+                            Icon="@(context.IsHidden ? "eye" : "eye-invisible")"
+                            OnClick="() => ToggleVisibility(context)">
+                            @(context.IsHidden ? "Hiển thị" : "Ẩn")
+                        </Button>
+                    </SpaceItem>
+                </Space>
+            </ActionColumn>
+        </Table>
+    </div>
+</div>
+
+<!-- Reply Modal -->
+<Modal Title="Trả lời đánh giá" @bind-Visible="replyModalVisible" OnOk="SubmitReply" OnCancel="CancelReply" Width="600"
+    ConfirmLoading="@replyLoading">
+    @if (selectedReview != null)
+    {
+        <div style="margin-bottom: 16px;">
+            <h4>Đánh giá của khách hàng:</h4>
+            <div style="background: #f6f6f6; padding: 12px; border-radius: 4px; margin-bottom: 16px;">
+                <div style="margin-bottom: 8px;">
+                    <Rate Disabled Value="@((int)selectedReview.Rating)" Style="font-size: 14px;" />
+                    <span style="margin-left: 8px; color: #666;">@selectedReview.CustomerName</span>
+                </div>
+                <div>@selectedReview.Content</div>
+            </div>
+
+            <h4>Trả lời của shop:</h4>
+            <TextArea @bind-Value="replyContent" Placeholder="Nhập câu trả lời của bạn..." Rows="4" MaxLength="1000"
+                ShowCount="true" />
+        </div>
+    }
+</Modal>
+
+
+@code {
+    // SelectItem classes for Select DataSource
+    public class SelectItem<T>
+    {
+        public T? Value { get; set; }
+        public string Label { get; set; } = string.Empty;
+    }
+
+    private Table<ProductReviewDTO>? reviewTable;
+    private List<ProductReviewDTO> reviews = new();
+    private GetListProductReviewForAdminDTO filterModel = new() { PageIndex = 1, PageSize = 10 };
+    private bool loading = false;
+    private int totalRecords = 0;
+
+    // API Base URL for images
+    private string ApiBaseUrl = string.Empty;
+
+    // Reply modal
+    private bool replyModalVisible = false;
+    private bool replyLoading = false;
+    private ProductReviewDTO? selectedReview;
+    private string replyContent = string.Empty;
+
+    // Select data sources
+    private List<SelectItem<bool?>> statusOptions = new()
+{
+new SelectItem<bool?> { Value = false, Label = "Hiển thị" },
+new SelectItem<bool?> { Value = true, Label = "Đã ẩn" }
+};
+
+    private List<SelectItem<decimal?>> ratingOptions = new()
+{
+new SelectItem<decimal?> { Value = 1m, Label = "1 sao" },
+new SelectItem<decimal?> { Value = 2m, Label = "2 sao" },
+new SelectItem<decimal?> { Value = 3m, Label = "3 sao" },
+new SelectItem<decimal?> { Value = 4m, Label = "4 sao" },
+new SelectItem<decimal?> { Value = 5m, Label = "5 sao" }
+};
+
+    private List<SelectItem<bool?>> replyOptions = new()
+{
+new SelectItem<bool?> { Value = true, Label = "Đã trả lời" },
+new SelectItem<bool?> { Value = false, Label = "Chưa trả lời" }
+};
+
+    protected override async Task OnInitializedAsync()
+    {
+        ApiBaseUrl = Configuration["ApiSettings:BaseUrl"] ?? string.Empty;
+        await LoadData();
+    }
+
+    private async Task LoadData()
+    {
+        loading = true;
+        try
+        {
+            var result = await ProductReviewClientService.GetAllReviewsForAdminAsync(filterModel);
+            reviews = result.Items?.ToList() ?? new List<ProductReviewDTO>();
+            totalRecords = result.TotalRecords;
+        }
+        catch (Exception ex)
+        {
+            MessageService.Error($"Có lỗi xảy ra: {ex.Message}");
+        }
+        finally
+        {
+            loading = false;
+        }
+    }
+
+    private async Task OnFilterSubmit()
+    {
+        filterModel.PageIndex = 1;
+        await LoadData();
+    }
+
+    private async Task ClearFilters()
+    {
+        filterModel = new GetListProductReviewForAdminDTO { PageIndex = 1, PageSize = 10 };
+        await LoadData();
+    }
+
+    private EventCallback<QueryModel<ProductReviewDTO>> OnPageChangeHandler =>
+    EventCallback.Factory.Create<QueryModel<ProductReviewDTO>>(this, OnPageChange);
+
+    private async Task OnPageChange(QueryModel<ProductReviewDTO> query)
+    {
+        filterModel.PageIndex = query.PageIndex;
+        filterModel.PageSize = query.PageSize;
+        await LoadData();
+    }
+
+    private async Task RefreshData()
+    {
+        await LoadData();
+    }
+
+    private string GetProductImageUrl(string? imageUrl)
+    {
+        if (string.IsNullOrEmpty(imageUrl))
+            return ApiBaseUrl + "/Images/fallback.jpeg";
+        
+        if (imageUrl.StartsWith("http"))
+            return imageUrl;
+            
+        return ApiBaseUrl + "/" + imageUrl;
+    }
+
+    private void ShowReplyModal(ProductReviewDTO review)
+    {
+        selectedReview = review;
+        replyContent = review.Answer ?? string.Empty;
+        replyModalVisible = true;
+    }
+
+    private void CancelReply()
+    {
+        replyModalVisible = false;
+        selectedReview = null;
+        replyContent = string.Empty;
+    }
+
+    private async Task SubmitReply()
+    {
+        if (selectedReview == null || string.IsNullOrWhiteSpace(replyContent))
+        {
+            MessageService.Warning("Vui lòng nhập nội dung trả lời");
+            return;
+        }
+
+        replyLoading = true;
+        try
+        {
+            var result = await ProductReviewClientService.ReplyToReviewAsync(selectedReview.Id, replyContent.Trim());
+            if (result.ResponseStatus == BaseStatus.Success)
+            {
+                MessageService.Success("Trả lời đánh giá thành công");
+                replyModalVisible = false;
+                await LoadData();
+            }
+            else
+            {
+                MessageService.Error(result.Message ?? "Có lỗi xảy ra");
+            }
+        }
+        catch (Exception ex)
+        {
+            MessageService.Error($"Có lỗi xảy ra: {ex.Message}");
+        }
+        finally
+        {
+            replyLoading = false;
+        }
+    }
+
+    private async Task ToggleVisibility(ProductReviewDTO review)
+    {
+        try
+        {
+            var result = await ProductReviewClientService.ToggleReviewVisibilityAsync(review.Id);
+            if (result.ResponseStatus == BaseStatus.Success)
+            {
+                MessageService.Success(result.Message ?? "Thay đổi trạng thái thành công");
+                await LoadData();
+            }
+            else
+            {
+                MessageService.Error(result.Message ?? "Có lỗi xảy ra");
+            }
+        }
+        catch (Exception ex)
+        {
+            MessageService.Error($"Có lỗi xảy ra: {ex.Message}");
+        }
+    }
+}

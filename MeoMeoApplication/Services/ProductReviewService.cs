@@ -20,7 +20,7 @@ namespace MeoMeo.Application.Services
         private readonly IProductReviewFileRepository _fileRepo;
         private readonly IOrderRepository _orderRepository;
         private readonly IMapper _mapper;
-        public ProductReviewService(IProductReviewRepository reviewRepo,IProductReviewFileRepository fileRepo, IMapper mapper, IOrderRepository orderRepository)
+        public ProductReviewService(IProductReviewRepository reviewRepo, IProductReviewFileRepository fileRepo, IMapper mapper, IOrderRepository orderRepository)
         {
             _reviewRepo = reviewRepo;
             _fileRepo = fileRepo;
@@ -59,9 +59,9 @@ namespace MeoMeo.Application.Services
         }
 
 
-        public async Task<PagingExtensions.PagedResult<ProductReviewDTO>> GetProductReviewsByProductDetailIdAsync(GetListProductReviewDTO  request)
+        public async Task<PagingExtensions.PagedResult<ProductReviewDTO>> GetProductReviewsByProductDetailIdAsync(GetListProductReviewDTO request)
         {
-            var listIds = request.ListProductDetailIds.Split(',').Select(c=> Guid.Parse(c)).ToList();
+            var listIds = request.ListProductDetailIds.Split(',').Select(c => Guid.Parse(c)).ToList();
             var query = _reviewRepo.Query()
                 .Where(pr => listIds.Contains(pr.ProductDetailId) && !pr.IsHidden)
                 .Include(pr => pr.Customer)
@@ -91,10 +91,10 @@ namespace MeoMeo.Application.Services
                 ReplyDate = review.ReplyDate,
                 CreationTime = review.CreationTime,
                 CustomerName = review.Customer?.Name ?? string.Empty,
-                CustomerPhone = MaskPhone(review.Customer?.PhoneNumber)  ?? string.Empty,
+                CustomerPhone = MaskPhone(review.Customer?.PhoneNumber) ?? string.Empty,
                 CustomerAvatar = review.Customer?.User?.Avatar ?? string.Empty,
                 ColourName = review.ProductDetail.Colour?.Name ?? string.Empty,
-                SizeName =  review.ProductDetail.Size?.Value ?? string.Empty,
+                SizeName = review.ProductDetail.Size?.Value ?? string.Empty,
                 LastModificationTime = review.LastModificationTime,
                 ProductReviewFiles = review.ProductReviewFiles?.Select(f => new ProductReviewFileDTO
                 {
@@ -115,30 +115,30 @@ namespace MeoMeo.Application.Services
             };
         }
         // Ẩn số điện thoại - chỉ hiển thị 3 số đầu và 3 số cuối
-    public static string MaskPhone(string phoneNumber)
-    {
-        if (string.IsNullOrWhiteSpace(phoneNumber))
-            return phoneNumber;
-
-        // Loại bỏ tất cả ký tự không phải số
-        string cleanPhone = new string(phoneNumber.Where(char.IsDigit).ToArray());
-        
-        if (cleanPhone.Length < 6)
-            return phoneNumber; // Nếu số quá ngắn, trả về nguyên bản
-
-        if (cleanPhone.Length <= 10)
+        public static string MaskPhone(string phoneNumber)
         {
-            // Số điện thoại ngắn: hiển thị 3 số đầu + *** + 3 số cuối
-            return $"{cleanPhone.Substring(0, 3)}***{cleanPhone.Substring(cleanPhone.Length - 3)}";
-        }
-        else
-        {
-            // Số điện thoại dài (có mã quốc gia): hiển thị 4 số đầu + *** + 3 số cuối
-            return $"{cleanPhone.Substring(0, 4)}***{cleanPhone.Substring(cleanPhone.Length - 3)}";
-        }
-    }
+            if (string.IsNullOrWhiteSpace(phoneNumber))
+                return phoneNumber;
 
-    
+            // Loại bỏ tất cả ký tự không phải số
+            string cleanPhone = new string(phoneNumber.Where(char.IsDigit).ToArray());
+
+            if (cleanPhone.Length < 6)
+                return phoneNumber; // Nếu số quá ngắn, trả về nguyên bản
+
+            if (cleanPhone.Length <= 10)
+            {
+                // Số điện thoại ngắn: hiển thị 3 số đầu + *** + 3 số cuối
+                return $"{cleanPhone.Substring(0, 3)}***{cleanPhone.Substring(cleanPhone.Length - 3)}";
+            }
+            else
+            {
+                // Số điện thoại dài (có mã quốc gia): hiển thị 4 số đầu + *** + 3 số cuối
+                return $"{cleanPhone.Substring(0, 4)}***{cleanPhone.Substring(cleanPhone.Length - 3)}";
+            }
+        }
+
+
         public async Task<List<ProductReviewFile>> GetOldFilesAsync(Guid reviewId)
         {
             return (await _fileRepo.GetAllAsync()).Where(f => f.ProductReviewId == reviewId).ToList();
@@ -146,7 +146,8 @@ namespace MeoMeo.Application.Services
         public async Task<BaseResponse> UpdateProductReviewAsync(ProductReviewCreateOrUpdateDTO dto, List<FileUploadResult> filesUpload)
         {
             try
-            { var review = await _reviewRepo.GetProductReviewByIdAsync(dto.Id.Value);
+            {
+                var review = await _reviewRepo.GetProductReviewByIdAsync(dto.Id.Value);
                 if (review == null)
                 {
                     return new BaseResponse()
@@ -253,8 +254,8 @@ namespace MeoMeo.Application.Services
                                 SizeName = orderDetail.ProductDetail?.Size.Value ?? "N/A",
                                 ColorName = orderDetail.ProductDetail?.Colour?.Name ?? "N/A",
                                 Quantity = orderDetail.Quantity,
-                                Price =(decimal) orderDetail.Price,
-                                Discount =(decimal) orderDetail.Discount
+                                Price = (decimal)orderDetail.Price,
+                                Discount = (decimal)orderDetail.Discount
                             });
                         }
                     }
@@ -315,13 +316,13 @@ namespace MeoMeo.Application.Services
                     })
                     .ToListAsync();
 
-                return  new PagingExtensions.PagedResult<ProductReviewDTO>()
+                return new PagingExtensions.PagedResult<ProductReviewDTO>()
                 {
                     PageIndex = request.PageIndex,
                     PageSize = request.PageSize,
                     TotalRecords = totalRecords,
                     Items = mainResults,
-                }; 
+                };
             }
             catch (Exception ex)
             {
@@ -331,11 +332,275 @@ namespace MeoMeo.Application.Services
                     PageSize = request.PageSize,
                     TotalRecords = 0,
                     Items = new List<ProductReviewDTO>(),
-                }; 
-             
+                };
+
             }
         }
 
+        // Admin methods implementation
+        public async Task<PagingExtensions.PagedResult<ProductReviewDTO>> GetAllProductReviewsForAdminAsync(GetListProductReviewForAdminDTO request)
+        {
+            try
+            {
+                var query = _reviewRepo.Query()
+                    .Include(r => r.Customer).ThenInclude(c => c.User)
+                    .Include(r => r.ProductDetail).ThenInclude(pd => pd.Product)
+                    .Include(r => r.ProductDetail).ThenInclude(pd => pd.Size)
+                    .Include(r => r.ProductDetail).ThenInclude(pd => pd.Colour)
+                    .Include(r => r.ProductReviewFiles)
+                    .Include(r => r.Order)
+                    .AsQueryable();
 
+                // Apply filters
+                if (!string.IsNullOrWhiteSpace(request.SearchTerm))
+                {
+                    query = query.Where(r => r.Content.Contains(request.SearchTerm) ||
+                                           r.Customer.Name.Contains(request.SearchTerm) ||
+                                           r.ProductDetail.Product.Name.Contains(request.SearchTerm));
+                }
+
+                if (request.IsHidden.HasValue)
+                {
+                    query = query.Where(r => r.IsHidden == request.IsHidden.Value);
+                }
+
+                if (request.MinRating.HasValue)
+                {
+                    query = query.Where(r => (decimal)r.Rating >= request.MinRating.Value);
+                }
+
+                if (request.MaxRating.HasValue)
+                {
+                    query = query.Where(r => (decimal)r.Rating <= request.MaxRating.Value);
+                }
+
+                if (request.FromDate.HasValue)
+                {
+                    query = query.Where(r => r.CreationTime >= request.FromDate.Value);
+                }
+
+                if (request.ToDate.HasValue)
+                {
+                    query = query.Where(r => r.CreationTime <= request.ToDate.Value);
+                }
+
+                if (request.ProductId.HasValue)
+                {
+                    query = query.Where(r => r.ProductDetail.ProductId == request.ProductId.Value);
+                }
+
+                if (request.CustomerId.HasValue)
+                {
+                    query = query.Where(r => r.CustomerId == request.CustomerId.Value);
+                }
+
+                if (request.HasReply.HasValue)
+                {
+                    if (request.HasReply.Value)
+                    {
+                        query = query.Where(r => !string.IsNullOrEmpty(r.Answer));
+                    }
+                    else
+                    {
+                        query = query.Where(r => string.IsNullOrEmpty(r.Answer));
+                    }
+                }
+
+                query = query.OrderByDescending(r => r.CreationTime);
+
+                var totalRecords = await query.CountAsync();
+                var reviews = await query
+                    .Skip((request.PageIndex - 1) * request.PageSize)
+                    .Take(request.PageSize)
+                    .ToListAsync();
+
+                var result = reviews.Select(r => new ProductReviewDTO
+                {
+                    Id = r.Id,
+                    Content = r.Content,
+                    Answer = r.Answer,
+                    ColourName = r.ProductDetail.Colour?.Name,
+                    SizeName = r.ProductDetail.Size?.Value,
+                    ProductName = r.ProductDetail.Product?.Name,
+                    ProductThumbnail = r.ProductDetail.Product?.Thumbnail,
+                    ReplyDate = r.ReplyDate,
+                    Rating = (decimal)r.Rating,
+                    IsHidden = r.IsHidden,
+                    CustomerId = r.CustomerId,
+                    OrderId = r.OrderId,
+                    OrderCode = r.Order.Code,
+                    ProductDetailId = r.ProductDetailId,
+                    CreationTime = r.CreationTime,
+                    LastModificationTime = r.LastModificationTime,
+                    ProductReviewFiles = r.ProductReviewFiles.Select(f => new ProductReviewFileDTO
+                    {
+                        Id = f.Id,
+                        ProductReviewId = f.ProductReviewId,
+                        FileName = f.FileName,
+                        FileUrl = f.FileUrl,
+                        FileType = f.FileType
+                    }).ToList(),
+                    CustomerName = r.Customer.Name,
+                    CustomerPhone = MaskPhone(r.Customer.PhoneNumber),
+                    CustomerAvatar = r.Customer.User?.Avatar
+                }).ToList();
+
+                return new PagingExtensions.PagedResult<ProductReviewDTO>
+                {
+                    PageIndex = request.PageIndex,
+                    PageSize = request.PageSize,
+                    TotalRecords = totalRecords,
+                    Items = result
+                };
+            }
+            catch (Exception ex)
+            {
+                return new PagingExtensions.PagedResult<ProductReviewDTO>
+                {
+                    PageIndex = request.PageIndex,
+                    PageSize = request.PageSize,
+                    TotalRecords = 0,
+                    Items = new List<ProductReviewDTO>()
+                };
+            }
+        }
+
+        public async Task<BaseResponse> ReplyToReviewAsync(Guid reviewId, string answer)
+        {
+            try
+            {
+                var review = await _reviewRepo.GetProductReviewByIdAsync(reviewId);
+                if (review == null)
+                {
+                    return new BaseResponse
+                    {
+                        ResponseStatus = BaseStatus.Error,
+                        Message = "Không tìm thấy đánh giá"
+                    };
+                }
+
+                review.Answer = answer;
+                review.ReplyDate = DateTime.Now;
+                review.LastModificationTime = DateTime.Now;
+
+                await _reviewRepo.UpdateProductReviewAsync(review);
+
+                return new BaseResponse
+                {
+                    ResponseStatus = BaseStatus.Success,
+                    Message = "Trả lời đánh giá thành công"
+                };
+            }
+            catch (Exception ex)
+            {
+                return new BaseResponse
+                {
+                    ResponseStatus = BaseStatus.Error,
+                    Message = $"Có lỗi xảy ra: {ex.Message}"
+                };
+            }
+        }
+
+        public async Task<BaseResponse> ToggleReviewVisibilityAsync(ToggleReviewVisibilityDTO request)
+        {
+            try
+            {
+                var review = await _reviewRepo.GetProductReviewByIdAsync(request.ReviewId);
+                if (review == null)
+                {
+                    return new BaseResponse
+                    {
+                        ResponseStatus = BaseStatus.Error,
+                        Message = "Không tìm thấy đánh giá"
+                    };
+                }
+
+                // If IsHidden is specified, use that value; otherwise toggle
+                if (request.IsHidden.HasValue)
+                {
+                    review.IsHidden = request.IsHidden.Value;
+                }
+                else
+                {
+                    review.IsHidden = !review.IsHidden;
+                }
+
+                review.LastModificationTime = DateTime.Now;
+
+                await _reviewRepo.UpdateProductReviewAsync(review);
+
+                var actionMessage = review.IsHidden ? "Đã ẩn đánh giá" : "Đã hiện đánh giá";
+                if (!string.IsNullOrEmpty(request.Reason))
+                {
+                    actionMessage += $" - Lý do: {request.Reason}";
+                }
+
+                return new BaseResponse
+                {
+                    ResponseStatus = BaseStatus.Success,
+                    Message = actionMessage
+                };
+            }
+            catch (Exception ex)
+            {
+                return new BaseResponse
+                {
+                    ResponseStatus = BaseStatus.Error,
+                    Message = $"Có lỗi xảy ra: {ex.Message}"
+                };
+            }
+        }
+
+        public async Task<List<ProductReviewDTO>> GetReviewsByOrderIdAsync(Guid orderId)
+        {
+            try
+            {
+                var reviews = await _reviewRepo.Query()
+                    .Where(r => r.OrderId == orderId)
+                    .Include(r => r.Customer).ThenInclude(c => c.User)
+                    .Include(r => r.ProductDetail).ThenInclude(pd => pd.Product)
+                    .Include(r => r.ProductDetail).ThenInclude(pd => pd.Size)
+                    .Include(r => r.ProductDetail).ThenInclude(pd => pd.Colour)
+                    .Include(r => r.ProductReviewFiles)
+                    .Include(r => r.Order)
+                    .OrderByDescending(r => r.CreationTime)
+                    .ToListAsync();
+
+                return reviews.Select(r => new ProductReviewDTO
+                {
+                    Id = r.Id,
+                    Content = r.Content,
+                    Answer = r.Answer,
+                    ColourName = r.ProductDetail.Colour?.Name,
+                    SizeName = r.ProductDetail.Size?.Value,
+                    ProductName = r.ProductDetail.Product?.Name,
+                    ProductThumbnail = r.ProductDetail.Product?.Thumbnail,
+                    ReplyDate = r.ReplyDate,
+                    Rating = (decimal)r.Rating,
+                    IsHidden = r.IsHidden,
+                    CustomerId = r.CustomerId,
+                    OrderId = r.OrderId,
+                    OrderCode = r.Order.Code,
+                    ProductDetailId = r.ProductDetailId,
+                    CreationTime = r.CreationTime,
+                    LastModificationTime = r.LastModificationTime,
+                    ProductReviewFiles = r.ProductReviewFiles.Select(f => new ProductReviewFileDTO
+                    {
+                        Id = f.Id,
+                        ProductReviewId = f.ProductReviewId,
+                        FileName = f.FileName,
+                        FileUrl = f.FileUrl,
+                        FileType = f.FileType
+                    }).ToList(),
+                    CustomerName = r.Customer.Name,
+                    CustomerPhone = MaskPhone(r.Customer.PhoneNumber),
+                    CustomerAvatar = r.Customer.User?.Avatar
+                }).ToList();
+            }
+            catch (Exception ex)
+            {
+                return new List<ProductReviewDTO>();
+            }
+        }
     }
 }

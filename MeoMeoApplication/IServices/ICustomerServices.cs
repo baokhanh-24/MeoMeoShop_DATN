@@ -1,4 +1,5 @@
 ﻿using MeoMeo.Contract.DTOs;
+using MeoMeo.Contract.DTOs.Customer;
 using MeoMeo.Domain.Entities;
 using System;
 using System.Collections.Generic;
@@ -21,5 +22,6 @@ namespace MeoMeo.Application.IServices
         Task<BaseResponse> ChangePasswordAsync(Guid userId, ChangePasswordDTO request);
         Task<string> GetOldUrlAvatar(Guid userId);
         Task<QuickCustomerResponseDTO> CreateQuickCustomerAsync(CreateQuickCustomerDTO request);
+        Task<CustomerDetailDTO> GetCustomerDetailAsync(Guid customerId);
     }
 }

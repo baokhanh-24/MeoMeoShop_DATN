@@ -141,14 +141,16 @@ h1:focus {
         width: 100% !important;
     }
 }
-.components-reconnect-show, .components-reconnect-failed, .components-reconnect-rejected {
+.components-reconnect-show,
+.components-reconnect-failed,
+.components-reconnect-rejected {
     display: none;
-}  
+}
 .rz-body-expanded {
     margin: 0 !important;
-    padding: 12px  !important;
+    padding: 12px !important;
 }
-[class^=rz-] img,
-[class^=rz-] svg {
-    vertical-align: unset !important;
+
+.ant-transfer-list {
+    width: 580px !important;
 }

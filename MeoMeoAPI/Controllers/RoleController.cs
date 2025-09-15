@@ -59,18 +59,12 @@ namespace MeoMeoAPI.Controllers
             return Ok(result);
         }
 
-        [HttpGet("{id}/permissions")]
-        public async Task<ActionResult<List<PermissionDTO>>> GetRolePermissions(Guid id)
+        [HttpGet("{id}/permissions-tree")]
+        public async Task<ActionResult<List<PermissionGroupDTO>>> GetRolePermissionsTree(Guid id)
         {
-            var permissions = await _roleService.GetRolePermissionsAsync(id);
+            var permissions = await _roleService.GetRolePermissionsTreeAsync(id);
             return Ok(permissions);
         }
-
-        [HttpGet("{id}/users")]
-        public async Task<ActionResult<List<UserRoleDTO>>> GetRoleUsers(Guid id)
-        {
-            var users = await _roleService.GetRoleUsersAsync(id);
-            return Ok(users);
-        }
+        
     }
 }

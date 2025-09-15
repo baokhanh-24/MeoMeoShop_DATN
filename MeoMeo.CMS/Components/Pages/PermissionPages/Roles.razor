@@ -1,4 +1,4 @@
-@page "/cms/roles"
+@page "/roles"
 @using MeoMeo.Shared.IServices
 @using MeoMeo.Contract.DTOs.Permission
 @using MeoMeo.Contract.Commons
@@ -7,8 +7,6 @@
 @using ButtonSize = AntDesign.ButtonSize
 @using ButtonType = AntDesign.ButtonType
 @inject IRoleClientService RoleService
-@inject IPermissionClientService PermissionService
-@inject IPermissionGroupClientService PermissionGroupService
 @inject MeoMeo.Shared.Utilities.MessageModalService MessageModalService
 
 <PageTitle>Quản lý vai trò</PageTitle>
@@ -34,20 +32,11 @@
     </div>
 
     <div class="content-section">
-        @if (isLoading)
-        {
-            <div class="loading-section">
-                <Spin Size="SpinSize.Large" />
-                <p>Đang tải dữ liệu...</p>
-            </div>
-        }
-        else
-        {
-            <Table DataSource="@roles" Pagination="false" Bordered>
+            <Table DataSource="@roles"  Bordered>
                 <PropertyColumn Property="@(r => r.Name)" Title="Tên vai trò" />
                 <PropertyColumn Property="@(r => r.Description)" Title="Mô tả" />
                 <PropertyColumn Property="@(r => r.Status)" Title="Trạng thái">
-                    <Template >
+                    <Template>
                         <Tag Color="@(context.Status == 1 ? "green" : "red")">
                             @(context.Status == 1 ? "Hoạt động" : "Không hoạt động")
                         </Tag>
@@ -55,14 +44,14 @@
                 </PropertyColumn>
                 <PropertyColumn Property="@(r => r.Permissions.Count)" Title="Số quyền" />
                 <ActionColumn Title="Thao tác">
-                    <Template >
+                    <Template>
                         <Space>
                             <Button Type="@ButtonType.Link" Size="@ButtonSize.Small" Icon="setting"
-                                Onclick="() => ShowPermissionModal(context)">
+                                OnClick="() => ShowPermissionModal(context)">
                                 Phân quyền
                             </Button>
                             <Button Type="@ButtonType.Link" Size="@ButtonSize.Small" Icon="edit"
-                                Onclick="() => ShowEditModal(context)"></Button>
+                                OnClick="() => ShowEditModal(context)"></Button>
                             <Popconfirm Title="Bạn có chắc chắn muốn xóa vai trò này?" OnConfirm="() => DeleteRole(context)"
                                 OkText="Đồng ý" CancelText="Hủy">
                                 <Button Type="@ButtonType.Link" Size="@ButtonSize.Small" Icon="delete" Danger></Button>
@@ -71,7 +60,7 @@
                     </Template>
                 </ActionColumn>
             </Table>
-        }
+        
     </div>
 </div>
 
@@ -98,28 +87,20 @@
 <Modal Title="Phân quyền cho vai trò" @bind-Visible="showPermissionModal" OnOk="SavePermissions"
     OnCancel="CancelPermissionModal" Width="800">
     <div class="permission-assignment">
-        <div class="permission-groups">
-            @foreach (var group in permissionGroups)
+        <div class="permission-tree">
+            @if (rolePermissionGroups.Any())
             {
-                <div class="permission-group">
-                    <div class="group-header">
-                        <Checkbox Checked="@GetGroupChecked(group.Id)"
-                            @onchange="@((ChangeEventArgs e) => SetGroupChecked(group.Id, e.Value))">
-                            <strong>@group.Name</strong>
-                        </Checkbox>
+                @foreach (var group in rolePermissionGroups)
+                {
+                    <div class="permission-group">
+                        @RenderPermissionGroup(group)
                     </div>
-                    <div class="permissions-list">
-                        @foreach (var permission in group.Permissions)
-                        {
-                            <div class="permission-item">
-                                <Checkbox Checked="@GetPermissionChecked(permission.Id)"
-                                    @onchange="@((ChangeEventArgs e) => SetPermissionChecked(permission.Id, e.Value))">
-                                    @permission.Name
-                                </Checkbox>
-                                <span class="permission-desc">@permission.Description</span>
-                            </div>
-                        }
-                    </div>
+                }
+            }
+            else
+            {
+                <div class="no-permissions">
+                    <p>Chưa có quyền nào được gán cho vai trò này.</p>
                 </div>
             }
         </div>
@@ -128,8 +109,7 @@
 
 @code {
     private List<RoleDTO> roles = new();
-    private List<PermissionGroupDTO> permissionGroups = new();
-    private List<PermissionDTO> allPermissions = new();
+    private List<PermissionGroupDTO> rolePermissionGroups = new();
     private bool isLoading = true;
     private bool showRoleModal = false;
     private bool showPermissionModal = false;
@@ -149,8 +129,6 @@
         {
             isLoading = true;
             roles = await RoleService.GetAllRolesAsync();
-            permissionGroups = await PermissionGroupService.GetPermissionGroupsTreeAsync();
-            allPermissions = await PermissionService.GetAllPermissionsAsync();
         }
         catch (Exception ex)
         {
@@ -247,7 +225,9 @@
     private async Task ShowPermissionModal(RoleDTO role)
     {
         selectedRole = role;
-        selectedPermissionIds = role.Permissions.Select(p => p.Id).ToList();
+        rolePermissionGroups = await RoleService.GetRolePermissionsTreeAsync(role.Id);
+        selectedPermissionIds = GetAllAssignedPermissionIds(rolePermissionGroups ?? new List<PermissionGroupDTO>()) ?? new
+        List<Guid>();
         showPermissionModal = true;
     }
 
@@ -258,7 +238,7 @@
             var result = await RoleService.AssignPermissionsToRoleAsync(new AssignPermissionsToRoleDTO
             {
                 RoleId = selectedRole.Id,
-                PermissionIds = selectedPermissionIds
+                PermissionIds = selectedPermissionIds ?? new List<Guid>()
             });
 
             if (result.ResponseStatus == BaseStatus.Success)
@@ -283,94 +263,94 @@
     {
         showPermissionModal = false;
         selectedRole = new RoleDTO();
-        selectedPermissionIds.Clear();
+        selectedPermissionIds?.Clear();
+        rolePermissionGroups?.Clear();
     }
 
-    private bool GetPermissionChecked(Guid permissionId)
+    private List<Guid> GetAllAssignedPermissionIds(List<PermissionGroupDTO> groups)
     {
-        return selectedPermissionIds.Contains(permissionId);
-    }
+        var ids = new List<Guid>();
+        if (groups == null) return ids;
 
-    private void SetPermissionChecked(Guid permissionId, object value)
-    {
-        if (value is bool isChecked)
+        foreach (var group in groups)
         {
-            if (isChecked)
-            {
-                if (!selectedPermissionIds.Contains(permissionId))
-                    selectedPermissionIds.Add(permissionId);
-            }
-            else
-            {
-                selectedPermissionIds.Remove(permissionId);
-            }
+            ids.AddRange(group.Permissions?.Where(p => p.IsAssigned).Select(p => p.Id) ?? new List<Guid>());
+            ids.AddRange(GetAllAssignedPermissionIds(group.Children));
         }
+        return ids;
     }
 
-    private bool GetGroupChecked(Guid groupId)
-    {
-        var group = permissionGroups.FirstOrDefault(g => g.Id == groupId);
-        if (group == null) return false;
-
-        return group.Permissions.All(p => selectedPermissionIds.Contains(p.Id));
-    }
-
-    private void SetGroupChecked(Guid groupId, object value)
-    {
-        if (value is bool isChecked)
-        {
-            var group = permissionGroups.FirstOrDefault(g => g.Id == groupId);
-            if (group != null)
-            {
-                foreach (var permission in group.Permissions)
+    private RenderFragment<PermissionGroupDTO> RenderPermissionGroup => (group) => @<div class="permission-group-item"
+    style="margin-left: @(group.ParentId == null ? "0" : "20px")">
+    <div class="group-header">
+        <strong>@group.Name</strong>
+        @if (!string.IsNullOrEmpty(group.Description))
                 {
-                    if (isChecked)
-                    {
-                        if (!selectedPermissionIds.Contains(permission.Id))
-                            selectedPermissionIds.Add(permission.Id);
-                    }
-                    else
-                    {
-                        selectedPermissionIds.Remove(permission.Id);
-                    }
+        <span class="group-description">- @group.Description</span>
                 }
-            }
-        }
-    }
-
-    private void TogglePermission(Guid permissionId, bool isChecked)
+    </div>
+@if (group.Permissions?.Any() == true)
     {
-        if (isChecked)
-        {
-            if (!selectedPermissionIds.Contains(permissionId))
-                selectedPermissionIds.Add(permissionId);
-        }
-        else
-        {
-            selectedPermissionIds.Remove(permissionId);
-        }
+    <div class="permissions-list">
+        @foreach (var permission in group.Permissions)
+                {
+        <div class="permission-item">
+            <Checkbox Checked="@permission.IsAssigned"
+                OnChange="@((bool isChecked) => TogglePermission(permission.Id, isChecked))">
+                @permission.Name
+            </Checkbox>
+            @if (!string.IsNullOrEmpty(permission.Description))
+                        {
+            <span class="permission-desc">- @permission.Description</span>
+                        }
+        </div>
+                }
+    </div>
     }
+@if (group.Children?.Any() == true)
+{
+        <div class="children-groups">
+            @foreach (var child in group.Children)
+            {
+                @RenderPermissionGroup(child)
+            }
+        </div>
+}
+</div>;
 
-    private void ToggleGroupPermissions(Guid groupId, bool isChecked)
+private void TogglePermission(Guid permissionId, bool isChecked)
+{
+    if (isChecked)
     {
-        var groupPermissions = allPermissions.Where(p => p.PermissionGroupId == groupId).Select(p => p.Id);
-
-        if (isChecked)
-        {
-            foreach (var permissionId in groupPermissions)
-            {
-                if (!selectedPermissionIds.Contains(permissionId))
-                    selectedPermissionIds.Add(permissionId);
-            }
-        }
-        else
-        {
-            foreach (var permissionId in groupPermissions)
-            {
-                selectedPermissionIds.Remove(permissionId);
-            }
-        }
+        if (!(selectedPermissionIds ?? new List<Guid>()).Contains(permissionId))
+            (selectedPermissionIds ??= new List<Guid>()).Add(permissionId);
     }
+    else
+    {
+        selectedPermissionIds?.Remove(permissionId);
+    }
+
+    // Update the IsAssigned property in the tree
+    UpdatePermissionAssignedState(rolePermissionGroups ?? new List<PermissionGroupDTO>(), permissionId, isChecked);
+}
+
+private void UpdatePermissionAssignedState(List<PermissionGroupDTO> groups, Guid permissionId, bool isAssigned)
+{
+    if (groups == null) return;
+
+    foreach (var group in groups)
+    {
+        var permission = group.Permissions?.FirstOrDefault(p => p.Id == permissionId);
+        if (permission != null)
+        {
+            permission.IsAssigned = isAssigned;
+            return;
+        }
+
+        // Recursively check children
+        UpdatePermissionAssignedState(group.Children, permissionId, isAssigned);
+    }
+}
 }
 
 <style>
@@ -403,37 +383,60 @@
         padding: 48px;
     }
 
-    .permission-assignment {
+    .permission-tree {
         max-height: 500px;
         overflow-y: auto;
-    }
-
-    .permission-group {
-        margin-bottom: 16px;
         border: 1px solid #f0f0f0;
         border-radius: 6px;
+        padding: 16px;
+    }
+
+    .permission-group-item {
+        margin-bottom: 16px;
         padding: 12px;
+        border: 1px solid #e8e8e8;
+        border-radius: 4px;
+        background-color: #fafafa;
     }
 
     .group-header {
         margin-bottom: 8px;
         padding-bottom: 8px;
-        border-bottom: 1px solid #f0f0f0;
+        border-bottom: 1px solid #e8e8e8;
+        font-size: 14px;
+    }
+
+    .group-description {
+        color: #666;
+        font-weight: normal;
     }
 
     .permissions-list {
-        margin-left: 24px;
+        margin-left: 16px;
+        margin-top: 8px;
     }
 
     .permission-item {
         display: flex;
         align-items: center;
-        margin-bottom: 8px;
+        margin-bottom: 6px;
+        padding: 4px 0;
     }
 
     .permission-desc {
         margin-left: 8px;
         color: #666;
         font-size: 12px;
+    }
+
+    .children-groups {
+        margin-top: 12px;
+        margin-left: 16px;
+    }
+
+    .no-permissions {
+        text-align: center;
+        padding: 48px;
+        color: #999;
     }
 </style>

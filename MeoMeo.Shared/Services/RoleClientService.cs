@@ -75,7 +75,7 @@ namespace MeoMeo.Shared.Services
             try
             {
                 var response = await _apiCaller.DeleteAsync($"api/role/{id}");
-                return  new BaseResponse { ResponseStatus = response ? BaseStatus.Success: BaseStatus.Error, Message =response ?  "":"Có lỗi xảy ra" };
+                return new BaseResponse { ResponseStatus = response ? BaseStatus.Success : BaseStatus.Error, Message = response ? "" : "Có lỗi xảy ra" };
             }
             catch (Exception ex)
             {
@@ -98,17 +98,17 @@ namespace MeoMeo.Shared.Services
             }
         }
 
-        public async Task<List<PermissionDTO>> GetRolePermissionsAsync(Guid roleId)
+        public async Task<List<PermissionGroupDTO>> GetRolePermissionsTreeAsync(Guid roleId)
         {
             try
             {
-                var response = await _apiCaller.GetAsync<List<PermissionDTO>>($"api/cms/role/{roleId}/permissions");
-                return response ?? new List<PermissionDTO>();
+                var response = await _apiCaller.GetAsync<List<PermissionGroupDTO>>($"api/role/{roleId}/permissions-tree");
+                return response ?? new List<PermissionGroupDTO>();
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Error getting role permissions: {ex.Message}");
-                return new List<PermissionDTO>();
+                Console.WriteLine($"Error getting role permissions tree: {ex.Message}");
+                return new List<PermissionGroupDTO>();
             }
         }
 

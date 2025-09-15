@@ -1,10 +1,6 @@
 ﻿using MeoMeo.Contract.Commons;
 using MeoMeo.Domain.Commons.Enums;
 using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace MeoMeo.Contract.DTOs.InventoryBatch
 {
@@ -15,5 +11,7 @@ namespace MeoMeo.Contract.DTOs.InventoryBatch
         public int? QuantityFilter { get; set; }
         public string? NoteFilter { get; set; }
         public EInventoryBatchStatus? StatusFilter { get; set; }
+        public Guid? ImportBatchIdFilter { get; set; }
+        public Guid? ProductDetailIdFilter { get; set; }
     }
 }

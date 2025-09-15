@@ -18,22 +18,26 @@
 @inject IConfiguration Configuration
 
 <div class="content-background layout-container">
-    <Breadcrumb>
-        <BreadcrumbItem>Quản lý hệ thống</BreadcrumbItem>
-        <BreadcrumbItem>
-            <a class="current">@(DetailsItem != null ? "Cập nhật đơn hàng" : "Thêm mới đơn hàng")</a>
-        </BreadcrumbItem>
-    </Breadcrumb>
-    <div class="group-breadcumb">
-        <Button Class="btn-reset w-100px" Icon="close" OnClick="HandleCancel">Hủy Làm mới (Ctrl+N)</Button>
-        <Button Class="btn-reset" Icon="photo_album" OnClick="() => HandleSave(true)">Lưu tạm</Button>
-        <Button Class="btn-save" Icon="check" OnClick="() => HandleSave(false)"> Lưu đơn hàng (Ctrl+S)</Button>
 
-        <Button Class="btn-reset" Icon="print" OnClick="HandlePrintOrder" Disabled="@(!Products.Any())">In đơn In hóa
-            đơn (Ctrl+P)
-        </Button>
+    <div class="group-breadcumb d-flex justify-content-between">
+        <Breadcrumb>
+            <BreadcrumbItem>Quản lý hệ thống</BreadcrumbItem>
+            <BreadcrumbItem>
+                <a class="current">@(DetailsItem != null ? "Cập nhật đơn hàng" : "Thêm mới đơn hàng")</a>
+            </BreadcrumbItem>
+        </Breadcrumb>
+        <div>
+            <Button Class="btn-reset w-100px" Icon="close" OnClick="HandleCancel">Hủy Làm mới</Button>
+            <Button Class="btn-reset" Icon="photo_album" OnClick="() => HandleSave(true)">Lưu tạm</Button>
+            <Button Class="btn-save" Icon="check" OnClick="() => HandleSave(false)"> Lưu đơn hàng</Button>
 
-        <Button Class="btn-back" Icon="arrow-left" OnClick="HandleGoBack">Quay lại</Button>
+            <Button Class="btn-reset" Icon="print" OnClick="HandlePrintOrder" Disabled="@(!Products.Any())">In đơn In
+                hóa
+                đơn
+            </Button>
+
+            <Button Class="btn-back" Icon="arrow-left" OnClick="HandleGoBack">Quay lại</Button>
+        </div>
     </div>
     <Form Model="OrderModel" Layout="@AntDesign.FormLayout.Vertical" RequiredMark="@AntDesign.FormRequiredMark.Required"
         OnFinish="OnFinish" OnFinishFailed="OnFinishFailed">
@@ -59,7 +63,7 @@
                 <AntDesign.Col Lg="8">
                     <FormItem Label="Tên khách hàng" Required="@(OrderType == 2)">
                         <div style="display: flex; gap: 4px;">
-                            <Select TItem="Customer" TItemValue="Guid?" DataSource="@Customers"
+                            <Select TItem="Customer" TItemValue="Guid ?" DataSource="@Customers"
                                 @bind-Value="@OrderModel.CustomerId" Placeholder="Chọn khách hàng..."
                                 ItemValue="x => x.Id" ItemLabel="x => x.Name" ShowSearch="true" FilterOption="false"
                                 OnSelectedItemChanged="@(e => OnCustomerChanged(e))" Loading="@CustomersLoading"
@@ -86,8 +90,7 @@
             <div class="order-section-delivery">
                 <div class="order-section-delivery-header">
                     <div class="txt-18-n-600">Thông tin nhận hàng</div>
-                    <Checkbox @bind-Checked="@UseDefaultAddress"
-                        Disabled="@(SelectedCustomer == null)"
+                    <Checkbox @bind-Checked="@UseDefaultAddress" Disabled="@(SelectedCustomer == null)"
                         class="order-checkbox-default-address">
                         <span class="txt-16-n-400 order-checkbox-default-address-label"
                             style="color: @(SelectedCustomer?.Id == Guid.Empty ? "#999" : "#22313F")">
@@ -163,10 +166,10 @@
                     }
                     <span class="txt-18-n-500">Danh sách sản phẩm (@Products.Count)</span>
                     <div class="search-controls">
-                        <Button Type="@AntDesign.ButtonType.Default" Icon="scan" OnClick="StartBarcodeScan"
-                            class="barcode-scan-btn">
-                            <Icon Type="scan" />
-                            Quét barcode (F2)
+                        <Button Type="@AntDesign.ButtonType.Default" Icon="qr_code" OnClick="StartQRCodeScan"
+                            class="qr-scan-btn" Disabled="@IsQRCodeScanning">
+                            <Icon Type="qr_code" />
+                            Quét QR Code (F3)
                         </Button>
                         <div class="order-section-product-search-input">
                             <Tooltip Title="Tìm kiếm sản phẩm (F1)">
@@ -219,7 +222,7 @@
                                     @if (SearchResults.Count > 5)
                                     {
                                         <div class="search-result-more">
-                                            <Button Type="@AntDesign.ButtonType.Link" OnClick="()=>ShowAllSearchResults()">
+                                            <Button Type="@AntDesign.ButtonType.Link" OnClick="() => ShowAllSearchResults()">
                                                 Xem thêm @(SearchResults.Count - 5) sản phẩm...
                                             </Button>
                                         </div>
@@ -506,6 +509,7 @@ new() { Label = "Giao hàng", Value = 2 }
     private int PaymentType = 0;
     private string ApiBaseUrl = string.Empty;
     private bool IsBarcodeScanning = false;
+    private bool IsQRCodeScanning = false;
 
     private ProductSearchRequestDTO requestSearchProduct = new ProductSearchRequestDTO
     {
@@ -958,6 +962,92 @@ new() { Label = "Giao hàng", Value = 2 }
         }
     }
 
+    private async Task StartQRCodeScan()
+    {
+        try
+        {
+            IsQRCodeScanning = true;
+            MessageService.Info("Đang khởi động camera quét QR code...");
+
+            // Gọi JavaScript để khởi động camera quét QR
+            var qrData = await JSRuntime.InvokeAsync<string>("startQRCodeScan");
+            if (!string.IsNullOrEmpty(qrData))
+            {
+                await ProcessQRCodeData(qrData);
+            }
+        }
+        catch (Exception ex)
+        {
+            MessageService.Error("Không thể khởi động camera quét QR: " + ex.Message);
+        }
+        finally
+        {
+            IsQRCodeScanning = false;
+            StateHasChanged();
+        }
+    }
+
+    private async Task ProcessQRCodeData(string qrData)
+    {
+        try
+        {
+            // Kiểm tra format QR code: PRODUCT:SKU:PRICE:SIZE:COLOR
+            if (qrData.StartsWith("PRODUCT:"))
+            {
+                var parts = qrData.Split(':');
+                if (parts.Length >= 2)
+                {
+                    var sku = parts[1];
+
+                    // Tìm sản phẩm theo SKU
+                    var product = await ProductClientService.GetProductBySkuAsync(sku);
+
+                    if (product != null)
+                    {
+                        AddProductToOrder(product);
+                        MessageService.Success($"Đã thêm sản phẩm {product.ProductName} vào đơn hàng");
+                    }
+                    else
+                    {
+                        MessageService.Warning($"Không tìm thấy sản phẩm với SKU: {sku}");
+                    }
+                }
+                else
+                {
+                    MessageService.Warning("QR code không đúng định dạng");
+                }
+            }
+            else
+            {
+                // Nếu không phải QR code sản phẩm, thử tìm kiếm như barcode thông thường
+                var barcodeRequest = new ProductSearchRequestDTO
+                {
+                    PageIndex = 1,
+                    PageSize = 1,
+                    SearchKeyword = qrData,
+                    InStockOnly = true
+                };
+
+                var result = await ProductClientService.SearchProductsAsync(barcodeRequest);
+                var product = result.Items?.FirstOrDefault();
+
+                if (product != null)
+                {
+                    AddProductToOrder(product);
+                    MessageService.Success($"Đã thêm sản phẩm {product.ProductName} vào đơn hàng");
+                }
+                else
+                {
+                    MessageService.Warning($"Không tìm thấy sản phẩm với dữ liệu: {qrData}");
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            MessageService.Error($"Có lỗi xảy ra khi xử lý QR code: {ex.Message}");
+        }
+    }
+
     private async Task CheckDiscountCode()
     {
         if (string.IsNullOrEmpty(DiscountCode))
@@ -1092,7 +1182,7 @@ new() { Label = "Giao hàng", Value = 2 }
         {
             CustomersLoading = true;
             ProvincesLoading = true;
-            
+
             var custReq = new MeoMeo.Contract.DTOs.GetListCustomerRequestDTO
             {
                 PageIndex = 1,

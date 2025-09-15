@@ -15,9 +15,9 @@ namespace MeoMeo.CMS.Services
         private readonly ILogger<CMSAuthService> _logger;
         private readonly ProtectedLocalStorage _localStorage;
         private readonly IUserRoleClientService _userRoleService;
-        private const string StorageKey = "cms_accessToken";
-        private const string RefreshStorageKey = "cms_refreshToken";
-        private const string UserStorageKey = "cms_userInfo";
+        private const string StorageKey = "accessToken";
+        private const string RefreshStorageKey = "refreshToken";
+        private const string UserStorageKey = "userInfo";
 
         public CMSAuthService(
             IApiCaller apiCaller,
@@ -36,7 +36,6 @@ namespace MeoMeo.CMS.Services
             try
             {
                 var authResponse = await _apiCaller.PostAsync<AuthenRequest, AuthenResponse>("api/auths/connect-token", request);
-
                 if (authResponse?.ResponseStatus == MeoMeo.Contract.Commons.BaseStatus.Success)
                 {
                     await SetTokensAsync(authResponse.AccessToken, authResponse.RefreshToken);
@@ -47,11 +46,8 @@ namespace MeoMeo.CMS.Services
                     {
                         await _localStorage.SetAsync(UserStorageKey, userInfo);
                     }
-
-                    return authResponse;
                 }
-
-                return null;
+                return authResponse;
             }
             catch (Exception ex)
             {
@@ -231,7 +227,7 @@ namespace MeoMeo.CMS.Services
                 var rolesClaim = jwtToken.Claims.FirstOrDefault(c => c.Type == "roles");
                 if (rolesClaim != null)
                 {
-                    var roles = rolesClaim.Value.Split(',');
+                    var roles = rolesClaim.Value.Split(';');
                     return roles.Any(r => r.Trim().ToLower() == role.ToLower());
                 }
 
@@ -266,7 +262,7 @@ namespace MeoMeo.CMS.Services
                 var permissionsClaim = jwtToken.Claims.FirstOrDefault(c => c.Type == "permissions");
                 if (permissionsClaim != null)
                 {
-                    var permissions = permissionsClaim.Value.Split(',');
+                    var permissions = permissionsClaim.Value.Split(';');
                     return permissions.Any(p => p.Trim().ToLower() == permission.ToLower());
                 }
 
@@ -295,18 +291,8 @@ namespace MeoMeo.CMS.Services
                     string fullName = "";
                     if (fullNameClaim != null)
                     {
-                        // Nếu fullName là array, lấy phần tử đầu tiên
-                        if (fullNameClaim.Value.StartsWith("[") && fullNameClaim.Value.EndsWith("]"))
-                        {
-                            var names = fullNameClaim.Value.Trim('[', ']').Split(',');
-                            fullName = names.FirstOrDefault()?.Trim('"') ?? "";
-                        }
-                        else
-                        {
-                            fullName = fullNameClaim.Value;
-                        }
+                        fullName = fullNameClaim.Value;
                     }
-
                     // Xử lý EmployeeId và CustomerId
                     Guid? employeeId = null;
                     Guid? customerId = null;
@@ -360,7 +346,7 @@ namespace MeoMeo.CMS.Services
                 var rolesClaim = jwtToken.Claims.FirstOrDefault(c => c.Type == "roles");
                 if (rolesClaim != null)
                 {
-                    return await Task.FromResult(rolesClaim.Value.Split(',')
+                    return await Task.FromResult(rolesClaim.Value.Split(';')
                         .Select(r => r.Trim())
                         .Where(r => !string.IsNullOrEmpty(r))
                         .ToList());
@@ -397,7 +383,7 @@ namespace MeoMeo.CMS.Services
                 var permissionsClaim = jwtToken.Claims.FirstOrDefault(c => c.Type == "permissions");
                 if (permissionsClaim != null)
                 {
-                    return await Task.FromResult(permissionsClaim.Value.Split(',')
+                    return await Task.FromResult(permissionsClaim.Value.Split(';')
                         .Select(p => p.Trim())
                         .Where(p => !string.IsNullOrEmpty(p))
                         .ToList());
@@ -429,6 +415,28 @@ namespace MeoMeo.CMS.Services
             {
                 _logger.LogError(ex, "Error getting token claims");
                 return new Dictionary<string, string>();
+            }
+        }
+
+        public async Task RefreshUserInfoAsync()
+        {
+            try
+            {
+                var token = await GetAccessTokenAsync();
+                if (!string.IsNullOrEmpty(token))
+                {
+                    // Cập nhật thông tin user từ token mới nhất
+                    var userInfo = await GetUserInfoFromToken(token);
+                    if (userInfo != null)
+                    {
+                        await _localStorage.SetAsync(UserStorageKey, userInfo);
+                        _logger.LogInformation("CMS User info refreshed successfully");
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error refreshing CMS user info");
             }
         }
     }

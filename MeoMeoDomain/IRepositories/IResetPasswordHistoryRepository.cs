@@ -7,7 +7,7 @@ using System.Threading.Tasks;
 
 namespace MeoMeo.Domain.IRepositories
 {
-    public interface IResetPasswordHistoryRepository
+    public interface IResetPasswordHistoryRepository: IBaseRepository<ResetPasswordHistory>
     {
         Task<ResetPasswordHistory> CreateResetPasswordHistoryAsync(ResetPasswordHistory resetPasswordHistory);
         Task<List<ResetPasswordHistory>> GetAllResetPasswordHistoryAsync();

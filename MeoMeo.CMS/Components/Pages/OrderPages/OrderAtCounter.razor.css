@@ -149,3 +149,20 @@
     flex: 1;
     text-align: center;
 }
+
+/* QR Scan Button */
+.qr-scan-btn {
+    margin-left: 8px;
+    border-color: #52c41a;
+    color: #52c41a;
+}
+
+.qr-scan-btn:hover {
+    border-color: #73d13d;
+    color: #73d13d;
+}
+
+.qr-scan-btn:disabled {
+    border-color: #d9d9d9;
+    color: #d9d9d9;
+}

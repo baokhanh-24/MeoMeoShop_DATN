@@ -52,14 +52,7 @@
 
     <!-- Wishlist Content -->
     <div class="wishlist-content">
-        @if (isLoading)
-        {
-            <div class="loading-section">
-                <Spin Size="SpinSize.Large" />
-                <p>Đang tải danh sách yêu thích...</p>
-            </div>
-        }
-        else if (wishlistProducts.Any())
+        @if (wishlistProducts.Any())
         {
             <GridRow Gutter="16">
                 <GridCol Span="24">

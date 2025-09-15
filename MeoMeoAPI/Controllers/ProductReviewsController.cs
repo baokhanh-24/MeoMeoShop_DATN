@@ -68,7 +68,7 @@ namespace MeoMeo.API.Controllers
             var oldFiles = await _service.GetOldFilesAsync(request.Id!.Value);
             var keepFileIds = request.MediaUploads?.Where(f => f.Id.HasValue).Select(f => f.Id!.Value).ToList() ?? new List<Guid>();
             var filesToDelete = oldFiles.Where(f => !keepFileIds.Contains(f.Id)).ToList();
-     
+
             var result = await _service.UpdateProductReviewAsync(request, uploadedFiles);
             if (result.ResponseStatus == BaseStatus.Error)
             {
@@ -146,7 +146,81 @@ namespace MeoMeo.API.Controllers
 
             try
             {
-                var result = await _service.GetCustomerReviewsAsync(customerId,request );
+                var result = await _service.GetCustomerReviewsAsync(customerId, request);
+                return Ok(result);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new BaseResponse
+                {
+                    ResponseStatus = BaseStatus.Error,
+                    Message = $"Có lỗi xảy ra: {ex.Message}"
+                });
+            }
+        }
+
+        // Admin endpoints
+        [HttpGet("admin/all")]
+        public async Task<IActionResult> GetAllReviewsForAdmin([FromQuery] GetListProductReviewForAdminDTO request)
+        {
+            try
+            {
+                var result = await _service.GetAllProductReviewsForAdminAsync(request);
+                return Ok(result);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new BaseResponse
+                {
+                    ResponseStatus = BaseStatus.Error,
+                    Message = $"Có lỗi xảy ra: {ex.Message}"
+                });
+            }
+        }
+
+        [HttpPut("admin/{id}/reply")]
+        public async Task<IActionResult> ReplyToReview(Guid id, [FromBody] ReplyToReviewDTO request)
+        {
+            try
+            {
+                var result = await _service.ReplyToReviewAsync(id, request.Answer);
+                return Ok(result);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new BaseResponse
+                {
+                    ResponseStatus = BaseStatus.Error,
+                    Message = $"Có lỗi xảy ra: {ex.Message}"
+                });
+            }
+        }
+
+        [HttpPut("admin/{id}/toggle-visibility")]
+        public async Task<IActionResult> ToggleReviewVisibility(Guid id, [FromBody] ToggleReviewVisibilityDTO request)
+        {
+            try
+            {
+                request.ReviewId = id; // Ensure ReviewId matches the route parameter
+                var result = await _service.ToggleReviewVisibilityAsync(request);
+                return Ok(result);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new BaseResponse
+                {
+                    ResponseStatus = BaseStatus.Error,
+                    Message = $"Có lỗi xảy ra: {ex.Message}"
+                });
+            }
+        }
+
+        [HttpGet("admin/by-order/{orderId}")]
+        public async Task<IActionResult> GetReviewsByOrderId(Guid orderId)
+        {
+            try
+            {
+                var result = await _service.GetReviewsByOrderIdAsync(orderId);
                 return Ok(result);
             }
             catch (Exception ex)

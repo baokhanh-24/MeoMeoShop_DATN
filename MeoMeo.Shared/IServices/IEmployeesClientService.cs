@@ -2,6 +2,7 @@
 using MeoMeo.Contract.DTOs;
 using MeoMeo.Contract.DTOs.Employees;
 using MeoMeo.Domain.Commons;
+using Microsoft.AspNetCore.Http;
 
 namespace MeoMeo.Shared.IServices
 {
@@ -13,5 +14,9 @@ namespace MeoMeo.Shared.IServices
         Task<CreateOrUpdateEmployeeResponseDTO> UpdateEmployeesAsync(CreateOrUpdateEmployeeDTO employee);
         Task<CreateOrUpdateEmployeeResponseDTO> ChangePasswordAsync(ChangePasswordRequestDTO dto);
         Task<bool> DeleteEmployeesAsync(Guid id);
+        Task<BaseResponse> UploadAvatarAsync(IFormFile file);
+        Task<BaseResponse> ChangePasswordAsync(ChangePasswordDTO model);
+        Task<CreateOrUpdateEmployeeResponseDTO> UpdateProfileAsync(CreateOrUpdateEmployeeDTO employee);
+        Task<string> GetAvatarUrlAsync();
     }
 }

@@ -11,29 +11,51 @@
 
 @if (Visible)
 {
-    <Modal Title="Thêm mới nhân viên" Visible="true" OnCancel="OnCancel" Footer="null">
-        <Form Model="@employee" OnFinish="HandleValidSubmit">
-            <FormItem Label="Họ và tên">
-                <Input @bind-Value="employee.Name" />
-            </FormItem>
-            <FormItem Label="Mã nhân viên">
-                <Input @bind-Value="employee.Code" />
-            </FormItem>
-            <FormItem Label="SĐT">
-                <Input @bind-Value="employee.PhoneNumber" />
-            </FormItem>
-            <FormItem Label="Ngày sinh">
-                <Input @bind-Value="employee.DateOfBird" />
-            </FormItem>
-            <FormItem Label="Địa chỉ">
-                <Input @bind-Value="employee.Address" />
-            </FormItem>
-            <FormItem Label="Trạng thái">
-                <Select TItem="(EEmployeesStatus Value, string Name)" TItemValue="EEmployeesStatus"
-                    @bind-Value="employee.StatusEnum" DataSource="StatusList" ItemValue="item => item.Value"
-                    ItemLabel="item => item.Name">
-                </Select>
+    <Modal Title="Thêm mới nhân viên" Visible="true" OnCancel="OnCancel" Footer="null" Width="800">
+        <Form Model="@employee" OnFinish="HandleValidSubmit" Layout="@FormLayout.Vertical">
+            <div class="row">
+                <div class="col-md-12">
+                    <FormItem Label="Họ và tên" Required>
+                        <Input @bind-Value="employee.Name" Placeholder="Nhập họ và tên" MaxLength="100" />
+                    </FormItem>
+                </div>
+            </div>
 
+            <div class="row">
+                <div class="col-md-6">
+                    <FormItem Label="Số điện thoại" Required>
+                        <Input @bind-Value="employee.PhoneNumber" Placeholder="Nhập số điện thoại" MaxLength="12" />
+                    </FormItem>
+                </div>
+                <div class="col-md-6">
+                    <FormItem Label="Email">
+                        <Input @bind-Value="employee.Email" Placeholder="Nhập email" />
+                    </FormItem>
+                </div>
+            </div>
+
+            <div class="row">
+                <div class="col-md-6">
+                    <FormItem Label="Ngày sinh">
+                        <DatePicker Style="width: 100%" @bind-Value="employee.DateOfBird" />
+                    </FormItem>
+                </div>
+                <div class="col-md-6">
+                    <FormItem Label="Trạng thái" Required>
+                        <Select TItem="(EEmployeesStatus Value, string Name)" TItemValue="EEmployeesStatus"
+                            @bind-Value="employee.StatusEnum" DataSource="StatusList" ItemValue="item => item.Value"
+                            ItemLabel="item => item.Name" Placeholder="Chọn trạng thái">
+                        </Select>
+                    </FormItem>
+                </div>
+            </div>
+
+            <FormItem Label="Địa chỉ">
+                <TextArea @bind-Value="employee.Address" Placeholder="Nhập địa chỉ" Rows="3" MaxLength="255" />
+            </FormItem>
+
+            <FormItem Label="Mật khẩu" Required>
+                <Input @bind-Value="employee.Password" Placeholder="Nhập mật khẩu" Password="true" />
             </FormItem>
 
             <div class="text-end">
@@ -52,6 +74,11 @@
     private CreateOrUpdateEmployeeDTO employee = new();
 
     [Parameter] public List<(EEmployeesStatus Value, string Name)> StatusList { get; set; }
+
+    protected override async Task OnInitializedAsync()
+    {
+        employee.Status = 1;
+    }
 
     private async Task HandleValidSubmit()
     {

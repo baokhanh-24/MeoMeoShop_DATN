@@ -1,0 +1,679 @@
+﻿@page "/InventoryBatchCreate"
+@page "/InventoryBatchCreate/{ImportBatchId:guid}"
+@using MeoMeo.Contract.DTOs
+@using MeoMeo.Contract.DTOs.Product
+@using MeoMeo.Contract.DTOs.ImportBatch
+@using MeoMeo.Domain.Commons.Enums
+@using MeoMeo.Shared.IServices
+@using AntDesign.TableModels
+@using ButtonSize = AntDesign.ButtonSize
+@using ButtonType = AntDesign.ButtonType
+@inject NavigationManager Navigation
+@inject IImportBatchClientService ImportBatchClientService
+@inject IInventoryBatchClientService InventoryBatchClientService
+@inject IProductClientService ProductClientService
+@inject IMessageService MessageService
+
+<div class="content-background layout-container">
+    <div class="d-flex justify-content-between mb-3">
+    <Breadcrumb>
+        <BreadcrumbItem Href="/">Trang chủ</BreadcrumbItem>
+        <BreadcrumbItem Href="/manage-importBatch">Quản lý lô nhập</BreadcrumbItem>
+        <BreadcrumbItem>
+            <a class="current">Quản lý sản phẩm trong lô nhập</a>
+        </BreadcrumbItem>
+    </Breadcrumb>
+
+    <div class="group-breadcumb">
+        <Button Type="ButtonType.Primary" OnClick="HandleSave" Loading="@IsSaving">
+            Lưu sản phẩm nhập kho
+        </Button>
+        <Button Class="btn-back ml-2" Icon="arrow-left" OnClick="HandleGoBack">Quay lại</Button>
+    </div>
+    </div>
+
+    <div class="import-batch-form-container">
+        <!-- Import Batch Information (READ ONLY) -->
+        <Card Title="Thông tin lô nhập" Class="mb-4">
+            <GridRow Gutter="(16, 16)">
+                <GridCol Span="12">
+                    <div><strong>Mã lô nhập:</strong> @importBatch.Code</div>
+                </GridCol>
+                <GridCol Span="12">
+                    <div><strong>Ngày nhập:</strong> @importBatch.ImportDate.ToString("dd/MM/yyyy")</div>
+                </GridCol>
+                <GridCol Span="24">
+                    <div><strong>Ghi chú:</strong> @importBatch.Note</div>
+                </GridCol>
+            </GridRow>
+        </Card>
+
+        <!-- Product Selection -->
+        <Card Title="Chọn sản phẩm nhập kho" Class="mb-4">
+            <div class="product-transfer-section">
+                <Transfer DataSource="transferItems"
+                          TargetKeys="targetKeys"
+                          Titles="@(new[] { "Tất cả sản phẩm", "Sản phẩm nhập kho" })"
+                          Operations="@(new[] { "Xóa khỏi lô nhập", "Thêm vào lô nhập" })"
+                          ShowSearch="true"
+                          OnChange="HandleTransferChange"
+                          Render="@(item => item.Title)"
+                          Key="@($"transfer-{transferRefreshKey}")"/>
+            </div>
+        </Card>
+
+        <!-- Bulk Status Update Buttons -->
+        <div class="d-flex justify-content-between mb-3">
+            <div>
+                @if (selectedRows != null && selectedRows.Any())
+                {
+                        @if (activeTab == "Draft")
+                        {
+                                <Button Class="mb-2" OnClick="() => ShowPopUpConfirm(EInventoryBatchStatus.PendingApproval)">
+                                    <i class="fas fa-paper-plane"></i> Gửi duyệt (@selectedRows.Count())
+                                </Button>
+                        }
+                        else if (activeTab == "PendingApproval")
+                        {
+                                <Button Class="mb-2" OnClick="() => ShowPopUpConfirm(EInventoryBatchStatus.Approved)">
+                                    <i class="fas fa-check"></i> Phê duyệt (@selectedRows.Count())
+                                </Button>
+                                <Button Class="mb-2" OnClick="() => ShowPopUpConfirm(EInventoryBatchStatus.Rejected)">
+                                    <i class="fas fa-times"></i> Từ chối (@selectedRows.Count())
+                                </Button>
+                        }
+                        else if (activeTab == "Rejected")
+                        {
+                                <Button Class="mb-2" OnClick="() => ShowPopUpConfirm(EInventoryBatchStatus.PendingApproval)">
+                                    <i class="fas fa-redo"></i> Gửi lại duyệt (@selectedRows.Count())
+                                </Button>
+                        }
+                }
+            </div>
+        </div>
+
+        <!-- Status Tabs -->
+        <Tabs DefaultActiveKey="All" @bind-ActiveKey="@activeTab" OnChange="OnTabChange">
+            <TabPane Key="All" Tab=@($"Tất cả ({selectedProducts.Count})")/>
+            <TabPane Key="Draft" Tab=@($"Lưu tạm ({selectedProducts.Count(x => x.Status == EInventoryBatchStatus.Draft)})")/>
+            <TabPane Key="PendingApproval" Tab=@($"Chờ duyệt ({selectedProducts.Count(x => x.Status == EInventoryBatchStatus.PendingApproval)})")/>
+            <TabPane Key="Approved" Tab=@($"Đã phê duyệt ({selectedProducts.Count(x => x.Status == EInventoryBatchStatus.Approved)})")/>
+            <TabPane Key="Rejected" Tab=@($"Bị từ chối ({selectedProducts.Count(x => x.Status == EInventoryBatchStatus.Rejected)})")/>
+        </Tabs>
+
+        <!-- Products Table -->
+        <Card Title="Sản phẩm nhập kho" Class="mb-4">
+            @if (filteredProducts.Any())
+            {
+                    <Table DataSource="filteredProducts" TItem="SelectedProductItem" Bordered
+                           @bind-SelectedRows="selectedRows" RowKey="x => x.ProductDetailId" OnRow="@OnRow">
+                        <ChildContent Context="product">
+                            <Selection Type="@selectionType"/>
+                            <Column TData="string" Title="Tên sản phẩm">
+                                @product.ProductName
+                            </Column>
+                            <Column TData="float" Title="Giá nhập">
+                                <AntDesign.InputNumber TValue="float" @bind-Value="product.OriginalPrice"
+                                                       Min="0" Step="1000" Style="width: 100%"/>
+                            </Column>
+                            <Column TData="int" Title="Số lượng">
+                                <AntDesign.InputNumber TValue="int" @bind-Value="product.Quantity"
+                                                       Min="1" Style="width: 100%"/>
+                            </Column>
+                            <Column TData="EInventoryBatchStatus" Title="Trạng thái">
+                                <Tag Color="@GetInventoryBatchStatusColor(product.Status)">
+                                    @GetInventoryBatchStatusName(product.Status)
+                                </Tag>
+                            </Column>
+                            <Column TData="float" Title="Thành tiền">
+                                    <span class="text-success font-weight-bold">
+                                        @($"{product.OriginalPrice * product.Quantity:N0} VNĐ")
+                                    </span>
+                            </Column>
+                            <ActionColumn Title="Thao tác" Width="200">
+                                <Space>
+                                    @if (product.Status == EInventoryBatchStatus.Draft)
+                                    {
+                                            <Tooltip Title="Gửi duyệt">
+                                                <Button Size="ButtonSize.Small" Type="ButtonType.Primary"
+                                                    OnClick="() => OnClickConfirm(product, EInventoryBatchStatus.PendingApproval)"
+                                                    Shape="ButtonShape.Circle">
+                                                    <i class="fas fa-paper-plane"></i>
+                                                </Button>
+                                            </Tooltip>
+                                    }
+                                    @if (product.Status == EInventoryBatchStatus.PendingApproval)
+                                    {
+                                            <Tooltip Title="Phê duyệt">
+                                                <Button Size="AntDesign.ButtonSize.Small" Type="ButtonType.Primary"
+                                                    OnClick="() => OnClickConfirm(product, EInventoryBatchStatus.Approved)"
+                                                    Shape="ButtonShape.Circle">
+                                                    <i class="fas fa-check"></i>
+                                                </Button>
+                                            </Tooltip>
+                                            <Tooltip Title="Từ chối">
+                                                <Button Size="AntDesign.ButtonSize.Small" Type="ButtonType.Default"
+                                                    OnClick="() => OnClickConfirm(product, EInventoryBatchStatus.Rejected)"
+                                                    Shape="ButtonShape.Circle">
+                                                    <i class="fas fa-times"></i>
+                                                </Button>
+                                            </Tooltip>
+                                    }
+                                    @if (product.Status == EInventoryBatchStatus.Rejected)
+                                    {
+                                            <Tooltip Title="Gửi lại duyệt">
+                                                <Button Size="AntDesign.ButtonSize.Small" Type="ButtonType.Primary"
+                                                    OnClick="() => OnClickConfirm(product, EInventoryBatchStatus.PendingApproval)"
+                                                    Shape="ButtonShape.Circle">
+                                                    <i class="fas fa-redo"></i>
+                                                </Button>
+                                            </Tooltip>
+                                    }
+                                    <Tooltip Title="Xóa">
+                                        <Button Type="ButtonType.Default" Size="AntDesign.ButtonSize.Small"
+                                                OnClick="() => RemoveProduct(product.ProductDetailId)"
+                                                Shape="ButtonShape.Circle">
+                                            <i class="fas fa-trash"></i>
+                                        </Button>
+                                    </Tooltip>
+                                </Space>
+                            </ActionColumn>
+                        </ChildContent>
+                    </Table>
+
+                    <!-- Statistics -->
+                    <div class="mt-3 p-3 bg-light rounded">
+                        <GridRow>
+                            <GridCol Span="6">
+                                <Statistic Title="Tổng sản phẩm" Value="@selectedProducts.Count" Suffix="loại" />
+                            </GridCol>
+                            <GridCol Span="6">
+                                <Statistic Title="Tổng số lượng" Value="@selectedProducts.Sum(x => x.Quantity)" Suffix="sản phẩm" />
+                            </GridCol>
+                            <GridCol Span="6">
+                                <Statistic Title="Tổng giá trị" Value="@selectedProducts.Sum(x => x.OriginalPrice * x.Quantity).ToString("N0")" Suffix="VNĐ" />
+                            </GridCol>
+                            <GridCol Span="6">
+                                <Statistic Title="Đã duyệt" Value="@selectedProducts.Count(x => x.Status == EInventoryBatchStatus.Approved)" Suffix="sản phẩm" />
+                            </GridCol>
+                        </GridRow>
+                    </div>
+            }
+            else
+            {
+                    <div class="text-center p-4 text-muted">
+                        <i class="fas fa-box-open fa-3x mb-3"></i>
+                        <p>@GetEmptyMessage()</p>
+                    </div>
+            }
+        </Card>
+
+        <!-- Action Buttons -->
+        <div class="d-flex justify-content-end gap-2">
+            <Button OnClick="HandleGoBack">Quay lại</Button>
+        </div>
+    </div>
+</div>
+
+<!-- Modal confirm theo pattern Order -->
+<Modal Mask="true" Style="width: 40vw" Title="Xác nhận cập nhật trạng thái sản phẩm"
+       Visible="@_visible"
+       OnOk="@ConfirmStatusUpdate"
+       OnCancel="@CancelShowModal"
+       ConfirmLoading="@_confirmLoading">
+    <p>@_modalText</p>
+    @if (targetStatus == EInventoryBatchStatus.Rejected)
+    {
+            <div class="mb-2">Lý do từ chối: <span class="text-danger"> *</span> </div>
+            <TextArea @bind-Value="rejectReason" Placeholder="Nhập lý do từ chối..."></TextArea>
+    }
+</Modal>
+
+<style>
+    .product-transfer-section {
+        padding: 16px;
+    }
+</style>
+
+@code {
+
+    public class SelectedProductItem
+    {
+        public Guid ProductDetailId { get; set; }
+        public Guid? InventoryBatchId { get; set; }
+        public string ProductName { get; set; } = string.Empty;
+        public float OriginalPrice { get; set; }
+        public int Quantity { get; set; }
+        public EInventoryBatchStatus Status { get; set; } = EInventoryBatchStatus.Draft;
+    }
+
+    [Parameter] public Guid ImportBatchId { get; set; }
+    private bool IsLoading = false;
+    private bool IsSaving = false;
+
+    private List<SelectedProductItem> selectedProducts = new();
+    private List<TransferItem> transferItems = new();
+    private List<string> targetKeys = new();
+    private int transferRefreshKey = 0;
+
+    private ImportBatchDetailDTO importBatch = new();
+
+    // Modal variables theo pattern Order
+    private bool _visible = false;
+    private bool _confirmLoading = false;
+    private string _modalText = "";
+    private EInventoryBatchStatus targetStatus;
+    private SelectedProductItem selectedProduct = null!;
+    private string rejectReason = "";
+
+    // Tab and selection variables
+    private string activeTab = "All";
+    private IEnumerable<SelectedProductItem>? selectedRows;
+
+    // Selection type for table
+    private SelectionType selectionType = SelectionType.Checkbox;
+
+    private List<SelectedProductItem> filteredProducts => activeTab switch
+    {
+        "Draft" => selectedProducts.Where(x => x.Status == EInventoryBatchStatus.Draft).ToList(),
+        "PendingApproval" => selectedProducts.Where(x => x.Status == EInventoryBatchStatus.PendingApproval).ToList(),
+        "Approved" => selectedProducts.Where(x => x.Status == EInventoryBatchStatus.Approved).ToList(),
+        "Rejected" => selectedProducts.Where(x => x.Status == EInventoryBatchStatus.Rejected).ToList(),
+        _ => selectedProducts
+    };
+
+    protected override async Task OnInitializedAsync()
+    {
+        IsLoading = true;
+        try
+        {
+            await LoadImportBatchWithInventoryBatches();
+            await LoadAllProducts();
+        }
+        catch (Exception ex)
+        {
+            MessageService.Error($"Lỗi khi tải dữ liệu: {ex.Message}");
+        }
+        finally
+        {
+            IsLoading = false;
+        }
+    }
+
+    private async Task LoadImportBatchWithInventoryBatches()
+    {
+        try
+        {
+            importBatch = await ImportBatchClientService.GetImportBatchDetailAsync(ImportBatchId);
+
+            selectedProducts = importBatch.Products.Select(p => new SelectedProductItem
+            {
+                ProductDetailId = p.ProductDetailId,
+                InventoryBatchId = p.InventoryBatchId,
+                ProductName = $"{p.ProductName} (Màu: {p.ColourName}, Size: {p.SizeValue})",
+                OriginalPrice = p.OriginalPrice,
+                Quantity = p.Quantity,
+                Status = p.Status
+            }).ToList();
+
+            targetKeys = selectedProducts.Select(sp => sp.ProductDetailId.ToString()).ToList();
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine("Lỗi khi tải chi tiết lô nhập: " + ex.Message);
+            MessageService.Error($"Lỗi khi tải chi tiết lô nhập: {ex.Message}");
+        }
+    }
+
+    private async Task LoadAllProducts()
+    {
+        try
+        {
+            var request = new ProductSearchRequestDTO
+            {
+                PageIndex = 1,
+                PageSize = int.MaxValue,
+                InStockOnly = true
+            };
+
+            var result = await ProductClientService.SearchProductsAsync(request);
+            var products = result.Items ?? new List<ProductSearchResponseDTO>();
+
+            transferItems = products.Select(p => new TransferItem
+            {
+                Key = p.ProductDetailId.ToString(),
+                Title = $"{p.SKU} - {p.ProductName} ({p.ColourName}, Size: {p.SizeValue}) - {p.Price.ToString("N0")} đ"
+            }).ToList();
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine("Lỗi khi lấy dữ liệu sản phẩm: " + ex.Message);
+            MessageService.Error($"Lỗi khi tải danh sách sản phẩm: {ex.Message}");
+            transferItems = new List<TransferItem>();
+        }
+    }
+
+    private void HandleTransferChange(TransferChangeArgs args)
+    {
+        targetKeys = (args.TargetKeys ?? Enumerable.Empty<string>()).ToList();
+        var keysSet = new HashSet<string>(targetKeys);
+
+        selectedProducts.RemoveAll(sp => !keysSet.Contains(sp.ProductDetailId.ToString()));
+
+        foreach (var key in targetKeys)
+        {
+            var guid = Guid.Parse(key);
+            if (selectedProducts.All(sp => sp.ProductDetailId != guid))
+            {
+                var transferItem = transferItems.FirstOrDefault(t => t.Key == key);
+                if (transferItem != null)
+                {
+                    var titleParts = transferItem.Title.Split(" - ");
+                    if (titleParts.Length >= 3)
+                    {
+                        var sku = titleParts[0];
+                        var productName = titleParts[1];
+                        var priceText = titleParts[2].Split(" đ")[0];
+                        
+                        if (decimal.TryParse(priceText.Replace(",", ""), out decimal price))
+                        {
+                            selectedProducts.Add(new SelectedProductItem
+                            {
+                                ProductDetailId = guid,
+                                InventoryBatchId = null,
+                                ProductName = productName,
+                                OriginalPrice = (float)price,
+                                Quantity = 1,
+                                Status = EInventoryBatchStatus.Draft
+                            });
+                        }
+                    }
+                }
+            }
+        }
+
+        // Clear selection when products change
+        selectedRows = null;
+        StateHasChanged();
+    }
+
+    private void RemoveProduct(Guid id)
+    {
+        // Remove from selected products
+        selectedProducts.RemoveAll(x => x.ProductDetailId == id);
+        
+        // Also remove from target keys to sync with Transfer component
+        targetKeys.Remove(id.ToString());
+        
+        // Force Transfer component refresh by changing its key
+        transferRefreshKey++;
+        
+        // Clear selection if the removed product was selected
+        if (selectedRows != null)
+        {
+            selectedRows = selectedRows.Where(x => x.ProductDetailId != id);
+        }
+        
+        // Force UI update
+        StateHasChanged();
+    }
+
+    // Tab change handler
+    private void OnTabChange(string key)
+    {
+        activeTab = key;
+        selectedRows = null; // Clear selection when changing tabs
+        StateHasChanged();
+    }
+
+
+    private Dictionary<string, object> OnRow(RowData<SelectedProductItem> row)
+    {
+        return new Dictionary<string, object>
+        {
+            ["onclick"] = () => { }
+        };
+    }
+
+    // OnClickConfirm for single item
+    private void OnClickConfirm(SelectedProductItem product, EInventoryBatchStatus status)
+    {
+        selectedRows = new List<SelectedProductItem> { product };
+        ShowPopUpConfirm(status);
+    }
+
+    // ShowPopUpConfirm for bulk operations
+    private void ShowPopUpConfirm(EInventoryBatchStatus status)
+    {
+        if (selectedRows == null || !selectedRows.Any())
+        {
+            MessageService.Warning("Vui lòng chọn ít nhất một sản phẩm");
+            return;
+        }
+
+        targetStatus = status;
+        string txtStatus = status switch
+        {
+            EInventoryBatchStatus.PendingApproval => "gửi duyệt",
+            EInventoryBatchStatus.Approved => "phê duyệt",
+            EInventoryBatchStatus.Rejected => "từ chối",
+            _ => "cập nhật"
+        };
+
+        var productNames = string.Join(", ", selectedRows.Take(3).Select(x => x.ProductName));
+        if (selectedRows.Count() > 3)
+        {
+            productNames += $" và {selectedRows.Count() - 3} sản phẩm khác";
+        }
+
+        _modalText = $"Bạn có chắc chắn muốn {txtStatus} {selectedRows.Count()} sản phẩm: {productNames}?";
+        _visible = true;
+        rejectReason = "";
+    }
+
+    private async Task CancelShowModal()
+    {
+        _visible = false;
+        _confirmLoading = false;
+        rejectReason = "";
+        await InvokeAsync(StateHasChanged);
+    }
+
+    private async Task ConfirmStatusUpdate()
+    {
+        if (targetStatus == EInventoryBatchStatus.Rejected && string.IsNullOrWhiteSpace(rejectReason))
+        {
+            MessageService.Warning("Vui lòng điền lý do từ chối");
+            return;
+        }
+
+        if (selectedRows == null || !selectedRows.Any())
+        {
+            MessageService.Warning("Không có sản phẩm nào được chọn");
+            return;
+        }
+
+        _confirmLoading = true;
+        try
+        {
+            // Update status for all selected products
+            foreach (var product in selectedRows)
+            {
+                product.Status = targetStatus;
+                
+                // If this is an existing inventory batch, update it via API
+                if (product.InventoryBatchId.HasValue)
+                {
+                    var updateDto = new InventoryBatchDTO
+                    {
+                        Id = product.InventoryBatchId.Value,
+                        ImportBatchId = ImportBatchId,
+                        ProductDetailId = product.ProductDetailId,
+                        OriginalPrice = product.OriginalPrice,
+                        Quantity = product.Quantity,
+                        Status = targetStatus
+                    };
+                    await InventoryBatchClientService.UpdateInventoryBatchAsync(updateDto);
+                }
+            }
+            
+            MessageService.Success($"Cập nhật trạng thái thành công cho {selectedRows.Count()} sản phẩm!");
+            _visible = false;
+            selectedRows = null; // Clear selection
+            StateHasChanged();
+        }
+        catch (Exception ex)
+        {
+            MessageService.Error($"Lỗi: {ex.Message}");
+        }
+        finally
+        {
+            _confirmLoading = false;
+            rejectReason = "";
+        }
+    }
+
+    private async Task HandleSave()
+    {
+        if (!ValidateForm())
+        {
+            return;
+        }
+
+        IsSaving = true;
+        try
+        {
+            await UpdateInventoryBatches();
+            MessageService.Success("Cập nhật sản phẩm nhập kho thành công!");
+            Navigation.NavigateTo("/manage-inventoryBatch");
+        }
+        catch (Exception ex)
+        {
+            MessageService.Error($"Lỗi: {ex.Message}");
+        }
+        finally
+        {
+            IsSaving = false;
+        }
+    }
+
+    private async Task UpdateInventoryBatches()
+    {
+        try
+        {
+            var existingInventoryBatches = importBatch.Products;
+            var selectedProductIds = selectedProducts.Select(sp => sp.ProductDetailId).ToHashSet();
+            var toDelete = existingInventoryBatches.Where(ib => !selectedProductIds.Contains(ib.ProductDetailId)).ToList();
+
+            foreach (var item in toDelete)
+            {
+                await InventoryBatchClientService.DeleteInventoryBatchAsync(item.InventoryBatchId);
+            }
+
+            foreach (var selectedProduct in selectedProducts)
+            {
+                var existingItem = existingInventoryBatches.FirstOrDefault(ib => ib.ProductDetailId == selectedProduct.ProductDetailId);
+                
+                if (existingItem != null)
+                {
+                    var updateDto = new InventoryBatchDTO
+                    {
+                        Id = existingItem.InventoryBatchId,
+                        ImportBatchId = ImportBatchId,
+                        ProductDetailId = selectedProduct.ProductDetailId,
+                        OriginalPrice = selectedProduct.OriginalPrice,
+                        Quantity = selectedProduct.Quantity,
+                        Status = selectedProduct.Status
+                    };
+                    await InventoryBatchClientService.UpdateInventoryBatchAsync(updateDto);
+                }
+                else
+                {
+                    var newInventoryBatch = new InventoryBatchDTO
+                    {
+                        Id = Guid.NewGuid(),
+                        ImportBatchId = ImportBatchId,
+                        Status = selectedProduct.Status,
+                        ProductDetailId = selectedProduct.ProductDetailId,
+                        OriginalPrice = selectedProduct.OriginalPrice,
+                        Quantity = selectedProduct.Quantity
+                    };
+                    await InventoryBatchClientService.CreateInventoryBatchAsync(new List<InventoryBatchDTO> { newInventoryBatch });
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine("Lỗi khi cập nhật inventory batches: " + ex.Message);
+            MessageService.Error($"Lỗi khi cập nhật sản phẩm: {ex.Message}");
+        }
+    }
+
+    private bool ValidateForm()
+    {
+        if (!selectedProducts.Any())
+        {
+            MessageService.Error("Vui lòng chọn ít nhất một sản phẩm");
+            return false;
+        }
+
+        foreach (var product in selectedProducts)
+        {
+            if (product.OriginalPrice <= 0)
+            {
+                MessageService.Error($"Giá nhập của sản phẩm '{product.ProductName}' phải lớn hơn 0");
+                return false;
+            }
+
+            if (product.Quantity <= 0)
+            {
+                MessageService.Error($"Số lượng của sản phẩm '{product.ProductName}' phải lớn hơn 0");
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    private void HandleGoBack()
+    {
+        Navigation.NavigateTo("/manage-importBatch");
+    }
+
+    private string GetInventoryBatchStatusColor(EInventoryBatchStatus status)
+    {
+        return status switch
+        {
+            EInventoryBatchStatus.Draft => "default",
+            EInventoryBatchStatus.PendingApproval => "processing",
+            EInventoryBatchStatus.Approved => "success",
+            EInventoryBatchStatus.Rejected => "error",
+            _ => "default"
+        };
+    }
+
+    private string GetInventoryBatchStatusName(EInventoryBatchStatus status)
+    {
+        return status switch
+        {
+            EInventoryBatchStatus.Draft => "Lưu tạm",
+            EInventoryBatchStatus.PendingApproval => "Chờ duyệt",
+            EInventoryBatchStatus.Approved => "Đã phê duyệt",
+            EInventoryBatchStatus.Rejected => "Bị từ chối",
+            _ => status.ToString()
+        };
+    }
+
+    private string GetEmptyMessage()
+    {
+        return activeTab switch
+        {
+            "Draft" => "Không có sản phẩm nào ở trạng thái lưu tạm",
+            "PendingApproval" => "Không có sản phẩm nào đang chờ duyệt",
+            "Approved" => "Không có sản phẩm nào đã được phê duyệt",
+            "Rejected" => "Không có sản phẩm nào bị từ chối",
+            _ => "Chưa có sản phẩm nào được chọn"
+        };
+    }
+
+}

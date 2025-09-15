@@ -102,6 +102,27 @@ namespace MeoMeo.CMS.Utilities
             NotifyAuthenticationStateChanged(Task.FromResult(new AuthenticationState(user)));
         }
 
+        public async Task NotifyUserInfoRefresh()
+        {
+            try
+            {
+                _logger.LogInformation("CMS NotifyUserInfoRefresh called");
+
+                // Refresh user info trong auth service
+                await _authService.RefreshUserInfoAsync();
+
+                // Notify authentication state change để các component reload
+                var authState = await GetAuthenticationStateAsync();
+                NotifyAuthenticationStateChanged(Task.FromResult(authState));
+
+                _logger.LogInformation("CMS User info refresh notification sent successfully");
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error in CMS NotifyUserInfoRefresh");
+            }
+        }
+
         private IEnumerable<Claim> ParseClaimsFromJwt(string jwt)
         {
             try

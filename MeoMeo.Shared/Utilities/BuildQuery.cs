@@ -20,22 +20,29 @@ public class BuildQuery
         }
         return string.Join("&", keyValuePairs);
     }
+
     private static string ConvertValue(object value)
     {
         if (value is DateTime dt)
         {
-            return dt.ToString("yyyy-MM-dd THH:mm:ssZ");
+            return dt.ToString("yyyy-MM-ddTHH:mm:ssZ"); // bỏ space dư
         }
 
         if (value is DateTimeOffset dto)
         {
-            return dto.ToString("yyyy-MM-dd  THH:mm:ssZ");
+            return dto.ToString("yyyy-MM-ddTHH:mm:ssZ");
         }
 
         if (value.GetType().FullName == "System.DateOnly")
         {
             return ((DateOnly)value).ToString("yyyy-MM-dd");
         }
+
+        if (value is Enum)
+        {
+            return Convert.ToInt32(value).ToString(); // ép enum -> int
+        }
+
         return value.ToString();
     }
 }

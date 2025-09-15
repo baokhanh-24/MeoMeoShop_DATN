@@ -12,235 +12,214 @@
 @layout ProfileLayout
 
 <div class="return-detail-container">
-    @if (IsLoading)
-    {
-                <div class="text-center">
-                    <Spin Size="SpinSize.Large" />
-                    <div class="mt-3">Đang tải thông tin yêu cầu hoàn trả...</div>
-                </div>
-    }
-    else if (ReturnDetail == null)
-    {
-                <div class="text-center">
-                    <div class="error-message">Không tìm thấy yêu cầu hoàn trả</div>
-                    <Button Type="@AntDesign.ButtonType.Primary" OnClick="@(() => Navigation.NavigateTo("/order-returns"))" Class="mt-3">
-                        Quay lại danh sách
-                    </Button>
-                </div>
-    }
-    else
-    {
-                <div class="return-header">
-                    <div class="d-flex justify-content-between align-items-center">
-                        <h2>Chi tiết yêu cầu hoàn trả: @ReturnDetail.Code</h2>
-                        <Button Type="@AntDesign.ButtonType.Default" OnClick="@(() => Navigation.NavigateTo("/order-returns"))">
-                            <Icon Type="arrow-left" />
-                            Quay lại
-                        </Button>
-                    </div>
-                </div>
+    <div class="return-header">
+        <div class="d-flex justify-content-between align-items-center">
+            <h2>Chi tiết yêu cầu hoàn trả: @ReturnDetail.Code</h2>
+            <Button Type="@AntDesign.ButtonType.Default" OnClick="@(() => Navigation.NavigateTo("/order-returns"))">
+                <Icon Type="arrow-left" />
+                Quay lại
+            </Button>
+        </div>
+    </div>
 
-                <!-- Status Timeline -->
-                <div class="status-section">
-                    <h3>Trạng thái xử lý</h3>
-                    <div class="status-timeline">
-                        <Steps Current="@GetCurrentStep(ReturnDetail.Status)" Direction="StepsDirection.Horizontal">
-                            <Step Title="Chờ duyệt" Description="Yêu cầu đã được gửi" />
-                            <Step Title="Đã duyệt" Description="Yêu cầu được chấp nhận" />
-                            <Step Title="Đã nhận hàng" Description="Hàng hoàn đã được nhận" />
-                            <Step Title="Hoàn tiền" Description="Đã hoàn tiền thành công" />
-                        </Steps>
-                        @if (ReturnDetail.Status == EOrderReturnStatus.Rejected)
-                        {
-                                    <Alert Type="@AlertType.Error" ShowIcon="true" Class="mt-3">
-                                        Yêu cầu hoàn trả đã bị từ chối
-                                    </Alert>
-                        }
-                    </div>
-                </div>
+    <!-- Status Timeline -->
+    <div class="status-section">
+        <h3>Trạng thái xử lý</h3>
+        <div class="status-timeline">
+            <Steps Current="@GetCurrentStep(ReturnDetail.Status)" Direction="StepsDirection.Horizontal">
+                <Step Title="Chờ duyệt" Description="Yêu cầu đã được gửi" />
+                <Step Title="Đã duyệt" Description="Yêu cầu được chấp nhận" />
+                <Step Title="Đã nhận hàng" Description="Hàng hoàn đã được nhận" />
+                <Step Title="Hoàn tiền" Description="Đã hoàn tiền thành công" />
+            </Steps>
+            @if (ReturnDetail.Status == EOrderReturnStatus.Rejected)
+            {
+                <Alert Type="@AlertType.Error" ShowIcon="true" Class="mt-3">
+                    Yêu cầu hoàn trả đã bị từ chối
+                </Alert>
+            }
+        </div>
+    </div>
 
-                <!-- Return Info -->
-                <div class="return-info-section">
-                    <h3>Thông tin yêu cầu hoàn trả</h3>
-                    <div class="row">
-                        <div class="col-md-6">
-                            <div class="info-item">
-                                <span class="label">Trạng thái:</span>
-                                <Tag Color="@GetStatusColor(ReturnDetail.Status)">
-                                    @ReturnDetail.StatusDisplayName
-                                </Tag>
-                            </div>
-                            <div class="info-item">
-                                <span class="label">Ngày tạo:</span>
-                                <span>@ReturnDetail.CreationTime.ToString("dd/MM/yyyy HH:mm")</span>
-                            </div>
-                            <div class="info-item">
-                                <span class="label">Phương thức hoàn tiền:</span>
-                                <span>@ReturnDetail.RefundMethodDisplayName</span>
-                            </div>
-                            <div class="info-item">
-                                <span class="label">Lý do hoàn trả:</span>
-                                <span>@ReturnDetail.Reason</span>
-                            </div>
+    <!-- Return Info -->
+    <div class="return-info-section">
+        <h3>Thông tin yêu cầu hoàn trả</h3>
+        <div class="row">
+            <div class="col-md-6">
+                <div class="info-item">
+                    <span class="label">Trạng thái:</span>
+                    <Tag Color="@GetStatusColor(ReturnDetail.Status)">
+                        @ReturnDetail.StatusDisplayName
+                    </Tag>
+                </div>
+                <div class="info-item">
+                    <span class="label">Ngày tạo:</span>
+                    <span>@ReturnDetail.CreationTime.ToString("dd/MM/yyyy HH:mm")</span>
+                </div>
+                <div class="info-item">
+                    <span class="label">Phương thức hoàn tiền:</span>
+                    <span>@ReturnDetail.RefundMethodDisplayName</span>
+                </div>
+                <div class="info-item">
+                    <span class="label">Lý do hoàn trả:</span>
+                    <span>@ReturnDetail.Reason</span>
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="info-item">
+                    <span class="label">Mã đơn hàng:</span>
+                    <span class="order-code"
+                        @onclick="@(() => Navigation.NavigateTo($"/order/{ReturnDetail.OrderId}"))">
+                        @ReturnDetail.Order.Code
+                    </span>
+                </div>
+                <div class="info-item">
+                    <span class="label">Tổng sản phẩm hoàn:</span>
+                    <span>@ReturnDetail.TotalItemCount</span>
+                </div>
+                <div class="info-item">
+                    <span class="label">Số tiền dự kiến hoàn:</span>
+                    <span class="estimated-amount">@ReturnDetail.TotalRefundAmount.ToString("N0") đ</span>
+                </div>
+                @if (ReturnDetail.PayBackAmount.HasValue)
+                {
+                    <div class="info-item">
+                        <span class="label">Số tiền đã hoàn:</span>
+                        <span class="actual-amount">@ReturnDetail.PayBackAmount.Value.ToString("N0") đ</span>
+                    </div>
+                    @if (ReturnDetail.PayBackDate.HasValue)
+                    {
+                        <div class="info-item">
+                            <span class="label">Ngày hoàn tiền:</span>
+                            <span>@ReturnDetail.PayBackDate.Value.ToString("dd/MM/yyyy HH:mm")</span>
                         </div>
-                        <div class="col-md-6">
-                            <div class="info-item">
-                                <span class="label">Mã đơn hàng:</span>
-                                <span class="order-code" @onclick="@(() => Navigation.NavigateTo($"/order/{ReturnDetail.OrderId}"))">
-                                    @ReturnDetail.Order.Code
-                                </span>
-                            </div>
-                            <div class="info-item">
-                                <span class="label">Tổng sản phẩm hoàn:</span>
-                                <span>@ReturnDetail.TotalItemCount</span>
-                            </div>
-                            <div class="info-item">
-                                <span class="label">Số tiền dự kiến hoàn:</span>
-                                <span class="estimated-amount">@ReturnDetail.TotalRefundAmount.ToString("N0") đ</span>
-                            </div>
-                            @if (ReturnDetail.PayBackAmount.HasValue)
+                    }
+                }
+            </div>
+        </div>
+    </div>
+
+    <!-- Payment Method Details -->
+    @if (ReturnDetail.RefundMethod == ERefundMethod.BankTransfer &&
+        (!string.IsNullOrEmpty(ReturnDetail.BankName) || !string.IsNullOrEmpty(ReturnDetail.BankAccountNumber)))
+    {
+        <div class="payment-section">
+            <h3>Thông tin ngân hàng</h3>
+            <div class="payment-details">
+                @if (!string.IsNullOrEmpty(ReturnDetail.BankName))
+                {
+                    <div class="info-item">
+                        <span class="label">Ngân hàng:</span>
+                        <span>@ReturnDetail.BankName</span>
+                    </div>
+                }
+                @if (!string.IsNullOrEmpty(ReturnDetail.BankAccountName))
+                {
+                    <div class="info-item">
+                        <span class="label">Chủ tài khoản:</span>
+                        <span>@ReturnDetail.BankAccountName</span>
+                    </div>
+                }
+                @if (!string.IsNullOrEmpty(ReturnDetail.BankAccountNumber))
+                {
+                    <div class="info-item">
+                        <span class="label">Số tài khoản:</span>
+                        <span>@ReturnDetail.BankAccountNumber</span>
+                    </div>
+                }
+            </div>
+        </div>
+    }
+    else if (ReturnDetail.RefundMethod != ERefundMethod.BankTransfer &&
+    (!string.IsNullOrEmpty(ReturnDetail.ContactName) || !string.IsNullOrEmpty(ReturnDetail.ContactPhone)))
+    {
+        <div class="payment-section">
+            <h3>Thông tin liên hệ</h3>
+            <div class="payment-details">
+                @if (!string.IsNullOrEmpty(ReturnDetail.ContactName))
+                {
+                    <div class="info-item">
+                        <span class="label">Tên người nhận:</span>
+                        <span>@ReturnDetail.ContactName</span>
+                    </div>
+                }
+                @if (!string.IsNullOrEmpty(ReturnDetail.ContactPhone))
+                {
+                    <div class="info-item">
+                        <span class="label">Số điện thoại:</span>
+                        <span>@ReturnDetail.ContactPhone</span>
+                    </div>
+                }
+            </div>
+        </div>
+    }
+
+    <!-- Return Items -->
+    <div class="return-items-section">
+        <h3>Sản phẩm hoàn trả</h3>
+        <div class="return-items">
+            @foreach (var item in ReturnDetail.Items)
+            {
+                <div class="return-item">
+                    <div class="item-image">
+                        <img src="@(backendUrl + "/" + item.Image)" alt="@item.ProductName"
+                            onerror="this.src='@(backendUrl + "/Images/fallback.jpeg")'" />
+                    </div>
+                    <div class="item-info">
+                        <div class="item-name">@item.ProductName</div>
+                        <div class="item-sku">SKU: @item.Sku</div>
+                        <div class="item-price">
+                            Giá gốc: @item.OriginalPrice.ToString("N0") đ
+                            @if (item.Discount > 0)
                             {
-                                        <div class="info-item">
-                                            <span class="label">Số tiền đã hoàn:</span>
-                                            <span class="actual-amount">@ReturnDetail.PayBackAmount.Value.ToString("N0") đ</span>
-                                        </div>
-                                        @if (ReturnDetail.PayBackDate.HasValue)
-                                        {
-                                                    <div class="info-item">
-                                                        <span class="label">Ngày hoàn tiền:</span>
-                                                        <span>@ReturnDetail.PayBackDate.Value.ToString("dd/MM/yyyy HH:mm")</span>
-                                                    </div>
-                                        }
+                                <span class="discount">(-@item.Discount.ToString("N0")%)</span>
                             }
                         </div>
-                    </div>
-                </div>
-
-                <!-- Payment Method Details -->
-                @if (ReturnDetail.RefundMethod == ERefundMethod.BankTransfer &&
-                                                                (!string.IsNullOrEmpty(ReturnDetail.BankName) || !string.IsNullOrEmpty(ReturnDetail.BankAccountNumber)))
-                {
-                            <div class="payment-section">
-                                <h3>Thông tin ngân hàng</h3>
-                                <div class="payment-details">
-                                    @if (!string.IsNullOrEmpty(ReturnDetail.BankName))
-                                    {
-                                                <div class="info-item">
-                                                    <span class="label">Ngân hàng:</span>
-                                                    <span>@ReturnDetail.BankName</span>
-                                                </div>
-                                    }
-                                    @if (!string.IsNullOrEmpty(ReturnDetail.BankAccountName))
-                                    {
-                                                <div class="info-item">
-                                                    <span class="label">Chủ tài khoản:</span>
-                                                    <span>@ReturnDetail.BankAccountName</span>
-                                                </div>
-                                    }
-                                    @if (!string.IsNullOrEmpty(ReturnDetail.BankAccountNumber))
-                                    {
-                                                <div class="info-item">
-                                                    <span class="label">Số tài khoản:</span>
-                                                    <span>@ReturnDetail.BankAccountNumber</span>
-                                                </div>
-                                    }
-                                </div>
-                            </div>
-                }
-                else if (ReturnDetail.RefundMethod != ERefundMethod.BankTransfer &&
-                                                    (!string.IsNullOrEmpty(ReturnDetail.ContactName) || !string.IsNullOrEmpty(ReturnDetail.ContactPhone)))
-                {
-                            <div class="payment-section">
-                                <h3>Thông tin liên hệ</h3>
-                                <div class="payment-details">
-                                    @if (!string.IsNullOrEmpty(ReturnDetail.ContactName))
-                                    {
-                                                <div class="info-item">
-                                                    <span class="label">Tên người nhận:</span>
-                                                    <span>@ReturnDetail.ContactName</span>
-                                                </div>
-                                    }
-                                    @if (!string.IsNullOrEmpty(ReturnDetail.ContactPhone))
-                                    {
-                                                <div class="info-item">
-                                                    <span class="label">Số điện thoại:</span>
-                                                    <span>@ReturnDetail.ContactPhone</span>
-                                                </div>
-                                    }
-                                </div>
-                            </div>
-                }
-
-                <!-- Return Items -->
-                <div class="return-items-section">
-                    <h3>Sản phẩm hoàn trả</h3>
-                    <div class="return-items">
-                        @foreach (var item in ReturnDetail.Items)
+                        <div class="item-actual-price">Giá bán: @item.UnitPrice.ToString("N0") đ</div>
+                        @if (!string.IsNullOrEmpty(item.Reason))
                         {
-                                    <div class="return-item">
-                                        <div class="item-image">
-                                            <img src="@(backendUrl + "/" + item.Image)" alt="@item.ProductName" 
-                                                 onerror="this.src='@(backendUrl + "/Images/fallback.jpeg")'" />
-                                        </div>
-                                        <div class="item-info">
-                                            <div class="item-name">@item.ProductName</div>
-                                            <div class="item-sku">SKU: @item.Sku</div>
-                                            <div class="item-price">
-                                                Giá gốc: @item.OriginalPrice.ToString("N0") đ
-                                                @if (item.Discount > 0)
-                                                {
-                                                            <span class="discount">(-@item.Discount.ToString("N0")%)</span>
-                                                }
-                                            </div>
-                                            <div class="item-actual-price">Giá bán: @item.UnitPrice.ToString("N0") đ</div>
-                                            @if (!string.IsNullOrEmpty(item.Reason))
-                                            {
-                                                        <div class="item-reason">
-                                                            <strong>Lý do:</strong> @item.Reason
-                                                        </div>
-                                            }
-                                        </div>
-                                        <div class="item-quantity">
-                                            <span class="quantity-badge">x @item.Quantity</span>
-                                        </div>
-                                        <div class="item-total">
-                                            <div class="total-label">Hoàn trả:</div>
-                                            <div class="total-amount">@item.RefundAmount.ToString("N0") đ</div>
-                                        </div>
-                                    </div>
+                            <div class="item-reason">
+                                <strong>Lý do:</strong> @item.Reason
+                            </div>
                         }
                     </div>
+                    <div class="item-quantity">
+                        <span class="quantity-badge">x @item.Quantity</span>
+                    </div>
+                    <div class="item-total">
+                        <div class="total-label">Hoàn trả:</div>
+                        <div class="total-amount">@item.RefundAmount.ToString("N0") đ</div>
+                    </div>
                 </div>
+            }
+        </div>
+    </div>
 
-                <!-- Files -->
-                @if (ReturnDetail.Files.Any())
+    <!-- Files -->
+    @if (ReturnDetail.Files.Any())
+    {
+        <div class="files-section">
+            <h3>Hình ảnh đính kèm</h3>
+            <div class="files-gallery">
+                @foreach (var file in ReturnDetail.Files)
                 {
-                            <div class="files-section">
-                                <h3>Hình ảnh đính kèm</h3>
-                                <div class="files-gallery">
-                                    @foreach (var file in ReturnDetail.Files)
-                                    {
-                                                <div class="file-item">
-                                                    <img src="@(backendUrl + "/" + file.Url)" alt="@file.Name" 
-                                                         @onclick="@(() => ShowImageModal(file.Url))" />
-                                                </div>
-                                    }
-                                </div>
-                            </div>
+                    <div class="file-item">
+                        <img src="@(backendUrl + "/" + file.Url)" alt="@file.Name"
+                            @onclick="@(() => ShowImageModal(file.Url))" />
+                    </div>
                 }
+            </div>
+        </div>
+    }
 
-                <!-- Actions -->
-                @if (ReturnDetail.Status == EOrderReturnStatus.Pending)
-                {
-                            <div class="actions-section">
-                                <Button Type="@AntDesign.ButtonType.Default" 
-                                        Danger="true"
-                                        OnClick="CancelReturn"
-                                        Loading="@IsCancelling">
-                                    Hủy yêu cầu hoàn trả
-                                </Button>
-                            </div>
-                }
+    <!-- Actions -->
+    @if (ReturnDetail.Status == EOrderReturnStatus.Pending)
+    {
+        <div class="actions-section">
+            <Button Type="@AntDesign.ButtonType.Default" Danger="true" OnClick="CancelReturn" Loading="@IsCancelling">
+                Hủy yêu cầu hoàn trả
+            </Button>
+        </div>
     }
 </div>
 
@@ -248,7 +227,7 @@
 <Modal Title="Hình ảnh" Visible="@ShowImagePreview" OnCancel="@(() => ShowImagePreview = false)" Footer="null">
     @if (!string.IsNullOrEmpty(PreviewImageUrl))
     {
-                <img src="@(backendUrl + "/" + PreviewImageUrl)" style="width: 100%; max-height: 500px; object-fit: contain;" />
+        <img src="@(backendUrl + "/" + PreviewImageUrl)" style="width: 100%; max-height: 500px; object-fit: contain;" />
     }
 </Modal>
 
@@ -293,7 +272,7 @@
         {
             IsCancelling = true;
             var result = await OrderReturnClient.CancelOrderReturnAsync(ReturnId);
-            
+
             if (result.ResponseStatus == BaseStatus.Success)
             {
                 MessageService.Success("Hủy yêu cầu hoàn trả thành công!");
@@ -346,4 +325,3 @@
         };
     }
 }
-

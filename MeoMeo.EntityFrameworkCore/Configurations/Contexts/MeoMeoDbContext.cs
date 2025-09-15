@@ -8,19 +8,18 @@ namespace MeoMeo.EntityFrameworkCore.Configurations.Contexts
         public MeoMeoDbContext(DbContextOptions options) : base(options)
         {
         }
-
-        public DbSet<Bank> banks { get; set; }
+        
         public DbSet<Brand> brands { get; set; }
         public DbSet<Cart> carts { get; set; }
         public DbSet<CartDetail> cartDetails { get; set; }
         public DbSet<Colour> colours { get; set; }
         public DbSet<Commune> communes { get; set; }
         public DbSet<Customers> customers { get; set; }
-        public DbSet<CustomersBank> customersBanks { get; set; }
         public DbSet<DeliveryAddress> deliveryAddresses { get; set; }
         public DbSet<District> districts { get; set; }
         public DbSet<Employee> employees { get; set; }
         public DbSet<Image> images { get; set; }
+        public DbSet<ImportBatch> importBatches { get; set; }
         public DbSet<InventoryBatch> inventoryBatches { get; set; }
         public DbSet<InventoryTransaction> inventoryTransactions { get; set; }
         public DbSet<Material> materials { get; set; }
@@ -63,18 +62,17 @@ namespace MeoMeo.EntityFrameworkCore.Configurations.Contexts
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             base.OnModelCreating(modelBuilder);
-            modelBuilder.ApplyConfiguration(new BankConfiguration());
             modelBuilder.ApplyConfiguration(new BrandConfiguration());
             modelBuilder.ApplyConfiguration(new CartConfiguration());
             modelBuilder.ApplyConfiguration(new CartDetailConfiguration());
             modelBuilder.ApplyConfiguration(new ColourConfiguration());
             modelBuilder.ApplyConfiguration(new CommuneConfiguration());
-            modelBuilder.ApplyConfiguration(new CustomersBankConfiguration());
             modelBuilder.ApplyConfiguration(new CustomersConfiguration());
             modelBuilder.ApplyConfiguration(new DeliveryAddressConfiguration());
             modelBuilder.ApplyConfiguration(new DistrictConfiguration());
             modelBuilder.ApplyConfiguration(new EmployeeConfiguration());
             modelBuilder.ApplyConfiguration(new ImageConfiguration());
+            modelBuilder.ApplyConfiguration(new ImportBatchConfiguration());
             modelBuilder.ApplyConfiguration(new InventoryBatchConfiguration());
             modelBuilder.ApplyConfiguration(new InventoryTransactionConfiguration());
             modelBuilder.ApplyConfiguration(new MaterialConfiguration());

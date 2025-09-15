@@ -18,6 +18,23 @@ public class OrderClientService : IOrderClientService
         _logger = logger;
     }
 
+    public async Task<PagingExtensions.PagedResult<OrderDTO, GetListOrderResponseDTO>> GetOrdersByCustomerIdAsync(
+        GetListOrderRequestDTO request, Guid customerId)
+    {
+        try
+        {
+            var query = BuildQuery.ToQueryString(request);
+            var url = $"/api/Orders/get-orders-by-customer/{customerId}?{query}";
+            var response = await _httpClient.GetAsync<PagingExtensions.PagedResult<OrderDTO, GetListOrderResponseDTO>>(url);
+            return response ?? new PagingExtensions.PagedResult<OrderDTO, GetListOrderResponseDTO>();
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Có lỗi xảy ra khi lấy đơn hàng của khách hàng {CustomerId}: {Message}", customerId, ex.Message);
+            return new PagingExtensions.PagedResult<OrderDTO, GetListOrderResponseDTO>();
+        }
+    }
+
     public async Task<PagingExtensions.PagedResult<OrderDTO, GetListOrderResponseDTO>> GetListOrderAsync(GetListOrderRequestDTO filter)
     {
         var query = BuildQuery.ToQueryString(filter);

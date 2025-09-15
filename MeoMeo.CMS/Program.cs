@@ -33,6 +33,7 @@ builder.Services.AddSingleton<LoadingService>();
 
 // Authentication Services for CMS
 builder.Services.AddScoped<ICMSAuthService, CMSAuthService>();
+builder.Services.AddScoped<ICMSUserInfoService, CMSUserInfoService>();
 builder.Services.AddScoped<CMSAuthStateProvider>();
 builder.Services.AddScoped<AuthenticationStateProvider, CMSAuthStateProvider>();
 builder.Services.AddScoped<ITokenProvider, TokenProvider>();
@@ -45,11 +46,11 @@ CultureInfo culture = new CultureInfo("vi-VN");
 CultureInfo.DefaultThreadCurrentUICulture = culture;
 // đăng kí 
 builder.Services.AddScoped<ICustomerClientService, CustomerClientService>();
-builder.Services.AddScoped<IProductDetailClientService, ProductDetailClientService>();
 builder.Services.AddScoped<IProductClientService, ProductClientService>();
 builder.Services.AddScoped<IBankClientService, BankClientService>();
 builder.Services.AddScoped<IStatisticsClientService, StatisticsClientService>();
 builder.Services.AddScoped<IInventoryBatchClientService, InventoryBatchClientService>();
+builder.Services.AddScoped<IImportBatchClientService, ImportBatchClientService>();
 builder.Services.AddScoped<ISizeClientService, SizeClientService>();
 builder.Services.AddScoped<IMaterialClientService, MaterialClientService>();
 builder.Services.AddScoped<IVoucherClientService, VoucherClientService>();
@@ -69,6 +70,8 @@ builder.Services.AddScoped<IPermissionClientService, PermissionClientService>();
 builder.Services.AddScoped<IPermissionGroupClientService, PermissionGroupClientService>();
 builder.Services.AddScoped<IRoleClientService, RoleClientService>();
 builder.Services.AddScoped<IUserRoleClientService, UserRoleClientService>();
+builder.Services.AddScoped<IUserProfileClientService, UserProfileClientService>();
+builder.Services.AddScoped<IProductReviewClientService, ProductReviewClientService>();
 builder.Services.AddHttpClient<IApiCaller, ApiCaller>(client =>
 {
     client.BaseAddress = new Uri(apiBaseUrl!);
