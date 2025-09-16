@@ -44,6 +44,19 @@ namespace MeoMeo.Shared.Utilities
                         $"{CookieRequestCultureProvider.DefaultCookieName}={cultureCookieValue}");
                 }
             }
+            catch (System.Security.Cryptography.CryptographicException ex)
+            {
+                _logger.LogWarning(ex, "Data protection key not found. Clearing stored tokens and continuing without authentication.");
+                // Clear the corrupted token data
+                try
+                {
+                    await _localStorage.DeleteAsync(StorageKey);
+                }
+                catch (Exception deleteEx)
+                {
+                    _logger.LogError(deleteEx, "Failed to clear corrupted token data");
+                }
+            }
             catch (Exception ex)
             {
                 _logger.LogError(ex, ex.Message);
