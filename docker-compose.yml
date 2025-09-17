@@ -2,10 +2,10 @@ services:
     memeoshop-portal:
         container_name: memeoshop-portal
         platform: linux/amd64
-        #        image: bachhonglien/meomeoshop_datn-memeoshop-portal
-        build:
-            context: .
-            dockerfile: MeoMeo.PORTAL/Dockerfile
+        image: bachhonglien/meomeoshop_datn-memeoshop-portal
+#        build:
+#            context: .
+#            dockerfile: MeoMeo.PORTAL/Dockerfile
         environment:
             - ASPNETCORE_ENVIRONMENT=Development
         volumes:
@@ -19,10 +19,10 @@ services:
     memeoshop-cms:
         container_name: memeoshop-cms
         platform: linux/amd64
-        #        image: bachhonglien/meomeoshop_datn-memeoshop-cms
-        build:
-            context: .
-            dockerfile: MeoMeo.CMS/Dockerfile
+        image: bachhonglien/meomeoshop_datn-memeoshop-cms
+#        build:
+#            context: .
+#            dockerfile: MeoMeo.CMS/Dockerfile
         environment:
             - ASPNETCORE_ENVIRONMENT=Development
         volumes:
@@ -36,10 +36,10 @@ services:
     memeoshop-api:
         container_name: memeoshop-api
         platform: linux/amd64
-        #        image: bachhonglien/meomeoshop_datn-memeoshop-api
-        build:
-            context: .
-            dockerfile: MeoMeoAPI/Dockerfile
+        image: bachhonglien/meomeoshop_datn-memeoshop-api
+#        build:
+#            context: .
+#            dockerfile: MeoMeoAPI/Dockerfile
         environment:
             - ASPNETCORE_ENVIRONMENT=Development
         volumes:
