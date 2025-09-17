@@ -20,10 +20,25 @@ namespace MeoMeo.API.Controllers
         }
         //
         [HttpGet]
-        public async Task<IActionResult>GetAll()
+        public async Task<IActionResult> GetAll()
         {
             var result = await _categoryService.GetAllCategoriesAsync();
             return Ok(result);
+        }
+
+        // Hover preview products for a category - MUST be before {id} route
+        [HttpGet("hover-preview/{id}")]
+        public async Task<IActionResult> GetHoverPreview(Guid id, [FromQuery] int take = 6)
+        {
+            try
+            {
+                var result = await _categoryService.GetCategoryHoverPreviewAsync(id, take);
+                return Ok(result);
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new { error = ex.Message, stackTrace = ex.StackTrace });
+            }
         }
         //
         [HttpGet("{id}")]
@@ -53,13 +68,5 @@ namespace MeoMeo.API.Controllers
             var result = await _categoryService.DeleteCategoryAsync(id);
             return Ok(result);
         }
-
-        // Hover preview products for a category
-        [HttpGet("{id}/hover-preview")]
-        public async Task<IActionResult> GetHoverPreview(Guid id, [FromQuery] int take = 6)
-        {
-            var result = await _categoryService.GetCategoryHoverPreviewAsync(id, take);
-            return Ok(result);
-        }
     }
-} 
+}

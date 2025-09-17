@@ -19,7 +19,8 @@
 @inject IConfiguration Configuration
 
 <div class="content-background layout-container">
-    <Breadcrumb>
+    <div class="d-flex justify-content-between">
+            <Breadcrumb>
         <BreadcrumbItem Href="/">Trang chủ</BreadcrumbItem>
         <BreadcrumbItem Href="/manage-order">Quản lý đơn hàng</BreadcrumbItem>
         <BreadcrumbItem>
@@ -30,6 +31,8 @@
     <div class="group-breadcumb">
         <Button Class="btn-back" Icon="arrow-left" OnClick="HandleGoBack">Quay lại</Button>
     </div>
+        </div>
+
     @if(OrderData != null){
 <div class="order-detail-container">
             <!-- Order Header -->

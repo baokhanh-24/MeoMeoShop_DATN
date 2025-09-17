@@ -36,14 +36,26 @@ namespace MeoMeo.Application.Services
 
         public async Task<CategoryResponseDTO> CreateCategoryAsync(CategoryDTO categoryDTO)
         {
+            // Check trùng Name
+            var isNameExist = await _categoryRepository.AnyAsync(x => x.Name == categoryDTO.Name);
+            if (isNameExist)
+            {
+                return new CategoryResponseDTO
+                {
+                    ResponseStatus = BaseStatus.Error,
+                    Message = "Tên danh mục đã tồn tại."
+                };
+            }
+            
+
             var category = _mapper.Map<Category>(categoryDTO);
             category.Id = Guid.NewGuid();
-            
+
             await _categoryRepository.AddAsync(category);
             return new CategoryResponseDTO
             {
                 ResponseStatus = BaseStatus.Success,
-                Message = "Thêm thành công"
+                Message = "Thêm danh mục thành công"
             };
         }
 
@@ -53,7 +65,7 @@ namespace MeoMeo.Application.Services
             if (category == null)
             {
                 return new CategoryResponseDTO { ResponseStatus = BaseStatus.Error, Message = "Không tìm thấy Id" };
-            }    
+            }
 
             await _categoryRepository.DeleteAsync(id);
             return new CategoryResponseDTO { ResponseStatus = BaseStatus.Success, Message = "Xóa thành công" };
@@ -68,7 +80,7 @@ namespace MeoMeo.Application.Services
         public async Task<CategoryResponseDTO> GetCategoryByIdAsync(Guid id)
         {
             var category = await _categoryRepository.GetByIdAsync(id);
-            if(category == null)
+            if (category == null)
             {
                 return new CategoryResponseDTO
                 {
@@ -76,7 +88,7 @@ namespace MeoMeo.Application.Services
                     Message = $"Không tìm thấy Category với ID: {id}"
                 };
             }
-            
+
             var response = _mapper.Map<CategoryResponseDTO>(category);
             response.ResponseStatus = BaseStatus.Success;
             response.Message = "Lấy dữ liệu thành công";
@@ -85,19 +97,32 @@ namespace MeoMeo.Application.Services
 
         public async Task<CategoryResponseDTO> UpdateCategoryAsync(CategoryDTO categoryDTO)
         {
-            var category = await _categoryRepository.GetByIdAsync(categoryDTO.Id.Value);
+            var category = await _categoryRepository.GetByIdAsync(categoryDTO.Id);
             if (category == null)
             {
-                return new CategoryResponseDTO { ResponseStatus = BaseStatus.Error, Message = "Không tìm thấy Id trên để cập nhật" };
+                return new CategoryResponseDTO { ResponseStatus = BaseStatus.Error, Message = "Không tìm thấy danh mục cần cập nhật" };
+            }
+
+            // Check trùng Name (trừ record hiện tại)
+            var isNameExist = await _categoryRepository.AnyAsync(x => x.Name == categoryDTO.Name && x.Id != categoryDTO.Id);
+            if (isNameExist)
+            {
+                return new CategoryResponseDTO
+                {
+                    ResponseStatus = BaseStatus.Error,
+                    Message = "Tên danh mục đã tồn tại."
+                };
             }
             
             _mapper.Map(categoryDTO, category);
+
             await _categoryRepository.UpdateAsync(category);
-            
-            return new CategoryResponseDTO { ResponseStatus = BaseStatus.Success, Message = "Cập nhật thành công" };
+
+            return new CategoryResponseDTO { ResponseStatus = BaseStatus.Success, Message = "Cập nhật danh mục thành công" };
         }
 
-        public async Task<MeoMeo.Contract.DTOs.Product.CategoryHoverResponseDTO> GetCategoryHoverPreviewAsync(Guid categoryId, int take = 6)
+        public async Task<MeoMeo.Contract.DTOs.Product.CategoryHoverResponseDTO> GetCategoryHoverPreviewAsync(
+            Guid categoryId, int take = 6)
         {
             var category = await _categoryRepository.GetByIdAsync(categoryId);
             if (category == null)
@@ -127,7 +152,8 @@ namespace MeoMeo.Application.Services
                 .Select(g => new { ProductId = g.Key, MinPrice = g.Min(x => x.Price), MaxPrice = g.Max(x => x.Price) })
                 .ToListAsync();
 
-            var priceDict = minMaxPrices.ToDictionary(x => x.ProductId, x => (Min: (float?)x.MinPrice, Max: (float?)x.MaxPrice));
+            var priceDict = minMaxPrices.ToDictionary(x => x.ProductId,
+                x => (Min: (float?)x.MinPrice, Max: (float?)x.MaxPrice));
 
             var result = new MeoMeo.Contract.DTOs.Product.CategoryHoverResponseDTO
             {
@@ -146,4 +172,6 @@ namespace MeoMeo.Application.Services
             return result;
         }
     }
-} 
+
+        
+}

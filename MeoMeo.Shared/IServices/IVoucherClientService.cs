@@ -11,5 +11,6 @@ namespace MeoMeo.Shared.IServices
         Task<CreateOrUpdateVoucherResponseDTO> UpdateVoucherAsync(CreateOrUpdateVoucherDTO voucher);
         Task<bool> DeleteVoucherAsync(Guid id);
         Task<CheckVoucherResponseDTO> CheckVoucherAsync(CheckVoucherRequestDTO request);
+        Task<List<AvailableVoucherDTO>> GetAvailableVouchersAsync(GetAvailableVouchersRequestDTO request);
     }
 }

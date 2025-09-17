@@ -326,5 +326,23 @@ namespace MeoMeo.API.Controllers
                 });
             }
         }
+
+        [HttpGet("check-variant-dependencies-async/{variantId}")]
+        public async Task<IActionResult> CheckVariantDependencies(Guid variantId)
+        {
+            try
+            {
+                var result = await _productServices.CheckVariantDependenciesAsync(variantId);
+                return Ok(result);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new BaseResponse
+                {
+                    ResponseStatus = BaseStatus.Error,
+                    Message = $"Lỗi khi kiểm tra phụ thuộc biến thể: {ex.Message}"
+                });
+            }
+        }
     }
 }

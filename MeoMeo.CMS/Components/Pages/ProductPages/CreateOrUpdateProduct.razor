@@ -209,7 +209,8 @@
 
                 @if (productModel.ProductVariants != null && productModel.ProductVariants.Any())
                 {
-                        <Table TItem="ProductDetailGrid" DataSource="@productModel.ProductVariants" Bordered="true">
+                        <div class="product-variants-table-container">
+                            <Table TItem="ProductDetailGrid" DataSource="@productModel.ProductVariants" Bordered="true">
                             <ChildContent Context="data">
                                 <PropertyColumn Property="c => GetColorName(c.ColourId)" Title="Màu sắc"/>
                                 <PropertyColumn Property="c => GetSizeName(c.SizeId)" Title="Size"/>
@@ -281,12 +282,13 @@
                                         <SpaceItem>
                                             <Button Type="@ButtonType.Dashed" Color="Color.Red6"
                                                     Size="@AntDesign.ButtonSize.Small"
-                                                    Icon="@IconType.Outline.Delete" OnClick="@(() => RemoveVariant(data))"></Button>
+                                                    Icon="@IconType.Outline.Delete" OnClick="@(async () => await RemoveVariant(data))"></Button>
                                         </SpaceItem>
                                     </Space>
                                 </ActionColumn>
                             </ChildContent>
-                        </Table>
+                            </Table>
+                        </div>
                 }
                 else
                 {
@@ -325,6 +327,65 @@
         </div>
     }
 </Modal>
+
+<style>
+    .product-variants-table-container {
+        overflow-x: auto;
+        width: 100%;
+        border: 1px solid #f0f0f0;
+        border-radius: 6px;
+    }
+    
+    .product-variants-table-container .ant-table {
+        min-width: 1200px; /* Đảm bảo table có chiều rộng tối thiểu */
+    }
+    
+    .product-variants-table-container .ant-table-thead > tr > th {
+        white-space: nowrap;
+        padding: 12px 8px;
+        font-weight: 600;
+        background-color: #fafafa;
+    }
+    
+    .product-variants-table-container .ant-table-tbody > tr > td {
+        white-space: nowrap;
+        padding: 8px;
+        vertical-align: middle;
+    }
+    
+    .product-variants-table-container .ant-input-number {
+        width: 100%;
+        min-width: 80px;
+    }
+    
+    .product-variants-table-container .ant-select {
+        width: 100%;
+        min-width: 100px;
+    }
+    
+    .product-variants-table-container .ant-checkbox-wrapper {
+        margin: 0;
+    }
+    
+    /* Scrollbar styling */
+    .product-variants-table-container::-webkit-scrollbar {
+        height: 8px;
+    }
+    
+    .product-variants-table-container::-webkit-scrollbar-track {
+        background: #f1f1f1;
+        border-radius: 4px;
+    }
+    
+    .product-variants-table-container::-webkit-scrollbar-thumb {
+        background: #c1c1c1;
+        border-radius: 4px;
+    }
+    
+    .product-variants-table-container::-webkit-scrollbar-thumb:hover {
+        background: #a8a8a8;
+    }
+</style>
 
 @code {
     private CreateOrUpdateProductDTO productModel = new CreateOrUpdateProductDTO()
@@ -517,8 +578,35 @@
         StateHasChanged();
     }
 
-    private void RemoveVariant(ProductDetailGrid variant)
+    private async Task RemoveVariant(ProductDetailGrid variant)
     {
+        // Kiểm tra nếu đây là biến thể cuối cùng
+        if (productModel.ProductVariants?.Count <= 1)
+        {
+            await MessageModalService.Warning("Không thể xóa biến thể cuối cùng! Sản phẩm phải có ít nhất 1 biến thể.");
+            return;
+        }
+
+        // Kiểm tra nếu biến thể đã có Id (đã lưu vào DB) thì check dependency
+        if (variant.Id.HasValue)
+        {
+            try
+            {
+                var hasDependencies = await ProductClientService.CheckVariantDependenciesAsync(variant.Id.Value);
+                if (hasDependencies)
+                {
+                    await MessageModalService.Warning("Không thể xóa biến thể này vì đã có đơn hàng, giỏ hàng hoặc khuyến mãi liên quan!");
+                    return;
+                }
+            }
+            catch (Exception ex)
+            {
+                await MessageModalService.Error($"Lỗi khi kiểm tra phụ thuộc: {ex.Message}");
+                return;
+            }
+        }
+
+        // Xóa biến thể
         if (productModel.ProductVariants != null)
         {
             productModel.ProductVariants.Remove(variant);

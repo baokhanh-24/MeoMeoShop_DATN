@@ -66,6 +66,7 @@ builder.Services.AddScoped<IProductClientService, ProductClientService>();
 builder.Services.AddScoped<IBankClientService, BankClientService>();
 builder.Services.AddScoped<IStatisticsClientService, StatisticsClientService>();
 builder.Services.AddScoped<IInventoryBatchClientService, InventoryBatchClientService>();
+builder.Services.AddScoped<IInventoryStatisticsClientService, InventoryStatisticsClientService>();
 builder.Services.AddScoped<IImportBatchClientService, ImportBatchClientService>();
 builder.Services.AddScoped<ISizeClientService, SizeClientService>();
 builder.Services.AddScoped<IMaterialClientService, MaterialClientService>();

@@ -89,6 +89,26 @@ public class OrderClientService : IOrderClientService
         }
     }
 
+    public async Task<BaseResponse> CancelOrderWithReasonAsync(Guid orderId, string reason)
+    {
+        try
+        {
+            var url = $"/api/Orders/cancel-order-with-reason/{orderId}";
+            var request = new { Reason = reason };
+            var result = await _httpClient.PutAsync<object, BaseResponse>(url, request);
+            return result ?? new BaseResponse
+            {
+                ResponseStatus = BaseStatus.Error,
+                Message = "Không thể hủy đơn hàng"
+            };
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Có lỗi xảy ra khi hủy Order {Id} với lý do: {Message}", orderId, ex.Message);
+            return new BaseResponse { ResponseStatus = BaseStatus.Error, Message = ex.Message };
+        }
+    }
+
     public async Task<GetListOrderHistoryResponseDTO> GetListOrderHistoryAsync(Guid orderId)
     {
         var url = $"/api/Orders/history/{orderId}";
@@ -123,5 +143,56 @@ public class OrderClientService : IOrderClientService
         var url = "/api/Orders/create-pos-order";
         var response = await _httpClient.PostAsync<CreatePosOrderDTO, CreatePosOrderResultDTO>(url, request);
         return response ?? new CreatePosOrderResultDTO { ResponseStatus = BaseStatus.Error, Message = "Không tạo được đơn POS" };
+    }
+
+    // Pending Orders methods
+    public async Task<GetPendingOrdersResponseDTO?> GetPendingOrdersAsync(GetPendingOrdersRequestDTO request)
+    {
+        try
+        {
+            var query = BuildQuery.ToQueryString(request);
+            var url = $"/api/Orders/get-pending-orders?{query}";
+            var response = await _httpClient.GetAsync<GetPendingOrdersResponseDTO>(url);
+            return response;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error getting pending orders: {Message}", ex.Message);
+            return null;
+        }
+    }
+
+    public async Task<BaseResponse> DeletePendingOrderAsync(Guid orderId)
+    {
+        try
+        {
+            var url = $"/api/Orders/delete-pending-order/{orderId}";
+            var response = await _httpClient.DeleteAsync(url);
+            return new BaseResponse { ResponseStatus = response ? BaseStatus.Success : BaseStatus.Error, Message = response ? "" : "Không thể xóa đơn hàng" };
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error deleting pending order {OrderId}: {Message}", orderId, ex.Message);
+            return new BaseResponse { ResponseStatus = BaseStatus.Error, Message = $"Lỗi khi xóa đơn hàng: {ex.Message}" };
+        }
+    }
+
+    public async Task<CreatePosOrderResultDTO?> UpdatePosOrderAsync(Guid orderId, CreatePosOrderDTO request)
+    {
+        try
+        {
+            var url = $"/api/Orders/update-pos-order/{orderId}";
+            var response = await _httpClient.PutAsync<CreatePosOrderDTO, CreatePosOrderResultDTO>(url, request);
+            return response;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error updating POS order {OrderId}: {Message}", orderId, ex.Message);
+            return new CreatePosOrderResultDTO
+            {
+                ResponseStatus = BaseStatus.Error,
+                Message = $"Lỗi khi cập nhật đơn hàng: {ex.Message}"
+            };
+        }
     }
 }

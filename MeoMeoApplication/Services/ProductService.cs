@@ -1951,6 +1951,7 @@ namespace MeoMeo.Application.Services
                     .Include(pd => pd.Size)
                     .Include(pd => pd.Colour)
                     .Include(pd => pd.Product.Brand)
+                    .Where(pd => pd.Status == EProductStatus.Selling) // Chỉ lấy sản phẩm đang bán
                     .AsQueryable();
 
                 // Apply filters
@@ -2473,6 +2474,49 @@ namespace MeoMeo.Application.Services
             {
                 _logger.LogError(ex, "Error getting related products for product {ProductId}: {Message}", productId, ex.Message);
                 return new List<ProductResponseDTO>();
+            }
+        }
+
+        public async Task<bool> CheckVariantDependenciesAsync(Guid variantId)
+        {
+            try
+            {
+                // Kiểm tra xem biến thể có được sử dụng trong OrderDetail không
+                var hasOrderDetails = await _orderDetailRepository.Query()
+                    .AnyAsync(od => od.ProductDetailId == variantId);
+
+                if (hasOrderDetails)
+                    return true;
+
+                // Kiểm tra xem biến thể có được sử dụng trong CartDetail không
+                var hasCartDetails = await _cartDetailRepository.Query()
+                    .AnyAsync(cd => cd.ProductDetailId == variantId);
+
+                if (hasCartDetails)
+                    return true;
+
+                // Kiểm tra xem biến thể có được sử dụng trong PromotionDetail không
+                var hasPromotionDetails = await _promotionDetailRepository.Query()
+                    .AnyAsync(pd => pd.ProductDetailId == variantId);
+
+                if (hasPromotionDetails)
+                    return true;
+
+                // Kiểm tra xem biến thể có được sử dụng trong InventoryBatch không
+                var hasInventoryBatches = await _inventoryBatchRepository.Query()
+                    .AnyAsync(ib => ib.ProductDetailId == variantId);
+
+                if (hasInventoryBatches)
+                    return true;
+                
+
+                // Nếu không có phụ thuộc nào, có thể xóa
+                return false;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error checking variant dependencies for variant {VariantId}: {Message}", variantId, ex.Message);
+                return true; // Trả về true để an toàn, không cho xóa khi có lỗi
             }
         }
 

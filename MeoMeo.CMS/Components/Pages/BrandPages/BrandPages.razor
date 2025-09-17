@@ -1,0 +1,484 @@
+@page "/manage-brands"
+@using System.ComponentModel.DataAnnotations
+@using System.Reflection
+@using System.Text.Json
+@using MeoMeo.Contract.DTOs
+@using MeoMeo.Shared.IServices;
+@using MeoMeo.Contract.Commons
+@using MeoMeo.Domain.Commons.Enums
+@using AntDesign
+@inject MeoMeo.Shared.Utilities.MessageModalService MessageModalService
+@using ButtonSize = AntDesign.ButtonSize
+@using ButtonType = AntDesign.ButtonType
+@inject IConfiguration Configuration
+@rendermode InteractiveServer
+
+<div class="d-flex justify-content-between">
+    <Breadcrumb>
+        <BreadcrumbItem Href="/">Trang chủ</BreadcrumbItem>
+        <BreadcrumbItem Href="/manage-brands">Quản lý thương hiệu</BreadcrumbItem>
+    </Breadcrumb>
+    <Button OnClick="AddNewBrand" Type="ButtonType.Primary" Class="mb-2">
+        <i class="fas fa-plus"></i> Thêm mới
+    </Button>
+</div>
+
+<div class="d-flex justify-content-end gap-3 mb-2">
+    <div style="width: 200px">
+        <Input AllowClear="true" OnClear="OnFilterChanged" @bind-Value="filter.NameFilter"
+            Placeholder="Nhập theo tên thương hiệu" />
+    </div>
+
+
+    <div style="width: 200px">
+        <Input AllowClear="true" OnClear="OnFilterChanged" @bind-Value="filter.CountryFilter"
+            Placeholder="Nhập quốc gia" />
+    </div>
+
+    <div style="width: 150px">
+        <AntDesign.InputNumber TValue="int?" AllowClear="true" OnClear="OnFilterChanged"
+            @bind-Value="filter.EstablishYearFilter" Placeholder="Năm thành lập" />
+    </div>
+
+    <Tooltip Title="Tìm kiếm">
+        <Button @onclick="() => OnFilterChanged()" Type="ButtonType.Primary" Shape="ButtonShape.Circle"
+            Icon="@IconType.Outline.Search" />
+    </Tooltip>
+</div>
+
+<Table DataSource="listOfData" TItem="CreateOrUpdateBrandDTO" RowClassName="@(_ => "editable-row")" Bordered
+    TableLayout="fixed">
+    <ChildContent Context="data">
+        <Column TData="CreateOrUpdateBrandDTO" Title="STT" Width="70px">
+            @(listOfData.IndexOf(data) + 1)
+        </Column>
+
+        <Column TData="string" Title="Tên thương hiệu">
+            @if (editCache.ContainsKey(data.Id) && !editCache[data.Id].edit)
+            {
+                    @data.Name
+            }
+            else if (editCache.ContainsKey(data.Id))
+            {
+                    <Input MaxLength="100" @bind-Value="editCache[data.Id].data.Name" />
+            }
+        </Column>
+
+        <Column TData="string" Title="Mã thương hiệu">
+            @data.Code
+        </Column>
+
+        <Column TData="DateTime" Title="Năm thành lập">
+            @if (editCache.ContainsKey(data.Id) && !editCache[data.Id].edit)
+            {
+                    @data.EstablishYear.ToString("yyyy")
+            }
+            else if (editCache.ContainsKey(data.Id))
+            {
+                    <AntDesign.InputNumber TValue="int" @bind-Value="editCache[data.Id].data.EstablishYearInt" 
+                        Min="1900" Max="2100" Placeholder="Năm thành lập" />
+            }
+        </Column>
+
+        <Column TData="string" Title="Quốc gia">
+            @if (editCache.ContainsKey(data.Id) && !editCache[data.Id].edit)
+            {
+                    @data.Country
+            }
+            else if (editCache.ContainsKey(data.Id))
+            {
+                    <Input MaxLength="100" @bind-Value="editCache[data.Id].data.Country" placeholder="Quốc gia" />
+            }
+        </Column>
+
+        <Column TData="string" Title="Mô tả">
+            @if (editCache.ContainsKey(data.Id) && !editCache[data.Id].edit)
+            {
+                    @(string.IsNullOrEmpty(data.Description) ? "-" : data.Description)
+            }
+            else if (editCache.ContainsKey(data.Id))
+            {
+                    <Input MaxLength="500" @bind-Value="editCache[data.Id].data.Description" placeholder="Mô tả" />
+            }
+        </Column>
+
+        <Column TData="string" Title="Logo">
+            @if (editCache.ContainsKey(data.Id) && !editCache[data.Id].edit)
+            {
+                    @if (!string.IsNullOrEmpty(data.Logo))
+                    {
+                            <Image Src="@GetBrandLogoUrl(data.Logo)" Width="100%"  Style="object-fit: cover;" />
+                    }
+                    else
+                    {
+                            <span>-</span>
+                    }
+            }
+            else if (editCache.ContainsKey(data.Id))
+            {
+                    <div class="brand-logo-upload-container">
+                        @if (!string.IsNullOrEmpty(editCache[data.Id].data.Logo))
+                        {
+                                <div class="brand-logo-preview">
+                                    <Image Src="@GetBrandLogoUrl(editCache[data.Id].data.Logo)" Width="100%" Style="object-fit: cover;" />
+                                    <Button Size="ButtonSize.Small" Danger Shape="ButtonShape.Circle" 
+                                            @onclick="() => RemoveBrandLogo(data.Id)" 
+                                            Style="position: absolute; top: -5px; right: -5px; width: 20px; height: 20px; font-size: 10px;">
+                                        <i class="fas fa-times"></i>
+                                    </Button>
+                                </div>
+                        }
+                        else
+                        {
+                                <div class="brand-logo-upload-area">
+                                    <Icon Type="@IconType.Outline.Upload" Style="font-size: 16px; color: #999;"/>
+                                    <div style="font-size: 10px; color: #666; margin-top: 2px;">Upload Logo</div>
+                                    <InputFile OnChange="@(async (e) => await OnBrandLogoSelected(e, data.Id))" 
+                                               accept="image/*" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; opacity: 0; cursor: pointer;" />
+                                </div>
+                        }
+                    </div>
+            }
+        </Column>
+
+        <ActionColumn Title="Thao tác" Class="text-end gap-2">
+            @if (editCache.ContainsKey(data.Id) && !editCache[data.Id].edit)
+            {
+                    <Tooltip Title="Sửa">
+                        <Button Size="ButtonSize.Small" @onclick="() => StartEdit(data.Id)" Shape="ButtonShape.Circle">
+                            <i class="fas fa-pen"></i>
+                        </Button>
+                    </Tooltip>
+
+                    <Popconfirm Title=@($"Bạn có chắc muốn xóa thương hiệu {data.Name}?") OnConfirm="() => DeleteBrand(data.Id)"
+                        OkText="Đồng ý" CancelText="Hủy">
+                        <Tooltip Title="Xóa">
+                            <Button Size="ButtonSize.Small" Danger Shape="ButtonShape.Circle">
+                                <i class="fas fa-minus"></i>
+                            </Button>
+                        </Tooltip>
+                    </Popconfirm>
+            }
+            else
+            {
+                    <Tooltip Title="Lưu">
+                        <Button Size="ButtonSize.Small" @onclick="() => SaveEdit(data.Id)" Shape="ButtonShape.Circle">
+                            <i class="fas fa-check"></i>
+                        </Button>
+                    </Tooltip>
+
+                    <Popconfirm Title=@($"Bạn có chắc muốn hủy chỉnh sửa thương hiệu {data.Name}?")
+                        OnConfirm="() => CancelEdit(data.Id)" OkText="Đồng ý" CancelText="Hủy">
+                        <Button Size="ButtonSize.Small" Shape="ButtonShape.Circle">
+                            <i class="fa-solid fa-xmark"></i>
+                        </Button>
+                    </Popconfirm>
+            }
+        </ActionColumn>
+    </ChildContent>
+</Table>
+
+<style>
+    .brand-logo-upload-container {
+        position: relative;
+        width: 60px;
+        height: 60px;
+    }
+
+    .brand-logo-upload-area {
+        width: 60px;
+        height: 60px;
+        border: 2px dashed #d9d9d9;
+        border-radius: 6px;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        transition: border-color 0.3s;
+        background-color: #fafafa;
+    }
+
+    .brand-logo-upload-area:hover {
+        border-color: #1890ff;
+        background-color: #f0f8ff;
+    }
+
+    .brand-logo-preview {
+        position: relative;
+        width: 60px;
+        height: 60px;
+        border-radius: 6px;
+        overflow: hidden;
+    }
+</style>
+
+@code {
+    [Inject] private IBrandClientService BrandClientService { get; set; } = default!;
+    IDictionary<Guid, (bool edit, CreateOrUpdateBrandDTO data)> editCache = new Dictionary<Guid, (bool,
+    CreateOrUpdateBrandDTO)>();
+    List<CreateOrUpdateBrandDTO> listOfData = new();
+    private string ApiBaseUrl = string.Empty;
+    // File upload variables
+    private bool isProcessingBrandLogo = false;
+
+    GetListBrandRequestDTO filter = new GetListBrandRequestDTO()
+    {
+        NameFilter = "",
+        CodeFilter = "",
+        CountryFilter = "",
+        EstablishYearFilter = null,
+        PageIndex = 1,
+        PageSize = 10
+    };
+
+    protected override async Task OnInitializedAsync()
+    {
+        ApiBaseUrl = Configuration["ApiSettings:BaseUrl"] ?? string.Empty;
+        await LoadData();
+    }
+
+    private async Task LoadData()
+    {
+        var response = await BrandClientService.GetAllBrandAsync(filter);
+        listOfData = response.Items?.Select(b => new CreateOrUpdateBrandDTO
+        {
+            Id = b.Id,
+            Name = b.Name,
+            Code = b.Code,
+            EstablishYear = b.EstablishDate,
+            Country = b.Country,
+            Description = b.Description,
+            Logo = b.Logo
+        }).ToList() ?? new List<CreateOrUpdateBrandDTO>();
+
+        editCache = listOfData.ToDictionary(
+        item => item.Id,
+        item => (false, CloneBrand(item)));
+        await InvokeAsync(StateHasChanged);
+    }
+
+    private async Task OnFilterChanged()
+    {
+        await LoadData();
+    }
+
+    async Task AddNewBrand()
+    {
+        var newBrand = new CreateOrUpdateBrandDTO
+        {
+            Id = Guid.Empty,
+            Name = "",
+            Code = "", // Sẽ được backend generate
+            EstablishYear = DateTime.Now,
+            Country = "",
+            Description = "",
+            Logo = ""
+        };
+        listOfData.Insert(0, newBrand);
+        editCache[newBrand.Id] = (true, CloneBrand(newBrand));
+        await InvokeAsync(StateHasChanged);
+    }
+
+    async Task StartEdit(Guid Id)
+    {
+        var data = editCache[Id];
+        editCache[Id] = (true, data.data);
+        await InvokeAsync(StateHasChanged);
+    }
+
+    async Task CancelEdit(Guid id)
+    {
+        var isNew = listOfData.FirstOrDefault(x => x.Id == id)?.Id == Guid.Empty;
+        if (isNew)
+        {
+            listOfData.RemoveAll(x => x.Id == id);
+            editCache.Remove(id);
+        }
+        else
+        {
+            var original = listOfData.First(x => x.Id == id);
+            editCache[id] = (false, CloneBrand(original));
+        }
+        await InvokeAsync(StateHasChanged);
+    }
+
+    async Task SaveEdit(Guid Id)
+    {
+        var dto = editCache[Id].data;
+        
+        // Convert base64 logo to IFormFile if needed (giống như CreateOrUpdateProduct)
+        IFormFile? logoFile = null;
+        if (!string.IsNullOrEmpty(dto.Logo) && dto.Logo.StartsWith("data:"))
+        {
+            // Extract base64 data from data URL
+            var base64Data = dto.Logo.Split(',')[1];
+            var contentType = dto.Logo.Split(';')[0].Split(':')[1];
+            var fileName = $"brand-logo-{Guid.NewGuid()}.{contentType.Split('/')[1]}";
+            
+            logoFile = await ConvertBase64ToFormFile(base64Data, fileName, contentType);
+        }
+        
+        var createOrUpdate = new CreateOrUpdateBrandDTO
+        {
+            Id = dto.Id,
+            Name = dto.Name,
+            Code = dto.Code,
+            EstablishYear = dto.EstablishYear,
+            Country = dto.Country,
+            Description = dto.Description,
+            Logo = dto.Logo,
+            LogoFile = logoFile // Gửi IFormFile trong DTO (giống như CreateOrUpdateProduct)
+        };
+        
+        CreateOrUpdateBrandResponseDTO response;
+        if (dto.Id == Guid.Empty)
+        {
+            response = await BrandClientService.CreateBrandAsync(createOrUpdate);
+        }
+        else
+        {
+            response = await BrandClientService.UpdateBrandAsync(createOrUpdate);
+        }
+
+        if (response.ResponseStatus == BaseStatus.Success)
+        {
+            await MessageModalService.Success("Lưu thương hiệu thành công!");
+            await LoadData();
+        }
+        else
+        {
+            await MessageModalService.Error(response.Message);
+        }
+    }
+
+    async Task DeleteBrand(Guid id)
+    {
+        var success = await BrandClientService.DeleteBrandAsync(id);
+        if (success)
+        {
+            listOfData.RemoveAll(x => x.Id == id);
+            editCache.Remove(id);
+            await MessageModalService.Success("Xóa thương hiệu thành công!");
+        }
+        else
+        {
+            await MessageModalService.Error("Xóa thương hiệu thất bại");
+        }
+    }
+
+    CreateOrUpdateBrandDTO CloneBrand(CreateOrUpdateBrandDTO dto)
+    {
+        return new CreateOrUpdateBrandDTO
+        {
+            Id = dto.Id,
+            Name = dto.Name,
+            Code = dto.Code,
+            EstablishYear = dto.EstablishYear,
+            Country = dto.Country,
+            Description = dto.Description,
+            Logo = dto.Logo
+        };
+    }
+
+    // File upload methods
+
+
+    private async Task OnBrandLogoSelected(InputFileChangeEventArgs e, Guid brandId)
+    {
+        try
+        {
+            isProcessingBrandLogo = true;
+            StateHasChanged();
+
+            var file = e.File;
+            if (file == null) return;
+
+            // Validate file type
+            if (!file.ContentType.StartsWith("image/"))
+            {
+                await MessageModalService.Error("Chỉ được phép upload file ảnh!");
+                return;
+            }
+
+            // Validate file size (max 2MB)
+            if (file.Size > 2 * 1024 * 1024)
+            {
+                await MessageModalService.Error("Kích thước file không được vượt quá 2MB!");
+                return;
+            }
+
+            // Convert to base64 (giống như CreateOrUpdateProduct)
+            var base64Data = await ConvertToBase64(file);
+            var dataUrl = $"data:{file.ContentType};base64,{base64Data}";
+
+            // Update the brand logo
+            if (editCache.ContainsKey(brandId))
+            {
+                var (edit, data) = editCache[brandId];
+                data.Logo = dataUrl;
+                editCache[brandId] = (edit, data);
+            }
+
+            StateHasChanged();
+        }
+        catch (Exception ex)
+        {
+            await MessageModalService.Error($"Lỗi khi upload logo: {ex.Message}");
+        }
+        finally
+        {
+            isProcessingBrandLogo = false;
+            StateHasChanged();
+        }
+    }
+
+    private async Task<string> ConvertToBase64(IBrowserFile file)
+    {
+        using var stream = file.OpenReadStream(maxAllowedSize: 2 * 1024 * 1024);
+        using var memoryStream = new MemoryStream();
+        await stream.CopyToAsync(memoryStream);
+        var bytes = memoryStream.ToArray();
+        return Convert.ToBase64String(bytes);
+    }
+
+    private async Task<IFormFile> ConvertBase64ToFormFile(string base64Data, string fileName, string contentType)
+    {
+        var bytes = Convert.FromBase64String(base64Data);
+        var stream = new MemoryStream(bytes);
+
+        return new FormFile(stream, 0, bytes.Length, fileName, fileName)
+        {
+            Headers = new HeaderDictionary(),
+            ContentType = contentType
+        };
+    }
+
+    private void RemoveBrandLogo(Guid brandId)
+    {
+        if (editCache.ContainsKey(brandId))
+        {
+            var (edit, data) = editCache[brandId];
+            data.Logo = "";
+            editCache[brandId] = (edit, data);
+            StateHasChanged();
+        }
+    }
+
+    private string GetBrandLogoUrl(string logo)
+    {
+        if (string.IsNullOrEmpty(logo))
+            return "/Images/fallback.jpeg";
+        
+        // Nếu là base64 (bắt đầu bằng data:)
+        if (logo.StartsWith("data:"))
+            return logo;
+        
+        // Nếu là URL đầy đủ
+        if (logo.StartsWith("http"))
+            return logo;
+        
+        // Nếu là relative path, thêm ApiBaseUrl
+        return ApiBaseUrl + "/" + logo.TrimStart('/');
+    }
+}

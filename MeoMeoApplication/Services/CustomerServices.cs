@@ -38,17 +38,43 @@ namespace MeoMeo.Application.Services
             {
                 await _unitOfWork.BeginTransactionAsync();
 
+                // Chuyển email về lowercase để check
+                var normalizedEmail = customer.Email.ToLowerInvariant();
+
+                // Kiểm tra email đã tồn tại chưa
+                var isExistedEmail = await _userRepository.AnyAsync(u => u.Email.ToLower() == normalizedEmail);
+                if (isExistedEmail)
+                {
+                    return new CreateOrUpdateCustomerResponse()
+                    {
+                        Message = $"Email {customer.Email} đã được sử dụng",
+                        ResponseStatus = BaseStatus.Error
+                    };
+                }
+
+                // Kiểm tra số điện thoại đã tồn tại chưa
+                var isExistedPhoneNumber = await _repository.AnyAsync(c => c.PhoneNumber == customer.PhoneNumber);
+                if (isExistedPhoneNumber)
+                {
+                    return new CreateOrUpdateCustomerResponse()
+                    {
+                        Message = $"Số điện thoại {customer.PhoneNumber} đã được sử dụng",
+                        ResponseStatus = BaseStatus.Error
+                    };
+                }
+
                 // Tạo tài khoản user mới
                 var userId = Guid.NewGuid();
+
                 var userToAdd = new User()
                 {
                     Id = userId,
                     PasswordHash = FunctionHelper.ComputerSha256Hash(customer.Password ?? "Ab@12345"),
-                    Avatar = customer.Avatar,
+                    Avatar = customer.Avatar ?? "",
                     LastLogin = DateTime.Now,
                     CreationTime = DateTime.Now,
-                    Email = customer.Email ?? "customer@meomeo.com",
-                    UserName = customer.Email ?? "customer@meomeo.com",
+                    Email = normalizedEmail, // Sử dụng email đã normalize
+                    UserName = !string.IsNullOrEmpty(customer.UserName) ? customer.UserName : normalizedEmail, // Sử dụng UserName nếu có, không thì dùng email
                     Status = 1,
                     IsLocked = false
                 };
@@ -68,8 +94,10 @@ namespace MeoMeo.Application.Services
 
                 // Tạo customer
                 var mappedCustomer = _mapper.Map<Customers>(customer);
+                var customerCode = await GenerateCustomerCodeAsync();
                 mappedCustomer.Id = Guid.NewGuid();
                 mappedCustomer.UserId = userId;
+                mappedCustomer.Code = customerCode;
                 var response = await _repository.CreateCustomersAsync(mappedCustomer);
 
                 await _unitOfWork.SaveChangesAsync();
@@ -244,23 +272,62 @@ namespace MeoMeo.Application.Services
                     Avatar = c.User.Avatar ?? "",
                     Gender = c.Gender
                 })
-                .FirstOrDefaultAsync();
+                .FirstOrDefaultAsync() ?? new CustomerDTO();
         }
 
         public async Task<CreateOrUpdateCustomerResponse> UpdateCustomersAsync(CreateOrUpdateCustomerDTO customer)
         {
+            // Lấy customer hiện tại để kiểm tra
+            var customerToUpdate = await _repository.GetCustomersByIdAsync(customer.Id!.Value);
+            if (customerToUpdate == null)
+            {
+                return new CreateOrUpdateCustomerResponse()
+                {
+                    Message = "Khách hàng không tồn tại",
+                    ResponseStatus = BaseStatus.Error
+                };
+            }
 
+            // Chuyển email về lowercase để check
+            var normalizedEmail = customer.Email.ToLowerInvariant();
+
+            // Kiểm tra email đã tồn tại chưa (trừ customer hiện tại)
+            if (customerToUpdate.UserId.HasValue)
+            {
+                var isExistedEmail = await _userRepository.AnyAsync(u => u.Id != customerToUpdate.UserId.Value && u.Email.ToLower() == normalizedEmail);
+                if (isExistedEmail)
+                {
+                    return new CreateOrUpdateCustomerResponse()
+                    {
+                        Message = $"Email {customer.Email} đã được sử dụng",
+                        ResponseStatus = BaseStatus.Error
+                    };
+                }
+            }
+
+            // Kiểm tra số điện thoại đã tồn tại chưa (trừ customer hiện tại)
             var isExistedPhoneNumber = await _repository.AnyAsync(c => c.Id != customer.Id && c.PhoneNumber == customer.PhoneNumber);
             if (isExistedPhoneNumber)
             {
                 return new CreateOrUpdateCustomerResponse()
                 {
-                    Message = $"Số điện thoại đã tồn tại",
+                    Message = $"Số điện thoại {customer.PhoneNumber} đã được sử dụng",
                     ResponseStatus = BaseStatus.Error
                 };
             }
 
-            var customerToUpdate = await _repository.GetCustomersByIdAsync(customer.Id.Value);
+            // Cập nhật thông tin User nếu có UserId
+            if (customerToUpdate.UserId.HasValue)
+            {
+                var userToUpdate = await _userRepository.Query().FirstOrDefaultAsync(u => u.Id == customerToUpdate.UserId.Value);
+                if (userToUpdate != null)
+                {
+                    userToUpdate.Email = normalizedEmail;
+                    userToUpdate.UserName = !string.IsNullOrEmpty(customer.UserName) ? customer.UserName : normalizedEmail;
+                    await _userRepository.UpdateAsync(userToUpdate);
+                }
+            }
+
             _mapper.Map(customer, customerToUpdate);
             var result = await _repository.UpdateCustomersAsync(customerToUpdate);
             return _mapper.Map<CreateOrUpdateCustomerResponse>(result);
@@ -280,7 +347,7 @@ namespace MeoMeo.Application.Services
                     return new QuickCustomerResponseDTO
                     {
                         ResponseStatus = BaseStatus.Error,
-                        Message = "Số điện thoại này đã được sử dụng bởi khách hàng khác"
+                        Message = $"Số điện thoại {request.PhoneNumber} đã được sử dụng bởi khách hàng khác"
                     };
                 }
 

@@ -1,0 +1,368 @@
+@page "/manage-categories"
+@using System.ComponentModel.DataAnnotations
+@using System.Reflection
+@using MeoMeo.Contract.DTOs
+@using MeoMeo.Contract.DTOs.Product
+@using MeoMeo.Shared.IServices;
+@using MeoMeo.Contract.Commons
+@using MeoMeo.Domain.Commons.Enums
+@using AntDesign
+@using AntDesign.TableModels
+@inject MeoMeo.Shared.Utilities.MessageModalService MessageModalService
+@using ButtonSize = AntDesign.ButtonSize
+@using ButtonType = AntDesign.ButtonType
+@inject IConfiguration Configuration
+@rendermode InteractiveServer
+
+<div class="d-flex justify-content-between">
+    <Breadcrumb>
+        <BreadcrumbItem Href="/">Trang chủ</BreadcrumbItem>
+        <BreadcrumbItem Href="/manage-categories">Quản lý danh mục</BreadcrumbItem>
+    </Breadcrumb>
+    <Button OnClick="AddNewCategory" Type="ButtonType.Primary" Class="mb-2">
+        <i class="fas fa-plus"></i> Thêm mới
+    </Button>
+</div>
+
+<Tabs @bind-ActiveKey="selectedTab" OnChange="OnTabChanged" Class="mb-3">
+    <TabPane Key="all" Tab="Tất cả" />
+    <TabPane Key="active" Tab="Hoạt động" />
+    <TabPane Key="inactive" Tab="Không hoạt động" />
+</Tabs>
+
+<div class="d-flex justify-content-end gap-3 mb-2">
+    <div style="width: 200px">
+        <Input AllowClear="true" OnClear="OnFilterChanged" @bind-Value="filter.NameFilter"
+            Placeholder="Nhập theo tên danh mục" />
+    </div>
+
+    <div style="width: 200px">
+        <Input AllowClear="true" OnClear="OnFilterChanged" @bind-Value="filter.DescriptionFilter"
+            Placeholder="Nhập mô tả" />
+    </div>
+
+    <Tooltip Title="Tìm kiếm">
+        <Button @onclick="() => OnFilterChanged()" Type="ButtonType.Primary" Shape="ButtonShape.Circle"
+            Icon="@IconType.Outline.Search" />
+    </Tooltip>
+</div>
+
+<Table DataSource="listOfData" TItem="CategoryDTO" RowClassName="@(_ => "editable-row")" Bordered TableLayout="fixed"
+    OnExpand="@OnRowExpand">
+    <ChildContent Context="data">
+        <Column TData="CategoryDTO" Title="STT" Width="70px">
+            @(listOfData.IndexOf(data) + 1)
+        </Column>
+
+        <Column TData="string" Title="Tên danh mục">
+            @if (editCache.ContainsKey(data.Id) && !editCache[data.Id].edit)
+            {
+                    @data.Name
+            }
+            else if (editCache.ContainsKey(data.Id))
+            {
+                    <Input MaxLength="100" @bind-Value="editCache[data.Id].data.Name" />
+            }
+        </Column>
+
+        <Column TData="string" Title="Mô tả">
+            @if (editCache.ContainsKey(data.Id) && !editCache[data.Id].edit)
+            {
+                    @(string.IsNullOrEmpty(data.Description) ? "-" : data.Description)
+            }
+            else if (editCache.ContainsKey(data.Id))
+            {
+                    <Input MaxLength="500" @bind-Value="editCache[data.Id].data.Description" placeholder="Mô tả" />
+            }
+        </Column>
+
+        <Column TData="bool" Title="Trạng thái">
+            @if (editCache.ContainsKey(data.Id) && !editCache[data.Id].edit)
+            {
+                    @(data.Status ? "Hoạt động" : "Không hoạt động")
+            }
+            else if (editCache.ContainsKey(data.Id))
+            {
+                    <Select TItem="(bool Value, string Name)" TItemValue="bool" DataSource="statusOptions"
+                        @bind-Value="editCache[data.Id].data.Status" ItemValue="c => c.Value" ItemLabel="c => c.Name">
+                    </Select>
+            }
+        </Column>
+
+        <ActionColumn Title="Thao tác" Class="text-end gap-2">
+            @if (editCache.ContainsKey(data.Id) && !editCache[data.Id].edit)
+            {
+                    <Tooltip Title="Sửa">
+                        <Button Size="ButtonSize.Small" @onclick="() => StartEdit(data.Id)" Shape="ButtonShape.Circle">
+                            <i class="fas fa-pen"></i>
+                        </Button>
+                    </Tooltip>
+
+                    <Popconfirm Title=@($"Bạn có chắc muốn xóa danh mục {data.Name}?") OnConfirm="() => DeleteCategory(data.Id)"
+                        OkText="Đồng ý" CancelText="Hủy">
+                        <Tooltip Title="Xóa">
+                            <Button Size="ButtonSize.Small" Danger Shape="ButtonShape.Circle">
+                                <i class="fas fa-minus"></i>
+                            </Button>
+                        </Tooltip>
+                    </Popconfirm>
+            }
+            else
+            {
+                    <Tooltip Title="Lưu">
+                        <Button Size="ButtonSize.Small" @onclick="() => SaveEdit(data.Id)" Shape="ButtonShape.Circle">
+                            <i class="fas fa-check"></i>
+                        </Button>
+                    </Tooltip>
+
+                    <Popconfirm Title=@($"Bạn có chắc muốn hủy chỉnh sửa danh mục {data.Name}?")
+                        OnConfirm="() => CancelEdit(data.Id)" OkText="Đồng ý" CancelText="Hủy">
+                        <Button Size="ButtonSize.Small" Shape="ButtonShape.Circle">
+                            <i class="fa-solid fa-xmark"></i>
+                        </Button>
+                    </Popconfirm>
+            }
+        </ActionColumn>
+    </ChildContent>
+    <ExpandTemplate Context="data">
+        <div>
+            <h4>Sản phẩm trong danh mục "@data.Data.Name"</h4>
+            @if (expandedCategoryProducts.ContainsKey(data.Data.Id) && expandedCategoryProducts[data.Data.Id].Any())
+            {
+                    <Table DataSource="expandedCategoryProducts[data.Data.Id]" TItem="ProductPreviewDTO" Size="TableSize.Small">
+                        <Column TData="string" Title="Ảnh" Width="80">
+                            <Image Width="60" Height="60" Fallback="@(ApiBaseUrl+"/"+ "/Images/fallback.jpeg")"
+                                Src="@GetProductImageUrl(context.Thumbnail)" Class="search-result-image" />
+                        </Column>
+                        <Column TData="string" Title="Sản phẩm" Width="200">
+                            <div>
+                                <div><Text Strong>@context.Name</Text></div>
+                            </div>
+                        </Column>
+                        <Column TData="float?" Title="Giá" Width="150" Align="@ColumnAlign.Right">
+                            @if (context.MinPrice.HasValue && context.MaxPrice.HasValue)
+                            {
+                                    @if (context.MinPrice == context.MaxPrice)
+                                    {
+                                            @($"{context.MinPrice:N0} ₫")
+                                    }
+                                    else
+                                    {
+                                            @($"{context.MinPrice:N0} - {context.MaxPrice:N0} ₫")
+                                    }
+                            }
+                            else
+                            {
+                                    <span style="color: #999;">Chưa có giá</span>
+                            }
+                        </Column>
+                    </Table>
+            }
+            else
+            {
+                    <div class="text-center p-3">
+                        <p>Chưa có sản phẩm nào trong danh mục này</p>
+                    </div>
+            }
+        </div>
+    </ExpandTemplate>
+</Table>
+
+@code {
+    [Inject] private ICategoryClientService CategoryClientService { get; set; } = default!;
+    private string ApiBaseUrl = string.Empty;
+    IDictionary<Guid, (bool edit, CategoryDTO data)> editCache = new Dictionary<Guid, (bool, CategoryDTO)>();
+    List<CategoryDTO> listOfData = new();
+    private Dictionary<Guid, List<ProductPreviewDTO>> expandedCategoryProducts = new();
+    List<(bool Value, string Name)> statusOptions = new()
+{
+(true, "Hoạt động"),
+(false, "Không hoạt động")
+};
+
+    CategoryFilter filter = new CategoryFilter()
+    {
+        NameFilter = "",
+        DescriptionFilter = ""
+    };
+
+    protected override async Task OnInitializedAsync()
+    {
+        ApiBaseUrl = Configuration["ApiSettings:BaseUrl"] ?? string.Empty;
+        await LoadData();
+    }
+
+    private async Task LoadData()
+    {
+        var response = await CategoryClientService.GetAllCategoriesAsync();
+        listOfData = response.Select(c => new CategoryDTO
+        {
+            Id = c.Id,
+            Name = c.Name,
+            Description = c.Description,
+            Status = c.Status
+        }).ToList();
+
+        // Apply filters
+        if (!string.IsNullOrEmpty(filter.NameFilter))
+        {
+            listOfData = listOfData.Where(c => c.Name.Contains(filter.NameFilter, StringComparison.OrdinalIgnoreCase)).ToList();
+        }
+        if (!string.IsNullOrEmpty(filter.DescriptionFilter))
+        {
+            listOfData = listOfData.Where(c => !string.IsNullOrEmpty(c.Description) &&
+            c.Description.Contains(filter.DescriptionFilter, StringComparison.OrdinalIgnoreCase)).ToList();
+        }
+
+        editCache = listOfData.ToDictionary(
+        item => item.Id,
+        item => (false, CloneCategory(item)));
+        await InvokeAsync(StateHasChanged);
+    }
+
+    private async Task OnFilterChanged()
+    {
+        await LoadData();
+    }
+
+    private string selectedTab = "all";
+
+    private async Task OnTabChanged(string key)
+    {
+        selectedTab = key;
+        await LoadData();
+    }
+
+    private async Task OnRowExpand(RowData<CategoryDTO> args)
+    {
+        if (args.Expanded)
+        {
+            await LoadCategoryProducts(args.Data.Id);
+        }
+    }
+
+    private async Task LoadCategoryProducts(Guid categoryId)
+    {
+        try
+        {
+            if (!expandedCategoryProducts.ContainsKey(categoryId))
+            {
+                var response = await CategoryClientService.GetCategoryHoverPreviewAsync(categoryId, 20); // Load up to 20 products
+                if (response.Products.Any())
+                {
+                    expandedCategoryProducts[categoryId] = response.Products.ToList();
+                    StateHasChanged();
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine("Lỗi khi lấy danh sách sản phẩm trong category: " + ex.Message);
+        }
+    }
+
+    private string GetProductImageUrl(string thumbnail)
+    {
+        return ApiBaseUrl + "/" + thumbnail;
+    }
+
+    async Task AddNewCategory()
+    {
+        var newCategory = new CategoryDTO
+        {
+            Id = Guid.Empty,
+            Name = "",
+            Description = "",
+            Status = true
+        };
+        listOfData.Insert(0, newCategory);
+        editCache[newCategory.Id] = (true, CloneCategory(newCategory));
+        await InvokeAsync(StateHasChanged);
+    }
+
+    async Task StartEdit(Guid Id)
+    {
+        var data = editCache[Id];
+        editCache[Id] = (true, data.data);
+        await InvokeAsync(StateHasChanged);
+    }
+
+    async Task CancelEdit(Guid id)
+    {
+        var isNew = listOfData.FirstOrDefault(x => x.Id == id)?.Id == Guid.Empty;
+        if (isNew)
+        {
+            listOfData.RemoveAll(x => x.Id == id);
+            editCache.Remove(id);
+        }
+        else
+        {
+            var original = listOfData.First(x => x.Id == id);
+            editCache[id] = (false, CloneCategory(original));
+        }
+        await InvokeAsync(StateHasChanged);
+    }
+
+    async Task SaveEdit(Guid Id)
+    {
+        var dto = editCache[Id].data;
+        var createOrUpdate = new CategoryDTO
+        {
+            Id = dto.Id,
+            Name = dto.Name,
+            Description = dto.Description,
+            Status = dto.Status
+        };
+        CategoryResponseDTO response;
+        if (dto.Id == Guid.Empty)
+        {
+            response = await CategoryClientService.CreateCategoryAsync(createOrUpdate);
+        }
+        else
+        {
+            response = await CategoryClientService.UpdateCategoryAsync(createOrUpdate);
+        }
+
+        if (response.ResponseStatus == BaseStatus.Success)
+        {
+            await MessageModalService.Success("Lưu danh mục thành công!");
+            await LoadData();
+        }
+        else
+        {
+            await MessageModalService.Error(response.Message);
+        }
+    }
+
+    async Task DeleteCategory(Guid id)
+    {
+        var response = await CategoryClientService.DeleteCategoryAsync(id);
+        if (response.ResponseStatus == BaseStatus.Success)
+        {
+            listOfData.RemoveAll(x => x.Id == id);
+            editCache.Remove(id);
+            await MessageModalService.Success("Xóa danh mục thành công!");
+        }
+        else
+        {
+            await MessageModalService.Error(response.Message);
+        }
+    }
+
+    CategoryDTO CloneCategory(CategoryDTO dto)
+    {
+        return new CategoryDTO
+        {
+            Id = dto.Id,
+            Name = dto.Name,
+            Description = dto.Description,
+            Status = dto.Status
+        };
+    }
+
+    public class CategoryFilter
+    {
+        public string NameFilter { get; set; } = "";
+        public string DescriptionFilter { get; set; } = "";
+    }
+}

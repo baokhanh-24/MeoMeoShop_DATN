@@ -8,7 +8,8 @@
             // Export functions globally
             window.startBarcodeScan = window.posFunctions.startBarcodeScan;
             window.startQRCodeScan = window.posFunctions.startQRCodeScan;
-            window.printReceipt = window.posFunctions.printReceipt;
+            window.printDetailedReceipt =
+                window.posFunctions.printDetailedReceipt;
             window.printQRCode = window.posFunctions.printQRCode;
             window.setFocus = window.posFunctions.setFocus;
             window.addKeyboardShortcuts =
@@ -17,7 +18,7 @@
             console.log('Functions exported successfully:', {
                 startBarcodeScan: typeof window.startBarcodeScan,
                 startQRCodeScan: typeof window.startQRCodeScan,
-                printReceipt: typeof window.printReceipt,
+                printDetailedReceipt: typeof window.printDetailedReceipt,
                 printQRCode: typeof window.printQRCode,
                 setFocus: typeof window.setFocus,
                 addKeyboardShortcuts: typeof window.addKeyboardShortcuts,

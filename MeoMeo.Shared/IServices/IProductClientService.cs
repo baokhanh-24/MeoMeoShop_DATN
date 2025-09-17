@@ -24,5 +24,8 @@ namespace MeoMeo.Shared.IServices
 
         // Related products
         public Task<List<ProductResponseDTO>> GetRelatedProductsAsync(Guid productId, int pageSize = 4);
+
+        // Variant dependency check
+        public Task<bool> CheckVariantDependenciesAsync(Guid variantId);
     }
 }

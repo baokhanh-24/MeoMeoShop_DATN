@@ -244,10 +244,103 @@ namespace MeoMeo.API.Controllers
             return Ok(result);
         }
 
+        // API hủy đơn hàng với lý do
+        [HttpPut("cancel-order-with-reason/{orderId}")]
+        public async Task<IActionResult> CancelOrderWithReasonAsync(Guid orderId, [FromBody] CancelOrderWithReasonRequestDTO request)
+        {
+            try
+            {
+                // Tạo request để hủy đơn hàng với lý do
+                var cancelRequest = new UpdateStatusOrderRequestDTO
+                {
+                    OrderIds = new List<Guid> { orderId },
+                    Status = EOrderStatus.Canceled,
+                    Reason = request.Reason
+                };
+
+                var result = await _orderService.UpdateStatusOrderAsync(cancelRequest);
+                return Ok(result);
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new BaseResponse
+                {
+                    ResponseStatus = BaseStatus.Error,
+                    Message = $"Lỗi khi hủy đơn hàng: {ex.Message}"
+                });
+            }
+        }
+
         [HttpPost("create-pos-order")]
         public async Task<CreatePosOrderResultDTO> CreatePosOrder([FromBody] CreatePosOrderDTO input)
         {
-            return await _orderService.CreatePosOrderAsync(input);
+            var employeeId = _httpContextAccessor.HttpContext.GetCurrentEmployeeId();
+            return await _orderService.CreatePosOrderAsync(employeeId, input);
+        }
+
+        // API lấy danh sách đơn hàng đang xử lý
+        [HttpGet("get-pending-orders")]
+        public async Task<IActionResult> GetPendingOrdersAsync([FromQuery] GetPendingOrdersRequestDTO request)
+        {
+            try
+            {
+                // Get current employee ID from JWT token
+                var employeeId = _httpContextAccessor.HttpContext.GetCurrentEmployeeId();
+                if (employeeId != Guid.Empty)
+                {
+                    request.EmployeeId = employeeId;
+                }
+
+                var result = await _orderService.GetPendingOrdersAsync(request);
+                return Ok(result);
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new BaseResponse
+                {
+                    ResponseStatus = BaseStatus.Error,
+                    Message = $"Lỗi khi lấy danh sách đơn hàng đang xử lý: {ex.Message}"
+                });
+            }
+        }
+
+        // API xóa đơn hàng đang xử lý
+        [HttpDelete("delete-pending-order/{orderId}")]
+        public async Task<IActionResult> DeletePendingOrderAsync(Guid orderId)
+        {
+            try
+            {
+                var result = await _orderService.DeletePendingOrderAsync(orderId);
+                return Ok(result);
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new BaseResponse
+                {
+                    ResponseStatus = BaseStatus.Error,
+                    Message = $"Lỗi khi xóa đơn hàng: {ex.Message}"
+                });
+            }
+        }
+
+        // API cập nhật đơn hàng POS
+        [HttpPut("update-pos-order/{orderId}")]
+        public async Task<IActionResult> UpdatePosOrderAsync(Guid orderId, [FromBody] CreatePosOrderDTO input)
+        {
+            try
+            {
+                var employeeId = _httpContextAccessor.HttpContext.GetCurrentEmployeeId();
+                var result = await _orderService.UpdatePosOrderAsync(orderId, employeeId, input);
+                return Ok(result);
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new CreatePosOrderResultDTO
+                {
+                    ResponseStatus = BaseStatus.Error,
+                    Message = $"Lỗi khi cập nhật đơn hàng: {ex.Message}"
+                });
+            }
         }
     }
 }

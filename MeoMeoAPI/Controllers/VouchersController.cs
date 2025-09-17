@@ -47,10 +47,17 @@ namespace MeoMeo.API.Controllers
             return result;
         }
 
-        [HttpDelete("delete-voucher-async/{id}")]
-        public async Task<bool> DeleteVoucherAsync(Guid id)
+        [HttpPost("check-voucher-async")]
+        public async Task<CheckVoucherResponseDTO> CheckVoucherAsync([FromBody] CheckVoucherRequestDTO request)
         {
-            var result = await _voucherServices.DeleteVoucherAsync(id);
+            var result = await _voucherServices.CheckVoucherAsync(request);
+            return result;
+        }
+
+        [HttpPost("get-available-vouchers-async")]
+        public async Task<List<AvailableVoucherDTO>> GetAvailableVouchersAsync([FromBody] GetAvailableVouchersRequestDTO request)
+        {
+            var result = await _voucherServices.GetAvailableVouchersAsync(request);
             return result;
         }
     }

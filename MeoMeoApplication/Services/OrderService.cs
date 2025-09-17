@@ -37,6 +37,8 @@ namespace MeoMeo.Application.Services
         private readonly IPromotionDetailRepository _promotionDetailRepository;
         private readonly IVoucherRepository _voucherRepository;
         private readonly IEmailService _emailService;
+        private readonly ISizeRepository _sizeRepository;
+        private readonly IColourRepository _colourRepository;
 
         public OrderService(IIventoryBatchReposiory inventoryRepository, IOrderRepository orderRepository,
             IMapper mapper, IOrderDetailRepository orderDetailRepository,
@@ -48,7 +50,7 @@ namespace MeoMeo.Application.Services
             IDeliveryAddressRepository deliveryAddressRepository, IEmployeeRepository employeeRepository,
             ICustomerRepository customerRepository, IProductRepository productRepository,
             IPromotionDetailRepository promotionDetailRepository, IVoucherRepository voucherRepository,
-            IEmailService emailService)
+            IEmailService emailService, ISizeRepository sizeRepository, IColourRepository colourRepository)
         {
             _inventoryRepository = inventoryRepository;
             _orderRepository = orderRepository;
@@ -70,6 +72,8 @@ namespace MeoMeo.Application.Services
             _promotionDetailRepository = promotionDetailRepository;
             _voucherRepository = voucherRepository;
             _emailService = emailService;
+            _sizeRepository = sizeRepository;
+            _colourRepository = colourRepository;
         }
 
 
@@ -365,17 +369,73 @@ namespace MeoMeo.Application.Services
         {
             try
             {
+                // Lấy Order với Include các bảng cần thiết
                 var order = await _orderRepository.Query()
-                    .Include(o => o.OrderDetails)
                     .Include(o => o.Customers)
                     .Include(o => o.Employee)
-                    .Include(o => o.Voucher)
+                    .Include(o => o.OrderDetails)
                     .FirstOrDefaultAsync(o => o.Id == orderId);
 
                 if (order == null)
                     return null;
+                var orderDetailsWithInfo = await (from od in _orderDetailRepository.Query()
+                                                  join pd in _productsDetailRepository.Query() on od.ProductDetailId equals pd.Id
+                                                  join s in _sizeRepository.Query() on pd.SizeId equals s.Id
+                                                  join col in _colourRepository.Query() on pd.ColourId equals col.Id
+                                                  where od.OrderId == orderId
+                                                  select new OrderDetailDTO
+                                                  {
+                                                      Id = od.Id,
+                                                      OrderId = od.OrderId,
+                                                      ProductDetailId = od.ProductDetailId,
+                                                      PromotionDetailId = od.PromotionDetailId ?? Guid.Empty,
+                                                      Sku = od.Sku ?? string.Empty,
+                                                      Price = od.Price,
+                                                      OriginalPrice = od.OriginalPrice,
+                                                      Quantity = od.Quantity,
+                                                      GrandTotal = od.Price * od.Quantity,
+                                                      ProductName = od.ProductName ?? string.Empty,
+                                                      Discount = od.Discount ?? 0,
+                                                      Image = od.Image ?? string.Empty,
+                                                      SizeName = s.Value,
+                                                      ColourName = col.Name
+                                                  }).ToListAsync();
 
-                return _mapper.Map<OrderDTO>(order);
+                // Map Order sang OrderDTO
+                var orderDto = new OrderDTO
+                {
+                    Id = order.Id,
+                    CustomerId = order.CustomerId,
+                    EmployeeId = order.EmployeeId ?? Guid.Empty,
+                    VoucherId = order.VoucherId,
+                    DeliveryAddressId = null, // Không có trong Order entity
+                    Code = order.Code,
+                    EmployeeName = order.Employee?.Name ?? string.Empty,
+                    CustomerName = order.Customers?.Name ?? string.Empty,
+                    EmployeePhoneNumber = order.Employee?.PhoneNumber ?? string.Empty,
+                    CustomerPhoneNumber = order.Customers?.PhoneNumber ?? string.Empty,
+                    CustomerCode = order.Customers?.Code ?? string.Empty,
+                    EmployeeEmail = order.Employee?.User?.Email ?? string.Empty,
+                    CustomerEmail = order.Customers?.User?.Email ?? string.Empty,
+                    TotalPrice = order.TotalPrice,
+                    DiscountPrice = order.DiscountPrice,
+                    ShippingFee = order.ShippingFee,
+                    PaymentMethod = order.PaymentMethod,
+                    DeliveryAddress = order.DeliveryAddress,
+                    DeliveryDate = order.DeliveryDate,
+                    ReceiveDate = order.ReceiveDate,
+                    ExpectReceiveDate = order.ExpectReceiveDate,
+                    Type = order.Type,
+                    CreationTime = order.CreationTime,
+                    LastModifiedTime = order.LastModifiedTime,
+                    Note = order.Note,
+                    CancelDate = order.CancelDate,
+                    Reason = order.Reason,
+                    Status = order.Status,
+                    OrderDetails = orderDetailsWithInfo
+                };
+
+                return orderDto;
             }
             catch (Exception ex)
             {
@@ -845,7 +905,7 @@ namespace MeoMeo.Application.Services
             }
         }
 
-        public async Task<CreatePosOrderResultDTO> CreatePosOrderAsync(CreatePosOrderDTO request)
+        public async Task<CreatePosOrderResultDTO> CreatePosOrderAsync(Guid employeeId, CreatePosOrderDTO request)
         {
             try
             {
@@ -860,24 +920,26 @@ namespace MeoMeo.Application.Services
                         ResponseStatus = BaseStatus.Error
                     };
                 }
-                // Validate inventory
-                var groupedByVariant = request.Items
-                    .GroupBy(x => x.ProductDetailId)
-                    .Select(g => new { ProductDetailId = g.Key, TotalQty = g.Sum(x => x.Quantity) })
-                    .ToList();
-
-                foreach (var g in groupedByVariant)
+                if (request.Status == EOrderStatus.Completed)
                 {
-                    var available = await _inventoryRepository.Query()
-                        .Where(x => x.ProductDetailId == g.ProductDetailId && x.Status == EInventoryBatchStatus.Approved)
-                        .SumAsync(x => (int?)x.Quantity) ?? 0;
-                    if (g.TotalQty > available)
+                    var groupedByVariant = request.Items
+                        .GroupBy(x => x.ProductDetailId)
+                        .Select(g => new { ProductDetailId = g.Key, TotalQty = g.Sum(x => x.Quantity) })
+                        .ToList();
+
+                    foreach (var g in groupedByVariant)
                     {
-                        return new CreatePosOrderResultDTO
+                        var available = await _inventoryRepository.Query()
+                            .Where(x => x.ProductDetailId == g.ProductDetailId && x.Status == EInventoryBatchStatus.Approved)
+                            .SumAsync(x => (int?)x.Quantity) ?? 0;
+                        if (g.TotalQty > available)
                         {
-                            Message = $"Không đủ tồn kho cho biến thể {g.ProductDetailId}. Cần {g.TotalQty}, còn {available}",
-                            ResponseStatus = BaseStatus.Error
-                        };
+                            return new CreatePosOrderResultDTO
+                            {
+                                Message = $"Không đủ tồn kho cho biến thể {g.ProductDetailId}. Cần {g.TotalQty}, còn {available}",
+                                ResponseStatus = BaseStatus.Error
+                            };
+                        }
                     }
                 }
                 var customer = await _customerRepository.Query().FirstOrDefaultAsync(c => c.Id == request.CustomerId);
@@ -929,6 +991,7 @@ namespace MeoMeo.Application.Services
                         }
                     }
                 }
+                var employee = await _employeeRepository.Query().FirstOrDefaultAsync(c => c.Id == employeeId);
 
                 // Create order
                 var orderCode = await GenerateUniqueOrderCodeAsync();
@@ -941,9 +1004,12 @@ namespace MeoMeo.Application.Services
                     CustomerPhoneNumber = customer?.PhoneNumber ?? string.Empty,
                     VoucherId = validVoucher?.Id,
                     Note = request.Note,
+                    EmployeeId = employeeId,
+                    EmployeeName = employee?.Name ?? "",
+                    EmployeePhoneNumber = employee?.PhoneNumber ?? "",
                     PaymentMethod = request.PaymentMethod,
                     Type = request.Type,
-                    Status = EOrderStatus.Completed,
+                    Status = request.Status,
                     ShippingFee = request.ShippingFee,
                     CreationTime = DateTime.Now,
                 };
@@ -958,39 +1024,23 @@ namespace MeoMeo.Application.Services
 
                 foreach (var item in request.Items)
                 {
-                    var productDetail = await _productsDetailRepository.Query().FirstOrDefaultAsync(c => c.Id == item.ProductDetailId);
-                    if (productDetail == null) continue;
-                    var product = await _productRepository.Query().FirstOrDefaultAsync(c => c.Id == productDetail.ProductId);
-
-                    // Check for active promotion
-                    var activePromotion = await _promotionDetailRepository.Query()
-                        .Include(pd => pd.Promotion)
-                        .Where(pd => pd.ProductDetailId == item.ProductDetailId &&
-                                    pd.Promotion.StartDate <= now &&
-                                    pd.Promotion.EndDate >= now)
-                        .OrderByDescending(pd => pd.Discount)
-                        .FirstOrDefaultAsync();
-
-                    // Calculate discount and final price
-                    float discount = activePromotion?.Discount ?? 0f;
-                    var originalPrice = item.UnitPrice;
-                    var discountedPrice = discount > 0 ? originalPrice * (1 - (decimal)discount / 100m) : originalPrice;
-                    var lineTotal = discountedPrice * item.Quantity;
+                    // Sử dụng thông tin từ DTO thay vì query database
+                    var lineTotal = (decimal)item.Price * item.Quantity;
                     totalPrice += lineTotal;
 
                     var orderDetail = new OrderDetail
                     {
-                        Id = Guid.NewGuid(),
+                        Id = item.Id == Guid.Empty ? Guid.NewGuid() : item.Id,
                         OrderId = order.Id,
-                        ProductName = product?.Name ?? string.Empty,
-                        Sku = productDetail.Sku,
                         ProductDetailId = item.ProductDetailId,
-                        Image = product?.Thumbnail ?? string.Empty,
+                        PromotionDetailId = item.PromotionDetailId,
+                        Sku = item.Sku,
+                        Price = item.Price,
+                        OriginalPrice = item.OriginalPrice,
                         Quantity = item.Quantity,
-                        Price = (float)discountedPrice,
-                        OriginalPrice = (float)originalPrice,
-                        Discount = discount,
-                        PromotionDetailId = activePromotion?.Id
+                        ProductName = item.ProductName,
+                        Discount = item.Discount > 0 ? item.Discount : null,
+                        Image = item.Image
                     };
                     await _orderDetailRepository.AddAsync(orderDetail);
                 }
@@ -1038,38 +1088,99 @@ namespace MeoMeo.Application.Services
                 order.TotalPrice = totalPrice - voucherDiscountAmount + (order.ShippingFee ?? 0);
                 await _orderRepository.UpdateAsync(order);
 
-                // Deduct inventory immediately (POS confirm)
-                foreach (var item in request.Items)
+                // Only deduct inventory if order is completed (not draft/pending)
+                if (request.Status == EOrderStatus.Completed)
                 {
-                    var requiredQuantity = item.Quantity;
-                    var availableBatches = await _inventoryRepository.Query()
-                        .Where(x => x.ProductDetailId == item.ProductDetailId && x.Quantity > 0 && x.Status == EInventoryBatchStatus.Approved)
-                        .OrderBy(x => x.CreationTime)
-                        .ToListAsync();
-                    foreach (var batch in availableBatches)
+                    foreach (var item in request.Items)
                     {
-                        if (requiredQuantity <= 0) break;
-                        var deductedQuantity = Math.Min(batch.Quantity, requiredQuantity);
-                        batch.Quantity -= deductedQuantity;
-                        requiredQuantity -= deductedQuantity;
-                        await _inventoryRepository.UpdateAsync(batch);
-                        await _inventoryTransactionRepository.AddAsync(new InventoryTransaction
+                        var requiredQuantity = item.Quantity;
+                        var availableBatches = await _inventoryRepository.Query()
+                            .Where(x => x.ProductDetailId == item.ProductDetailId && x.Quantity > 0 && x.Status == EInventoryBatchStatus.Approved)
+                            .OrderBy(x => x.CreationTime)
+                            .ToListAsync();
+                        foreach (var batch in availableBatches)
                         {
-                            InventoryBatchId = batch.Id,
-                            Quantity = deductedQuantity,
-                            CreationTime = DateTime.Now,
-                            Type = EInventoryTranctionType.Export,
-                        });
+                            if (requiredQuantity <= 0) break;
+                            var deductedQuantity = Math.Min(batch.Quantity, requiredQuantity);
+                            batch.Quantity -= deductedQuantity;
+                            requiredQuantity -= deductedQuantity;
+                            await _inventoryRepository.UpdateAsync(batch);
+                            await _inventoryTransactionRepository.AddAsync(new InventoryTransaction
+                            {
+                                InventoryBatchId = batch.Id,
+                                Quantity = deductedQuantity,
+                                CreationTime = DateTime.Now,
+                                Type = EInventoryTranctionType.Export,
+                            });
+                        }
                     }
                 }
 
                 await _unitOfWork.CommitAsync();
+
+                // Lấy thông tin đầy đủ để trả về với join Size và Colour
+                var orderDetails = await _orderDetailRepository.Query()
+                    .Where(od => od.OrderId == order.Id)
+                    .Join(_productsDetailRepository.Query(),
+                        od => od.ProductDetailId,
+                        pd => pd.Id,
+                        (od, pd) => new { OrderDetail = od, ProductDetail = pd })
+                    .Join(_sizeRepository.Query(),
+                        x => x.ProductDetail.SizeId,
+                        s => s.Id,
+                        (x, s) => new { x.OrderDetail, x.ProductDetail, Size = s })
+                    .Join(_colourRepository.Query(),
+                        x => x.ProductDetail.ColourId,
+                        c => c.Id,
+                        (x, c) => new { x.OrderDetail, x.ProductDetail, x.Size, Colour = c })
+                    .Select(x => new MeoMeo.Contract.DTOs.OrderDetail.OrderDetailDTO
+                    {
+                        Id = x.OrderDetail.Id,
+                        OrderId = x.OrderDetail.OrderId,
+                        ProductDetailId = x.OrderDetail.ProductDetailId,
+                        PromotionDetailId = x.OrderDetail.PromotionDetailId ?? Guid.Empty,
+                        Sku = x.OrderDetail.Sku,
+                        Price = x.OrderDetail.Price,
+                        OriginalPrice = x.OrderDetail.OriginalPrice,
+                        Quantity = x.OrderDetail.Quantity,
+                        ProductName = x.OrderDetail.ProductName,
+                        Discount = x.OrderDetail.Discount ?? 0,
+                        Image = x.OrderDetail.Image,
+                        SizeName = x.Size.Value,
+                        ColourName = x.Colour.Name
+                    })
+                    .ToListAsync();
+
                 return new CreatePosOrderResultDTO
                 {
                     ResponseStatus = BaseStatus.Success,
                     Message = "Tạo đơn POS thành công",
                     OrderId = order.Id,
-                    Code = order.Code
+                    Code = order.Code,
+
+                    // Thông tin đầy đủ để in hóa đơn
+                    CreationTime = order.CreationTime,
+                    Type = order.Type,
+                    Status = order.Status,
+                    PaymentMethod = order.PaymentMethod,
+                    TotalPrice = (float)order.TotalPrice,
+                    ShippingFee = (float)(order.ShippingFee ?? 0),
+                    Note = order.Note,
+
+                    // Thông tin khách hàng
+                    CustomerName = order.CustomerName,
+                    CustomerPhoneNumber = order.CustomerPhoneNumber,
+                    CustomerEmail = "", // Customer model không có Email field
+
+                    // Thông tin nhân viên
+                    EmployeeName = order.EmployeeName,
+                    EmployeePhoneNumber = order.EmployeePhoneNumber,
+
+                    // Thông tin giao hàng
+                    Delivery = request.Delivery,
+
+                    // Chi tiết sản phẩm
+                    OrderDetails = orderDetails
                 };
             }
             catch (Exception ex)
@@ -1136,6 +1247,334 @@ namespace MeoMeo.Application.Services
             return code.Length > 20 ? code.Substring(0, 20) : code; // respect max length
         }
 
+        // Pending Orders methods
+        public async Task<GetPendingOrdersResponseDTO> GetPendingOrdersAsync(GetPendingOrdersRequestDTO request)
+        {
+            try
+            {
+                var query = _orderRepository.Query()
+                    .Include(o => o.Customers)
+                    .Include(o => o.Employee)
+                    .Include(o => o.OrderDetails)
+                    .Where(o => (o.Status == EOrderStatus.Pending ||
+                               o.Status == EOrderStatus.Confirmed) &&
+                               o.Type == EOrderType.Store); // Only POS orders
+
+                // Filter by employee if specified
+                if (request.EmployeeId.HasValue)
+                {
+                    query = query.Where(o => o.EmployeeId == request.EmployeeId.Value);
+                }
+
+                // Filter by date range
+                if (request.FromDate.HasValue)
+                {
+                    query = query.Where(o => o.CreationTime >= request.FromDate.Value);
+                }
+                if (request.ToDate.HasValue)
+                {
+                    query = query.Where(o => o.CreationTime <= request.ToDate.Value);
+                }
+
+                // Order by creation time descending
+                query = query.OrderByDescending(o => o.CreationTime);
+
+                // Get total counts for metadata
+                var totalPendingCount = await query.CountAsync();
+                var totalDraftCount = await query.CountAsync(o => o.Status == EOrderStatus.Pending);
+                var totalPendingAmount = await query.SumAsync(o => o.TotalPrice);
+
+                // Apply paging
+                var pagedResult = await query
+                    .Skip((request.PageIndex - 1) * request.PageSize)
+                    .Take(request.PageSize)
+                    .ToListAsync();
+
+                // Map to DTOs
+                var items = pagedResult.Select(o => new PendingOrderDTO
+                {
+                    Id = o.Id,
+                    Code = o.Code,
+                    CustomerName = o.Customers?.Name ?? "Khách lẻ",
+                    CustomerPhone = o.Customers?.PhoneNumber ?? "",
+                    TotalAmount = o.TotalPrice,
+                    CreationTime = o.CreationTime,
+                    LastModifiedTime = o.LastModifiedTime,
+                    Status = o.Status,
+                    Type = o.Type,
+                    PaymentMethod = o.PaymentMethod,
+                    Note = o.Note,
+                    ItemCount = o.OrderDetails?.Count ?? 0,
+                    IsDraft = o.Status == EOrderStatus.Pending
+                }).ToList();
+
+                return new GetPendingOrdersResponseDTO
+                {
+                    Items = items,
+                    PageIndex = request.PageIndex,
+                    PageSize = request.PageSize,
+                    TotalPendingCount = totalPendingCount,
+                    TotalDraftCount = totalDraftCount,
+                    TotalPendingAmount = totalPendingAmount
+                };
+            }
+            catch (Exception ex)
+            {
+                throw new Exception($"Error getting pending orders: {ex.Message}", ex);
+            }
+        }
+
+        public async Task<BaseResponse> DeletePendingOrderAsync(Guid orderId)
+        {
+            try
+            {
+                var order = await _orderRepository.Query()
+                    .Include(o => o.OrderDetails)
+                    .FirstOrDefaultAsync(o => o.Id == orderId);
+
+                if (order == null)
+                {
+                    return new BaseResponse
+                    {
+                        ResponseStatus = BaseStatus.Error,
+                        Message = "Không tìm thấy đơn hàng"
+                    };
+                }
+
+                // Only allow deletion of pending or confirmed orders
+                if (order.Status != EOrderStatus.Pending && order.Status != EOrderStatus.Confirmed)
+                {
+                    return new BaseResponse
+                    {
+                        ResponseStatus = BaseStatus.Error,
+                        Message = "Chỉ có thể xóa đơn hàng ở trạng thái chờ xử lý hoặc đã xác nhận"
+                    };
+                }
+
+                // Delete order details first
+                if (order.OrderDetails?.Any() == true)
+                {
+                    foreach (var detail in order.OrderDetails)
+                    {
+                        await _orderDetailRepository.DeleteAsync(detail.Id);
+                    }
+                }
+
+                // Delete the order
+                await _orderRepository.DeleteAsync(orderId);
+                await _unitOfWork.SaveChangesAsync();
+
+                return new BaseResponse
+                {
+                    ResponseStatus = BaseStatus.Success,
+                    Message = "Xóa đơn hàng thành công"
+                };
+            }
+            catch (Exception ex)
+            {
+                return new BaseResponse
+                {
+                    ResponseStatus = BaseStatus.Error,
+                    Message = $"Lỗi khi xóa đơn hàng: {ex.Message}"
+                };
+            }
+        }
+
+        public async Task<CreatePosOrderResultDTO> UpdatePosOrderAsync(Guid orderId, Guid employeeId, CreatePosOrderDTO request)
+        {
+            try
+            {
+                // Find existing order - only POS orders (Store type)
+                var existingOrder = await _orderRepository.Query()
+                    .Include(o => o.OrderDetails)
+                    .FirstOrDefaultAsync(o => o.Id == orderId && o.Type == EOrderType.Store);
+
+                if (existingOrder == null)
+                {
+                    return new CreatePosOrderResultDTO
+                    {
+                        ResponseStatus = BaseStatus.Error,
+                        Message = "Không tìm thấy đơn hàng POS hoặc đơn hàng không phải loại tại quầy"
+                    };
+                }
+
+                // Only allow update of pending or confirmed POS orders
+                if (existingOrder.Status != EOrderStatus.Pending && existingOrder.Status != EOrderStatus.Confirmed)
+                {
+                    return new CreatePosOrderResultDTO
+                    {
+                        ResponseStatus = BaseStatus.Error,
+                        Message = "Chỉ có thể cập nhật đơn hàng POS ở trạng thái chờ xử lý hoặc đã xác nhận"
+                    };
+                }
+
+                // Only validate inventory if order status changes to completed
+                if (request.Status == EOrderStatus.Completed && existingOrder.Status != EOrderStatus.Completed)
+                {
+                    var groupedByVariant = request.Items
+                        .GroupBy(x => x.ProductDetailId)
+                        .Select(g => new { ProductDetailId = g.Key, TotalQty = g.Sum(x => x.Quantity) })
+                        .ToList();
+
+                    foreach (var g in groupedByVariant)
+                    {
+                        var available = await _inventoryRepository.Query()
+                            .Where(x => x.ProductDetailId == g.ProductDetailId && x.Status == EInventoryBatchStatus.Approved)
+                            .SumAsync(x => (int?)x.Quantity) ?? 0;
+                        if (g.TotalQty > available)
+                        {
+                            return new CreatePosOrderResultDTO
+                            {
+                                ResponseStatus = BaseStatus.Error,
+                                Message = $"Không đủ tồn kho cho biến thể {g.ProductDetailId}. Cần {g.TotalQty}, còn {available}"
+                            };
+                        }
+                    }
+                }
+                existingOrder.Type = EOrderType.Store;
+                existingOrder.PaymentMethod = request.PaymentMethod;
+                existingOrder.Note = request.Note;
+                existingOrder.ShippingFee = request.ShippingFee;
+                existingOrder.Status = request.Status;
+                existingOrder.CustomerId = request.CustomerId;
+                existingOrder.LastModifiedTime = DateTime.UtcNow;
+                existingOrder.DeliveryAddress = null;
+                if (existingOrder.OrderDetails?.Any() == true)
+                {
+                    foreach (var detail in existingOrder.OrderDetails)
+                    {
+                        await _orderDetailRepository.DeleteAsync(detail.Id);
+                    }
+                }
+                if (request.Items?.Any() == true)
+                {
+                    // Sử dụng thông tin từ DTO thay vì query database
+                    foreach (var item in request.Items)
+                    {
+                        var orderDetail = new OrderDetail
+                        {
+                            Id = item.Id == Guid.Empty ? Guid.NewGuid() : item.Id, // Tạo mới hoặc giữ nguyên ID
+                            OrderId = orderId,
+                            ProductDetailId = item.ProductDetailId,
+                            PromotionDetailId = item.PromotionDetailId,
+                            Sku = item.Sku,
+                            Price = item.Price,
+                            OriginalPrice = item.OriginalPrice,
+                            Quantity = item.Quantity,
+                            ProductName = item.ProductName,
+                            Discount = item.Discount > 0 ? item.Discount : null,
+                            Image = item.Image
+                        };
+                        await _orderDetailRepository.AddAsync(orderDetail);
+                    }
+                }
+
+                // Only deduct inventory if order status changes to completed
+                if (request.Status == EOrderStatus.Completed && existingOrder.Status != EOrderStatus.Completed)
+                {
+                    foreach (var item in request.Items)
+                    {
+                        var requiredQuantity = item.Quantity;
+                        var availableBatches = await _inventoryRepository.Query()
+                            .Where(x => x.ProductDetailId == item.ProductDetailId && x.Quantity > 0 && x.Status == EInventoryBatchStatus.Approved)
+                            .OrderBy(x => x.CreationTime)
+                            .ToListAsync();
+                        foreach (var batch in availableBatches)
+                        {
+                            if (requiredQuantity <= 0) break;
+                            var deductedQuantity = Math.Min(batch.Quantity, requiredQuantity);
+                            batch.Quantity -= deductedQuantity;
+                            requiredQuantity -= deductedQuantity;
+                            await _inventoryRepository.UpdateAsync(batch);
+                            await _inventoryTransactionRepository.AddAsync(new InventoryTransaction
+                            {
+                                InventoryBatchId = batch.Id,
+                                Quantity = deductedQuantity,
+                                CreationTime = DateTime.Now,
+                                Type = EInventoryTranctionType.Export,
+                            });
+                        }
+                    }
+                }
+
+                // Update order
+                await _orderRepository.UpdateAsync(existingOrder);
+                await _unitOfWork.SaveChangesAsync();
+
+                // Lấy thông tin đầy đủ để trả về với join Size và Colour
+                var orderDetails = await _orderDetailRepository.Query()
+                    .Where(od => od.OrderId == existingOrder.Id)
+                    .Join(_productsDetailRepository.Query(),
+                        od => od.ProductDetailId,
+                        pd => pd.Id,
+                        (od, pd) => new { OrderDetail = od, ProductDetail = pd })
+                    .Join(_sizeRepository.Query(),
+                        x => x.ProductDetail.SizeId,
+                        s => s.Id,
+                        (x, s) => new { x.OrderDetail, x.ProductDetail, Size = s })
+                    .Join(_colourRepository.Query(),
+                        x => x.ProductDetail.ColourId,
+                        c => c.Id,
+                        (x, c) => new { x.OrderDetail, x.ProductDetail, x.Size, Colour = c })
+                    .Select(x => new MeoMeo.Contract.DTOs.OrderDetail.OrderDetailDTO
+                    {
+                        Id = x.OrderDetail.Id,
+                        OrderId = x.OrderDetail.OrderId,
+                        ProductDetailId = x.OrderDetail.ProductDetailId,
+                        PromotionDetailId = x.OrderDetail.PromotionDetailId ?? Guid.Empty,
+                        Sku = x.OrderDetail.Sku,
+                        Price = x.OrderDetail.Price,
+                        OriginalPrice = x.OrderDetail.OriginalPrice,
+                        Quantity = x.OrderDetail.Quantity,
+                        ProductName = x.OrderDetail.ProductName,
+                        Discount = x.OrderDetail.Discount ?? 0,
+                        Image = x.OrderDetail.Image,
+                        SizeName = x.Size.Value,
+                        ColourName = x.Colour.Name
+                    })
+                    .ToListAsync();
+
+                return new CreatePosOrderResultDTO
+                {
+                    ResponseStatus = BaseStatus.Success,
+                    Message = "Cập nhật đơn hàng thành công",
+                    OrderId = orderId,
+                    Code = existingOrder.Code,
+
+                    // Thông tin đầy đủ để in hóa đơn
+                    CreationTime = existingOrder.CreationTime,
+                    Type = existingOrder.Type,
+                    Status = existingOrder.Status,
+                    PaymentMethod = existingOrder.PaymentMethod,
+                    TotalPrice = (float)existingOrder.TotalPrice,
+                    ShippingFee = (float)(existingOrder.ShippingFee ?? 0),
+                    Note = existingOrder.Note,
+
+                    // Thông tin khách hàng
+                    CustomerName = existingOrder.CustomerName,
+                    CustomerPhoneNumber = existingOrder.CustomerPhoneNumber,
+                    CustomerEmail = "", // Cần lấy từ customer table
+
+                    // Thông tin nhân viên
+                    EmployeeName = existingOrder.EmployeeName,
+                    EmployeePhoneNumber = existingOrder.EmployeePhoneNumber,
+
+                    // Thông tin giao hàng
+                    Delivery = request.Delivery,
+
+                    // Chi tiết sản phẩm
+                    OrderDetails = orderDetails
+                };
+            }
+            catch (Exception ex)
+            {
+                return new CreatePosOrderResultDTO
+                {
+                    ResponseStatus = BaseStatus.Error,
+                    Message = $"Lỗi khi cập nhật đơn hàng: {ex.Message}"
+                };
+            }
+        }
 
     }
 }

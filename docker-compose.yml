@@ -8,6 +8,9 @@ services:
             dockerfile: MeoMeo.PORTAL/Dockerfile
         environment:
             - ASPNETCORE_ENVIRONMENT=Development
+        volumes:
+            - ${HOME}/.aspnet/https:/https:ro
+            - ./wwwroot:/app/wwwroot
         ports:
             - '5085:80'
         networks:
@@ -22,6 +25,9 @@ services:
             dockerfile: MeoMeo.CMS/Dockerfile
         environment:
             - ASPNETCORE_ENVIRONMENT=Development
+        volumes:
+            - ${HOME}/.aspnet/https:/https:ro
+            - ./wwwroot:/app/wwwroot
         ports:
             - '5119:80'
         networks:
@@ -36,6 +42,9 @@ services:
             dockerfile: MeoMeoAPI/Dockerfile
         environment:
             - ASPNETCORE_ENVIRONMENT=Development
+        volumes:
+            - ${HOME}/.aspnet/https:/https:ro
+            - ./wwwroot:/app/wwwroot
         ports:
             - '5092:80'
         networks:

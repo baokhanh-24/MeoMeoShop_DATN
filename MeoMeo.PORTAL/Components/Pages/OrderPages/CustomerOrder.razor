@@ -132,10 +132,6 @@
                                                     <div class="product-name">@item.ProductName</div>
                                                     <div class="product-sku">SKU: @item.Sku</div>
                                                     <div class="product-variant">
-                                                        @if (!string.IsNullOrEmpty(item.Note))
-                                                        {
-                                                            <span>@item.Note</span>
-                                                        }
                                                         @if (!string.IsNullOrEmpty(item.SizeName))
                                                         {
                                                             <span class="size-badge">Size: @item.SizeName</span>
@@ -784,7 +780,7 @@
             
             if (AvailableReturnItems?.Any() != true)
             {
-                MessageService.Warning("Không có sản phẩm nào có thể hoàn trả trong đơn hàng này.");
+                MessageService.Warning("Không có sản phẩm nào có thể hoàn trả trong đơn hàng này. Có thể do sản phẩm không cho phép hoàn trả hoặc đã hết thời hạn.");
                 return;
             }
 

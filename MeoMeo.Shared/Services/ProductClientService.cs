@@ -371,5 +371,20 @@ namespace MeoMeo.Shared.Services
                 return new List<ProductResponseDTO>();
             }
         }
+
+        public async Task<bool> CheckVariantDependenciesAsync(Guid variantId)
+        {
+            try
+            {
+                var url = $"/api/Products/check-variant-dependencies-async/{variantId}";
+                var response = await _httpClient.GetAsync<bool>(url);
+                return response;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Có lỗi xảy ra khi kiểm tra phụ thuộc của biến thể {VariantId}: {Message}", variantId, ex.Message);
+                return true; // Trả về true để an toàn, không cho xóa khi có lỗi
+            }
+        }
     }
 }

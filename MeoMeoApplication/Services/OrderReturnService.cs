@@ -51,6 +51,7 @@ namespace MeoMeo.Application.Services
                 // Validate order
                 var order = await _orderRepository.Query()
                     .Include(o => o.OrderDetails)
+                        .ThenInclude(od => od.ProductDetail)
                     .FirstOrDefaultAsync(o => o.Id == request.OrderId && o.CustomerId == customerId);
 
                 if (order == null)
@@ -149,6 +150,7 @@ namespace MeoMeo.Application.Services
                 // Validate order
                 var order = await _orderRepository.Query()
                     .Include(o => o.OrderDetails)
+                        .ThenInclude(od => od.ProductDetail)
                     .FirstOrDefaultAsync(o => o.Id == request.OrderId && o.CustomerId == customerId);
 
                 if (order == null)
@@ -532,6 +534,7 @@ namespace MeoMeo.Application.Services
         public async Task<List<OrderReturnItemDetailDTO>> GetAvailableItemsForReturnAsync(Guid orderId)
         {
             var orderDetails = await _orderDetailRepository.Query()
+                .Include(od => od.ProductDetail)
                 .Where(od => od.OrderId == orderId)
                 .ToListAsync();
 
@@ -547,6 +550,10 @@ namespace MeoMeo.Application.Services
 
             foreach (var orderDetail in orderDetails)
             {
+                // Check if product detail allows return
+                if (orderDetail.ProductDetail?.AllowReturn != true)
+                    continue;
+
                 var returnedQty = returnedQuantities
                     .FirstOrDefault(r => r.OrderDetailId == orderDetail.Id)?.ReturnedQty ?? 0;
 
@@ -575,7 +582,11 @@ namespace MeoMeo.Application.Services
 
         public async Task<bool> CanOrderBeReturnedAsync(Guid orderId)
         {
-            var order = await _orderRepository.GetByIdAsync(orderId);
+            var order = await _orderRepository.Query()
+                .Include(o => o.OrderDetails)
+                    .ThenInclude(od => od.ProductDetail)
+                .FirstOrDefaultAsync(o => o.Id == orderId);
+
             if (order == null)
                 return false;
 
@@ -588,12 +599,20 @@ namespace MeoMeo.Application.Services
             if (order.ReceiveDate.HasValue)
             {
                 var daysSinceReceived = (DateTime.Now - order.ReceiveDate.Value).Days;
-                return daysSinceReceived <= returnPeriodDays;
+                if (daysSinceReceived > returnPeriodDays)
+                    return false;
+            }
+            else
+            {
+                // If no receive date, check creation time
+                var daysSinceCreated = (DateTime.Now - order.CreationTime).Days;
+                if (daysSinceCreated > returnPeriodDays)
+                    return false;
             }
 
-            // If no receive date, check creation time
-            var daysSinceCreated = (DateTime.Now - order.CreationTime).Days;
-            return daysSinceCreated <= returnPeriodDays;
+            // Check if at least one product in the order allows return
+            var hasReturnableProduct = order.OrderDetails.Any(od => od.ProductDetail?.AllowReturn == true);
+            return hasReturnableProduct;
         }
 
         private async Task<(bool IsValid, string ErrorMessage)> ValidateReturnItemsAsync(
@@ -605,6 +624,12 @@ namespace MeoMeo.Application.Services
                 if (orderDetail == null)
                 {
                     return (false, "Sản phẩm không tồn tại trong đơn hàng");
+                }
+
+                // Check if product detail allows return
+                if (orderDetail.ProductDetail?.AllowReturn != true)
+                {
+                    return (false, $"Sản phẩm {orderDetail.ProductName} không cho phép hoàn trả");
                 }
 
                 // Check available quantity for return

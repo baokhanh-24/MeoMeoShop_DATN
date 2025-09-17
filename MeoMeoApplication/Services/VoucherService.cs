@@ -63,7 +63,7 @@ namespace MeoMeo.Application.Services
                 return false;
             }
             await _repository.DeleteAsync(id);
-            
+
             return true;
         }
 
@@ -139,15 +139,15 @@ namespace MeoMeo.Application.Services
                 PageSize = pagedResult.PageSize,
                 Items = dtoList
             };
-            
+
         }
-        
+
 
 
         public async Task<CreateOrUpdateVoucherResponseDTO> GetVoucherByIdAsync(Guid id)
         {
             var voucher = await _repository.GetByIdAsync(id);
-           
+
             return _mapper.Map<CreateOrUpdateVoucherResponseDTO>(voucher);
         }
 
@@ -170,6 +170,205 @@ namespace MeoMeo.Application.Services
             await _unitOfWork.SaveChangesAsync();
 
             return _mapper.Map<CreateOrUpdateVoucherResponseDTO>(updated);
+        }
+
+        public async Task<CheckVoucherResponseDTO> CheckVoucherAsync(CheckVoucherRequestDTO request)
+        {
+            try
+            {
+                var voucher = await _repository.Query()
+                    .Include(v => v.Orders)
+                    .FirstOrDefaultAsync(v => v.Code == request.Code);
+
+                if (voucher == null)
+                {
+                    return new CheckVoucherResponseDTO
+                    {
+                        ResponseStatus = BaseStatus.Error,
+                        Message = "Mã voucher không tồn tại"
+                    };
+                }
+
+                var now = DateTime.Now;
+                if (now < voucher.StartDate)
+                {
+                    return new CheckVoucherResponseDTO
+                    {
+                        ResponseStatus = BaseStatus.Error,
+                        Message = "Voucher chưa có hiệu lực"
+                    };
+                }
+
+                if (now > voucher.EndDate)
+                {
+                    return new CheckVoucherResponseDTO
+                    {
+                        ResponseStatus = BaseStatus.Error,
+                        Message = "Voucher đã hết hạn"
+                    };
+                }
+
+                if (request.OrderAmount < voucher.MinOrder)
+                {
+                    return new CheckVoucherResponseDTO
+                    {
+                        ResponseStatus = BaseStatus.Error,
+                        Message = $"Đơn hàng cần tối thiểu {voucher.MinOrder:N0} đ để áp dụng voucher này"
+                    };
+                }
+
+                // Check MaxTotalUse limit
+                if (voucher.MaxTotalUse.HasValue)
+                {
+                    var totalUsageCount = voucher.Orders?.Count ?? 0;
+                    if (totalUsageCount >= voucher.MaxTotalUse.Value)
+                    {
+                        return new CheckVoucherResponseDTO
+                        {
+                            ResponseStatus = BaseStatus.Error,
+                            Message = "Voucher này đã hết lượt sử dụng"
+                        };
+                    }
+                }
+
+                // Calculate discount amount
+                decimal discountAmount = 0;
+                if (voucher.Type == EVoucherType.byPercentage)
+                {
+                    discountAmount = request.OrderAmount * (decimal)voucher.Discount / 100m;
+                    if (voucher.MaxDiscount > 0 && discountAmount > (decimal)voucher.MaxDiscount)
+                    {
+                        discountAmount = (decimal)voucher.MaxDiscount;
+                    }
+                }
+                else
+                {
+                    discountAmount = (decimal)voucher.Discount;
+                    if (discountAmount > request.OrderAmount)
+                    {
+                        discountAmount = request.OrderAmount;
+                    }
+                }
+
+                return new CheckVoucherResponseDTO
+                {
+                    ResponseStatus = BaseStatus.Success,
+                    Message = "Voucher hợp lệ",
+                    Id = voucher.Id,
+                    Code = voucher.Code,
+                    DiscountAmount = discountAmount,
+                    Discount = voucher.Discount,
+                    MinOrder = voucher.MinOrder,
+                    MaxDiscount = voucher.MaxDiscount,
+                    DiscountPercent = (decimal)(voucher.Type == EVoucherType.byPercentage ? voucher.Discount : 0),
+                    MinOrderAmount = voucher.MinOrder,
+                    ExpiryDate = voucher.EndDate
+                };
+            }
+            catch (Exception ex)
+            {
+                return new CheckVoucherResponseDTO
+                {
+                    ResponseStatus = BaseStatus.Error,
+                    Message = $"Lỗi khi kiểm tra voucher: {ex.Message}"
+                };
+            }
+        }
+
+        public async Task<List<AvailableVoucherDTO>> GetAvailableVouchersAsync(GetAvailableVouchersRequestDTO request)
+        {
+            try
+            {
+                var now = DateTime.Now;
+                var vouchers = await _repository.Query()
+                    .Include(v => v.Orders)
+                    .Where(v => v.StartDate <= now && v.EndDate >= now)
+                    .ToListAsync();
+
+                var availableVouchers = new List<AvailableVoucherDTO>();
+
+                foreach (var voucher in vouchers)
+                {
+                    var canUse = true;
+                    string? reason = null;
+
+                    // Check minimum order amount
+                    if (request.OrderAmount < voucher.MinOrder)
+                    {
+                        canUse = false;
+                        reason = $"Đơn hàng cần tối thiểu {voucher.MinOrder:N0} đ";
+                    }
+
+                    // Check MaxTotalUse limit
+                    if (canUse && voucher.MaxTotalUse.HasValue)
+                    {
+                        var totalUsageCount = voucher.Orders?.Count ?? 0;
+                        if (totalUsageCount >= voucher.MaxTotalUse.Value)
+                        {
+                            canUse = false;
+                            reason = "Voucher đã hết lượt sử dụng";
+                        }
+                    }
+
+                    // Check MaxTotalUsePerCustomer limit
+                    if (canUse && voucher.MaxTotalUsePerCustomer.HasValue)
+                    {
+                        var customerUsageCount = voucher.Orders?.Count(o => o.CustomerId == request.CustomerId) ?? 0;
+                        if (customerUsageCount >= voucher.MaxTotalUsePerCustomer.Value)
+                        {
+                            canUse = false;
+                            reason = "Bạn đã sử dụng hết lượt áp dụng voucher này";
+                        }
+                    }
+
+                    // Calculate discount amount
+                    decimal calculatedDiscountAmount = 0;
+                    if (canUse)
+                    {
+                        if (voucher.Type == EVoucherType.byPercentage)
+                        {
+                            calculatedDiscountAmount = request.OrderAmount * (decimal)voucher.Discount / 100m;
+                            if (voucher.MaxDiscount > 0 && calculatedDiscountAmount > (decimal)voucher.MaxDiscount)
+                            {
+                                calculatedDiscountAmount = (decimal)voucher.MaxDiscount;
+                            }
+                        }
+                        else
+                        {
+                            calculatedDiscountAmount = (decimal)voucher.Discount;
+                            if (calculatedDiscountAmount > request.OrderAmount)
+                            {
+                                calculatedDiscountAmount = request.OrderAmount;
+                            }
+                        }
+                    }
+
+                    availableVouchers.Add(new AvailableVoucherDTO
+                    {
+                        Id = voucher.Id,
+                        Code = voucher.Code,
+                        Name = voucher.Code, // Có thể thêm field Name vào Voucher entity
+                        Discount = voucher.Discount,
+                        MinOrder = voucher.MinOrder,
+                        MaxDiscount = voucher.MaxDiscount,
+                        Type = voucher.Type,
+                        StartDate = voucher.StartDate,
+                        EndDate = voucher.EndDate,
+                        MaxTotalUse = voucher.MaxTotalUse,
+                        MaxTotalUsePerCustomer = voucher.MaxTotalUsePerCustomer,
+                        CalculatedDiscountAmount = calculatedDiscountAmount,
+                        CanUse = canUse,
+                        Reason = reason
+                    });
+                }
+
+                // Sort by discount amount descending (highest discount first)
+                return availableVouchers.OrderByDescending(v => v.CalculatedDiscountAmount).ToList();
+            }
+            catch (Exception ex)
+            {
+                return new List<AvailableVoucherDTO>();
+            }
         }
     }
 }

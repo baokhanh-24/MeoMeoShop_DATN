@@ -2,6 +2,7 @@
 using MeoMeo.Contract.Commons;
 using MeoMeo.Domain.Commons;
 using MeoMeo.Domain.Entities;
+using Microsoft.AspNetCore.Http;
 namespace MeoMeo.Shared.IServices
 {
     public interface IBrandClientService

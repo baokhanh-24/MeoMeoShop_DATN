@@ -6,6 +6,9 @@ using MeoMeo.Domain.Entities;
 using MeoMeo.Shared.IServices;
 using MeoMeo.Shared.Utilities;
 using Microsoft.Extensions.Logging;
+using Microsoft.AspNetCore.Http;
+using System.Text.Json;
+using System.Net.Http;
 
 namespace MeoMeo.Shared.Services
 {
@@ -78,18 +81,32 @@ namespace MeoMeo.Shared.Services
             {
                 var url = "/api/Brands/create-brand-async";
 
-                var result = await _httpClient.PostAsync<CreateOrUpdateBrandDTO, CreateOrUpdateBrandResponseDTO>(url, brandDto);
-
-                return result ?? new CreateOrUpdateBrandResponseDTO
+                if (brandDto.LogoFile != null)
                 {
-                    ResponseStatus = BaseStatus.Error,
-                    Message = "Không có dữ liệu trả về "
-                };
+                    // Sử dụng MultipartFormDataContent khi có file (giống như ProductClientService)
+                    var formData = ConvertToFormData(brandDto);
+                    var result = await _httpClient.PostFormAsync<CreateOrUpdateBrandResponseDTO>(url, formData);
+                    return result ?? new CreateOrUpdateBrandResponseDTO
+                    {
+                        ResponseStatus = BaseStatus.Error,
+                        Message = "Không có dữ liệu trả về"
+                    };
+                }
+                else
+                {
+                    // Sử dụng JSON khi không có file
+                    var result = await _httpClient.PostAsync<CreateOrUpdateBrandDTO, CreateOrUpdateBrandResponseDTO>(url, brandDto);
+                    return result ?? new CreateOrUpdateBrandResponseDTO
+                    {
+                        ResponseStatus = BaseStatus.Error,
+                        Message = "Không có dữ liệu trả về"
+                    };
+                }
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Lỗi khi tạo Brand: {Message}", ex.Message);
-                return new CreateOrUpdateBrandResponseDTO { ResponseStatus = BaseStatus.Error, Message = ex.Message }; // fallback trả về rỗng nếu có lỗi
+                return new CreateOrUpdateBrandResponseDTO { ResponseStatus = BaseStatus.Error, Message = ex.Message };
             }
         }
 
@@ -100,13 +117,27 @@ namespace MeoMeo.Shared.Services
             {
                 var url = $"/api/Brands/update-brand-async/{brandDto.Id}";
 
-                var result = await _httpClient.PutAsync<CreateOrUpdateBrandDTO, CreateOrUpdateBrandResponseDTO>(url, brandDto);
-
-                return result ?? new CreateOrUpdateBrandResponseDTO
+                if (brandDto.LogoFile != null)
                 {
-                    ResponseStatus = BaseStatus.Error,
-                    Message = "Không có dữ liệu trả về từ API."
-                };
+                    // Sử dụng MultipartFormDataContent khi có file (giống như ProductClientService)
+                    var formData = ConvertToFormData(brandDto);
+                    var result = await _httpClient.PutFormAsync<CreateOrUpdateBrandResponseDTO>(url, formData);
+                    return result ?? new CreateOrUpdateBrandResponseDTO
+                    {
+                        ResponseStatus = BaseStatus.Error,
+                        Message = "Không có dữ liệu trả về từ API."
+                    };
+                }
+                else
+                {
+                    // Sử dụng JSON khi không có file
+                    var result = await _httpClient.PutAsync<CreateOrUpdateBrandDTO, CreateOrUpdateBrandResponseDTO>(url, brandDto);
+                    return result ?? new CreateOrUpdateBrandResponseDTO
+                    {
+                        ResponseStatus = BaseStatus.Error,
+                        Message = "Không có dữ liệu trả về từ API."
+                    };
+                }
             }
             catch (Exception ex)
             {
@@ -118,6 +149,30 @@ namespace MeoMeo.Shared.Services
                     Message = ex.Message
                 };
             }
+        }
+
+        private MultipartFormDataContent ConvertToFormData(CreateOrUpdateBrandDTO brandDto)
+        {
+            var formData = new MultipartFormDataContent();
+
+            // Basic fields
+            formData.Add(new StringContent(brandDto.Id.ToString()), "Id");
+            formData.Add(new StringContent(string.IsNullOrEmpty(brandDto.Name) ? "" : brandDto.Name), "Name");
+            formData.Add(new StringContent(string.IsNullOrEmpty(brandDto.Code) ? "" : brandDto.Code), "Code");
+            formData.Add(new StringContent(brandDto.EstablishYear.ToString("yyyy-MM-dd")), "EstablishYear");
+            formData.Add(new StringContent(string.IsNullOrEmpty(brandDto.Country) ? "" : brandDto.Country), "Country");
+            formData.Add(new StringContent(string.IsNullOrEmpty(brandDto.Description) ? "" : brandDto.Description), "Description");
+            formData.Add(new StringContent(string.IsNullOrEmpty(brandDto.Logo) ? "" : brandDto.Logo), "Logo");
+
+            // Add logo file (giống như ProductClientService gửi MediaUploads[].UploadFile)
+            if (brandDto.LogoFile != null)
+            {
+                var streamContent = new StreamContent(brandDto.LogoFile.OpenReadStream());
+                streamContent.Headers.ContentType = new System.Net.Http.Headers.MediaTypeHeaderValue(brandDto.LogoFile.ContentType);
+                formData.Add(streamContent, "LogoFile", brandDto.LogoFile.FileName);
+            }
+
+            return formData;
         }
 
     }

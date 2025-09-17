@@ -26,7 +26,9 @@ namespace MeoMeo.Shared.Services
             try
             {
                 var url = "/api/Vouchers/create-voucher-async";
-                var result = await _httpClient.PostAsync<CreateOrUpdateVoucherDTO, CreateOrUpdateVoucherResponseDTO>(url, voucher);
+                var result =
+                    await _httpClient.PostAsync<CreateOrUpdateVoucherDTO, CreateOrUpdateVoucherResponseDTO>(url,
+                        voucher);
                 return result ?? new CreateOrUpdateVoucherResponseDTO
                 {
                     ResponseStatus = BaseStatus.Error,
@@ -54,6 +56,7 @@ namespace MeoMeo.Shared.Services
                 {
                     _logger.LogWarning("Không thể xóa voucher với Id {Id}", id);
                 }
+
                 return result;
             }
             catch (Exception ex)
@@ -99,7 +102,9 @@ namespace MeoMeo.Shared.Services
             try
             {
                 var url = $"/api/Vouchers/update-voucher-async/{voucher.Id}";
-                var result = await _httpClient.PutAsync<CreateOrUpdateVoucherDTO, CreateOrUpdateVoucherResponseDTO>(url, voucher);
+                var result =
+                    await _httpClient
+                        .PutAsync<CreateOrUpdateVoucherDTO, CreateOrUpdateVoucherResponseDTO>(url, voucher);
                 return result ?? new CreateOrUpdateVoucherResponseDTO
                 {
                     ResponseStatus = BaseStatus.Error,
@@ -137,6 +142,23 @@ namespace MeoMeo.Shared.Services
                     ResponseStatus = BaseStatus.Error,
                     Message = "Có lỗi xảy ra khi kiểm tra voucher"
                 };
+            }
+        }
+
+        public async Task<List<AvailableVoucherDTO>> GetAvailableVouchersAsync(GetAvailableVouchersRequestDTO request)
+        {
+            try
+            {
+                var url = "/api/Vouchers/get-available-vouchers-async";
+                var result =
+                    await _httpClient
+                        .PostAsync<GetAvailableVouchersRequestDTO, List<AvailableVoucherDTO>>(url, request);
+                return result ?? new List<AvailableVoucherDTO>();
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Có lỗi xảy ra khi lấy danh sách voucher khả dụng: {Message}", ex.Message);
+                return new List<AvailableVoucherDTO>();
             }
         }
     }

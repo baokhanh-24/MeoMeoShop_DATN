@@ -1,6 +1,7 @@
 using MeoMeo.Shared.IServices;
 using MeoMeo.Contract.Commons;
 using MeoMeo.Contract.DTOs;
+using MeoMeo.Contract.DTOs.Product;
 using MeoMeo.Domain.Commons;
 using MeoMeo.Domain.Entities;
 using MeoMeo.Shared.Utilities;
@@ -121,5 +122,30 @@ namespace MeoMeo.Shared.Services
                 };
             }
         }
+
+        public async Task<CategoryHoverResponseDTO> GetCategoryHoverPreviewAsync(Guid categoryId, int take = 6)
+        {
+            try
+            {
+                var url = $"/api/Category/hover-preview/{categoryId}?take={take}";
+                var response = await _httpClient.GetAsync<CategoryHoverResponseDTO>(url);
+                return response ?? new CategoryHoverResponseDTO
+                {
+                    CategoryId = categoryId,
+                    CategoryName = string.Empty,
+                    Products = new List<ProductPreviewDTO>()
+                };
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Lỗi khi lấy sản phẩm theo Category {Id}: {Message}", categoryId, ex.Message);
+                return new CategoryHoverResponseDTO
+                {
+                    CategoryId = categoryId,
+                    CategoryName = string.Empty,
+                    Products = new List<ProductPreviewDTO>()
+                };
+            }
+        }
     }
-} 
+}

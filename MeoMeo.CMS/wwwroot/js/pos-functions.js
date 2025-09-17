@@ -580,101 +580,137 @@
             }
         },
 
-        // Print Receipt Functions
-        printReceipt: function (receiptData) {
+        // Function to print detailed receipt with QR code and bank info
+        printDetailedReceipt: function (receiptData) {
             try {
-                // Debug: Log receipt data structure
-                console.log('Receipt data received:', receiptData);
-                console.log('Items:', receiptData.Items);
+                console.log('Detailed receipt data received:', receiptData);
 
                 // Validate receipt data
                 if (!receiptData) {
                     throw new Error('Receipt data is null or undefined');
                 }
 
-                // Ensure Items is an array
-                const items = Array.isArray(receiptData.Items)
-                    ? receiptData.Items
+                const items = Array.isArray(receiptData.items)
+                    ? receiptData.items
                     : [];
-                console.log('Items array:', items);
+
                 const receiptHtml = `
                 <!DOCTYPE html>
                 <html>
                 <head>
                     <meta charset="utf-8">
-                    <title>Hóa đơn bán hàng</title>
+                    <title>Hóa đơn bán hàng chi tiết</title>
                     <style>
                         body {
                             font-family: 'Courier New', monospace;
-                            font-size: 12px;
+                            font-size: 11px;
                             margin: 0;
-                            padding: 10px;
-                            width: 300px;
+                            padding: 8px;
+                            width: 350px;
+                            line-height: 1.3;
                         }
                         .header {
                             text-align: center;
-                            border-bottom: 1px dashed #000;
-                            padding-bottom: 10px;
-                            margin-bottom: 10px;
+                            border-bottom: 2px solid #000;
+                            padding-bottom: 8px;
+                            margin-bottom: 8px;
                         }
                         .company-name {
                             font-weight: bold;
-                            font-size: 16px;
-                            margin-bottom: 5px;
+                            font-size: 18px;
+                            margin-bottom: 3px;
+                        }
+                        .company-info {
+                            font-size: 10px;
+                            margin-bottom: 2px;
                         }
                         .receipt-info {
-                            margin-bottom: 10px;
+                            margin-bottom: 8px;
+                            border: 1px solid #000;
+                            padding: 5px;
                         }
                         .receipt-info div {
-                            margin-bottom: 3px;
+                            margin-bottom: 2px;
+                        }
+                        .info-section {
+                            margin-bottom: 6px;
+                            border-bottom: 1px dashed #000;
+                            padding-bottom: 3px;
+                        }
+                        .section-title {
+                            font-weight: bold;
+                            font-size: 12px;
+                            margin-bottom: 2px;
                         }
                         .items-table {
                             width: 100%;
                             border-collapse: collapse;
-                            margin-bottom: 10px;
+                            margin-bottom: 8px;
+                            font-size: 10px;
                         }
                         .items-table th,
                         .items-table td {
-                            padding: 3px 0;
+                            padding: 2px 0;
                             text-align: left;
                             border-bottom: 1px dashed #ccc;
                         }
                         .items-table th {
                             font-weight: bold;
                             border-bottom: 1px solid #000;
+                            background-color: #f0f0f0;
                         }
                         .items-table .qty {
                             text-align: center;
-                            width: 30px;
+                            width: 25px;
                         }
                         .items-table .price {
                             text-align: right;
-                            width: 60px;
+                            width: 50px;
                         }
                         .items-table .total {
                             text-align: right;
-                            width: 60px;
+                            width: 50px;
                         }
                         .summary {
-                            border-top: 1px dashed #000;
-                            padding-top: 10px;
+                            border-top: 2px solid #000;
+                            padding-top: 8px;
                         }
                         .summary-row {
                             display: flex;
                             justify-content: space-between;
-                            margin-bottom: 3px;
+                            margin-bottom: 2px;
                         }
                         .summary-row.total {
                             font-weight: bold;
-                            font-size: 14px;
+                            font-size: 13px;
                             border-top: 1px solid #000;
-                            padding-top: 5px;
+                            padding-top: 3px;
+                            margin-top: 3px;
+                        }
+                        .payment-info {
+                            margin-top: 8px;
+                            border: 1px solid #000;
+                            padding: 5px;
+                        }
+                        .qr-section {
+                            text-align: center;
+                            margin-top: 8px;
+                        }
+                        .qr-code {
+                            max-width: 150px;
+                            max-height: 150px;
+                        }
+                        .bank-info {
                             margin-top: 5px;
+                            font-size: 10px;
+                        }
+                        .bank-info div {
+                            margin-bottom: 1px;
                         }
                         .footer {
                             text-align: center;
-                            margin-top: 20px;
-                            font-size: 10px;
+                            margin-top: 15px;
+                            font-size: 9px;
                         }
                         @media print {
                             body { margin: 0; }
@@ -683,119 +719,260 @@
                 </head>
                 <body>
                     <div class="header">
-                        <div class="company-name">MEOMEO SHOP</div>
-                        <div>Địa chỉ: 123 Đường ABC, Quận XYZ, TP.HCM</div>
-                        <div>Điện thoại: 0123-456-789</div>
+                        <div class="company-name">${
+                            receiptData.storeInfo?.name || 'MEOMEO SHOP'
+                        }</div>
+                        <div class="company-info">${
+                            receiptData.storeInfo?.address ||
+                            'Địa chỉ: 53 ngõ 19, Tố Hữu, Trung văn, Nam Từ Liêm, Hà Nội'
+                        }</div>
+                        <div class="company-info">Điện thoại: ${
+                            receiptData.storeInfo?.phone || '0347324430'
+                        }</div>
+                        <div class="company-info">Email: ${
+                            receiptData.storeInfo?.email ||
+                            'info@meomeoshop.com'
+                        }</div>
                     </div>
                     
                     <div class="receipt-info">
+                        <div class="section-title">THÔNG TIN ĐƠN HÀNG</div>
                         <div><strong>Mã đơn:</strong> ${
-                            receiptData.OrderCode || 'N/A'
+                            receiptData.orderCode || 'N/A'
                         }</div>
-                        <div><strong>Thời gian:</strong> ${
-                            receiptData.OrderTime
-                                ? new Date(
-                                      receiptData.OrderTime
-                                  ).toLocaleString('vi-VN')
-                                : new Date().toLocaleString('vi-VN')
+                        <div><strong>Ngày tạo:</strong> ${
+                            receiptData.orderDate ||
+                            new Date().toLocaleString('vi-VN')
                         }</div>
-                        <div><strong>Khách hàng:</strong> ${
-                            receiptData.CustomerName || 'Khách lẻ'
+                        <div><strong>Loại đơn:</strong> ${
+                            receiptData.orderType || 'Giao trực tiếp'
                         }</div>
-                        ${
-                            receiptData.CustomerPhone
-                                ? `<div><strong>SĐT:</strong> ${receiptData.CustomerPhone}</div>`
-                                : ''
-                        }
+                        <div><strong>Trạng thái:</strong> ${
+                            receiptData.status || 'Đã thanh toán'
+                        }</div>
                     </div>
                     
-                    <table class="items-table">
-                        <thead>
-                            <tr>
-                                <th>Tên sản phẩm</th>
-                                <th class="qty">SL</th>
-                                <th class="price">Đơn giá</th>
-                                <th class="total">Thành tiền</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            ${items
-                                .map(
-                                    (item) => `
+                    <div class="info-section">
+                        <div class="section-title">THÔNG TIN KHÁCH HÀNG</div>
+                        <div><strong>Tên:</strong> ${
+                            receiptData.customerName || 'Khách lẻ'
+                        }</div>
+                        <div><strong>SĐT:</strong> ${
+                            receiptData.customerPhone || 'N/A'
+                        }</div>
+                        <div><strong>Email:</strong> ${
+                            receiptData.customerEmail || 'N/A'
+                        }</div>
+                    </div>
+                    
+                    <div class="info-section">
+                        <div class="section-title">THÔNG TIN NHÂN VIÊN</div>
+                        <div><strong>Tên:</strong> ${
+                            receiptData.employeeName || 'N/A'
+                        }</div>
+                        <div><strong>SĐT:</strong> ${
+                            receiptData.employeePhone || 'N/A'
+                        }</div>
+                    </div>
+                    
+                    ${
+                        receiptData.deliveryInfo
+                            ? `
+                    <div class="info-section">
+                        <div class="section-title">THÔNG TIN GIAO HÀNG</div>
+                        <div><strong>Người nhận:</strong> ${
+                            receiptData.deliveryInfo.consigneeName
+                        }</div>
+                        <div><strong>SĐT:</strong> ${
+                            receiptData.deliveryInfo.consigneePhone
+                        }</div>
+                        <div><strong>Địa chỉ:</strong> ${
+                            receiptData.deliveryInfo.address
+                        }</div>
+                        <div><strong>Ghi chú:</strong> ${
+                            receiptData.deliveryInfo.note || 'N/A'
+                        }</div>
+                    </div>
+                    `
+                            : ''
+                    }
+                    
+                    <div class="info-section">
+                        <div class="section-title">CHI TIẾT SẢN PHẨM</div>
+                        <table class="items-table">
+                            <thead>
                                 <tr>
-                                    <td>${item.Name || 'N/A'}</td>
-                                    <td class="qty">${item.Quantity || 0}</td>
+                                    <th>Tên sản phẩm</th>
+                                    <th class="qty">SL</th>
+                                    <th class="price">Đơn giá</th>
+                                    <th class="total">Thành tiền</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                ${items
+                                    .map(
+                                        (item) => `
+                                <tr>
+                                    <td>
+                                        <div><strong>${
+                                            item.productName || 'N/A'
+                                        }</strong></div>
+                                        <div style="font-size: 9px;">SKU: ${
+                                            item.sku || 'N/A'
+                                        }</div>
+                                        <div style="font-size: 9px;">Size: ${
+                                            item.size || 'N/A'
+                                        } | Màu: ${item.colour || 'N/A'}</div>
+                                        ${
+                                            item.originalPrice &&
+                                            item.originalPrice > item.unitPrice
+                                                ? `<div style="font-size: 9px; color: red;">Giá gốc: ${(
+                                                      item.originalPrice || 0
+                                                  ).toLocaleString(
+                                                      'vi-VN'
+                                                  )} đ</div>`
+                                                : ''
+                                        }
+                                        ${
+                                            item.discount > 0
+                                                ? `<div style="font-size: 9px; color: red;">Giảm: ${
+                                                      item.discountPercent || 0
+                                                  }% (-${(
+                                                      item.discount || 0
+                                                  ).toLocaleString(
+                                                      'vi-VN'
+                                                  )} đ)</div>`
+                                                : ''
+                                        }
+                                    </td>
+                                    <td class="qty">${item.quantity || 0}</td>
                                     <td class="price">${(
-                                        item.Price || 0
+                                        item.unitPrice || 0
                                     ).toLocaleString('vi-VN')}</td>
                                     <td class="total">${(
-                                        item.Total || 0
+                                        item.total || 0
                                     ).toLocaleString('vi-VN')}</td>
                                 </tr>
-                            `
-                                )
-                                .join('')}
-                        </tbody>
-                    </table>
+                                `
+                                    )
+                                    .join('')}
+                            </tbody>
+                        </table>
+                    </div>
                     
                     <div class="summary">
                         <div class="summary-row">
                             <span>Tạm tính:</span>
-                            <span>${(receiptData.SubTotal || 0).toLocaleString(
+                            <span>${(receiptData.subTotal || 0).toLocaleString(
                                 'vi-VN'
                             )} đ</span>
                         </div>
                         ${
-                            (receiptData.ShippingFee || 0) > 0
+                            (receiptData.shippingFee || 0) > 0
                                 ? `
-                            <div class="summary-row">
-                                <span>Phí vận chuyển:</span>
-                                <span>${(
-                                    receiptData.ShippingFee || 0
-                                ).toLocaleString('vi-VN')} đ</span>
-                            </div>
+                        <div class="summary-row">
+                            <span>Phí vận chuyển:</span>
+                            <span>${(
+                                receiptData.shippingFee || 0
+                            ).toLocaleString('vi-VN')} đ</span>
+                        </div>
                         `
                                 : ''
                         }
                         ${
-                            (receiptData.DiscountAmount || 0) > 0
+                            (receiptData.discountAmount || 0) > 0
                                 ? `
-                            <div class="summary-row">
-                                <span>Giảm giá:</span>
-                                <span>-${(
-                                    receiptData.DiscountAmount || 0
-                                ).toLocaleString('vi-VN')} đ</span>
-                            </div>
+                        <div class="summary-row">
+                            <span>Giảm giá sản phẩm:</span>
+                            <span>-${(
+                                receiptData.discountAmount || 0
+                            ).toLocaleString('vi-VN')} đ</span>
+                        </div>
+                        `
+                                : ''
+                        }
+                        ${
+                            (receiptData.voucherDiscount || 0) > 0
+                                ? `
+                        <div class="summary-row">
+                            <span>Giảm giá voucher:</span>
+                            <span>-${(
+                                receiptData.voucherDiscount || 0
+                            ).toLocaleString('vi-VN')} đ</span>
+                        </div>
                         `
                                 : ''
                         }
                         <div class="summary-row total">
                             <span>TỔNG CỘNG:</span>
-                            <span>${(receiptData.Total || 0).toLocaleString(
+                            <span>${(receiptData.total || 0).toLocaleString(
                                 'vi-VN'
                             )} đ</span>
                         </div>
-                        <div class="summary-row">
-                            <span>Thanh toán:</span>
-                            <span>${
-                                receiptData.PaymentMethod || 'Tiền mặt'
-                            }</span>
-                        </div>
                     </div>
                     
+                    <div class="payment-info">
+                        <div class="section-title">THÔNG TIN THANH TOÁN</div>
+                        <div><strong>Phương thức:</strong> ${
+                            receiptData.paymentMethod || 'Tiền mặt'
+                        }</div>
+                        <div><strong>Trạng thái:</strong> ${
+                            receiptData.paymentStatus || 'Đã thanh toán'
+                        }</div>
+                        
+                        ${
+                            receiptData.qrCode &&
+                            receiptData.qrCode.trim() !== ''
+                                ? `
+                        <div class="qr-section">
+                            <div class="section-title">QR CODE CHUYỂN KHOẢN</div>
+                            <img src="${
+                                receiptData.qrCode
+                            }" class="qr-code" alt="QR Code">
+                            <div class="bank-info">
+                                <div><strong>Số tài khoản:</strong> ${
+                                    receiptData.bankInfo?.accountNumber || 'N/A'
+                                }</div>
+                                <div><strong>Ngân hàng:</strong> ${
+                                    receiptData.bankInfo?.bankName || 'N/A'
+                                }</div>
+                                <div><strong>Chủ tài khoản:</strong> ${
+                                    receiptData.bankInfo?.accountHolder || 'N/A'
+                                }</div>
+                                <div><strong>Nội dung:</strong> ${
+                                    receiptData.bankInfo?.content || 'N/A'
+                                }</div>
+                            </div>
+                        </div>
+                        `
+                                : ''
+                        }
+                    </div>
+                    
+                    ${
+                        receiptData.note && receiptData.note.trim() !== ''
+                            ? `
+                    <div class="info-section">
+                        <div class="section-title">GHI CHÚ</div>
+                        <div>${receiptData.note}</div>
+                    </div>
+                    `
+                            : ''
+                    }
+                    
                     <div class="footer">
-                        <div>Cảm ơn quý khách!</div>
+                        <div>Cảm ơn quý khách đã mua hàng!</div>
                         <div>Hẹn gặp lại!</div>
                     </div>
                 </body>
                 </html>
-            `;
+                `;
 
                 // Open print window
                 const printWindow = window.open(
                     '',
                     '_blank',
-                    'width=400,height=600'
+                    'width=450,height=700'
                 );
                 printWindow.document.write(receiptHtml);
                 printWindow.document.close();
@@ -808,7 +985,7 @@
                     }, 500);
                 };
             } catch (error) {
-                console.error('Print receipt error:', error);
+                console.error('Print detailed receipt error:', error);
                 throw error;
             }
         },
@@ -913,7 +1090,7 @@
     // Make functions globally available immediately
     window.startBarcodeScan = window.posFunctions.startBarcodeScan;
     window.startQRCodeScan = window.posFunctions.startQRCodeScan;
-    window.printReceipt = window.posFunctions.printReceipt;
+    window.printDetailedReceipt = window.posFunctions.printDetailedReceipt;
     window.printQRCode = window.posFunctions.printQRCode;
     window.setFocus = window.posFunctions.setFocus;
     window.addKeyboardShortcuts = window.posFunctions.addKeyboardShortcuts;
@@ -921,3 +1098,13 @@
 
 // Simple export - global-functions.js will handle the rest
 console.log('posFunctions loaded:', typeof window.posFunctions);
+
+// Ensure printDetailedReceipt is available globally
+if (typeof window.printDetailedReceipt === 'undefined') {
+    console.error('printDetailedReceipt not found, attempting to fix...');
+    window.printDetailedReceipt = window.posFunctions?.printDetailedReceipt;
+    console.log(
+        'printDetailedReceipt fixed:',
+        typeof window.printDetailedReceipt
+    );
+}

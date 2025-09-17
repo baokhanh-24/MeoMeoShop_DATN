@@ -37,5 +37,16 @@ public static class HttpContextExtensions
         var claim = token.Claims.FirstOrDefault(x => x.Type == "customerId");
         var customerId = claim?.Value != null ? Guid.Parse(claim.Value) : Guid.Empty;
         return customerId;
+    }  
+    public static Guid GetCurrentEmployeeId(this HttpContext httpContext)
+    {
+        bool isValidToken = httpContext.Request.Headers.TryGetValue(HeaderNames.Authorization, out var tokenString);
+        if (!isValidToken || string.IsNullOrEmpty(tokenString.ToString()))
+            return  Guid.Empty;
+        var jwtEncodedString = tokenString.ToString()[7..];
+        var token = new JwtSecurityToken(jwtEncodedString);
+        var claim = token.Claims.FirstOrDefault(x => x.Type == "employeeId");
+        var employeeId = claim?.Value != null ? Guid.Parse(claim.Value) : Guid.Empty;
+        return employeeId;
     }
 }

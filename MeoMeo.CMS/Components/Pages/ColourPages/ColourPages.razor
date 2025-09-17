@@ -1,0 +1,288 @@
+@page "/manage-colours"
+@using System.ComponentModel.DataAnnotations
+@using System.Reflection
+@using MeoMeo.Contract.DTOs
+@using MeoMeo.Shared.IServices;
+@using MeoMeo.Contract.Commons
+@using MeoMeo.Domain.Commons.Enums
+@inject MeoMeo.Shared.Utilities.MessageModalService MessageModalService
+@using ButtonSize = AntDesign.ButtonSize
+@using ButtonType = AntDesign.ButtonType
+@rendermode InteractiveServer
+
+<div class="d-flex justify-content-between">
+    <Breadcrumb>
+        <BreadcrumbItem Href="/">Trang chủ</BreadcrumbItem>
+        <BreadcrumbItem Href="/manage-colours">Quản lý màu sắc</BreadcrumbItem>
+    </Breadcrumb>
+    <Button OnClick="AddNewColour" Type="ButtonType.Primary" Class="mb-2">
+        <i class="fas fa-plus"></i> Thêm mới
+    </Button>
+</div>
+
+<Tabs @bind-ActiveKey="selectedTab" OnChange="OnTabChanged" Class="mb-3">
+    <TabPane Key="all" Tab="Tất cả" />
+    <TabPane Key="active" Tab="Hoạt động" />
+    <TabPane Key="inactive" Tab="Không hoạt động" />
+    <TabPane Key="deleted" Tab="Đã xóa" />
+</Tabs>
+
+<div class="d-flex justify-content-end gap-3 mb-2">
+    <div style="width: 200px">
+        <Input AllowClear="true" OnClear="OnFilterChanged" @bind-Value="filter.NameFilter"
+            Placeholder="Nhập theo tên màu" />
+    </div>
+
+
+    <Tooltip Title="Tìm kiếm">
+        <Button @onclick="() => OnFilterChanged()" Type="ButtonType.Primary" Shape="ButtonShape.Circle"
+            Icon="@IconType.Outline.Search" />
+    </Tooltip>
+</div>
+
+<Table DataSource="listOfData" TItem="ColourDTO" RowClassName="@(_ => "editable-row")" Bordered TableLayout="fixed">
+    <ChildContent Context="data">
+        <Column TData="ColourDTO" Title="STT" Width="70px">
+            @(listOfData.IndexOf(data) + 1)
+        </Column>
+
+        <Column TData="string" Title="Tên màu">
+            @if (editCache.ContainsKey(data.Id) && !editCache[data.Id].edit)
+            {
+                @data.Name
+            }
+            else if (editCache.ContainsKey(data.Id))
+            {
+                <Input MaxLength="100" @bind-Value="editCache[data.Id].data.Name"></Input>
+            }
+        </Column>
+
+        <Column TData="string" Title="Mã màu">
+            @data.Code
+        </Column>
+
+        <Column TData="EColourStatus" Title="Trạng thái">
+            @if (editCache.ContainsKey(data.Id) && !editCache[data.Id].edit)
+            {
+                @colourStatusList.FirstOrDefault(x => x.Value == (EColourStatus)data.Status).Name
+            }
+            else if (editCache.ContainsKey(data.Id))
+            {
+                <Select TItem="(EColourStatus Value, string Name)" TItemValue="EColourStatus" DataSource="colourStatusList"
+                    @bind-Value="editCache[data.Id].data.StatusEnum" ItemValue="c => c.Value" ItemLabel="p => p.Name">
+                </Select>
+            }
+        </Column>
+
+        <ActionColumn Title="Thao tác" Class="text-end gap-2">
+            @if (editCache.ContainsKey(data.Id) && !editCache[data.Id].edit)
+            {
+                <Tooltip Title="Sửa">
+                    <Button Size="ButtonSize.Small" @onclick="() => StartEdit(data.Id)" Shape="ButtonShape.Circle">
+                        <i class="fas fa-pen"></i>
+                    </Button>
+                </Tooltip>
+
+                <Popconfirm Title=@($"Bạn có chắc muốn xóa màu {data.Name}?") OnConfirm="() => DeleteColour(data.Id)"
+                    OkText="Đồng ý" CancelText="Hủy">
+                    <Tooltip Title="Xóa">
+                        <Button Size="ButtonSize.Small" Danger Shape="ButtonShape.Circle">
+                            <i class="fas fa-minus"></i>
+                        </Button>
+                    </Tooltip>
+                </Popconfirm>
+            }
+            else
+            {
+                <Tooltip Title="Lưu">
+                    <Button Size="ButtonSize.Small" @onclick="() => SaveEdit(data.Id)" Shape="ButtonShape.Circle">
+                        <i class="fas fa-check"></i>
+                    </Button>
+                </Tooltip>
+
+                <Popconfirm Title=@($"Bạn có chắc muốn hủy chỉnh sửa màu {data.Name}?")
+                    OnConfirm="() => CancelEdit(data.Id)" OkText="Đồng ý" CancelText="Hủy">
+                    <Button Size="ButtonSize.Small" Shape="ButtonShape.Circle">
+                        <i class="fa-solid fa-xmark"></i>
+                    </Button>
+                </Popconfirm>
+            }
+        </ActionColumn>
+    </ChildContent>
+</Table>
+
+@code {
+    [Inject] private IColourClientService ColourClientService { get; set; } = default!;
+    IDictionary<Guid, (bool edit, ColourDTO data)> editCache = new Dictionary<Guid, (bool, ColourDTO)>();
+    List<ColourDTO> listOfData = new();
+    List<(EColourStatus Value, string Name)> colourStatusList = new();
+
+    GetListColourRequest filter = new GetListColourRequest()
+    {
+        NameFilter = "",
+        CodeFilter = "",
+        StatusFilter = null,
+        PageIndex = 1,
+        PageSize = 10
+    };
+
+    protected override async Task OnInitializedAsync()
+    {
+        colourStatusList = Enum.GetValues(typeof(EColourStatus))
+        .Cast<EColourStatus>()
+        .Select(x => (x, x.GetType()
+        .GetMember(x.ToString())
+        .First()
+        .GetCustomAttribute<DisplayAttribute>()?.Name ?? x.ToString()))
+        .ToList();
+
+        await LoadData();
+    }
+
+    private async Task LoadData()
+    {
+        var response = await ColourClientService.GetAllColoursAsync();
+        listOfData = response.Select(c => new ColourDTO
+        {
+            Id = c.Id,
+            Name = c.Name,
+            Code = c.Code,
+            Status = c.Status
+        }).ToList();
+
+        // Apply filters
+        if (!string.IsNullOrEmpty(filter.NameFilter))
+        {
+            listOfData = listOfData.Where(c => c.Name.Contains(filter.NameFilter, StringComparison.OrdinalIgnoreCase)).ToList();
+        }
+        if (!string.IsNullOrEmpty(filter.CodeFilter))
+        {
+            listOfData = listOfData.Where(c => c.Code.Contains(filter.CodeFilter, StringComparison.OrdinalIgnoreCase)).ToList();
+        }
+        if (filter.StatusFilter.HasValue)
+        {
+            listOfData = listOfData.Where(c => c.Status == (int)filter.StatusFilter.Value).ToList();
+        }
+
+        editCache = listOfData.ToDictionary(
+        item => item.Id,
+        item => (false, CloneColour(item)));
+        await InvokeAsync(StateHasChanged);
+    }
+
+    private async Task OnFilterChanged()
+    {
+        await LoadData();
+    }
+
+    private string selectedTab = "all";
+
+    private async Task OnTabChanged(string key)
+    {
+        selectedTab = key;
+
+        filter.StatusFilter = key switch
+        {
+            "active" => EColourStatus.Active,
+            "inactive" => EColourStatus.Inactive,
+            "deleted" => EColourStatus.Deleted,
+            _ => null // "all" tab
+        };
+
+        await LoadData();
+    }
+
+    async Task AddNewColour()
+    {
+        var newColour = new ColourDTO
+        {
+            Id = Guid.Empty,
+            Name = "",
+            Code = "", // Sẽ được backend generate
+            StatusEnum = EColourStatus.Active
+        };
+        listOfData.Insert(0, newColour);
+        editCache[newColour.Id] = (true, CloneColour(newColour));
+        await InvokeAsync(StateHasChanged);
+    }
+
+    async Task StartEdit(Guid Id)
+    {
+        var data = editCache[Id];
+        editCache[Id] = (true, data.data);
+        await InvokeAsync(StateHasChanged);
+    }
+
+    async Task CancelEdit(Guid id)
+    {
+        var isNew = listOfData.FirstOrDefault(x => x.Id == id)?.Id == Guid.Empty;
+        if (isNew)
+        {
+            listOfData.RemoveAll(x => x.Id == id);
+            editCache.Remove(id);
+        }
+        else
+        {
+            var original = listOfData.First(x => x.Id == id);
+            editCache[id] = (false, CloneColour(original));
+        }
+        await InvokeAsync(StateHasChanged);
+    }
+
+    async Task SaveEdit(Guid Id)
+    {
+        var dto = editCache[Id].data;
+        var createOrUpdate = new ColourDTO
+        {
+            Id = dto.Id,
+            Name = dto.Name,
+            Code = dto.Code,
+            Status = dto.Status
+        };
+        ColourResponseDTO response;
+        if (dto.Id == Guid.Empty)
+        {
+            response = await ColourClientService.CreateColourAsync(createOrUpdate);
+        }
+        else
+        {
+            response = await ColourClientService.UpdateColourAsync(createOrUpdate);
+        }
+
+        if (response.ResponseStatus == BaseStatus.Success)
+        {
+            await MessageModalService.Success("Lưu màu sắc thành công!");
+            await LoadData();
+        }
+        else
+        {
+            await MessageModalService.Error(response.Message);
+        }
+    }
+
+    async Task DeleteColour(Guid id)
+    {
+        var response = await ColourClientService.DeleteColourAsync(id);
+        if (response.ResponseStatus == BaseStatus.Success)
+        {
+            listOfData.RemoveAll(x => x.Id == id);
+            editCache.Remove(id);
+            await MessageModalService.Success("Xóa màu sắc thành công!");
+        }
+        else
+        {
+            await MessageModalService.Error(response.Message);
+        }
+    }
+
+    ColourDTO CloneColour(ColourDTO dto)
+    {
+        return new ColourDTO
+        {
+            Id = dto.Id,
+            Name = dto.Name,
+            Code = dto.Code,
+            Status = dto.Status
+        };
+    }
+}
