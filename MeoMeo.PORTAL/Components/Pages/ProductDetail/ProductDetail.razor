@@ -20,6 +20,7 @@
 @inject ICartStateService CartStateService
 @inject IWishlistClientService WishlistClientService
 @inject IOrderClientService OrderClientService
+@inject IJSRuntime JS
 
 
 <div class="content-background"> 
@@ -1080,6 +1081,9 @@
             await LoadReviewsAsync(); 
             await CheckWishlistStatus();
             await LoadRelatedProducts();
+            
+            // Add product to recent viewed list for comparison
+            await JS.InvokeVoidAsync("addToRecentProducts", ProductId.ToString());
         }
         catch (Exception ex)
         {
