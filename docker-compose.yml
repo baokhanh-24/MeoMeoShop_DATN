@@ -3,14 +3,11 @@ services:
         container_name: memeoshop-portal
         platform: linux/amd64
         image: bachhonglien/meomeoshop_datn-memeoshop-portal
-#        build:
-#            context: .
-#            dockerfile: MeoMeo.PORTAL/Dockerfile
+        # build:
+        #     context: .
+        #     dockerfile: MeoMeo.PORTAL/Dockerfile
         environment:
             - ASPNETCORE_ENVIRONMENT=Development
-        volumes:
-            - ${HOME}/.aspnet/https:/https:ro
-            - ./wwwroot:/app/wwwroot
         ports:
             - '5085:80'
         networks:
@@ -20,14 +17,11 @@ services:
         container_name: memeoshop-cms
         platform: linux/amd64
         image: bachhonglien/meomeoshop_datn-memeoshop-cms
-#        build:
-#            context: .
-#            dockerfile: MeoMeo.CMS/Dockerfile
+        # build:
+        #     context: .
+        #     dockerfile: MeoMeo.CMS/Dockerfile
         environment:
             - ASPNETCORE_ENVIRONMENT=Development
-        volumes:
-            - ${HOME}/.aspnet/https:/https:ro
-            - ./wwwroot:/app/wwwroot
         ports:
             - '5119:80'
         networks:
@@ -37,14 +31,11 @@ services:
         container_name: memeoshop-api
         platform: linux/amd64
         image: bachhonglien/meomeoshop_datn-memeoshop-api
-#        build:
-#            context: .
-#            dockerfile: MeoMeoAPI/Dockerfile
+        # build:
+        #     context: .
+        #     dockerfile: MeoMeoAPI/Dockerfile
         environment:
             - ASPNETCORE_ENVIRONMENT=Development
-        volumes:
-            - ${HOME}/.aspnet/https:/https:ro
-            - ./wwwroot:/app/wwwroot
         ports:
             - '5092:80'
         networks:
