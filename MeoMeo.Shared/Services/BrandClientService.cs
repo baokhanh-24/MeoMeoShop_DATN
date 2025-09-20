@@ -80,28 +80,13 @@ namespace MeoMeo.Shared.Services
             try
             {
                 var url = "/api/Brands/create-brand-async";
-
-                if (brandDto.LogoFile != null)
+                var formData = ConvertToFormData(brandDto);
+                var result = await _httpClient.PostFormAsync<CreateOrUpdateBrandResponseDTO>(url, formData);
+                return result ?? new CreateOrUpdateBrandResponseDTO
                 {
-                    // Sử dụng MultipartFormDataContent khi có file (giống như ProductClientService)
-                    var formData = ConvertToFormData(brandDto);
-                    var result = await _httpClient.PostFormAsync<CreateOrUpdateBrandResponseDTO>(url, formData);
-                    return result ?? new CreateOrUpdateBrandResponseDTO
-                    {
-                        ResponseStatus = BaseStatus.Error,
-                        Message = "Không có dữ liệu trả về"
-                    };
-                }
-                else
-                {
-                    // Sử dụng JSON khi không có file
-                    var result = await _httpClient.PostAsync<CreateOrUpdateBrandDTO, CreateOrUpdateBrandResponseDTO>(url, brandDto);
-                    return result ?? new CreateOrUpdateBrandResponseDTO
-                    {
-                        ResponseStatus = BaseStatus.Error,
-                        Message = "Không có dữ liệu trả về"
-                    };
-                }
+                    ResponseStatus = BaseStatus.Error,
+                    Message = "Không có dữ liệu trả về"
+                };
             }
             catch (Exception ex)
             {
@@ -109,35 +94,18 @@ namespace MeoMeo.Shared.Services
                 return new CreateOrUpdateBrandResponseDTO { ResponseStatus = BaseStatus.Error, Message = ex.Message };
             }
         }
-
-
         public async Task<CreateOrUpdateBrandResponseDTO> UpdateBrandAsync(CreateOrUpdateBrandDTO brandDto)
         {
             try
             {
                 var url = $"/api/Brands/update-brand-async/{brandDto.Id}";
-
-                if (brandDto.LogoFile != null)
+                var formData = ConvertToFormData(brandDto);
+                var result = await _httpClient.PutFormAsync<CreateOrUpdateBrandResponseDTO>(url, formData);
+                return result ?? new CreateOrUpdateBrandResponseDTO
                 {
-                    // Sử dụng MultipartFormDataContent khi có file (giống như ProductClientService)
-                    var formData = ConvertToFormData(brandDto);
-                    var result = await _httpClient.PutFormAsync<CreateOrUpdateBrandResponseDTO>(url, formData);
-                    return result ?? new CreateOrUpdateBrandResponseDTO
-                    {
-                        ResponseStatus = BaseStatus.Error,
-                        Message = "Không có dữ liệu trả về từ API."
-                    };
-                }
-                else
-                {
-                    // Sử dụng JSON khi không có file
-                    var result = await _httpClient.PutAsync<CreateOrUpdateBrandDTO, CreateOrUpdateBrandResponseDTO>(url, brandDto);
-                    return result ?? new CreateOrUpdateBrandResponseDTO
-                    {
-                        ResponseStatus = BaseStatus.Error,
-                        Message = "Không có dữ liệu trả về từ API."
-                    };
-                }
+                    ResponseStatus = BaseStatus.Error,
+                    Message = "Không có dữ liệu trả về từ API."
+                };
             }
             catch (Exception ex)
             {

@@ -14,7 +14,7 @@
 @inject IGhnClientService GhnService
 @inject CustomAuthStateProvider AuthStateProvider
 @inject NavigationManager NavigationManager
-@inject MessageService MessageService
+@inject MeoMeo.Shared.Utilities.MessageModalService MessageModalService
 @layout ProfileLayout
 
 <div class="delivery-addresses-container">
@@ -75,13 +75,6 @@
                 }
             }
 
-        </div>
-        <div class="empty-state">
-            <Empty>
-                <Button Type="@ButtonType.Primary" Icon="plus" OnClick="ShowCreateAddressModal">
-                    Thêm địa chỉ đầu tiên
-                </Button>
-            </Empty>
         </div>
     </div>
 </div>
@@ -153,7 +146,7 @@
         }
         catch (Exception ex)
         {
-            MessageService.Error("Không thể tải danh sách địa chỉ!");
+            MessageModalService.Error("Không thể tải danh sách địa chỉ!");
             Console.WriteLine($"Error loading addresses: {ex.Message}");
         }
         finally
@@ -172,7 +165,7 @@
         }
         catch (Exception ex)
         {
-            MessageService.Error("Không thể tải danh sách tỉnh/thành phố!");
+            MessageModalService.Error("Không thể tải danh sách tỉnh/thành phố!");
             Console.WriteLine($"Error loading provinces: {ex.Message}");
         }
     }
@@ -205,7 +198,7 @@
         }
         catch (Exception ex)
         {
-            MessageService.Error("Không thể tải danh sách quận/huyện!");
+            MessageModalService.Error("Không thể tải danh sách quận/huyện!");
             Console.WriteLine($"Error loading districts: {ex.Message}");
         }
     }
@@ -235,7 +228,7 @@
         }
         catch (Exception ex)
         {
-            MessageService.Error("Không thể tải danh sách phường/xã!");
+            MessageModalService.Error("Không thể tải danh sách phường/xã!");
             Console.WriteLine($"Error loading communes: {ex.Message}");
         }
     }
@@ -307,32 +300,32 @@
             // Basic validations
             if (string.IsNullOrWhiteSpace(editingAddress.Name))
             {
-                MessageService.Warning("Vui lòng nhập họ tên");
+                MessageModalService.Warning("Vui lòng nhập họ tên");
                 return;
             }
             if (editingAddress.Name!.Length < 2)
             {
-                MessageService.Warning("Họ tên quá ngắn");
+                MessageModalService.Warning("Họ tên quá ngắn");
                 return;
             }
             if (string.IsNullOrWhiteSpace(editingAddress.PhoneNumber))
             {
-                MessageService.Warning("Vui lòng nhập số điện thoại");
+                MessageModalService.Warning("Vui lòng nhập số điện thoại");
                 return;
             }
             if (!IsValidVietnamPhone(editingAddress.PhoneNumber!))
             {
-                MessageService.Warning("Số điện thoại không hợp lệ (10-11 số, bắt đầu bằng 0)");
+                MessageModalService.Warning("Số điện thoại không hợp lệ (10-11 số, bắt đầu bằng 0)");
                 return;
             }
             if (!selectedProvinceId.HasValue || !selectedDistrictId.HasValue || !selectedCommuneId.HasValue)
             {
-                MessageService.Warning("Vui lòng chọn đủ Tỉnh/Thành, Quận/Huyện, Phường/Xã");
+                MessageModalService.Warning("Vui lòng chọn đủ Tỉnh/Thành, Quận/Huyện, Phường/Xã");
                 return;
             }
             if (string.IsNullOrWhiteSpace(editingAddress.Address))
             {
-                MessageService.Warning("Vui lòng nhập địa chỉ chi tiết (số nhà, đường...)");
+                MessageModalService.Warning("Vui lòng nhập địa chỉ chi tiết (số nhà, đường...)");
                 return;
             }
 
@@ -348,18 +341,18 @@
 
             if (result.HasValue)
             {
-                MessageService.Success(editingAddress.Id == Guid.Empty ? "Thêm địa chỉ thành công!" : "Cập nhật địa chỉ thành công!");
+                MessageModalService.Success(editingAddress.Id == Guid.Empty ? "Thêm địa chỉ thành công!" : "Cập nhật địa chỉ thành công!");
                 showCreateOrUpdateModal = false;
                 await LoadAddresses();
             }
             else
             {
-                MessageService.Error(editingAddress.Id == Guid.Empty ? "Thêm địa chỉ thất bại!" : "Cập nhật địa chỉ thất bại!");
+                MessageModalService.Error(editingAddress.Id == Guid.Empty ? "Thêm địa chỉ thất bại!" : "Cập nhật địa chỉ thất bại!");
             }
         }
         catch (Exception ex)
         {
-            MessageService.Error("Có lỗi xảy ra khi lưu địa chỉ!");
+            MessageModalService.Error("Có lỗi xảy ra khi lưu địa chỉ!");
             Console.WriteLine($"Error saving address: {ex.Message}");
         }
     }
@@ -376,17 +369,17 @@
             var result = await DeliveryAddressService.DeleteAsync(address.Id);
             if (result)
             {
-                MessageService.Success("Xóa địa chỉ thành công!");
+                MessageModalService.Success("Xóa địa chỉ thành công!");
                 await LoadAddresses();
             }
             else
             {
-                MessageService.Error("Xóa địa chỉ thất bại!");
+                MessageModalService.Error("Xóa địa chỉ thất bại!");
             }
         }
         catch (Exception ex)
         {
-            MessageService.Error("Có lỗi xảy ra khi xóa địa chỉ!");
+            MessageModalService.Error("Có lỗi xảy ra khi xóa địa chỉ!");
             Console.WriteLine($"Error deleting address: {ex.Message}");
         }
     }

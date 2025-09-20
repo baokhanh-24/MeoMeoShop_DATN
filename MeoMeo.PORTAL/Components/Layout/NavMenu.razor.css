@@ -25,8 +25,12 @@
     max-width: 1440px;
 }
 
-.category-submenu:hover .category-dropdown,
-.category-dropdown:hover {
+/* Click-based dropdown - chỉ hiển thị khi được click */
+.category-submenu .category-dropdown {
+    display: none;
+}
+
+.category-submenu .category-dropdown.show {
     display: block !important;
 }
 

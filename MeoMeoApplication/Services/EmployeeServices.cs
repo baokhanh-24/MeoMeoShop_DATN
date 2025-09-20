@@ -47,6 +47,67 @@ namespace MeoMeo.Application.Services
             {
                 await _unitOfWork.BeginTransactionAsync();
 
+                // Validation
+                if (string.IsNullOrWhiteSpace(employee.Name))
+                {
+                    await _unitOfWork.RollbackAsync();
+                    return new CreateOrUpdateEmployeeResponseDTO
+                    {
+                        ResponseStatus = BaseStatus.Error,
+                        Message = "Vui lòng nhập họ và tên."
+                    };
+                }
+
+                if (string.IsNullOrWhiteSpace(employee.PhoneNumber))
+                {
+                    await _unitOfWork.RollbackAsync();
+                    return new CreateOrUpdateEmployeeResponseDTO
+                    {
+                        ResponseStatus = BaseStatus.Error,
+                        Message = "Vui lòng nhập số điện thoại."
+                    };
+                }
+
+                if (string.IsNullOrWhiteSpace(employee.Email))
+                {
+                    await _unitOfWork.RollbackAsync();
+                    return new CreateOrUpdateEmployeeResponseDTO
+                    {
+                        ResponseStatus = BaseStatus.Error,
+                        Message = "Vui lòng nhập email."
+                    };
+                }
+
+                if (!IsValidEmail(employee.Email))
+                {
+                    await _unitOfWork.RollbackAsync();
+                    return new CreateOrUpdateEmployeeResponseDTO
+                    {
+                        ResponseStatus = BaseStatus.Error,
+                        Message = "Email không đúng định dạng."
+                    };
+                }
+
+                if (string.IsNullOrWhiteSpace(employee.Address))
+                {
+                    await _unitOfWork.RollbackAsync();
+                    return new CreateOrUpdateEmployeeResponseDTO
+                    {
+                        ResponseStatus = BaseStatus.Error,
+                        Message = "Vui lòng nhập địa chỉ."
+                    };
+                }
+
+                if (string.IsNullOrWhiteSpace(employee.Password))
+                {
+                    await _unitOfWork.RollbackAsync();
+                    return new CreateOrUpdateEmployeeResponseDTO
+                    {
+                        ResponseStatus = BaseStatus.Error,
+                        Message = "Vui lòng nhập mật khẩu."
+                    };
+                }
+
                 // Check trùng số điện thoại
                 var existingPhoneEmployee = await _repository.Query()
                     .FirstOrDefaultAsync(e => e.PhoneNumber == employee.PhoneNumber);
@@ -121,6 +182,22 @@ namespace MeoMeo.Application.Services
                 mappedEmployee.Id = Guid.NewGuid();
                 mappedEmployee.UserId = userId;
 
+                // Xử lý ngày sinh - nếu null hoặc năm 1 thì set null
+                if (mappedEmployee.DateOfBird.HasValue && mappedEmployee.DateOfBird.Value.Year <= 1)
+                {
+                    mappedEmployee.DateOfBird = null;
+                }
+
+                if (mappedEmployee.DateOfBird.HasValue && mappedEmployee.DateOfBird.Value > DateTime.Today)
+                {
+                    await _unitOfWork.RollbackAsync();
+                    return new CreateOrUpdateEmployeeResponseDTO
+                    {
+                        ResponseStatus = BaseStatus.Error,
+                        Message = "Ngày sinh không được là ngày tương lai."
+                    };
+                }
+
                 // Tự động sinh mã nhân viên theo format NV00001, NV00002...
                 mappedEmployee.Code = await GenerateEmployeeCodeAsync();
 
@@ -190,7 +267,7 @@ namespace MeoMeo.Application.Services
                 if (requestDTO.DateOfBirthFilter != null)
                 {
                     var filterDate = requestDTO.DateOfBirthFilter.Value.Date;
-                    query = query.Where(c => c.DateOfBird.Date == filterDate);
+                    query = query.Where(c => c.DateOfBird == filterDate);
                 }
 
                 if (!string.IsNullOrEmpty(requestDTO.AddressFilter))
@@ -245,6 +322,68 @@ namespace MeoMeo.Application.Services
             try
             {
                 await _unitOfWork.BeginTransactionAsync();
+
+                // Validation
+                if (string.IsNullOrWhiteSpace(employee.Name))
+                {
+                    await _unitOfWork.RollbackAsync();
+                    return new CreateOrUpdateEmployeeResponseDTO
+                    {
+                        ResponseStatus = BaseStatus.Error,
+                        Message = "Vui lòng nhập họ và tên."
+                    };
+                }
+
+                if (string.IsNullOrWhiteSpace(employee.PhoneNumber))
+                {
+                    await _unitOfWork.RollbackAsync();
+                    return new CreateOrUpdateEmployeeResponseDTO
+                    {
+                        ResponseStatus = BaseStatus.Error,
+                        Message = "Vui lòng nhập số điện thoại."
+                    };
+                }
+
+                if (string.IsNullOrWhiteSpace(employee.Email))
+                {
+                    await _unitOfWork.RollbackAsync();
+                    return new CreateOrUpdateEmployeeResponseDTO
+                    {
+                        ResponseStatus = BaseStatus.Error,
+                        Message = "Vui lòng nhập email."
+                    };
+                }
+
+                if (!IsValidEmail(employee.Email))
+                {
+                    await _unitOfWork.RollbackAsync();
+                    return new CreateOrUpdateEmployeeResponseDTO
+                    {
+                        ResponseStatus = BaseStatus.Error,
+                        Message = "Email không đúng định dạng."
+                    };
+                }
+
+                if (string.IsNullOrWhiteSpace(employee.Address))
+                {
+                    await _unitOfWork.RollbackAsync();
+                    return new CreateOrUpdateEmployeeResponseDTO
+                    {
+                        ResponseStatus = BaseStatus.Error,
+                        Message = "Vui lòng nhập địa chỉ."
+                    };
+                }
+
+                // Validation ngày sinh không được là ngày tương lai
+                if (employee.DateOfBird.HasValue && employee.DateOfBird.Value > DateTime.Today)
+                {
+                    await _unitOfWork.RollbackAsync();
+                    return new CreateOrUpdateEmployeeResponseDTO
+                    {
+                        ResponseStatus = BaseStatus.Error,
+                        Message = "Ngày sinh không được là ngày tương lai."
+                    };
+                }
 
                 var existing = await _repository.GetEmployeeByIdAsync(employee.Id);
                 if (existing == null)
@@ -302,7 +441,7 @@ namespace MeoMeo.Application.Services
                 // Không update Code khi edit, chỉ update các field khác
                 existing.Name = employee.Name;
                 existing.PhoneNumber = employee.PhoneNumber;
-                existing.DateOfBird = employee.DateOfBird ?? DateTime.Now;
+                existing.DateOfBird = employee.DateOfBird;
                 existing.Address = employee.Address;
                 existing.Status = employee.Status;
 
@@ -371,8 +510,8 @@ namespace MeoMeo.Application.Services
 
                 // Map Employee data
                 existingEmployee.Name = employee.Name;
-                existingEmployee.PhoneNumber = employee.PhoneNumber;
-                existingEmployee.DateOfBird = employee.DateOfBird ?? DateTime.Now;
+                existingEmployee.PhoneNumber = employee.PhoneNumber ?? "";
+                existingEmployee.DateOfBird = employee.DateOfBird;
                 existingEmployee.Address = employee.Address;
 
                 await _repository.UpdateEmployeeAsync(existingEmployee);
@@ -460,31 +599,71 @@ namespace MeoMeo.Application.Services
         {
             try
             {
-                // Lấy mã nhân viên lớn nhất hiện tại
-                var lastEmployee = await _repository.Query()
-                    .Where(e => e.Code.StartsWith("NV"))
-                    .OrderByDescending(e => e.Code)
-                    .FirstOrDefaultAsync();
+                string newCode;
+                int attempts = 0;
+                const int maxAttempts = 100;
 
-                int nextNumber = 1;
-                if (lastEmployee != null && !string.IsNullOrEmpty(lastEmployee.Code))
+                do
                 {
-                    // Extract số từ mã cuối cùng (VD: NV00001 -> 1)
-                    var codeNumber = lastEmployee.Code.Substring(2); // Bỏ "NV"
-                    if (int.TryParse(codeNumber, out int lastNumber))
+                    // Lấy mã nhân viên lớn nhất hiện tại
+                    var lastEmployee = await _repository.Query()
+                        .Where(e => e.Code.StartsWith("NV"))
+                        .OrderByDescending(e => e.Code)
+                        .FirstOrDefaultAsync();
+
+                    int nextNumber = 1;
+                    if (lastEmployee != null && !string.IsNullOrEmpty(lastEmployee.Code))
                     {
-                        nextNumber = lastNumber + 1;
+                        // Extract số từ mã cuối cùng (VD: NV00001 -> 1)
+                        var codeNumber = lastEmployee.Code.Substring(2); // Bỏ "NV"
+                        if (int.TryParse(codeNumber, out int lastNumber))
+                        {
+                            nextNumber = lastNumber + 1;
+                        }
                     }
+
+                    // Format thành NV00001, NV00002, NV00003...
+                    newCode = $"NV{nextNumber:D5}";
+
+                    // Kiểm tra xem mã có trùng không
+                    var existingEmployee = await _repository.Query()
+                        .FirstOrDefaultAsync(e => e.Code == newCode);
+
+                    if (existingEmployee == null)
+                    {
+                        break; // Mã không trùng, thoát khỏi vòng lặp
+                    }
+
+                    attempts++;
+                } while (attempts < maxAttempts);
+
+                if (attempts >= maxAttempts)
+                {
+                    // Fallback nếu có lỗi hoặc không tìm được mã unique
+                    var randomNumber = new Random().Next(1, 99999);
+                    newCode = $"NV{randomNumber:D5}";
                 }
 
-                // Format thành NV00001, NV00002, NV00003...
-                return $"NV{nextNumber:D5}";
+                return newCode;
             }
-            catch (Exception ex)
+            catch (Exception)
             {
                 // Fallback nếu có lỗi
                 var randomNumber = new Random().Next(1, 99999);
                 return $"NV{randomNumber:D5}";
+            }
+        }
+
+        private bool IsValidEmail(string email)
+        {
+            try
+            {
+                var addr = new System.Net.Mail.MailAddress(email);
+                return addr.Address == email;
+            }
+            catch
+            {
+                return false;
             }
         }
     }

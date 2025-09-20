@@ -28,7 +28,7 @@
                     </FormItem>
                 </div>
                 <div class="col-md-6">
-                    <FormItem Label="Email">
+                    <FormItem Label="Email" Required>
                         <Input @bind-Value="employee.Email" Placeholder="Nhập email" />
                     </FormItem>
                 </div>
@@ -37,7 +37,8 @@
             <div class="row">
                 <div class="col-md-6">
                     <FormItem Label="Ngày sinh">
-                        <DatePicker Style="width: 100%" @bind-Value="employee.DateOfBird" />
+                        <DatePicker Style="width: 100%" @bind-Value="employee.DateOfBird"
+                            DisabledDate="date => date > DateTime.Today" />
                     </FormItem>
                 </div>
                 <div class="col-md-6">
@@ -50,7 +51,7 @@
                 </div>
             </div>
 
-            <FormItem Label="Địa chỉ">
+            <FormItem Label="Địa chỉ" Required>
                 <TextArea @bind-Value="employee.Address" Placeholder="Nhập địa chỉ" Rows="3" MaxLength="255" />
             </FormItem>
 
@@ -70,6 +71,7 @@
     [Parameter] public bool Visible { get; set; }
     [Parameter] public EventCallback<bool> VisibleChanged { get; set; }
     [Parameter] public EventCallback<CreateOrUpdateEmployeeDTO> OnSave { get; set; }
+    [Parameter] public EventCallback OnSuccess { get; set; }
 
     private CreateOrUpdateEmployeeDTO employee = new();
 
@@ -82,9 +84,67 @@
 
     private async Task HandleValidSubmit()
     {
+        // Validation
+        if (string.IsNullOrWhiteSpace(employee.Name))
+        {
+            await MessageModalService.Error("Vui lòng nhập họ và tên!");
+            return;
+        }
+
+        if (string.IsNullOrWhiteSpace(employee.PhoneNumber))
+        {
+            await MessageModalService.Error("Vui lòng nhập số điện thoại!");
+            return;
+        }
+
+        if (string.IsNullOrWhiteSpace(employee.Email))
+        {
+            await MessageModalService.Error("Vui lòng nhập email!");
+            return;
+        }
+
+        if (!IsValidEmail(employee.Email))
+        {
+            await MessageModalService.Error("Email không đúng định dạng!");
+            return;
+        }
+
+        if (string.IsNullOrWhiteSpace(employee.Address))
+        {
+            await MessageModalService.Error("Vui lòng nhập địa chỉ!");
+            return;
+        }
+
+        if (string.IsNullOrWhiteSpace(employee.Password))
+        {
+            await MessageModalService.Error("Vui lòng nhập mật khẩu!");
+            return;
+        }
+
+        // Validation ngày sinh
+        if (employee.DateOfBird.HasValue && employee.DateOfBird.Value > DateTime.Today)
+        {
+            await MessageModalService.Error("Ngày sinh không được là ngày tương lai!");
+            return;
+        }
+
         await OnSave.InvokeAsync(employee);
         await InvokeAsync(StateHasChanged);
-        ResetForm();
+        // Gọi OnSuccess để parent component xử lý việc đóng modal và reset form
+        await OnSuccess.InvokeAsync();
+    }
+
+    private bool IsValidEmail(string email)
+    {
+        try
+        {
+            var addr = new System.Net.Mail.MailAddress(email);
+            return addr.Address == email;
+        }
+        catch
+        {
+            return false;
+        }
     }
 
     private void ResetForm()
@@ -94,6 +154,7 @@
 
     private async Task OnCancel()
     {
+        ResetForm(); // Reset form khi hủy
         await VisibleChanged.InvokeAsync(false);
     }
 }

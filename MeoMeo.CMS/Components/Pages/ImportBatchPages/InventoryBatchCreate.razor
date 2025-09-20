@@ -21,32 +21,32 @@
         <BreadcrumbItem Href="/">Trang chủ</BreadcrumbItem>
         <BreadcrumbItem Href="/manage-importBatch">Quản lý lô nhập</BreadcrumbItem>
         <BreadcrumbItem>
-            <a class="current">Quản lý sản phẩm trong lô nhập</a>
+            <a class="current">@(IsEdit ? "Chỉnh sửa lô nhập" : "Tạo mới lô nhập")</a>
         </BreadcrumbItem>
     </Breadcrumb>
 
     <div class="group-breadcumb">
         <Button Type="ButtonType.Primary" OnClick="HandleSave" Loading="@IsSaving">
-            Lưu sản phẩm nhập kho
+            @(IsEdit ? "Cập nhật lô nhập" : "Tạo lô nhập")
         </Button>
         <Button Class="btn-back ml-2" Icon="arrow-left" OnClick="HandleGoBack">Quay lại</Button>
     </div>
     </div>
 
     <div class="import-batch-form-container">
-        <!-- Import Batch Information (EDITABLE) -->
+        <!-- Import Batch Information -->
         <Card Title="Thông tin lô nhập" Class="mb-4">
             <GridRow Gutter="(16, 16)">
                 <GridCol Span="12">
                     <div class="mb-2">
                         <label><strong>Mã lô nhập:</strong></label>
-                        <Input @bind-Value="importBatch.Code" Placeholder="Nhập mã lô nhập" />
+                        <Input Value="@importBatch.Code" Placeholder="@(IsEdit ? "Mã lô nhập" : "Mã lô nhập sẽ được tự động sinh")" Disabled />
                     </div>
                 </GridCol>
                 <GridCol Span="12">
                     <div class="mb-2">
                         <label><strong>Ngày nhập:</strong></label>
-                        <DatePicker @bind-Value="importBatch.ImportDate" Style="width: 100%" />
+                        <DatePicker Value="@importBatch.ImportDate" Style="width: 100%" Disabled />
                     </div>
                 </GridCol>
                 <GridCol Span="24">
@@ -72,44 +72,50 @@
             </div>
         </Card>
 
-        <!-- Bulk Status Update Buttons -->
-        <div class="d-flex justify-content-between mb-3">
-            <div>
-                @if (selectedRows != null && selectedRows.Any())
-                {
-                            @if (activeTab == "Draft")
-                            {
-                                        <Button Class="mb-2" OnClick="() => ShowPopUpConfirm(EInventoryBatchStatus.PendingApproval)">
-                                            <i class="fas fa-paper-plane"></i> Gửi duyệt (@selectedRows.Count())
-                                        </Button>
-                            }
-                            else if (activeTab == "PendingApproval")
-                            {
-                                        <Button Class="mb-2" OnClick="() => ShowPopUpConfirm(EInventoryBatchStatus.Approved)">
-                                            <i class="fas fa-check"></i> Phê duyệt (@selectedRows.Count())
-                                        </Button>
-                                        <Button Class="mb-2" OnClick="() => ShowPopUpConfirm(EInventoryBatchStatus.Rejected)">
-                                            <i class="fas fa-times"></i> Từ chối (@selectedRows.Count())
-                                        </Button>
-                            }
-                            else if (activeTab == "Rejected")
-                            {
-                                        <Button Class="mb-2" OnClick="() => ShowPopUpConfirm(EInventoryBatchStatus.PendingApproval)">
-                                            <i class="fas fa-redo"></i> Gửi lại duyệt (@selectedRows.Count())
-                                        </Button>
-                            }
-                }
+        <!-- Bulk Status Update Buttons (Only for Edit mode) -->
+        @if (IsEdit)
+        {
+            <div class="d-flex justify-content-between mb-3">
+                <div>
+                    @if (selectedRows != null && selectedRows.Any())
+                    {
+                                @if (activeTab == "Draft")
+                                {
+                                            <Button Class="mb-2" OnClick="() => ShowPopUpConfirm(EInventoryBatchStatus.PendingApproval)">
+                                                <i class="fas fa-paper-plane"></i> Gửi duyệt (@selectedRows.Count())
+                                            </Button>
+                                }
+                                else if (activeTab == "PendingApproval")
+                                {
+                                            <Button Class="mb-2" OnClick="() => ShowPopUpConfirm(EInventoryBatchStatus.Approved)">
+                                                <i class="fas fa-check"></i> Phê duyệt (@selectedRows.Count())
+                                            </Button>
+                                            <Button Class="mb-2" OnClick="() => ShowPopUpConfirm(EInventoryBatchStatus.Rejected)">
+                                                <i class="fas fa-times"></i> Từ chối (@selectedRows.Count())
+                                            </Button>
+                                }
+                                else if (activeTab == "Rejected")
+                                {
+                                            <Button Class="mb-2" OnClick="() => ShowPopUpConfirm(EInventoryBatchStatus.PendingApproval)">
+                                                <i class="fas fa-redo"></i> Gửi lại duyệt (@selectedRows.Count())
+                                            </Button>
+                                }
+                    }
+                </div>
             </div>
-        </div>
+        }
 
-        <!-- Status Tabs -->
-        <Tabs DefaultActiveKey="All" @bind-ActiveKey="@activeTab" OnChange="OnTabChange">
-            <TabPane Key="All" Tab=@($"Tất cả ({selectedProducts.Count})")/>
-            <TabPane Key="Draft" Tab=@($"Lưu tạm ({selectedProducts.Count(x => x.Status == EInventoryBatchStatus.Draft)})")/>
-            <TabPane Key="PendingApproval" Tab=@($"Chờ duyệt ({selectedProducts.Count(x => x.Status == EInventoryBatchStatus.PendingApproval)})")/>
-            <TabPane Key="Approved" Tab=@($"Đã phê duyệt ({selectedProducts.Count(x => x.Status == EInventoryBatchStatus.Approved)})")/>
-            <TabPane Key="Rejected" Tab=@($"Bị từ chối ({selectedProducts.Count(x => x.Status == EInventoryBatchStatus.Rejected)})")/>
-        </Tabs>
+        <!-- Status Tabs (Only for Edit mode) -->
+        @if (IsEdit)
+        {
+            <Tabs DefaultActiveKey="All" @bind-ActiveKey="@activeTab" OnChange="OnTabChange">
+                <TabPane Key="All" Tab=@($"Tất cả ({selectedProducts.Count})")/>
+                <TabPane Key="Draft" Tab=@($"Lưu tạm ({selectedProducts.Count(x => x.Status == EInventoryBatchStatus.Draft)})")/>
+                <TabPane Key="PendingApproval" Tab=@($"Chờ duyệt ({selectedProducts.Count(x => x.Status == EInventoryBatchStatus.PendingApproval)})")/>
+                <TabPane Key="Approved" Tab=@($"Đã phê duyệt ({selectedProducts.Count(x => x.Status == EInventoryBatchStatus.Approved)})")/>
+                <TabPane Key="Rejected" Tab=@($"Bị từ chối ({selectedProducts.Count(x => x.Status == EInventoryBatchStatus.Rejected)})")/>
+            </Tabs>
+        }
 
         <!-- Products Table -->
         <Card Title="Sản phẩm nhập kho" Class="mb-4">
@@ -140,44 +146,47 @@
                                             @($"{product.OriginalPrice * product.Quantity:N0} VNĐ")
                                         </span>
                                 </Column>
-                                <ActionColumn Title="Thao tác" Width="200">
+                                <ActionColumn Title="Thao tác" Width="@(IsEdit ? "200" : "100")">
                                     <Space>
-                                        @if (product.Status == EInventoryBatchStatus.Draft)
+                                        @if (IsEdit)
                                         {
-                                                    <Tooltip Title="Gửi duyệt">
-                                                        <Button Size="ButtonSize.Small" Type="ButtonType.Primary"
-                                                            OnClick="() => OnClickConfirm(product, EInventoryBatchStatus.PendingApproval)"
-                                                            Shape="ButtonShape.Circle">
-                                                            <i class="fas fa-paper-plane"></i>
-                                                        </Button>
-                                                    </Tooltip>
-                                        }
-                                        @if (product.Status == EInventoryBatchStatus.PendingApproval)
-                                        {
-                                                    <Tooltip Title="Phê duyệt">
-                                                        <Button Size="AntDesign.ButtonSize.Small" Type="ButtonType.Primary"
-                                                            OnClick="() => OnClickConfirm(product, EInventoryBatchStatus.Approved)"
-                                                            Shape="ButtonShape.Circle">
-                                                            <i class="fas fa-check"></i>
-                                                        </Button>
-                                                    </Tooltip>
-                                                    <Tooltip Title="Từ chối">
-                                                        <Button Size="AntDesign.ButtonSize.Small" Type="ButtonType.Default"
-                                                            OnClick="() => OnClickConfirm(product, EInventoryBatchStatus.Rejected)"
-                                                            Shape="ButtonShape.Circle">
-                                                            <i class="fas fa-times"></i>
-                                                        </Button>
-                                                    </Tooltip>
-                                        }
-                                        @if (product.Status == EInventoryBatchStatus.Rejected)
-                                        {
-                                                    <Tooltip Title="Gửi lại duyệt">
-                                                        <Button Size="AntDesign.ButtonSize.Small" Type="ButtonType.Primary"
-                                                            OnClick="() => OnClickConfirm(product, EInventoryBatchStatus.PendingApproval)"
-                                                            Shape="ButtonShape.Circle">
-                                                            <i class="fas fa-redo"></i>
-                                                        </Button>
-                                                    </Tooltip>
+                                            @if (product.Status == EInventoryBatchStatus.Draft)
+                                            {
+                                                        <Tooltip Title="Gửi duyệt">
+                                                            <Button Size="ButtonSize.Small" Type="ButtonType.Primary"
+                                                                OnClick="() => OnClickConfirm(product, EInventoryBatchStatus.PendingApproval)"
+                                                                Shape="ButtonShape.Circle">
+                                                                <i class="fas fa-paper-plane"></i>
+                                                            </Button>
+                                                        </Tooltip>
+                                            }
+                                            @if (product.Status == EInventoryBatchStatus.PendingApproval)
+                                            {
+                                                        <Tooltip Title="Phê duyệt">
+                                                            <Button Size="AntDesign.ButtonSize.Small" Type="ButtonType.Primary"
+                                                                OnClick="() => OnClickConfirm(product, EInventoryBatchStatus.Approved)"
+                                                                Shape="ButtonShape.Circle">
+                                                                <i class="fas fa-check"></i>
+                                                            </Button>
+                                                        </Tooltip>
+                                                        <Tooltip Title="Từ chối">
+                                                            <Button Size="AntDesign.ButtonSize.Small" Type="ButtonType.Default"
+                                                                OnClick="() => OnClickConfirm(product, EInventoryBatchStatus.Rejected)"
+                                                                Shape="ButtonShape.Circle">
+                                                                <i class="fas fa-times"></i>
+                                                            </Button>
+                                                        </Tooltip>
+                                            }
+                                            @if (product.Status == EInventoryBatchStatus.Rejected)
+                                            {
+                                                        <Tooltip Title="Gửi lại duyệt">
+                                                            <Button Size="AntDesign.ButtonSize.Small" Type="ButtonType.Primary"
+                                                                OnClick="() => OnClickConfirm(product, EInventoryBatchStatus.PendingApproval)"
+                                                                Shape="ButtonShape.Circle">
+                                                                <i class="fas fa-redo"></i>
+                                                            </Button>
+                                                        </Tooltip>
+                                            }
                                         }
                                         <Tooltip Title="Xóa">
                                             <Button Type="ButtonType.Default" Size="AntDesign.ButtonSize.Small"
@@ -260,6 +269,7 @@
     [Parameter] public Guid ImportBatchId { get; set; }
     private bool IsLoading = false;
     private bool IsSaving = false;
+    private bool IsEdit => ImportBatchId != Guid.Empty;
 
     private List<SelectedProductItem> selectedProducts = new();
     private List<TransferItem> transferItems = new();
@@ -298,7 +308,22 @@
         IsLoading = true;
         try
         {
-            await LoadImportBatchWithInventoryBatches();
+            if (IsEdit)
+            {
+                await LoadImportBatchWithInventoryBatches();
+            }
+            else
+            {
+                // Initialize for new import batch
+                importBatch = new ImportBatchDetailDTO
+                {
+                    Id = Guid.NewGuid(),
+                    Code = await GenerateImportBatchCode(), // Auto-generate code
+                    ImportDate = DateTime.Today, // Set to today
+                    Note = ""
+                };
+            }
+            
             await LoadAllProducts();
         }
         catch (Exception ex)
@@ -308,6 +333,53 @@
         finally
         {
             IsLoading = false;
+        }
+    }
+
+    private async Task<string> GenerateImportBatchCode()
+    {
+        try
+        {
+            // Get all import batches to find the latest code
+            var request = new GetListImportBatchRequestDTO
+            {
+                PageIndex = 1,
+                PageSize = int.MaxValue // Get all to find the latest
+            };
+
+            var response = await ImportBatchClientService.GetAllImportBatchAsync(request);
+            
+            if (response?.Items?.Any() == true)
+            {
+                // Find the highest number from existing codes
+                var codes = response.Items
+                    .Where(x => !string.IsNullOrEmpty(x.Code) && x.Code.StartsWith("LN"))
+                    .Select(x => x.Code)
+                    .ToList();
+
+                if (codes.Any())
+                {
+                    var maxNumber = 0;
+                    foreach (var code in codes)
+                    {
+                        var numberPart = code.Substring(2);
+                        if (int.TryParse(numberPart, out int number))
+                        {
+                            maxNumber = Math.Max(maxNumber, number);
+                        }
+                    }
+                    return $"LN{(maxNumber + 1):D3}";
+                }
+            }
+            
+            // If no existing codes, start from LN001
+            return "LN001";
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Lỗi khi sinh mã lô nhập: {ex.Message}");
+            // Fallback to LN001
+            return "LN001";
         }
     }
 
@@ -545,13 +617,20 @@
         IsSaving = true;
         try
         {
-            // Update ImportBatch information first
-            await UpdateImportBatchInfo();
+            if (IsEdit)
+            {
+                // Update existing ImportBatch
+                await UpdateImportBatchInfo();
+                await UpdateInventoryBatches();
+                MessageService.Success("Cập nhật lô nhập kho thành công!");
+            }
+            else
+            {
+                // Create new ImportBatch
+                await CreateNewImportBatch();
+                MessageService.Success("Tạo lô nhập kho thành công!");
+            }
             
-            // Then update InventoryBatches
-            await UpdateInventoryBatches();
-            
-            MessageService.Success("Cập nhật lô nhập kho thành công!");
             Navigation.NavigateTo("/manage-inventoryBatch");
         }
         catch (Exception ex)
@@ -561,6 +640,51 @@
         finally
         {
             IsSaving = false;
+        }
+    }
+
+    private async Task CreateNewImportBatch()
+    {
+        try
+        {
+            // Create ImportBatch first
+            var importBatchDto = new ImportBatchDTO
+            {
+                Id = importBatch.Id,
+                Code = importBatch.Code, // Backend will auto-generate if empty
+                ImportDate = importBatch.ImportDate,
+                Note = importBatch.Note
+            };
+
+            var result = await ImportBatchClientService.CreateImportBatchAsync(importBatchDto);
+            if (result.ResponseStatus != BaseStatus.Success)
+            {
+                throw new Exception(result.Message ?? "Không thể tạo lô nhập");
+            }
+
+            // Get the created ImportBatch ID
+            var createdImportBatchId = result.Id;
+
+            // Create InventoryBatches
+            if (selectedProducts.Any())
+            {
+                var inventoryBatchDtos = selectedProducts.Select(sp => new InventoryBatchDTO
+                {
+                    Id = Guid.NewGuid(),
+                    ImportBatchId = createdImportBatchId,
+                    ProductDetailId = sp.ProductDetailId,
+                    OriginalPrice = sp.OriginalPrice,
+                    Quantity = sp.Quantity,
+                    Status = EInventoryBatchStatus.Draft // New products are always Draft
+                }).ToList();
+
+                await InventoryBatchClientService.CreateInventoryBatchAsync(inventoryBatchDtos);
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine("Lỗi khi tạo lô nhập mới: " + ex.Message);
+            throw;
         }
     }
 
@@ -643,19 +767,6 @@
 
     private bool ValidateForm()
     {
-        // Validate ImportBatch information
-        if (string.IsNullOrWhiteSpace(importBatch.Code))
-        {
-            MessageService.Error("Vui lòng nhập mã lô nhập");
-            return false;
-        }
-
-        if (importBatch.ImportDate == default)
-        {
-            MessageService.Error("Vui lòng chọn ngày nhập");
-            return false;
-        }
-
         // Validate products
         if (!selectedProducts.Any())
         {

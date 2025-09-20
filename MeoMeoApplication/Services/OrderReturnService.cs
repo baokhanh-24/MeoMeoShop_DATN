@@ -124,6 +124,11 @@ namespace MeoMeo.Application.Services
 
                 // Create return files - skip for now, will be handled in overload method
 
+                // Update order status to PendingReturn
+                order.Status = EOrderStatus.PendingReturn;
+                order.LastModifiedTime = DateTime.Now;
+                await _orderRepository.UpdateAsync(order);
+
                 await _unitOfWork.CommitAsync();
 
                 return new BaseResponse
@@ -235,6 +240,11 @@ namespace MeoMeo.Application.Services
 
                     await _orderReturnFileRepository.AddAsync(returnFile);
                 }
+
+                // Update order status to PendingReturn
+                order.Status = EOrderStatus.PendingReturn;
+                order.LastModifiedTime = DateTime.Now;
+                await _orderRepository.UpdateAsync(order);
 
                 await _unitOfWork.CommitAsync();
 
@@ -403,7 +413,10 @@ namespace MeoMeo.Application.Services
         {
             try
             {
-                var orderReturn = await _orderReturnRepository.GetByIdAsync(id);
+                var orderReturn = await _orderReturnRepository.Query()
+                    .Include(or => or.Order)
+                    .FirstOrDefaultAsync(or => or.Id == id);
+
                 if (orderReturn == null)
                 {
                     return new BaseResponse
@@ -416,7 +429,21 @@ namespace MeoMeo.Application.Services
                 orderReturn.Status = request.Status;
                 orderReturn.LastModifiedTime = DateTime.Now;
 
+                // Update order status based on return status
+                if (request.Status == EOrderReturnStatus.Approved)
+                {
+                    orderReturn.Order.Status = EOrderStatus.Returned;
+                    orderReturn.Order.LastModifiedTime = DateTime.Now;
+                }
+                else if (request.Status == EOrderReturnStatus.Rejected)
+                {
+                    // Revert order status back to its previous state (e.g., Completed)
+                    orderReturn.Order.Status = EOrderStatus.Completed;
+                    orderReturn.Order.LastModifiedTime = DateTime.Now;
+                }
+
                 await _orderReturnRepository.UpdateAsync(orderReturn);
+                await _orderRepository.UpdateAsync(orderReturn.Order);
                 await _unitOfWork.SaveChangesAsync();
 
                 return new BaseResponse
@@ -439,7 +466,10 @@ namespace MeoMeo.Application.Services
         {
             try
             {
-                var orderReturn = await _orderReturnRepository.GetByIdAsync(id);
+                var orderReturn = await _orderReturnRepository.Query()
+                    .Include(or => or.Order)
+                    .FirstOrDefaultAsync(or => or.Id == id);
+
                 if (orderReturn == null)
                 {
                     return new BaseResponse
@@ -465,7 +495,12 @@ namespace MeoMeo.Application.Services
                 orderReturn.Status = EOrderReturnStatus.Refunded; // Auto update status to refunded
                 orderReturn.LastModifiedTime = DateTime.Now;
 
+                // Update order status to Completed when refund is processed
+                orderReturn.Order.Status = EOrderStatus.Completed;
+                orderReturn.Order.LastModifiedTime = DateTime.Now;
+
                 await _orderReturnRepository.UpdateAsync(orderReturn);
+                await _orderRepository.UpdateAsync(orderReturn.Order);
                 await _unitOfWork.SaveChangesAsync();
 
                 return new BaseResponse
@@ -489,6 +524,7 @@ namespace MeoMeo.Application.Services
             try
             {
                 var orderReturn = await _orderReturnRepository.Query()
+                    .Include(or => or.Order)
                     .FirstOrDefaultAsync(or => or.Id == orderReturnId && or.CustomerId == customerId);
 
                 if (orderReturn == null)
@@ -512,7 +548,12 @@ namespace MeoMeo.Application.Services
                 orderReturn.Status = EOrderReturnStatus.Rejected;
                 orderReturn.LastModifiedTime = DateTime.Now;
 
+                // Revert order status back to Completed when return is cancelled
+                orderReturn.Order.Status = EOrderStatus.Completed;
+                orderReturn.Order.LastModifiedTime = DateTime.Now;
+
                 await _orderReturnRepository.UpdateAsync(orderReturn);
+                await _orderRepository.UpdateAsync(orderReturn.Order);
                 await _unitOfWork.SaveChangesAsync();
 
                 return new BaseResponse

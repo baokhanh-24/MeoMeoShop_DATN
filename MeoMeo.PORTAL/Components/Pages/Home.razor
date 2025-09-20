@@ -1,6 +1,6 @@
 ﻿@page "/"
 @using System.ComponentModel.DataAnnotations
-@inject MessageService MessageService
+@inject MeoMeo.Shared.Utilities.MessageModalService MessageModalService
 @inject NavigationManager NavigationManager
 @using MeoMeo.Shared.IServices
 @using System.Linq
@@ -275,7 +275,7 @@
                             <FormItem>
                                 <Select TItem="EnumOption<EProductSortField>" TItemValue="EProductSortField"
                                     @bind-Value="filter.SortField"
-                                    OnSelectedItemChanged="async _ => await ApplyFilter()" DataSource="sortFields"
+                                    OnSelectedItemChanged="async _ => await OnSortFieldChanged()" DataSource="sortFields"
                                     ValueName="Value" LabelName="Label" Placeholder="Chọn trường sắp xếp"
                                     Class="filter-select">
                                 </Select>
@@ -477,6 +477,114 @@ new PriceRangeOption { Id = 7, Label = "Trên 5.000.000đ" },
         return Convert.ToDecimal(Math.Round(random.NextDouble() * 10) / 2);
     }
 
+    // Helper methods để chuyển đổi enum sang tiếng Việt
+    private string GetClosureTypeLabel(EClosureType closureType)
+    {
+        return closureType switch
+        {
+            EClosureType.LaceUp => "Buộc dây",
+            EClosureType.Velcro => "Quai dán",
+            EClosureType.Zipper => "Khóa kéo",
+            EClosureType.SlipOn => "Không dây",
+            EClosureType.Buckle => "Quai cài",
+            EClosureType.Elastic => "Co giãn",
+            _ => closureType.ToString()
+        };
+    }
+
+    private string GetProductStatusLabel(EProductStatus status)
+    {
+        return status switch
+        {
+            EProductStatus.Draft => "Lưu tạm",
+            EProductStatus.Pending => "Chờ duyệt",
+            EProductStatus.Rejected => "Bị từ chối",
+            EProductStatus.StopSelling => "Ngừng bán",
+            EProductStatus.Selling => "Đang bán",
+            _ => status.ToString()
+        };
+    }
+
+    private string GetSortFieldLabel(EProductSortField sortField)
+    {
+        return sortField switch
+        {
+            EProductSortField.Name => "Tên",
+            EProductSortField.Price => "Giá bán",
+            EProductSortField.Discount => "% Giảm giá",
+            EProductSortField.CreationTime => "Ngày tạo",
+            EProductSortField.StockQuantity => "Số lượng tồn kho",
+            EProductSortField.ViewNumber => "Số lượt xem",
+            EProductSortField.SellNumber => "Lượt bán",
+            _ => sortField.ToString()
+        };
+    }
+
+    private string GetSortDirectionLabel(ESortDirection sortDirection, EProductSortField? sortField = null)
+    {
+        if (sortField == null)
+        {
+            return sortDirection switch
+            {
+                ESortDirection.Asc => "Tăng dần",
+                ESortDirection.Desc => "Giảm dần",
+                _ => sortDirection.ToString()
+            };
+        }
+
+        return (sortDirection, sortField) switch
+        {
+            // Sắp xếp theo tên
+            (ESortDirection.Asc, EProductSortField.Name) => "A - Z",
+            (ESortDirection.Desc, EProductSortField.Name) => "Z - A",
+            
+            // Sắp xếp theo giá
+            (ESortDirection.Asc, EProductSortField.Price) => "Giá tăng dần",
+            (ESortDirection.Desc, EProductSortField.Price) => "Giá giảm dần",
+            
+            // Sắp xếp theo % giảm giá
+            (ESortDirection.Asc, EProductSortField.Discount) => "Giảm giá tăng dần",
+            (ESortDirection.Desc, EProductSortField.Discount) => "Giảm giá giảm dần",
+            
+            // Sắp xếp theo ngày tạo
+            (ESortDirection.Asc, EProductSortField.CreationTime) => "Cũ nhất",
+            (ESortDirection.Desc, EProductSortField.CreationTime) => "Mới nhất",
+            
+            // Sắp xếp theo số lượng tồn kho
+            (ESortDirection.Asc, EProductSortField.StockQuantity) => "Tồn kho tăng dần",
+            (ESortDirection.Desc, EProductSortField.StockQuantity) => "Tồn kho giảm dần",
+            
+            // Sắp xếp theo số lượt xem
+            (ESortDirection.Asc, EProductSortField.ViewNumber) => "Lượt xem tăng dần",
+            (ESortDirection.Desc, EProductSortField.ViewNumber) => "Lượt xem giảm dần",
+            
+            // Sắp xếp theo lượt bán
+            (ESortDirection.Asc, EProductSortField.SellNumber) => "Lượt bán tăng dần",
+            (ESortDirection.Desc, EProductSortField.SellNumber) => "Lượt bán giảm dần",
+            
+            // Fallback
+            _ => sortDirection switch
+            {
+                ESortDirection.Asc => "Tăng dần",
+                ESortDirection.Desc => "Giảm dần",
+                _ => sortDirection.ToString()
+            }
+        };
+    }
+
+    private async Task OnSortFieldChanged()
+    {
+        // Cập nhật lại danh sách sortDirections với labels mới
+        sortDirections = Enum.GetValues(typeof(ESortDirection)).Cast<ESortDirection>()
+        .Select(v => new EnumOption<ESortDirection> { Value = v, Label = GetSortDirectionLabel(v, filter.SortField) })
+        .ToList();
+        
+        // Reset về Ascending khi thay đổi trường sắp xếp
+        filter.SortDirection = ESortDirection.Asc;
+        
+        await ApplyFilter();
+    }
+
     protected override async Task OnInitializedAsync()
     {
         backendUrl = Configuration["ApiSettings:BaseUrl"]?.TrimEnd('/') ?? string.Empty;
@@ -502,7 +610,7 @@ new PriceRangeOption { Id = 7, Label = "Trên 5.000.000đ" },
 
     private async Task HandleSubscribe()
     {
-        MessageService.Success("Đăng ký thành công!");
+        MessageModalService.Success("Đăng ký thành công!");
         subscriptionModel.Email = string.Empty;
     }
 
@@ -542,16 +650,16 @@ new PriceRangeOption { Id = 7, Label = "Trên 5.000.000đ" },
         seasons = seasonResp.Items ?? new List<SeasonDTO>();
         // enums
         closureTypes = Enum.GetValues(typeof(EClosureType)).Cast<EClosureType>()
-        .Select(v => new EnumOption<EClosureType> { Value = v, Label = v.ToString() })
+        .Select(v => new EnumOption<EClosureType> { Value = v, Label = GetClosureTypeLabel(v) })
         .ToList();
         productStatuses = Enum.GetValues(typeof(EProductStatus)).Cast<EProductStatus>()
-        .Select(v => new EnumOption<EProductStatus> { Value = v, Label = v.ToString() })
+        .Select(v => new EnumOption<EProductStatus> { Value = v, Label = GetProductStatusLabel(v) })
         .ToList();
         sortFields = Enum.GetValues(typeof(EProductSortField)).Cast<EProductSortField>()
-        .Select(v => new EnumOption<EProductSortField> { Value = v, Label = v.ToString() })
+        .Select(v => new EnumOption<EProductSortField> { Value = v, Label = GetSortFieldLabel(v) })
         .ToList();
         sortDirections = Enum.GetValues(typeof(ESortDirection)).Cast<ESortDirection>()
-        .Select(v => new EnumOption<ESortDirection> { Value = v, Label = v.ToString() })
+        .Select(v => new EnumOption<ESortDirection> { Value = v, Label = GetSortDirectionLabel(v, filter.SortField) })
         .ToList();
     }
 
@@ -607,7 +715,7 @@ new PriceRangeOption { Id = 7, Label = "Trên 5.000.000đ" },
         }
         catch (Exception ex)
         {
-            MessageService.Error($"Có lỗi khi tải thêm sản phẩm: {ex.Message}");
+            MessageModalService.Error($"Có lỗi khi tải thêm sản phẩm: {ex.Message}");
         }
         finally
         {
@@ -625,7 +733,7 @@ new PriceRangeOption { Id = 7, Label = "Trên 5.000.000đ" },
             var isLogged = await AuthClient.IsAuthenticatedAsync();
             if (!isLogged)
             {
-                MessageService.Warning("Vui lòng đăng nhập để thêm sản phẩm vào giỏ hàng");
+                MessageModalService.Warning("Vui lòng đăng nhập để thêm sản phẩm vào giỏ hàng");
                 return;
             }
 
@@ -641,19 +749,19 @@ new PriceRangeOption { Id = 7, Label = "Trên 5.000.000đ" },
 
             if (result != null && (int)result.ResponseStatus == 1) // Success = 1
             {
-                MessageService.Success($"Đã thêm sản phẩm vào giỏ hàng thành công!");
+                MessageModalService.Success($"Đã thêm sản phẩm vào giỏ hàng thành công!");
                 // Reload cart to get accurate item count
                 await ReloadCartCount();
             }
             else
             {
                 var errorMessage = result?.Message ?? "Có lỗi xảy ra khi thêm vào giỏ hàng";
-                MessageService.Error(errorMessage);
+                MessageModalService.Error(errorMessage);
             }
         }
         catch (Exception ex)
         {
-            MessageService.Error($"Lỗi: {ex.Message}");
+            MessageModalService.Error($"Lỗi: {ex.Message}");
             Console.WriteLine($"Error in AddToCartDirectly: {ex}");
         }
     }

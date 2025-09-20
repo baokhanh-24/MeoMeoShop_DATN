@@ -122,19 +122,15 @@
     </GridRow>
     <GridRow Class="modal-category">
         <GridCol Span="22" Offset="1">
-            <div class="d-flex justify-content-center">
+            <div class="d-flex justify-content-center" @onclick="OnContainerClick">
                 <Menu Mode="MenuMode.Horizontal" Class="category-menu">
                     @if (categories.Any())
                     {
                         @foreach (var c in visibleCategories)
                         {
-                            <div class="category-submenu" @onmouseenter="@(() => OnCategoryHover(c.Id))"
-                                @onmouseleave="@(() => OnCategoryLeave())">
+                            <div class="category-submenu">
                                 <SubMenu Title="@c.Name" OnTitleClick="@(() => OnCategoryClick(c.Id))">
-                                    <div class="category-dropdown "
-                                        style="display: @(hoveredCategory == c.Id ? "block" : "none")"
-                                        @onmouseenter="@(() => OnCategoryHover(c.Id))"
-                                        @onmouseleave="@(() => OnCategoryLeave())">
+                                    <div class="category-dropdown">
                                         <div class="category-products">
                                             @if (hoveredCategoryProducts.ContainsKey(c.Id))
                                             {
@@ -174,7 +170,7 @@
     private List<MeoMeo.Domain.Entities.Category> visibleCategories = new();
     private List<MeoMeo.Domain.Entities.Category> overflowCategories = new();
     private Dictionary<Guid, List<ProductResponseDTO>> hoveredCategoryProducts = new();
-    private Guid? hoveredCategory = null;
+    private Guid? clickedCategory = null;
     private int cartItemCount = 0;
     private bool isSubscribed = false;
 
@@ -189,7 +185,6 @@
                 ("import", "/js/site.js");
                 await _module.InvokeVoidAsync("searchPopup");
                 await _module.InvokeVoidAsync("initProductQty");
-
                 await LoadCategories();
                 SplitCategories();
                 await LoadCartCount();
@@ -271,20 +266,26 @@
     }
     private void OnCategoryClick(Guid id)
     {
-        Navigation.NavigateTo($"/Shop?categoryId={id}");
-    }
-
-    private void OnCategoryHover(Guid categoryId)
-    {
-        hoveredCategory = categoryId;
+        // Toggle submenu - nếu đang mở thì đóng, nếu đang đóng thì mở
+        if (clickedCategory == id)
+        {
+            clickedCategory = null; // Đóng submenu
+        }
+        else
+        {
+            clickedCategory = id; // Mở submenu
+        }
         StateHasChanged();
     }
 
-    private async Task OnCategoryLeave()
+    private void OnContainerClick()
     {
-        await Task.Delay(100); // Thêm độ trễ để tránh việc menu biến mất quá nhanh khi di chuột
-        hoveredCategory = null;
-        StateHasChanged();
+        // Đóng dropdown khi click ra ngoài
+        if (clickedCategory != null)
+        {
+            clickedCategory = null;
+            StateHasChanged();
+        }
     }
 
     private void NavigateToPage(int page)

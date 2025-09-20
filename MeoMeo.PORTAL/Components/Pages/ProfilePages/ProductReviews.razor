@@ -8,7 +8,7 @@
 @using ButtonType = AntDesign.ButtonType
 @inject IProductReviewClientService ProductReviewService
 @inject NavigationManager NavigationManager
-@inject MessageService MessageService
+@inject MeoMeo.Shared.Utilities.MessageModalService MessageModalService
 @inject IConfiguration Configuration
 @layout ProfileLayout
 
@@ -454,7 +454,7 @@
         }
         catch (Exception ex)
         {
-            MessageService.Error("Không thể tải dữ liệu!");
+            MessageModalService.Error("Không thể tải dữ liệu!");
             Console.WriteLine($"Error loading data: {ex.Message}");
         }
     }
@@ -525,13 +525,13 @@
     {
         if (reviewModel.Rating <= 0)
         {
-            MessageService.Error("Vui lòng chọn đánh giá!");
+            MessageModalService.Error("Vui lòng chọn đánh giá!");
             return;
         }
 
         if (string.IsNullOrWhiteSpace(reviewModel.Content))
         {
-            MessageService.Error("Vui lòng nhập nội dung đánh giá!");
+            MessageModalService.Error("Vui lòng nhập nội dung đánh giá!");
             return;
         }
 
@@ -581,11 +581,11 @@
             result = await ProductReviewService.UpdateAsync(reviewModel);
             if (result.ResponseStatus == BaseStatus.Success)
             {
-                MessageService.Success("Cập nhật đánh giá thành công!");
+                MessageModalService.Success("Cập nhật đánh giá thành công!");
             }
             else
             {
-                MessageService.Error(result.Message ?? "Có lỗi xảy ra khi cập nhật đánh giá!");
+                MessageModalService.Error(result.Message ?? "Có lỗi xảy ra khi cập nhật đánh giá!");
             }
         }
         else
@@ -594,11 +594,11 @@
             result = await ProductReviewService.CreateAsync(reviewModel);
             if (result.ResponseStatus == BaseStatus.Success)
             {
-                MessageService.Success("Đánh giá sản phẩm thành công!");
+                MessageModalService.Success("Đánh giá sản phẩm thành công!");
             }
             else
             {
-                MessageService.Error(result.Message ?? "Có lỗi xảy ra khi gửi đánh giá!");
+                MessageModalService.Error(result.Message ?? "Có lỗi xảy ra khi gửi đánh giá!");
             }
         }
 
@@ -614,7 +614,7 @@
         var errorMessage = isEditMode ? 
             "Có lỗi xảy ra khi cập nhật đánh giá!" : 
             "Có lỗi xảy ra khi gửi đánh giá!";
-        MessageService.Error(errorMessage);
+        MessageModalService.Error(errorMessage);
         Console.WriteLine($"Error submitting review: {ex.Message}");
     }
     finally
@@ -683,7 +683,7 @@
         }
         catch (Exception ex)
         {
-            MessageService.Error("Có lỗi xảy ra khi tải thông tin đánh giá!");
+            MessageModalService.Error("Có lỗi xảy ra khi tải thông tin đánh giá!");
             Console.WriteLine($"Error loading review for edit: {ex.Message}");
         }
     }
@@ -709,17 +709,17 @@
             var result = await ProductReviewService.DeleteAsync(reviewId);
             if (result.ResponseStatus == BaseStatus.Success)
             {
-                MessageService.Success("Xóa đánh giá thành công!");
+                MessageModalService.Success("Xóa đánh giá thành công!");
                 await LoadData(); // Reload data
             }
             else
             {
-                MessageService.Error(result.Message ?? "Có lỗi xảy ra khi xóa đánh giá!");
+                MessageModalService.Error(result.Message ?? "Có lỗi xảy ra khi xóa đánh giá!");
             }
         }
         catch (Exception ex)
         {
-            MessageService.Error("Có lỗi xảy ra khi xóa đánh giá!");
+            MessageModalService.Error("Có lỗi xảy ra khi xóa đánh giá!");
             Console.WriteLine($"Error deleting review: {ex.Message}");
         }
     }
@@ -750,7 +750,7 @@
                 var maxSize = file.ContentType.StartsWith("video/") ? 10 * 1024 * 1024 : 10 * 1024 * 1024;
                 if (file.Size > maxSize)
                 {
-                    await InvokeAsync(() => MessageService.Error($"File {file.Name} quá lớn. Kích thước tối đa: {maxSize / (1024 * 1024)}MB"));
+                    await InvokeAsync(() => MessageModalService.Error($"File {file.Name} quá lớn. Kích thước tối đa: {maxSize / (1024 * 1024)}MB"));
                     continue;
                 }
 
@@ -759,7 +759,7 @@
                 {
                     if (currentVideoCount + newVideoCount >= 1)
                     {
-                        await InvokeAsync(() => MessageService.Error("Chỉ được tải tối đa 1 video"));
+                        await InvokeAsync(() => MessageModalService.Error("Chỉ được tải tối đa 1 video"));
                         continue;
                     }
                     newVideoCount++;
@@ -768,7 +768,7 @@
                 {
                     if (currentImageCount + newImageCount >= 4)
                     {
-                        await InvokeAsync(() => MessageService.Error("Chỉ được tải tối đa 4 ảnh"));
+                        await InvokeAsync(() => MessageModalService.Error("Chỉ được tải tối đa 4 ảnh"));
                         continue;
                     }
                     newImageCount++;
@@ -787,7 +787,7 @@
             }
             catch (Exception fileEx)
             {
-                await InvokeAsync(() => MessageService.Error($"Lỗi xử lý file {file.Name}: {fileEx.Message}"));
+                await InvokeAsync(() => MessageModalService.Error($"Lỗi xử lý file {file.Name}: {fileEx.Message}"));
             }
         }
 
@@ -798,21 +798,21 @@
 
         if (rejectedFiles > 0)
         {
-            await InvokeAsync(() => MessageService.Warning($"Đã bỏ qua {rejectedFiles} file do vượt quá giới hạn hoặc có lỗi"));
+            await InvokeAsync(() => MessageModalService.Warning($"Đã bỏ qua {rejectedFiles} file do vượt quá giới hạn hoặc có lỗi"));
         }
 
         // Add processed files và update UI
         if (processedFiles.Any())
         {
             reviewUploads.AddRange(processedFiles);
-            await InvokeAsync(() => MessageService.Success($"Đã tải lên {processedFiles.Count} file thành công"));
+            await InvokeAsync(() => MessageModalService.Success($"Đã tải lên {processedFiles.Count} file thành công"));
         }
 
         await InvokeAsync(StateHasChanged);
     }
     catch (Exception ex)
     {
-        await InvokeAsync(() => MessageService.Error($"Lỗi khi xử lý file: {ex.Message}"));
+        await InvokeAsync(() => MessageModalService.Error($"Lỗi khi xử lý file: {ex.Message}"));
     }
     finally
     {

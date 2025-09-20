@@ -8,7 +8,7 @@
 {
     <div class="auth-loading">
         <Spin Size="SpinSize.Large" />
-        <p>Đang kiểm tra quyền truy cập...</p>
+        <p>Đang tải...</p>
     </div>
 }
 else if (isAuthenticated && hasAccess)
@@ -18,11 +18,10 @@ else if (isAuthenticated && hasAccess)
 else
 {
     <div class="access-denied">
-        <Result Status="ResultStatus.Http403" Title="Truy cập bị từ chối"
-            SubTitle="Bạn không có quyền truy cập vào hệ thống CMS. Chỉ Admin và Employee mới có thể truy cập.">
+        <Result Status="ResultStatus.Http403" Title="Vui lòng đăng nhập">
             <Extra>
                 <Button Type="@ButtonType.Primary" @onclick="GoToLogin">
-                    Đăng nhập CMS
+                    Đăng nhập
                 </Button>
             </Extra>
         </Result>

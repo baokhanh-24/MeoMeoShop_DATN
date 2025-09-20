@@ -2,7 +2,7 @@
 @using ButtonSize = AntDesign.ButtonSize
 @using ButtonType = AntDesign.ButtonType
 @using FlexWrap = Radzen.FlexWrap
-@inject IMessageService Message
+@inject MeoMeo.Shared.Utilities.MessageModalService MessageModalService
 @inject IConfiguration Configuration
 @inject MeoMeo.Shared.IServices.ISizeClientService SizeClient
 @inject MeoMeo.Shared.IServices.IColourClientService ColourClient
@@ -317,7 +317,7 @@
                 Product = Product,
                 SelectedVariant = selectedVariant,
                 Quantity = quantity,
-                Message = "Đã chọn biến thể thành công"
+                MessageModalService = "Đã chọn biến thể thành công"
             };
 
             await OnVariantSelected.InvokeAsync(result);
@@ -342,6 +342,6 @@
         public ProductResponseDTO Product { get; set; }
         public ProductDetailGrid SelectedVariant { get; set; }
         public int Quantity { get; set; }
-        public string Message { get; set; }
+        public string MessageModalService { get; set; }
     }
 }

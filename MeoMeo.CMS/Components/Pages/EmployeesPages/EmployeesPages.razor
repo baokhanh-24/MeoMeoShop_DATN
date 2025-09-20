@@ -1,6 +1,7 @@
 ﻿@page "/employees-pages"
 @using System.ComponentModel.DataAnnotations
 @using System.Reflection
+@using AntDesign.TableModels
 @using MeoMeo.Contract.DTOs
 @using MeoMeo.Shared.IServices;
 @using MeoMeo.Contract.Commons
@@ -24,7 +25,7 @@
         <i class="fas fa-plus"></i> Thêm mới
     </Button>
     <AddEmployeesPages Visible="@showAddModal" VisibleChanged="@(val => showAddModal = val)"
-        OnSave="HandleCreateEmployee" StatusList="@employeesStatusList" />
+        OnSave="HandleCreateEmployee" OnSuccess="OnEmployeeCreatedSuccess" StatusList="@employeesStatusList" />
 
     <ChangePasswordPages Visible="@showChangePasswordModal" VisibleChanged="@(val => showChangePasswordModal = val)"
         UserId="@selectedUserId" />
@@ -93,7 +94,7 @@
                         </FormItem>
                     </div>
                     <div class="col-md-6">
-                        <FormItem Label="Email">
+                        <FormItem Label="Email" Required>
                             <Input @bind-Value="editingEmployee.Email" Placeholder="Nhập email" />
                         </FormItem>
                     </div>
@@ -102,7 +103,8 @@
                 <div class="row">
                     <div class="col-md-6">
                         <FormItem Label="Ngày sinh">
-                            <DatePicker Style="width: 100%" @bind-Value="editingEmployee.DateOfBird" />
+                            <DatePicker Style="width: 100%" @bind-Value="editingEmployee.DateOfBird"
+                                DisabledDate="date => date > DateTime.Today" />
                         </FormItem>
                     </div>
                     <div class="col-md-6">
@@ -115,7 +117,7 @@
                     </div>
                 </div>
 
-                <FormItem Label="Địa chỉ">
+                <FormItem Label="Địa chỉ" Required>
                     <TextArea @bind-Value="editingEmployee.Address" Placeholder="Nhập địa chỉ" Rows="3" MaxLength="255" />
                 </FormItem>
 
@@ -156,7 +158,9 @@
     </Tooltip>
 </div>
 
-<Table DataSource="listOfData" TItem="CreateOrUpdateEmployeeDTO" Bordered TableLayout="fixed">
+<Table DataSource="listOfData" TItem="CreateOrUpdateEmployeeDTO" Bordered TableLayout="fixed"
+       Total="@totalRecords" PageSize="@filter.PageSize" OnChange="@OnPageChange"
+       >
     <ChildContent Context="data">
         <Column TData="string" Title="Họ và tên nhân viên">
             @data.Name
@@ -275,12 +279,26 @@
         if (result.ResponseStatus == BaseStatus.Success)
         {
             await MessageModalService.Success("Tạo mới nhân viên thành công!");
-            await LoadData();
+            await OnEmployeeCreatedSuccess();
         }
         else
         {
             await MessageModalService.Error(result.Message);
         }
+    }
+    private async Task OnPageChange(QueryModel<CreateOrUpdateEmployeeDTO> args)
+    {
+        filter.PageIndex = args.PageIndex;
+        filter.PageSize = args.PageSize;
+        await LoadData();
+    }
+
+    private async Task OnEmployeeCreatedSuccess()
+    {
+        showAddModal = false; // Đóng modal khi thành công
+        await LoadData();
+        // Reset form trong AddEmployeesPages component
+        await InvokeAsync(StateHasChanged);
     }
 
     private void OpenChangePasswordModal(Guid userId)
@@ -392,6 +410,44 @@
 
         try
         {
+            // Validation
+            if (string.IsNullOrWhiteSpace(editingEmployee.Name))
+            {
+                await MessageModalService.Error("Vui lòng nhập họ và tên!");
+                return;
+            }
+
+            if (string.IsNullOrWhiteSpace(editingEmployee.PhoneNumber))
+            {
+                await MessageModalService.Error("Vui lòng nhập số điện thoại!");
+                return;
+            }
+
+            if (string.IsNullOrWhiteSpace(editingEmployee.Email))
+            {
+                await MessageModalService.Error("Vui lòng nhập email!");
+                return;
+            }
+
+            if (!IsValidEmail(editingEmployee.Email))
+            {
+                await MessageModalService.Error("Email không đúng định dạng!");
+                return;
+            }
+
+            if (string.IsNullOrWhiteSpace(editingEmployee.Address))
+            {
+                await MessageModalService.Error("Vui lòng nhập địa chỉ!");
+                return;
+            }
+
+            // Validation ngày sinh
+            if (editingEmployee.DateOfBird.HasValue && editingEmployee.DateOfBird.Value > DateTime.Today)
+            {
+                await MessageModalService.Error("Ngày sinh không được là ngày tương lai!");
+                return;
+            }
+
             isSaving = true;
             var result = await EmployeeService.UpdateEmployeesAsync(editingEmployee);
 
@@ -414,6 +470,19 @@
         finally
         {
             isSaving = false;
+        }
+    }
+
+    private bool IsValidEmail(string email)
+    {
+        try
+        {
+            var addr = new System.Net.Mail.MailAddress(email);
+            return addr.Address == email;
+        }
+        catch
+        {
+            return false;
         }
     }
 
@@ -458,11 +527,12 @@
             await MessageModalService.Error("Xóa nhân viên thất bại!");
         }
     }
-
+    int totalRecords = 0;
     private async Task LoadData()
     {
         var response = await EmployeeService.GetAllEmployeesAsync(filter);
         listOfData = response.Items;
+        totalRecords = response.TotalRecords;
         await InvokeAsync(StateHasChanged);
     }
 

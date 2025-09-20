@@ -11,7 +11,7 @@
 @inject IUserInfoService UserInfoService
 @inject CustomAuthStateProvider AuthStateProvider
 @inject NavigationManager NavigationManager
-@inject MessageService MessageService
+@inject MeoMeo.Shared.Utilities.MessageModalService MessageModalService
 @inject IConfiguration Configuration
 
 <AuthorizeView>
@@ -21,7 +21,8 @@
                 <ChildContent>
                     <Button Type="@ButtonType.Link" Class="user-button">
                         <Space>
-                            <Avatar Size="AvatarSize.Small" Style="background-color: #667eea" Src="@GetUserAvatar(context.User)">
+                            <Avatar Size="AvatarSize.Small" Style="background-color: #667eea"
+                                Src="@GetUserAvatar(context.User)">
                             </Avatar>
                             <span class="user-name">@GetUserFullName(context.User)</span>
                             <Icon Type="down" />
@@ -145,12 +146,12 @@
             // Clear cached user info
             UserInfoService.ClearUserInfo();
 
-            MessageService.Success("Đăng xuất thành công!");
+            MessageModalService.Success("Đăng xuất thành công!");
             NavigationManager.NavigateTo("/", forceLoad: true);
         }
         catch (Exception)
         {
-            MessageService.Error("Có lỗi xảy ra trong quá trình đăng xuất!");
+            MessageModalService.Error("Có lỗi xảy ra trong quá trình đăng xuất!");
         }
     }
 

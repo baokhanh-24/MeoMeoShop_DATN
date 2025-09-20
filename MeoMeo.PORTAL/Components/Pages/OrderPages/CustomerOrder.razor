@@ -10,7 +10,7 @@
 @using System.IO
 @using BankDTO = MeoMeo.Contract.DTOs.VietQR.BankDTO
 @inject NavigationManager Navigation
-@inject MessageService MessageService
+@inject MeoMeo.Shared.Utilities.MessageModalService MessageModalService
 @inject IOrderClientService OrderClient
 @inject ICartClientService CartClient
 @inject IOrderReturnClientService OrderReturnClient
@@ -31,10 +31,10 @@
                     </div>
                 </div>
 
-                <div class="status-container" style="display: flex; margin-top: 10px; width: 100%; background-color: #FFFFFF; border-top-left-radius: 8px; border-top-right-radius: 8px; overflow-x: auto;">
+                <div class="status-container" style="display: flex; gap:16px; margin-top: 10px; width: 100%; background-color: #FFFFFF; border-top-left-radius: 8px; border-top-right-radius: 8px; overflow-x: auto;">
                     @foreach (var tab in StatusTabs)
                     {
-                        <div class="@GetTabClasses(tab)"
+                        <div
                              style="@GetTabStyles(tab)"
                              @onclick="() => OnTabClick(tab)">
                             @tab.Label (@GetStatusCount(tab.Value))
@@ -587,7 +587,7 @@
         }
         catch (Exception ex)
         {
-            MessageService.Error($"Lỗi khi tải đơn hàng: {ex.Message}");
+            MessageModalService.Error($"Lỗi khi tải đơn hàng: {ex.Message}");
         }
         finally
         {
@@ -605,7 +605,7 @@
         }
         catch (Exception ex)
         {
-            MessageService.Error($"Lỗi khi tải danh sách ngân hàng: {ex.Message}");
+            MessageModalService.Error($"Lỗi khi tải danh sách ngân hàng: {ex.Message}");
         }
         finally
         {
@@ -647,7 +647,7 @@
     {
         if (string.IsNullOrWhiteSpace(CancelReason?.Trim()))
         {
-            MessageService.Warning("Vui lòng nhập lý do hủy đơn hàng!");
+            MessageModalService.Warning("Vui lòng nhập lý do hủy đơn hàng!");
             return;
         }
 
@@ -659,18 +659,18 @@
             
             if (result.ResponseStatus == BaseStatus.Success)
             {
-                MessageService.Success("Hủy đơn hàng thành công!");
+                MessageModalService.Success("Hủy đơn hàng thành công!");
                 ShowCancelModal = false;
                 await FetchOrders();
             }
             else
             {
-                MessageService.Error($"Lỗi khi hủy đơn hàng: {result.Message}");
+                MessageModalService.Error($"Lỗi khi hủy đơn hàng: {result.Message}");
             }
         }
         catch (Exception ex)
         {
-            MessageService.Error($"Lỗi khi hủy đơn hàng: {ex.Message}");
+            MessageModalService.Error($"Lỗi khi hủy đơn hàng: {ex.Message}");
         }
     }
 
@@ -692,16 +692,16 @@
                 var result = await CartClient.AddToCartAsync(addToCartRequest);
                 if (result?.ResponseStatus == BaseStatus.Error)
                 {
-                    MessageService.Warning($"Không thể thêm sản phẩm {item.ProductName}: {result.Message}");
+                    MessageModalService.Warning($"Không thể thêm sản phẩm {item.ProductName}: {result.Message}");
                 }
             }
             
-            MessageService.Success("Đã thêm tất cả sản phẩm vào giỏ hàng!");
+            MessageModalService.Success("Đã thêm tất cả sản phẩm vào giỏ hàng!");
             Navigation.NavigateTo("/cart");
         }
         catch (Exception ex)
         {
-            MessageService.Error($"Lỗi khi mua lại: {ex.Message}");
+            MessageModalService.Error($"Lỗi khi mua lại: {ex.Message}");
         }
         finally
         {
@@ -728,11 +728,6 @@
         };
     }
 
-    private string GetTabClasses(StatusTab tab)
-    {
-        // Responsive classes for 9 tabs
-        return "col-6 col-sm-4 col-md-3 col-lg-2 col-xl-1";
-    }
 
     private string GetTabStyles(StatusTab tab)
     {
@@ -796,7 +791,7 @@
             var canReturn = await OrderReturnClient.CanOrderBeReturnedAsync(order.Id);
             if (!canReturn)
             {
-                MessageService.Warning("Đơn hàng này không thể hoàn trả hoặc đã hết thời hạn hoàn trả (7 ngày).");
+                MessageModalService.Warning("Đơn hàng này không thể hoàn trả hoặc đã hết thời hạn hoàn trả (7 ngày).");
                 return;
             }
 
@@ -805,7 +800,7 @@
             
             if (AvailableReturnItems?.Any() != true)
             {
-                MessageService.Warning("Không có sản phẩm nào có thể hoàn trả trong đơn hàng này. Có thể do sản phẩm không cho phép hoàn trả hoặc đã hết thời hạn.");
+                MessageModalService.Warning("Không có sản phẩm nào có thể hoàn trả trong đơn hàng này. Có thể do sản phẩm không cho phép hoàn trả hoặc đã hết thời hạn.");
                 return;
             }
 
@@ -826,7 +821,7 @@
         }
         catch (Exception ex)
         {
-            MessageService.Error($"Lỗi khi tải thông tin hoàn trả: {ex.Message}");
+            MessageModalService.Error($"Lỗi khi tải thông tin hoàn trả: {ex.Message}");
         }
         finally
         {
@@ -884,18 +879,18 @@
             
             if (result.ResponseStatus == BaseStatus.Success)
             {
-                MessageService.Success(result.Message);
+                MessageModalService.Success(result.Message);
                 ShowReturnModal = false;
                 await FetchOrders(); // Refresh orders
             }
             else
             {
-                MessageService.Error(result.Message);
+                MessageModalService.Error(result.Message);
             }
         }
         catch (Exception ex)
         {
-            MessageService.Error($"Lỗi khi gửi yêu cầu hoàn trả: {ex.Message}");
+            MessageModalService.Error($"Lỗi khi gửi yêu cầu hoàn trả: {ex.Message}");
         }
         finally
         {
@@ -975,7 +970,7 @@
                     var maxSize = file.ContentType.StartsWith("video/") ? 50 * 1024 * 1024 : 10 * 1024 * 1024; // 50MB for video, 10MB for image
                     if (file.Size > maxSize)
                     {
-                        MessageService.Error($"File {file.Name} quá lớn. Kích thước tối đa: {maxSize / (1024 * 1024)}MB");
+                        MessageModalService.Error($"File {file.Name} quá lớn. Kích thước tối đa: {maxSize / (1024 * 1024)}MB");
                         continue;
                     }
 
@@ -984,7 +979,7 @@
 
                     if (!isImage && !isVideo)
                     {
-                        MessageService.Error($"File {file.Name} không phải là ảnh hoặc video.");
+                        MessageModalService.Error($"File {file.Name} không phải là ảnh hoặc video.");
                         continue;
                     }
 
@@ -993,7 +988,7 @@
                     {
                         if (currentVideoCount + newVideoCount >= 2)
                         {
-                            MessageService.Warning("Chỉ được tải tối đa 2 video");
+                            MessageModalService.Warning("Chỉ được tải tối đa 2 video");
                             continue;
                         }
                         newVideoCount++;
@@ -1002,7 +997,7 @@
                     {
                         if (currentImageCount + newImageCount >= 10)
                         {
-                            MessageService.Warning("Chỉ được tải tối đa 10 ảnh");
+                            MessageModalService.Warning("Chỉ được tải tối đa 10 ảnh");
                             continue;
                         }
                         newImageCount++;
@@ -1020,7 +1015,7 @@
                 }
                 catch (Exception ex)
                 {
-                    MessageService.Error($"Lỗi xử lý file {file.Name}: {ex.Message}");
+                    MessageModalService.Error($"Lỗi xử lý file {file.Name}: {ex.Message}");
                 }
             }
 
@@ -1028,7 +1023,7 @@
         }
         catch (Exception ex)
         {
-            MessageService.Error($"Lỗi khi tải file: {ex.Message}");
+            MessageModalService.Error($"Lỗi khi tải file: {ex.Message}");
         }
         finally
         {

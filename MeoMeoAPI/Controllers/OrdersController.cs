@@ -19,127 +19,24 @@ namespace MeoMeo.API.Controllers
     public class OrdersController : ControllerBase
     {
         private readonly IOrderService _orderService;
-        private readonly IPaymentTransactionService _paymentTransactionService;
         private readonly PaymentOptions _paymentOptions;
         private readonly IVnpay _vnpay;
         private readonly IHttpContextAccessor _httpContextAccessor;
 
         public OrdersController(
             IOrderService orderService,
-            IPaymentTransactionService paymentTransactionService,
             IOptions<PaymentOptions> paymentOptions,
             IVnpay vnpay,
             IHttpContextAccessor httpContextAccessor)
         {
             _orderService = orderService;
-            _paymentTransactionService = paymentTransactionService;
             _vnpay = vnpay;
             _httpContextAccessor = httpContextAccessor;
             _paymentOptions = paymentOptions.Value;
             _vnpay.Initialize(_paymentOptions.Vnpay.TmnCode, _paymentOptions.Vnpay.HashSecret, _paymentOptions.Vnpay.BaseUrl, _paymentOptions.Vnpay.PaymentBackReturnUrl);
         }
 
-        [HttpPost("take-vn-pay")]
-        public async Task<string> CreatePaymentUrlAsync([FromBody] CreatePaymentUrlDTO input)
-        {
-            var ipAddress = NetworkHelper.GetIpAddress(_httpContextAccessor.HttpContext);
-
-            // Create payment transaction record first
-            var createTransactionRequest = new CreatePaymentTransactionDTO
-            {
-                OrderId = input.OrderId,
-                CustomerId = input.CustomerId,
-                Amount = input.Amount,
-                Description = string.IsNullOrWhiteSpace(input.Description) ? $"Thanh toan don hang {input.OrderId}" : input.Description,
-                IpAddress = ipAddress,
-                PaymentMethod = "VNPAY"
-            };
-
-            var transactionResult = await _paymentTransactionService.CreatePaymentTransactionAsync(createTransactionRequest);
-            if (transactionResult.ResponseStatus != BaseStatus.Success)
-            {
-                throw new Exception(transactionResult.Message);
-            }
-
-            var transactionCode = transactionResult.TransactionCode;
-
-            var request = new PaymentRequest
-            {
-                PaymentId = DateTime.Now.Ticks,
-                Money = input.Amount,
-                Description = createTransactionRequest.Description,
-                IpAddress = ipAddress,
-                BankCode = BankCode.ANY,
-                CreatedDate = DateTime.Now,
-                Currency = Currency.VND,
-                Language = DisplayLanguage.Vietnamese
-            };
-
-            // Use transaction code as VnpTxnRef for tracking
-            var paymentUrl = _vnpay.GetPaymentUrl(request);
-
-            // Replace the auto-generated TxnRef with our transaction code
-            paymentUrl = paymentUrl.Replace($"vnp_TxnRef={request.PaymentId}", $"vnp_TxnRef={transactionCode}");
-
-            return paymentUrl;
-        }
-
-        [HttpGet("call-back-vn-pay")]
-        public async Task<object> GetCallBackAsync()
-        {
-            try
-            {
-                var query = _httpContextAccessor.HttpContext.Request.Query;
-
-                // Extract VNPay callback data
-                var callback = new VnpayCallbackDTO
-                {
-                    vnp_TxnRef = query["vnp_TxnRef"].ToString(),
-                    vnp_TransactionNo = query["vnp_TransactionNo"].ToString(),
-                    vnp_Amount = query["vnp_Amount"].ToString(),
-                    vnp_BankCode = query["vnp_BankCode"].ToString(),
-                    vnp_BankTranNo = query["vnp_BankTranNo"].ToString(),
-                    vnp_CardType = query["vnp_CardType"].ToString(),
-                    vnp_PayDate = query["vnp_PayDate"].ToString(),
-                    vnp_OrderInfo = query["vnp_OrderInfo"].ToString(),
-                    vnp_ResponseCode = query["vnp_ResponseCode"].ToString(),
-                    vnp_TransactionStatus = query["vnp_TransactionStatus"].ToString(),
-                    vnp_SecureHash = query["vnp_SecureHash"].ToString()
-                };
-
-                // Build raw data string for logging
-                var rawData = string.Join("&", query.Select(kvp => $"{kvp.Key}={kvp.Value}"));
-
-                // Process callback through PaymentTransactionService
-                var result = await _paymentTransactionService.ProcessVnpayCallbackAsync(callback, rawData);
-
-                if (result.ResponseStatus == BaseStatus.Success)
-                {
-                    return Ok(new
-                    {
-                        success = true,
-                        message = result.Message,
-                        transactionRef = callback.vnp_TxnRef
-                    });
-                }
-
-                return BadRequest(new
-                {
-                    success = false,
-                    message = result.Message,
-                    transactionRef = callback.vnp_TxnRef
-                });
-            }
-            catch (Exception ex)
-            {
-                return StatusCode(500, new
-                {
-                    success = false,
-                    message = ex.Message
-                });
-            }
-        }
-
+        
         [HttpGet("get-list-order-async")]
         public async Task<PagingExtensions.PagedResult<OrderDTO, GetListOrderResponseDTO>> GetAllCustomersAsync([FromQuery] GetListOrderRequestDTO request)
         {

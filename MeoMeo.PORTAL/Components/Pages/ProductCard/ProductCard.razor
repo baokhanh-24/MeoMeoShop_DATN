@@ -8,7 +8,7 @@
 @inject IConfiguration Configuration
 @inject IJSRuntime JSRuntime
 @inject NavigationManager Navigation
-@inject IMessageService Message
+@inject MeoMeo.Shared.Utilities.MessageModalService MessageModalService
 @inject MeoMeo.Shared.IServices.ICartClientService CartClient
 @inject IAuthClientService AuthClient
 @inject MeoMeo.Shared.IServices.ICartStateService CartStateService
@@ -207,21 +207,21 @@
         {
             if (variant == null || !variant.Id.HasValue)
             {
-                Message.Error("Không thể lấy thông tin biến thể sản phẩm");
+                await MessageModalService.Error("Không thể lấy thông tin biến thể sản phẩm");
                 return;
             }
 
             @* // Kiểm tra trạng thái sản phẩm
             if (variant.Status != Domain.Commons.Enums.EProductStatus.Selling)
             {
-                Message.Warning("Sản phẩm này hiện không bán");
+                await MessageModalService.Warning("Sản phẩm này hiện không bán");
                 return; *@
             // }
 
             // Kiểm tra tồn kho
             if (variant.OutOfStock <= 0)
             {
-                Message.Warning("Sản phẩm này đã hết hàng");
+                await MessageModalService.Warning("Sản phẩm này đã hết hàng");
                 return;
             }
 
@@ -238,19 +238,19 @@
 
             if (result != null && (int)result.ResponseStatus == 1) // Success = 1
             {
-                Message.Success($"Đã thêm sản phẩm vào giỏ hàng thành công!");
+                await MessageModalService.Success($"Đã thêm sản phẩm vào giỏ hàng thành công!");
                 // Reload cart to get accurate item count
                 await ReloadCartCount();
             }
             else
             {
                 var errorMessage = result?.Message ?? "Có lỗi xảy ra khi thêm vào giỏ hàng";
-                Message.Error(errorMessage);
+                await MessageModalService.Error(errorMessage);
             }
         }
         catch (Exception ex)
         {
-            Message.Error($"Lỗi: {ex.Message}");
+            await MessageModalService.Error($"Lỗi: {ex.Message}");
             Console.WriteLine($"Error in AddToCartWithVariant: {ex}");
         }
     }
@@ -318,7 +318,7 @@
         var isLogged = await AuthClient.IsAuthenticatedAsync();
         if (!isLogged)
         {
-            Message.Warning("Vui lòng đăng nhập để thêm sản phẩm vào giỏ hàng");
+            await MessageModalService.Warning("Vui lòng đăng nhập để thêm sản phẩm vào giỏ hàng");
             return;
 
         }

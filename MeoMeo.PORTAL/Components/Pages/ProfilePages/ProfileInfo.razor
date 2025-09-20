@@ -13,7 +13,7 @@
 @inject IAuthClientService AuthService
 @inject CustomAuthStateProvider AuthStateProvider
 @inject NavigationManager NavigationManager
-@inject MessageService MessageService
+@inject MeoMeo.Shared.Utilities.MessageModalService MessageModalService
 @inject IConfiguration Configuration
 @layout ProfileLayout
 
@@ -285,7 +285,7 @@ new FormValidationRule { Max = 255, Message = "Địa chỉ tối đa 255 ký t�
         }
         catch (Exception ex)
         {
-            MessageService.Error("Không thể tải thông tin người dùng!");
+            MessageModalService.Error("Không thể tải thông tin người dùng!");
             Console.WriteLine($"Error loading user data: {ex.Message}");
         }
     }
@@ -319,13 +319,13 @@ new FormValidationRule { Max = 255, Message = "Địa chỉ tối đa 255 ký t�
 
         if (!file.ContentType.StartsWith("image/"))
         {
-            MessageService.Error("Vui lòng chọn file ảnh!");
+            MessageModalService.Error("Vui lòng chọn file ảnh!");
             return;
         }
 
         if (file.Size > 5 * 1024 * 1024) // 5MB
         {
-            MessageService.Error("File ảnh không được vượt quá 5MB!");
+            MessageModalService.Error("File ảnh không được vượt quá 5MB!");
             return;
         }
 
@@ -336,19 +336,19 @@ new FormValidationRule { Max = 255, Message = "Địa chỉ tối đa 255 ký t�
             var response = await CustomerService.UploadAvatarAsync(fileUpload);
             if (response.ResponseStatus == BaseStatus.Success)
             {
-                MessageService.Success("Cập nhật ảnh đại diện thành công!");
+                MessageModalService.Success("Cập nhật ảnh đại diện thành công!");
                 await LoadUserData(); // Reload to get new avatar URL
                                       // Refresh user info để cập nhật UserMenu
                 await UserInfoService.RefreshUserInfoAsync();
             }
             else
             {
-                MessageService.Error("Cập nhật ảnh đại diện thất bại!");
+                MessageModalService.Error("Cập nhật ảnh đại diện thất bại!");
             }
         }
         catch (Exception ex)
         {
-            MessageService.Error("Có lỗi xảy ra khi tải ảnh!");
+            MessageModalService.Error("Có lỗi xảy ra khi tải ảnh!");
             Console.WriteLine($"Error uploading avatar: {ex.Message}");
         }
         finally
@@ -377,19 +377,19 @@ new FormValidationRule { Max = 255, Message = "Địa chỉ tối đa 255 ký t�
         string.IsNullOrEmpty(passwordModel.NewPassword) ||
         string.IsNullOrEmpty(passwordModel.ConfirmPassword))
         {
-            MessageService.Error("Vui lòng điền đầy đủ thông tin!");
+            MessageModalService.Error("Vui lòng điền đầy đủ thông tin!");
             return;
         }
 
         if (passwordModel.NewPassword != passwordModel.ConfirmPassword)
         {
-            MessageService.Error("Mật khẩu xác nhận không khớp!");
+            MessageModalService.Error("Mật khẩu xác nhận không khớp!");
             return;
         }
 
         if (passwordModel.NewPassword.Length < 6)
         {
-            MessageService.Error("Mật khẩu mới phải có ít nhất 6 ký tự!");
+            MessageModalService.Error("Mật khẩu mới phải có ít nhất 6 ký tự!");
             return;
         }
 
@@ -401,18 +401,18 @@ new FormValidationRule { Max = 255, Message = "Địa chỉ tối đa 255 ký t�
             var response = await CustomerService.ChangePasswordAsync(passwordModel);
             if (response.ResponseStatus == BaseStatus.Success)
             {
-                MessageService.Success("Đổi mật khẩu thành công!");
+                MessageModalService.Success("Đổi mật khẩu thành công!");
                 isChangePasswordVisible = false;
                 passwordModel = new();
             }
             else
             {
-                MessageService.Error("Đổi mật khẩu thất bại!");
+                MessageModalService.Error("Đổi mật khẩu thất bại!");
             }
         }
         catch (Exception ex)
         {
-            MessageService.Error("Có lỗi xảy ra khi đổi mật khẩu!");
+            MessageModalService.Error("Có lỗi xảy ra khi đổi mật khẩu!");
             Console.WriteLine($"Error changing password: {ex.Message}");
         }
         finally
@@ -429,7 +429,7 @@ new FormValidationRule { Max = 255, Message = "Địa chỉ tối đa 255 ký t�
             // Validate Name
             if (string.IsNullOrWhiteSpace(model.Name) || model.Name.Length < 2)
             {
-                MessageService.Warning("Họ tên phải có ít nhất 2 ký tự");
+                MessageModalService.Warning("Họ tên phải có ít nhất 2 ký tự");
                 return;
             }
 
@@ -437,14 +437,14 @@ new FormValidationRule { Max = 255, Message = "Địa chỉ tối đa 255 ký t�
             if (string.IsNullOrWhiteSpace(model.PhoneNumber) ||
             !System.Text.RegularExpressions.Regex.IsMatch(model.PhoneNumber, @"^[0-9]{10,11}$"))
             {
-                MessageService.Warning("Số điện thoại không hợp lệ");
+                MessageModalService.Warning("Số điện thoại không hợp lệ");
                 return;
             }
 
             // Validate DateOfBirth
             if (model.DateOfBirth.HasValue && model.DateOfBirth.Value.Date > DateTime.Today)
             {
-                MessageService.Warning("Ngày sinh không được lớn hơn ngày hiện tại");
+                MessageModalService.Warning("Ngày sinh không được lớn hơn ngày hiện tại");
                 return;
             }
 
@@ -452,19 +452,19 @@ new FormValidationRule { Max = 255, Message = "Địa chỉ tối đa 255 ký t�
             if (!string.IsNullOrEmpty(model.TaxCode) &&
             !System.Text.RegularExpressions.Regex.IsMatch(model.TaxCode, @"^\d{10}(\d{3})?$"))
             {
-                MessageService.Warning("Mã số thuế phải có 10 hoặc 13 số");
+                MessageModalService.Warning("Mã số thuế phải có 10 hoặc 13 số");
                 return;
             }
 
             // Validate Address
             if (string.IsNullOrWhiteSpace(model.Address))
             {
-                MessageService.Warning("Vui lòng nhập địa chỉ");
+                MessageModalService.Warning("Vui lòng nhập địa chỉ");
                 return;
             }
             if (model.Address.Length > 255)
             {
-                MessageService.Warning("Địa chỉ tối đa 255 ký tự");
+                MessageModalService.Warning("Địa chỉ tối đa 255 ký tự");
                 return;
             }
             isLoading = true;
@@ -473,7 +473,7 @@ new FormValidationRule { Max = 255, Message = "Địa chỉ tối đa 255 ký t�
             var response = await CustomerService.UpdateProfileAsync(model);
             if (response.ResponseStatus == BaseStatus.Success)
             {
-                MessageService.Success("Cập nhật thông tin thành công!");
+                MessageModalService.Success("Cập nhật thông tin thành công!");
                 hasChanges = false;
                 await LoadUserData();
                 // Refresh user info để cập nhật UserMenu
@@ -481,12 +481,12 @@ new FormValidationRule { Max = 255, Message = "Địa chỉ tối đa 255 ký t�
             }
             else
             {
-                MessageService.Error("Cập nhật thông tin thất bại!");
+                MessageModalService.Error("Cập nhật thông tin thất bại!");
             }
         }
         catch (Exception ex)
         {
-            MessageService.Error("Có lỗi xảy ra khi cập nhật thông tin!");
+            MessageModalService.Error("Có lỗi xảy ra khi cập nhật thông tin!");
             Console.WriteLine($"Error updating profile: {ex.Message}");
         }
         finally

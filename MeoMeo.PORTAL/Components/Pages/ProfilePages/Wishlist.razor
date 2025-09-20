@@ -15,7 +15,7 @@
 @inject ICartClientService CartService
 @inject CustomAuthStateProvider AuthStateProvider
 @inject NavigationManager NavigationManager
-@inject MessageService MessageService
+@inject MeoMeo.Shared.Utilities.MessageModalService MessageModalService
 @inject IProductClientService ProductClientService
 @layout ProfileLayout
 
@@ -115,7 +115,7 @@
         }
         catch (Exception ex)
         {
-            MessageService.Error("Không thể tải danh sách yêu thích!");
+            MessageModalService.Error("Không thể tải danh sách yêu thích!");
             Console.WriteLine($"Error loading wishlist: {ex.Message}");
         }
         finally
@@ -180,16 +180,16 @@
             var result = await CartService.AddToCartAsync(new AddToCartDTO { ProductDetailId = productDetailId, Quantity = 1 });
             if (result != null)
             {
-                MessageService.Success("Đã thêm sản phẩm vào giỏ hàng!");
+                MessageModalService.Success("Đã thêm sản phẩm vào giỏ hàng!");
             }
             else
             {
-                MessageService.Error("Không thể thêm sản phẩm vào giỏ hàng!");
+                MessageModalService.Error("Không thể thêm sản phẩm vào giỏ hàng!");
             }
         }
         catch (Exception ex)
         {
-            MessageService.Error("Có lỗi xảy ra khi thêm vào giỏ hàng!");
+            MessageModalService.Error("Có lỗi xảy ra khi thêm vào giỏ hàng!");
             Console.WriteLine($"Error adding to cart: {ex.Message}");
         }
     }
@@ -213,16 +213,16 @@
 
             if (successCount > 0)
             {
-                MessageService.Success($"Đã thêm {successCount} sản phẩm vào giỏ hàng!");
+                MessageModalService.Success($"Đã thêm {successCount} sản phẩm vào giỏ hàng!");
             }
             else
             {
-                MessageService.Warning("Không có sản phẩm nào có thể thêm vào giỏ hàng!");
+                MessageModalService.Warning("Không có sản phẩm nào có thể thêm vào giỏ hàng!");
             }
         }
         catch (Exception ex)
         {
-            MessageService.Error("Có lỗi xảy ra khi thêm sản phẩm vào giỏ hàng!");
+            MessageModalService.Error("Có lỗi xảy ra khi thêm sản phẩm vào giỏ hàng!");
             Console.WriteLine($"Error adding all to cart: {ex.Message}");
         }
     }
@@ -234,17 +234,17 @@
             var result = await WishlistService.RemoveFromWishlistAsync(productDetailId);
             if (result)
             {
-                MessageService.Success("Đã xóa sản phẩm khỏi yêu thích!");
+                MessageModalService.Success("Đã xóa sản phẩm khỏi yêu thích!");
                 await LoadWishlist();
             }
             else
             {
-                MessageService.Error("Không thể xóa sản phẩm khỏi yêu thích!");
+                MessageModalService.Error("Không thể xóa sản phẩm khỏi yêu thích!");
             }
         }
         catch (Exception ex)
         {
-            MessageService.Error("Có lỗi xảy ra khi xóa sản phẩm!");
+            MessageModalService.Error("Có lỗi xảy ra khi xóa sản phẩm!");
             Console.WriteLine($"Error removing from wishlist: {ex.Message}");
         }
     }

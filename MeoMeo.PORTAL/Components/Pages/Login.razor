@@ -7,7 +7,7 @@
 @inject IAuthClientService AuthService
 @inject CustomAuthStateProvider AuthStateProvider
 @inject NavigationManager NavigationManager
-@inject MessageService MessageService
+@inject MeoMeo.Shared.Utilities.MessageModalService MessageModalService
 
 <div class="login-container">
     <div class="login-card">
@@ -90,7 +90,7 @@ new FormValidationRule { Min = 6, Message = "Mật khẩu phải có ít nhất 
         var isAuthenticated = await AuthService.IsAuthenticatedAsync();
         if (isAuthenticated)
         {
-            NavigationManager.NavigateTo("/",forceLoad:true);
+            NavigationManager.NavigateTo("/", forceLoad: true);
         }
     }
 
@@ -108,23 +108,23 @@ new FormValidationRule { Min = 6, Message = "Mật khẩu phải có ít nhất 
                 // Thông báo authentication state provider
                 AuthStateProvider.NotifyUserAuthentication(response.AccessToken);
 
-                MessageService.Success("Đăng nhập thành công!");
+                MessageModalService.Success("Đăng nhập thành công!");
 
                 // Force UI update
                 StateHasChanged();
 
                 // Chuyển hướng về trang chủ
-                NavigationManager.NavigateTo("/",forceLoad:true);
+                NavigationManager.NavigateTo("/", forceLoad: true);
             }
             else
             {
                 var errorMessage = response?.Message ?? "Đăng nhập thất bại. Vui lòng kiểm tra lại thông tin!";
-                MessageService.Error(errorMessage);
+                MessageModalService.Error(errorMessage);
             }
         }
         catch (Exception ex)
         {
-            MessageService.Error("Có lỗi xảy ra trong quá trình đăng nhập. Vui lòng thử lại!");
+            MessageModalService.Error("Có lỗi xảy ra trong quá trình đăng nhập. Vui lòng thử lại!");
         }
         finally
         {

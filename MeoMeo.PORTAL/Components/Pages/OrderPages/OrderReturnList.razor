@@ -5,7 +5,7 @@
 @using MeoMeo.Contract.Commons
 @using MeoMeo.PORTAL.Components.Pages.ProfilePages
 @inject NavigationManager Navigation
-@inject MessageService MessageService
+@inject MeoMeo.Shared.Utilities.MessageModalService MessageModalService
 @inject IOrderReturnClientService OrderReturnClient
 @layout ProfileLayout
 
@@ -169,7 +169,7 @@
         }
         catch (Exception ex)
         {
-            MessageService.Error($"Lỗi khi tải yêu cầu hoàn trả: {ex.Message}");
+            MessageModalService.Error($"Lỗi khi tải yêu cầu hoàn trả: {ex.Message}");
         }
         finally
         {
@@ -199,17 +199,17 @@
             var result = await OrderReturnClient.CancelOrderReturnAsync(returnId);
             if (result.ResponseStatus == BaseStatus.Success)
             {
-                MessageService.Success("Hủy yêu cầu hoàn trả thành công!");
+                MessageModalService.Success("Hủy yêu cầu hoàn trả thành công!");
                 await FetchOrderReturns();
             }
             else
             {
-                MessageService.Error(result.Message);
+                MessageModalService.Error(result.Message);
             }
         }
         catch (Exception ex)
         {
-            MessageService.Error($"Lỗi khi hủy yêu cầu hoàn trả: {ex.Message}");
+            MessageModalService.Error($"Lỗi khi hủy yêu cầu hoàn trả: {ex.Message}");
         }
     }
 

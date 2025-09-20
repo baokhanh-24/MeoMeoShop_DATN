@@ -678,6 +678,20 @@ namespace MeoMeo.Application.Services
 
                 foreach (var g in groupedByVariant)
                 {
+                    // Lấy thông tin chi tiết sản phẩm để hiển thị trong thông báo lỗi
+                    var productInfo = await _productsDetailRepository.Query()
+                        .Include(pd => pd.Product)
+                        .Include(pd => pd.Size)
+                        .Include(pd => pd.Colour)
+                        .Where(pd => pd.Id == g.ProductDetailId)
+                        .Select(pd => new
+                        {
+                            ProductName = pd.Product.Name,
+                            SizeValue = pd.Size.Value,
+                            ColourName = pd.Colour.Name
+                        })
+                        .FirstOrDefaultAsync();
+
                     // Chỉ tính các lô đã duyệt
                     var available = await _inventoryRepository.Query()
                         .Where(x => x.ProductDetailId == g.ProductDetailId &&
@@ -685,10 +699,13 @@ namespace MeoMeo.Application.Services
                         .SumAsync(x => (int?)x.Quantity) ?? 0;
                     if (g.TotalQty > available)
                     {
+                        var productDisplayName = productInfo != null
+                            ? $"\"{productInfo.ProductName}\" ({productInfo.ColourName}, Size {productInfo.SizeValue})"
+                            : $"biến thể {g.ProductDetailId}";
+
                         return new CreateOrderResultDTO
                         {
-                            Message =
-                                $"Không đủ tồn kho cho biến thể {g.ProductDetailId}. Cần {g.TotalQty}, còn {available}",
+                            Message = $"Không đủ tồn kho cho sản phẩm {productDisplayName}. Cần {g.TotalQty}, chỉ còn {available}",
                             ResponseStatus = BaseStatus.Error
                         };
                     }

@@ -12,7 +12,7 @@
 @using ButtonSize = AntDesign.ButtonSize
 @using ButtonType = AntDesign.ButtonType
 @inject ICartClientService CartClient
-@inject MessageService MessageService
+@inject MeoMeo.Shared.Utilities.MessageModalService MessageModalService
 @inject NavigationManager Navigation
 @inject IConfiguration Configuration
 @inject IOrderClientService OrderClient
@@ -602,7 +602,7 @@
         }
         catch (Exception ex)
         {
-            MessageService.Error($"Không thể tải danh sách voucher: {ex.Message}");
+            MessageModalService.Error($"Không thể tải danh sách voucher: {ex.Message}");
         }
     }
     private async Task FetchImageAsync()
@@ -638,7 +638,7 @@
         }
         catch (Exception ex)
         {
-            MessageService.Error($"Không thể tải địa chỉ giao hàng: {ex.Message}");
+            MessageModalService.Error($"Không thể tải địa chỉ giao hàng: {ex.Message}");
         }
     }
     private async Task Increment(CartDetailItemDTO item)
@@ -676,7 +676,7 @@
         }
         else
         {
-            MessageService.Error(result?.Message ?? "Cập nhật số lượng thất bại");
+            MessageModalService.Error(result?.Message ?? "Cập nhật số lượng thất bại");
         }
     }
     private async Task RemoveItem(Guid id)
@@ -685,13 +685,13 @@
         if (result?.ResponseStatus == BaseStatus.Success)
         {
             await LoadCart();
-            MessageService.Success("Đã xóa sản phẩm khỏi giỏ hàng");
+            MessageModalService.Success("Đã xóa sản phẩm khỏi giỏ hàng");
 
             // LoadCart() will automatically update cart state with correct item count
         }
         else
         {
-            MessageService.Error(result?.Message ?? "Xoá sản phẩm thất bại");
+            MessageModalService.Error(result?.Message ?? "Xoá sản phẩm thất bại");
         }
     }
     private async Task CalculateFinalTotalAsync()
@@ -790,12 +790,12 @@
         var selectedIds = selectedRows.Select(r => r.Id).ToList();
         if (selectedIds.Count == 0)
         {
-            MessageService.Warning("Vui lòng chọn sản phẩm để mua");
+            MessageModalService.Warning("Vui lòng chọn sản phẩm để mua");
             return;
         }
         if (SelectedAddressId == Guid.Empty)
         {
-            MessageService.Warning("Vui lòng chọn địa chỉ giao hàng");
+            MessageModalService.Warning("Vui lòng chọn địa chỉ giao hàng");
             return;
         }
 
@@ -810,27 +810,7 @@
         var resp = await CartClient.CheckoutAsync(newOrder);
         if (resp?.ResponseStatus == BaseStatus.Success)
         {
-            MessageService.Success(resp.Message);
-            try
-            {
-                var ghnOrderRequest = CreateGhnOrderRequest(resp);
-                var ghnResponse = await GhnService.CreateOrderAsync(ghnOrderRequest);
-
-                if (ghnResponse?.Code == 200 && ghnResponse.Data != null)
-                {
-                    MessageService.Success($"Đã tạo đơn hàng vận chuyển GHN: {ghnResponse.Data.OrderCode}");
-                }
-                else
-                {
-                    MessageService.Warning($"Đặt hàng thành công nhưng không thể tạo đơn hàng GHN: {ghnResponse?.Message}");
-                }
-            }
-            catch (Exception ex)
-            {
-                MessageService.Warning($"Đặt hàng thành công nhưng không thể tạo đơn hàng GHN: {ex.Message}");
-            }
-
-            // Show order code for user reference
+            MessageModalService.Success(resp.Message);
             await LoadCart();
             if (SelectedPaymentMethod == 2)
             {
@@ -851,7 +831,7 @@
         }
         else
         {
-            MessageService.Error(resp?.Message ?? "Đặt hàng thất bại");
+            MessageModalService.Error(resp?.Message ?? "Đặt hàng thất bại");
         }
     }
 
@@ -876,18 +856,18 @@
             SelectedVoucher = voucher;
             OpenVoucherModal = false;
             await CalculateFinalTotalAsync();
-            MessageService.Success($"Đã áp dụng voucher {voucher.Code}");
+            MessageModalService.Success($"Đã áp dụng voucher {voucher.Code}");
         }
         else
         {
-            MessageService.Warning("Voucher này không thể sử dụng");
+            MessageModalService.Warning("Voucher này không thể sử dụng");
         }
     }
     private async Task RemoveVoucher()
     {
         SelectedVoucher = null;
         await CalculateFinalTotalAsync();
-        MessageService.Success("Đã xóa voucher");
+        MessageModalService.Success("Đã xóa voucher");
     }
     private async Task SearchVoucher()
     {
@@ -924,7 +904,7 @@
         }
         catch (Exception ex)
         {
-            MessageService.Error($"Không thể tải danh sách địa chỉ: {ex.Message}");
+            MessageModalService.Error($"Không thể tải danh sách địa chỉ: {ex.Message}");
         }
     }
     private void HandleOkDelivery()
@@ -935,7 +915,7 @@
             if (selectedAddress != null)
             {
                 DefaultDeliveryAddress = selectedAddress;
-                MessageService.Success("Đã chọn địa chỉ giao hàng");
+                MessageModalService.Success("Đã chọn địa chỉ giao hàng");
                 _ = CalculateFinalTotalAsync();
             }
         }
@@ -987,12 +967,12 @@
                 {
                     DefaultDeliveryAddress = LstDeliveryAddress.FirstOrDefault();
                 }
-                MessageService.Success("Đã xóa địa chỉ");
+                MessageModalService.Success("Đã xóa địa chỉ");
             }
         }
         catch (Exception ex)
         {
-            MessageService.Error($"Không thể xóa địa chỉ: {ex.Message}");
+            MessageModalService.Error($"Không thể xóa địa chỉ: {ex.Message}");
         }
     }
     private async Task HandleOkAddress()
@@ -1007,32 +987,32 @@
             // Basic validations
             if (string.IsNullOrWhiteSpace(EditingAddress.Name))
             {
-                MessageService.Warning("Vui lòng nhập họ tên");
+                MessageModalService.Warning("Vui lòng nhập họ tên");
                 return;
             }
             if (EditingAddress.Name!.Length < 2)
             {
-                MessageService.Warning("Họ tên quá ngắn");
+                MessageModalService.Warning("Họ tên quá ngắn");
                 return;
             }
             if (string.IsNullOrWhiteSpace(EditingAddress.PhoneNumber))
             {
-                MessageService.Warning("Vui lòng nhập số điện thoại");
+                MessageModalService.Warning("Vui lòng nhập số điện thoại");
                 return;
             }
             if (!IsValidVietnamPhone(EditingAddress.PhoneNumber!))
             {
-                MessageService.Warning("Số điện thoại không hợp lệ (10-11 số, bắt đầu bằng 0)");
+                MessageModalService.Warning("Số điện thoại không hợp lệ (10-11 số, bắt đầu bằng 0)");
                 return;
             }
             if (!SelectedProvinceId.HasValue || !SelectedDistrictId.HasValue || !SelectedCommuneId.HasValue)
             {
-                MessageService.Warning("Vui lòng chọn đủ Tỉnh/Thành, Quận/Huyện, Phường/Xã");
+                MessageModalService.Warning("Vui lòng chọn đủ Tỉnh/Thành, Quận/Huyện, Phường/Xã");
                 return;
             }
             if (string.IsNullOrWhiteSpace(EditingAddress.Address))
             {
-                MessageService.Warning("Vui lòng nhập địa chỉ chi tiết (số nhà, đường...)");
+                MessageModalService.Warning("Vui lòng nhập địa chỉ chi tiết (số nhà, đường...)");
                 return;
             }
             EditingAddress.CommuneId = SelectedCommuneId;
@@ -1046,12 +1026,12 @@
                 OpenCreateOrUpdateAddressModal = false;
                 OpenDeliveryModal = true;
                 await LoadMyAddresses();
-                MessageService.Success(EditingAddress.Id.HasValue ? "Đã cập nhật địa chỉ" : "Đã thêm địa chỉ mới");
+                MessageModalService.Success(EditingAddress.Id.HasValue ? "Đã cập nhật địa chỉ" : "Đã thêm địa chỉ mới");
             }
         }
         catch (Exception ex)
         {
-            MessageService.Error($"Không thể lưu địa chỉ: {ex.Message}");
+            MessageModalService.Error($"Không thể lưu địa chỉ: {ex.Message}");
         }
     }
     private void HandleCancelAddress()
@@ -1068,7 +1048,7 @@
         }
         catch (Exception ex)
         {
-            MessageService.Error($"Không thể tải dữ liệu địa chỉ GHN: {ex.Message}");
+            MessageModalService.Error($"Không thể tải dữ liệu địa chỉ GHN: {ex.Message}");
         }
     }
 
@@ -1078,7 +1058,7 @@
         {
             if (string.IsNullOrWhiteSpace(GhnToken))
             {
-                MessageService.Warning("GHN Token chưa được cấu hình");
+                MessageModalService.Warning("GHN Token chưa được cấu hình");
                 return;
             }
 
@@ -1101,7 +1081,7 @@
         }
         catch (Exception ex)
         {
-            MessageService.Error($"Không thể tải danh sách tỉnh/thành phố GHN: {ex.Message}");
+            MessageModalService.Error($"Không thể tải danh sách tỉnh/thành phố GHN: {ex.Message}");
         }
     }
 
@@ -1154,7 +1134,7 @@
         }
         catch (Exception ex)
         {
-            MessageService.Error($"Không thể tải danh sách quận/huyện GHN: {ex.Message}");
+            MessageModalService.Error($"Không thể tải danh sách quận/huyện GHN: {ex.Message}");
         }
     }
 
@@ -1202,7 +1182,7 @@
         }
         catch (Exception ex)
         {
-            MessageService.Error($"Không thể tải danh sách phường/xã GHN: {ex.Message}");
+            MessageModalService.Error($"Không thể tải danh sách phường/xã GHN: {ex.Message}");
         }
     }
 

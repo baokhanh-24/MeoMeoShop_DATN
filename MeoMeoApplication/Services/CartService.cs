@@ -112,23 +112,36 @@ namespace MeoMeo.Application.Services
                 // Số lượng cần thêm (mặc định tối thiểu 1)
                 var quantity = cartDto.Quantity > 0 ? cartDto.Quantity : 1;
 
-                // 1) Kiểm tra biến thể có tồn tại và lấy giá hiện tại
+                // 1) Kiểm tra biến thể có tồn tại và lấy thông tin chi tiết
                 var variant = await _productDetailRepository.Query()
+                    .Include(v => v.Product)
+                    .Include(v => v.Size)
+                    .Include(v => v.Colour)
                     .Where(v => v.Id == productDetailId)
-                    .Select(v => new { v.Id, v.Price, v.Status, v.AllowReturn, v.MaxBuyPerOrder })
+                    .Select(v => new
+                    {
+                        v.Id,
+                        v.Price,
+                        v.Status,
+                        v.AllowReturn,
+                        v.MaxBuyPerOrder,
+                        ProductName = v.Product.Name,
+                        SizeValue = v.Size.Value,
+                        ColourName = v.Colour.Name
+                    })
                     .FirstOrDefaultAsync();
                 if (variant == null)
                 {
                     // Không tồn tại biến thể → trả lỗi
                     return new CartResponseDTO
-                    { ResponseStatus = BaseStatus.Error, Message = "Biến thể không tồn tại" };
+                    { ResponseStatus = BaseStatus.Error, Message = "Sản phẩm không tồn tại" };
                 }
 
                 // Kiểm tra MaxBuyPerOrder nếu có giới hạn
                 if (variant.MaxBuyPerOrder.HasValue && quantity > variant.MaxBuyPerOrder.Value)
                 {
                     return new CartResponseDTO
-                    { ResponseStatus = BaseStatus.Error, Message = $"Số lượng tối đa cho phép mua là {variant.MaxBuyPerOrder.Value} sản phẩm" };
+                    { ResponseStatus = BaseStatus.Error, Message = $"Sản phẩm \"{variant.ProductName}\" ({variant.ColourName}, Size {variant.SizeValue}) chỉ được mua tối đa {variant.MaxBuyPerOrder.Value} sản phẩm" };
                 }
 
                 // 2) Tính tồn kho khả dụng từ bảng InventoryBatch theo ProductDetailId
@@ -140,7 +153,7 @@ namespace MeoMeo.Application.Services
                 if (availableStock < quantity)
                 {
                     return new CartResponseDTO
-                    { ResponseStatus = BaseStatus.Error, Message = "Số lượng không đủ trong kho" };
+                    { ResponseStatus = BaseStatus.Error, Message = $"Sản phẩm \"{variant.ProductName}\" ({variant.ColourName}, Size {variant.SizeValue}) chỉ còn {availableStock} sản phẩm trong kho" };
                 }
 
                 // 3) Lấy giỏ hàng hiện tại theo Customer; nếu chưa có thì tạo mới
@@ -169,13 +182,13 @@ namespace MeoMeo.Application.Services
                 var totalQtyAfter = sameVariantItems.Sum(x => x.Quantity) + quantity;
                 if (totalQtyAfter > availableStock)
                     return new CartResponseDTO
-                    { ResponseStatus = BaseStatus.Error, Message = "Vượt quá số lượng tồn kho" };
+                    { ResponseStatus = BaseStatus.Error, Message = $"Sản phẩm \"{variant.ProductName}\" ({variant.ColourName}, Size {variant.SizeValue}) không đủ tồn kho. Cần {totalQtyAfter}, chỉ còn {availableStock}" };
 
                 // Kiểm tra MaxBuyPerOrder cho tổng số lượng trong giỏ hàng
                 if (variant.MaxBuyPerOrder.HasValue && totalQtyAfter > variant.MaxBuyPerOrder.Value)
                 {
                     return new CartResponseDTO
-                    { ResponseStatus = BaseStatus.Error, Message = $"Tổng số lượng trong giỏ hàng không được vượt quá {variant.MaxBuyPerOrder.Value} sản phẩm" };
+                    { ResponseStatus = BaseStatus.Error, Message = $"Sản phẩm \"{variant.ProductName}\" ({variant.ColourName}, Size {variant.SizeValue}) trong giỏ hàng không được vượt quá {variant.MaxBuyPerOrder.Value} sản phẩm" };
                 }
 
                 // Sai số so sánh float cho giá/discount

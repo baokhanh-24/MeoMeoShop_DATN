@@ -10,7 +10,7 @@
 @inject ICustomerClientService CustomerService
 @inject CustomAuthStateProvider AuthStateProvider
 @inject NavigationManager NavigationManager
-@inject MessageService MessageService
+@inject MeoMeo.Shared.Utilities.MessageModalService MessageModalService
 
 <div class="register-container">
     <div class="register-card">
@@ -155,14 +155,14 @@ new FormValidationRule { Required = true, Message = "Vui lòng xác nhận mật
     {
         if (!agreeToTerms)
         {
-            MessageService.Warning("Vui lòng đồng ý với điều khoản sử dụng!");
+            MessageModalService.Warning("Vui lòng đồng ý với điều khoản sử dụng!");
             return;
         }
 
         // Kiểm tra password confirmation
         if (registerModel.Password != registerModel.ConfirmPassword)
         {
-            MessageService.Error("Mật khẩu xác nhận không khớp!");
+            MessageModalService.Error("Mật khẩu xác nhận không khớp!");
             return;
         }
 
@@ -188,19 +188,19 @@ new FormValidationRule { Required = true, Message = "Vui lòng xác nhận mật
 
             if (result.ResponseStatus == BaseStatus.Success)
             {
-                MessageService.Success("Đăng ký thành công! Vui lòng đăng nhập để sử dụng tài khoản.");
+                MessageModalService.Success("Đăng ký thành công! Vui lòng đăng nhập để sử dụng tài khoản.");
 
                 // Chuyển hướng về trang đăng nhập
                 NavigationManager.NavigateTo("/login");
             }
             else
             {
-                MessageService.Error(result.Message ?? "Có lỗi xảy ra trong quá trình đăng ký!");
+                MessageModalService.Error(result.Message ?? "Có lỗi xảy ra trong quá trình đăng ký!");
             }
         }
         catch (Exception ex)
         {
-            MessageService.Error($"Có lỗi xảy ra trong quá trình đăng ký: {ex.Message}");
+            MessageModalService.Error($"Có lỗi xảy ra trong quá trình đăng ký: {ex.Message}");
         }
         finally
         {
