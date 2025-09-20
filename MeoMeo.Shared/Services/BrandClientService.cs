@@ -159,7 +159,7 @@ namespace MeoMeo.Shared.Services
             formData.Add(new StringContent(brandDto.Id.ToString()), "Id");
             formData.Add(new StringContent(string.IsNullOrEmpty(brandDto.Name) ? "" : brandDto.Name), "Name");
             formData.Add(new StringContent(string.IsNullOrEmpty(brandDto.Code) ? "" : brandDto.Code), "Code");
-            formData.Add(new StringContent(brandDto.EstablishYear.ToString("yyyy-MM-dd")), "EstablishYear");
+            formData.Add(new StringContent(brandDto.EstablishYear.ToString("yyyy-MM-ddTHH:mm:ss")), "EstablishYear");
             formData.Add(new StringContent(string.IsNullOrEmpty(brandDto.Country) ? "" : brandDto.Country), "Country");
             formData.Add(new StringContent(string.IsNullOrEmpty(brandDto.Description) ? "" : brandDto.Description), "Description");
             formData.Add(new StringContent(string.IsNullOrEmpty(brandDto.Logo) ? "" : brandDto.Logo), "Logo");
