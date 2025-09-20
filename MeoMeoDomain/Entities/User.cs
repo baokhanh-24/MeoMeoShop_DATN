@@ -15,7 +15,6 @@ namespace MeoMeo.Domain.Entities
         public int Status { get; set; }
         public virtual Customers Customers { get; set; }
         public virtual Employee Employee { get; set; }
-        public virtual ICollection<ResetPasswordHistory> ResetPasswordHistories { get; set; }
         public virtual ICollection<UserRole> UserRoles { get; set; }
         public virtual ICollection<UserToken> UserTokens { get; set; }
     }

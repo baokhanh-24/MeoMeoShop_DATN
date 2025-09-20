@@ -13,10 +13,8 @@ namespace MeoMeo.EntityFrameworkCore.Configurations.Contexts
         public DbSet<Cart> carts { get; set; }
         public DbSet<CartDetail> cartDetails { get; set; }
         public DbSet<Colour> colours { get; set; }
-        public DbSet<Commune> communes { get; set; }
         public DbSet<Customers> customers { get; set; }
         public DbSet<DeliveryAddress> deliveryAddresses { get; set; }
-        public DbSet<District> districts { get; set; }
         public DbSet<Employee> employees { get; set; }
         public DbSet<Image> images { get; set; }
         public DbSet<ImportBatch> importBatches { get; set; }
@@ -31,8 +29,6 @@ namespace MeoMeo.EntityFrameworkCore.Configurations.Contexts
         public DbSet<ProductSeason> productSeasons { get; set; }
         public DbSet<Promotion> promotions { get; set; }
         public DbSet<PromotionDetail> promotionDetails { get; set; }
-        public DbSet<Province> provinces { get; set; }
-        public DbSet<ResetPasswordHistory> resetPasswordHistories { get; set; }
         public DbSet<Season> seasons { get; set; }
         public DbSet<Size> sizes { get; set; }
         public DbSet<SystemConfig> systemConfigs { get; set; }
@@ -66,10 +62,8 @@ namespace MeoMeo.EntityFrameworkCore.Configurations.Contexts
             modelBuilder.ApplyConfiguration(new CartConfiguration());
             modelBuilder.ApplyConfiguration(new CartDetailConfiguration());
             modelBuilder.ApplyConfiguration(new ColourConfiguration());
-            modelBuilder.ApplyConfiguration(new CommuneConfiguration());
             modelBuilder.ApplyConfiguration(new CustomersConfiguration());
             modelBuilder.ApplyConfiguration(new DeliveryAddressConfiguration());
-            modelBuilder.ApplyConfiguration(new DistrictConfiguration());
             modelBuilder.ApplyConfiguration(new EmployeeConfiguration());
             modelBuilder.ApplyConfiguration(new ImageConfiguration());
             modelBuilder.ApplyConfiguration(new ImportBatchConfiguration());
@@ -84,8 +78,6 @@ namespace MeoMeo.EntityFrameworkCore.Configurations.Contexts
             modelBuilder.ApplyConfiguration(new ProductSeasonConfiguration());
             modelBuilder.ApplyConfiguration(new PromotionConfiguration());
             modelBuilder.ApplyConfiguration(new PromotionDetailConfiguration());
-            modelBuilder.ApplyConfiguration(new ProvinceConfiguration());
-            modelBuilder.ApplyConfiguration(new ResetPasswordHistoryConfiguration());
             modelBuilder.ApplyConfiguration(new SeasonConfiguration());
             modelBuilder.ApplyConfiguration(new SizeConfiguration());
             modelBuilder.ApplyConfiguration(new SystemConfigConfiguration());

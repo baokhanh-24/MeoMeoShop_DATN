@@ -51,9 +51,6 @@ builder.Services.AddScoped<IOrderDetailRepository, OrderDetailRepository>();
 builder.Services.AddScoped<IOrderDetailService, OrderDetailService>();
 builder.Services.AddScoped<IDeliveryAddressRepository, DeliveryAddressRepository>();
 builder.Services.AddScoped<IDeliveryAddressService, DeliveryAddressService>();
-builder.Services.AddScoped<IProvinceRepository, ProvinceRepository>();
-builder.Services.AddScoped<ICommuneRepository, CommuneRepository>();
-builder.Services.AddScoped<IProvinceService, ProvinceService>();
 builder.Services.AddScoped<IIventoryBatchReposiory, InventoryBatchRepository>();
 builder.Services.AddScoped<IInventoryBatchServices, InventoryBatchService>();
 builder.Services.AddScoped<IImportBatchRepository, ImportBatchRepository>();
@@ -72,7 +69,6 @@ builder.Services.AddScoped<IPromotionDetailRepository, PromotionDetailRepository
 builder.Services.AddScoped<IPromotionDetailServices, PromotionDetailServices>();
 builder.Services.AddScoped<IVoucherRepository, VoucherRepository>();
 builder.Services.AddScoped<IVoucherService, VoucherServices>();
-builder.Services.AddScoped<ICommuneService, CommuneService>();
 builder.Services.AddScoped<IUserRepository, UserRepository>();
 builder.Services.AddScoped<IUserService, UserService>();
 builder.Services.AddScoped<IProductReviewService, ProductReviewService>();
@@ -84,10 +80,6 @@ builder.Services.AddScoped<IEmployeeRepository, EmployeeRepository>();
 builder.Services.AddScoped<IEmployeeServices, EmployeeServices>();
 builder.Services.AddScoped<ICustomerRepository, CustomerRepository>();
 builder.Services.AddScoped<ICustomerServices, CustomerServices>();
-builder.Services.AddScoped<IResetPasswordHistoryRepository, ResetPasswordHistoryRepository>();
-builder.Services.AddScoped<IResetPasswordHistoryServices, ResetPasswordHistoryServices>();
-builder.Services.AddScoped<IDistrictRepository, DistrictRepository>();
-builder.Services.AddScoped<IDistrictService, DistrictService>();
 builder.Services.AddScoped<IMaterialRepository, MaterialRepository>();
 builder.Services.AddScoped<IMaterialServices, MaterialServices>();
 builder.Services.AddScoped<ISystemConfigRepository, SystemConfigRepository>();
@@ -104,9 +96,6 @@ builder.Services.AddScoped<IOrderReturnItemRepository, OrderReturnItemRepository
 builder.Services.AddScoped<IOrderReturnFileRepository, OrderReturnFileRepository>();
 builder.Services.AddScoped<IProductReviewFileRepository, ProductReviewFileRepository>();
 builder.Services.AddScoped<IOrderReturnService, OrderReturnService>();
-// Payment Transaction services
-builder.Services.AddScoped<IPaymentTransactionRepository, PaymentTransactionRepository>();
-builder.Services.AddScoped<IPaymentTransactionService, PaymentTransactionService>();
 // Permission services
 builder.Services.AddScoped<IPermissionRepository, PermissionRepository>();
 builder.Services.AddScoped<IPermissionService, PermissionService>();
@@ -122,7 +111,6 @@ builder.Services.AddScoped<IWishlistService, WishlistService>();
 
 // Email Services
 builder.Services.AddScoped<IEmailService, EmailService>();
-builder.Services.AddScoped<IPasswordResetService, PasswordResetService>();
 builder.Services.AddScoped<IReportService, ReportService>();
 builder.Services.AddScoped<IExcelReportService, ExcelReportService>();
 

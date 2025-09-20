@@ -44,7 +44,6 @@ namespace MeoMeo.Contract
             CreateMap<CreateOrUpdateUserDTO, User>();
             CreateMap<CreateOrUpdateEmployeeDTO, Employee>();
             CreateMap<CreateOrUpdateCustomerDTO, Customers>();
-            CreateMap<CreateOrUpdateResetPasswordHistoryDTO, ResetPasswordHistory>();
             CreateMap<CartDTO, Cart>();
             CreateMap<CartDetailDTO, CartDetail>();
             CreateMap<ImageDTO, Image>();
@@ -53,8 +52,6 @@ namespace MeoMeo.Contract
             CreateMap<CreateOrUpdateOrderDetailDTO, OrderDetail>();
             CreateMap<CreateOrUpdateDeliveryAddressDTO, DeliveryAddress>();
             CreateMap<DeliveryAddress, DeliveryAddressDTO>();
-            CreateMap<Commune, CommuneDTO>();
-            CreateMap<CreateOrUpdateProvinceDTO, Province>();
             CreateMap<InventoryBatch, InventoryBatchDTO>();
             CreateMap<InventoryBatchDTO, InventoryBatch>();
             CreateMap<InventoryBatch, InventoryBatchResponseDTO>();
@@ -80,7 +77,6 @@ namespace MeoMeo.Contract
                 .ForMember(dest => dest.LastLogin, opt => opt.MapFrom(src => src.User.LastLogin))
                 .ForMember(dest => dest.CreationTime, opt => opt.MapFrom(src => src.User.CreationTime))
                 .ForMember(dest => dest.Email, opt => opt.MapFrom(src => src.User.Email));
-            CreateMap<CreateOrUpdateDistrictDTO, District>();
             CreateMap<Order, CreateOrUpdateOrderResponse>();
             CreateMap<Customers, CreateOrUpdateCustomerResponse>();
             CreateMap<Customers, CustomerDTO>();
@@ -133,13 +129,6 @@ namespace MeoMeo.Contract
             CreateMap<Category, CategoryResponseDTO>();
             CreateMap<Category, CategoryDTO>();
             CreateMap<ProductReviewCreateOrUpdateDTO, ProductReview>();
-
-            // Payment Transaction mappings
-            CreateMap<PaymentTransaction, PaymentTransactionDTO>()
-                .ForMember(dest => dest.StatusDisplayName, opt => opt.Ignore())
-                .ForMember(dest => dest.OrderCode, opt => opt.Ignore())
-                .ForMember(dest => dest.CustomerName, opt => opt.Ignore());
-            CreateMap<CreatePaymentTransactionDTO, PaymentTransaction>();
         }
     }
 }
