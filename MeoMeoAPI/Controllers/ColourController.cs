@@ -5,6 +5,8 @@ using MeoMeo.Domain.Entities;
 using MeoMeo.Domain.IRepositories;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using MeoMeo.Domain.Commons;
+using static MeoMeo.Domain.Commons.PagingExtensions;
 
 namespace MeoMeo.API.Controllers
 {
@@ -19,10 +21,18 @@ namespace MeoMeo.API.Controllers
         }
         //
         [HttpGet]
-        public async Task<IActionResult>GetAll()
+        public async Task<IActionResult> GetAll()
         {
             var result = await _colourService.GetAllColoursAsync();
             return Ok(result);
+        }
+
+        //
+        [HttpGet("get-all-colours-paged")]
+        public async Task<PagedResult<ColourDTO>> GetAllColoursPaged([FromQuery] GetListColourRequest request)
+        {
+            var result = await _colourService.GetAllColoursPagedAsync(request);
+            return result;
         }
         //
         [HttpGet("{id}")]

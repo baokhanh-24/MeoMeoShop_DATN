@@ -1,6 +1,7 @@
 @page "/manage-colours"
 @using System.ComponentModel.DataAnnotations
 @using System.Reflection
+@using AntDesign.TableModels
 @using MeoMeo.Contract.DTOs
 @using MeoMeo.Shared.IServices;
 @using MeoMeo.Contract.Commons
@@ -40,7 +41,9 @@
     </Tooltip>
 </div>
 
-<Table DataSource="listOfData" TItem="ColourDTO" RowClassName="@(_ => "editable-row")" Bordered TableLayout="fixed">
+<Table DataSource="listOfData" TItem="ColourDTO" RowClassName="@(_ => "editable-row")" Bordered TableLayout="fixed"
+       Total="@totalRecords" PageSize="@filter.PageSize" OnChange="@OnPageChange"
+       >
     <ChildContent Context="data">
         <Column TData="ColourDTO" Title="STT" Width="70px">
             @(listOfData.IndexOf(data) + 1)
@@ -111,6 +114,7 @@
     </ChildContent>
 </Table>
 
+
 @code {
     [Inject] private IColourClientService ColourClientService { get; set; } = default!;
     IDictionary<Guid, (bool edit, ColourDTO data)> editCache = new Dictionary<Guid, (bool, ColourDTO)>();
@@ -125,6 +129,8 @@
         PageIndex = 1,
         PageSize = 10
     };
+
+    int totalRecords = 0;
 
     protected override async Task OnInitializedAsync()
     {
@@ -141,28 +147,18 @@
 
     private async Task LoadData()
     {
-        var response = await ColourClientService.GetAllColoursAsync();
-        listOfData = response.Select(c => new ColourDTO
+        // Apply tab filter
+        filter.StatusFilter = selectedTab switch
         {
-            Id = c.Id,
-            Name = c.Name,
-            Code = c.Code,
-            Status = c.Status
-        }).ToList();
+            "active" => EColourStatus.Active,
+            "inactive" => EColourStatus.Inactive,
+            "deleted" => EColourStatus.Deleted,
+            _ => null // "all" tab
+        };
 
-        // Apply filters
-        if (!string.IsNullOrEmpty(filter.NameFilter))
-        {
-            listOfData = listOfData.Where(c => c.Name.Contains(filter.NameFilter, StringComparison.OrdinalIgnoreCase)).ToList();
-        }
-        if (!string.IsNullOrEmpty(filter.CodeFilter))
-        {
-            listOfData = listOfData.Where(c => c.Code.Contains(filter.CodeFilter, StringComparison.OrdinalIgnoreCase)).ToList();
-        }
-        if (filter.StatusFilter.HasValue)
-        {
-            listOfData = listOfData.Where(c => c.Status == (int)filter.StatusFilter.Value).ToList();
-        }
+        var response = await ColourClientService.GetAllColoursPagedAsync(filter);
+        listOfData = response.Items?.ToList() ?? new List<ColourDTO>();
+        totalRecords = response.TotalRecords;
 
         editCache = listOfData.ToDictionary(
         item => item.Id,
@@ -172,6 +168,7 @@
 
     private async Task OnFilterChanged()
     {
+        filter.PageIndex = 1; // Reset về trang đầu khi filter
         await LoadData();
     }
 
@@ -180,15 +177,7 @@
     private async Task OnTabChanged(string key)
     {
         selectedTab = key;
-
-        filter.StatusFilter = key switch
-        {
-            "active" => EColourStatus.Active,
-            "inactive" => EColourStatus.Inactive,
-            "deleted" => EColourStatus.Deleted,
-            _ => null // "all" tab
-        };
-
+        filter.PageIndex = 1; // Reset về trang đầu khi thay đổi tab
         await LoadData();
     }
 
@@ -284,5 +273,20 @@
             Code = dto.Code,
             Status = dto.Status
         };
+    }
+
+    // Pagination handlers
+    private async Task OnPageChange(QueryModel<ColourDTO> args)
+    {
+        filter.PageIndex = args.PageIndex;
+        filter.PageSize = args.PageSize;
+        await LoadData();
+    }
+
+    private async Task OnPageSizeChange(PaginationEventArgs args)
+    {
+        filter.PageIndex = 1; // Reset về trang đầu khi thay đổi page size
+        filter.PageSize = args.PageSize;
+        await LoadData();
     }
 }

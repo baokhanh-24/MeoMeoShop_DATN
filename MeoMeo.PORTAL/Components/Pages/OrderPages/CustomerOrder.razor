@@ -91,7 +91,7 @@
                                             }
                                         </div>
                                         <div class="order-status">
-                                            <Tag Color="@(order.Status == Domain.Commons.Enums.EOrderStatus.Pending ? "orange" : order.Status == Domain.Commons.Enums.EOrderStatus.Confirmed ? "blue" : order.Status == Domain.Commons.Enums.EOrderStatus.InTransit ? "geekblue" : order.Status == Domain.Commons.Enums.EOrderStatus.Completed ? "green" : "red")">
+                                            <Tag Color="@GetStatusColor(order.Status)">
                                                 @GetStatusDisplayName(order.Status)
                                             </Tag>
                                         </div>
@@ -559,9 +559,13 @@
     {
         new() { Key = "All", Label = "Tất cả", Value = null },
         new() { Key = "Pending", Label = "Chờ xác nhận", Value = (int)Domain.Commons.Enums.EOrderStatus.Pending },
+        new() { Key = "Confirmed", Label = "Đã xác nhận", Value = (int)Domain.Commons.Enums.EOrderStatus.Confirmed },
         new() { Key = "InTransit", Label = "Đang giao", Value = (int)Domain.Commons.Enums.EOrderStatus.InTransit },
         new() { Key = "Completed", Label = "Hoàn thành", Value = (int)Domain.Commons.Enums.EOrderStatus.Completed },
-        new() { Key = "Canceled", Label = "Đã huỷ", Value = (int)Domain.Commons.Enums.EOrderStatus.Canceled }
+        new() { Key = "Canceled", Label = "Đã huỷ", Value = (int)Domain.Commons.Enums.EOrderStatus.Canceled },
+        new() { Key = "PendingReturn", Label = "Chờ hoàn hàng", Value = (int)Domain.Commons.Enums.EOrderStatus.PendingReturn },
+        new() { Key = "Returned", Label = "Đã hoàn hàng", Value = (int)Domain.Commons.Enums.EOrderStatus.Returned },
+        new() { Key = "RejectReturned", Label = "Từ chối hoàn hàng", Value = (int)Domain.Commons.Enums.EOrderStatus.RejectReturned }
     };
 
     protected override async Task OnInitializedAsync()
@@ -717,15 +721,17 @@
             (int)Domain.Commons.Enums.EOrderStatus.InTransit => metaData.InTransit,
             (int)Domain.Commons.Enums.EOrderStatus.Completed => metaData.Completed,
             (int)Domain.Commons.Enums.EOrderStatus.Canceled => metaData.Canceled,
+            (int)Domain.Commons.Enums.EOrderStatus.PendingReturn => metaData.PendingReturn,
+            (int)Domain.Commons.Enums.EOrderStatus.Returned => metaData.Returned,
+            (int)Domain.Commons.Enums.EOrderStatus.RejectReturned => metaData.RejectReturned,
             _ => 0
         };
     }
 
     private string GetTabClasses(StatusTab tab)
     {
-        var baseClasses = "col-4 col-sm-4 col-md-3";
-        baseClasses += tab.Key == "2" ? " col-lg-4" : " col-lg-2";
-        return baseClasses;
+        // Responsive classes for 9 tabs
+        return "col-6 col-sm-4 col-md-3 col-lg-2 col-xl-1";
     }
 
     private string GetTabStyles(StatusTab tab)
@@ -745,7 +751,26 @@
             Domain.Commons.Enums.EOrderStatus.InTransit => "Đang giao",
             Domain.Commons.Enums.EOrderStatus.Completed => "Hoàn thành",
             Domain.Commons.Enums.EOrderStatus.Canceled => "Đã hủy",
+            Domain.Commons.Enums.EOrderStatus.PendingReturn => "Chờ hoàn hàng",
+            Domain.Commons.Enums.EOrderStatus.Returned => "Đã hoàn hàng",
+            Domain.Commons.Enums.EOrderStatus.RejectReturned => "Từ chối hoàn hàng",
             _ => status.ToString()
+        };
+    }
+
+    private string GetStatusColor(Domain.Commons.Enums.EOrderStatus status)
+    {
+        return status switch
+        {
+            Domain.Commons.Enums.EOrderStatus.Pending => "orange",
+            Domain.Commons.Enums.EOrderStatus.Confirmed => "blue",
+            Domain.Commons.Enums.EOrderStatus.InTransit => "geekblue",
+            Domain.Commons.Enums.EOrderStatus.Completed => "green",
+            Domain.Commons.Enums.EOrderStatus.Canceled => "red",
+            Domain.Commons.Enums.EOrderStatus.PendingReturn => "yellow",
+            Domain.Commons.Enums.EOrderStatus.Returned => "gray",
+            Domain.Commons.Enums.EOrderStatus.RejectReturned => "red",
+            _ => "default"
         };
     }
 

@@ -6,6 +6,7 @@ using MeoMeo.Domain.Commons;
 using MeoMeo.Domain.Entities;
 using MeoMeo.Shared.Utilities;
 using Microsoft.Extensions.Logging;
+using static MeoMeo.Domain.Commons.PagingExtensions;
 
 namespace MeoMeo.Shared.Services
 {
@@ -32,6 +33,33 @@ namespace MeoMeo.Shared.Services
             {
                 _logger.LogError(ex, "Lỗi khi lấy danh sách Category: {Message}", ex.Message);
                 return new List<Category>();
+            }
+        }
+
+        public async Task<PagedResult<CategoryDTO>> GetAllCategoriesPagedAsync(GetListCategoryRequestDTO request)
+        {
+            try
+            {
+                var url = "/api/Category/get-all-categories-paged";
+                var response = await _httpClient.GetAsync<PagedResult<CategoryDTO>>(url);
+                return response ?? new PagedResult<CategoryDTO>
+                {
+                    TotalRecords = 0,
+                    PageIndex = 1,
+                    PageSize = 10,
+                    Items = new List<CategoryDTO>()
+                };
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Lỗi khi lấy danh sách Category phân trang: {Message}", ex.Message);
+                return new PagedResult<CategoryDTO>
+                {
+                    TotalRecords = 0,
+                    PageIndex = 1,
+                    PageSize = 10,
+                    Items = new List<CategoryDTO>()
+                };
             }
         }
 

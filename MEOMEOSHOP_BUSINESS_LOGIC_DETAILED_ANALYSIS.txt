@@ -1,0 +1,1233 @@
+================================================================================
+                    PHÂN TÍCH CHI TIẾT LOGIC NGHIỆP VỤ CÁC MÀN HÌNH
+                              HỆ THỐNG MEOMEOSHOP
+================================================================================
+
+📋 TỔNG QUAN LOGIC NGHIỆP VỤ
+================================================================================
+
+Hệ thống MeoMeoShop được thiết kế với logic nghiệp vụ phức tạp và toàn diện, bao gồm:
+
+🏪 **QUẢN LÝ SẢN PHẨM**:
+- Quản lý sản phẩm với nhiều biến thể (Kích thước + Màu sắc)
+- Hệ thống phân loại sản phẩm theo danh mục, thương hiệu, chất liệu, mùa
+- Quản lý hình ảnh và video sản phẩm
+- Tính toán giá cả và khuyến mãi động
+- Quản lý tồn kho và cảnh báo hết hàng
+
+🛒 **QUẢN LÝ ĐƠN HÀNG**:
+- Workflow đơn hàng phức tạp với nhiều trạng thái
+- Xử lý đơn hàng online và tại quầy
+- Tích hợp thanh toán đa dạng (Tiền mặt, Chuyển khoản, VnPay)
+- Quản lý vận chuyển và theo dõi đơn hàng
+- Xử lý hoàn trả và đổi hàng
+
+📦 **QUẢN LÝ TỒN KHO**:
+- Nhập hàng theo lô với mã vạch
+- Theo dõi tồn kho theo từng biến thể sản phẩm
+- Cảnh báo hết hàng và hàng tồn kho
+- Thống kê giá trị tồn kho
+
+🎁 **HỆ THỐNG KHUYẾN MÃI**:
+- Chương trình khuyến mãi theo sản phẩm
+- Mã giảm giá với điều kiện sử dụng
+- Tính toán giá sau giảm giá tự động
+- Theo dõi hiệu quả khuyến mãi
+
+⭐ **QUẢN LÝ ĐÁNH GIÁ**:
+- Hệ thống đánh giá sản phẩm từ khách hàng
+- Upload hình ảnh và video đánh giá
+- Phản hồi từ quản trị viên
+- Thống kê điểm đánh giá trung bình
+
+🚚 **TÍCH HỢP VẬN CHUYỂN**:
+- Tích hợp API GHN để tính phí vận chuyển
+- Quản lý địa chỉ giao hàng
+- Theo dõi trạng thái vận chuyển
+- Tính toán phí vận chuyển theo kích thước và trọng lượng
+
+🎯 LOGIC NGHIỆP VỤ CÁC MÀN HÌNH CMS
+================================================================================
+
+📌 1. DASHBOARD & THỐNG KÊ
+--------------------------------------------------------------------------------
+
+**Home.razor - Trang Chủ Quản Trị**
+- **Logic Tải Dữ Liệu Thống Kê**:
+  * Gọi API `IStatisticsClientService.GetDashboardStatisticsAsync()` để lấy dữ liệu tổng quan
+  * Truyền `StatisticsRequestDTO` với các tham số: khoảng thời gian, ngày bắt đầu, ngày kết thúc
+  * Hiển thị dữ liệu thời gian thực với tính năng tự động làm mới
+  * Xử lý lỗi khi không thể tải dữ liệu và hiển thị thông báo phù hợp
+
+- **Logic Tính Toán Các Chỉ Số Kinh Doanh**:
+  * **Doanh thu hôm nay**: Tính tổng giá trị đơn hàng thành công trong ngày
+    - Công thức: SUM(TotalPrice) WHERE CreationDate = Today AND Status = Completed
+    - Hiển thị định dạng tiền tệ Việt Nam (VNĐ)
+  * **Số đơn hàng hôm nay**: Đếm tổng số đơn hàng được tạo trong ngày
+    - Công thức: COUNT(*) WHERE CreationDate = Today
+    - Bao gồm cả đơn hàng online và tại quầy
+  * **Khách hàng mới**: Đếm số khách hàng đăng ký trong ngày
+    - Công thức: COUNT(*) WHERE CreationDate = Today AND Status = Enabled
+    - Loại trừ tài khoản bị khóa hoặc vô hiệu hóa
+  * **Đơn hàng chờ xác nhận**: Đếm số đơn hàng đang chờ xử lý
+    - Công thức: COUNT(*) WHERE Status = Pending
+    - Cập nhật real-time khi có đơn hàng mới
+
+- **Logic Hiển Thị Biểu Đồ Và Thống Kê**:
+  * **Biểu đồ doanh thu theo thời gian**: 
+    - Nhóm dữ liệu theo ngày/tuần/tháng tùy theo lựa chọn
+    - Hiển thị xu hướng tăng trưởng doanh thu
+    - So sánh với các kỳ trước
+  * **Sản phẩm bán chạy nhất**:
+    - Sắp xếp theo số lượng bán ra (QuantitySold DESC)
+    - Hiển thị top 10 sản phẩm phổ biến nhất
+    - Bao gồm hình ảnh và thông tin cơ bản
+  * **Phân bố trạng thái đơn hàng**:
+    - Nhóm đơn hàng theo các trạng thái: Pending, Confirmed, InTransit, Completed, Canceled
+    - Hiển thị tỷ lệ phần trăm của từng trạng thái
+    - Cảnh báo khi tỷ lệ hủy đơn cao bất thường
+  * **Tình trạng tồn kho**:
+    - Nhóm sản phẩm theo mức tồn kho: Đủ hàng, Sắp hết hàng, Hết hàng
+    - Cảnh báo sản phẩm cần nhập thêm
+    - Tính tổng giá trị tồn kho hiện tại
+
+**Login.razor - Đăng Nhập Hệ Thống Quản Trị**
+- **Logic Xác Thực Người Dùng**:
+  * **Kiểm tra tính hợp lệ của form**: 
+    - Validate các trường bắt buộc: Tên đăng nhập và Mật khẩu
+    - Kiểm tra định dạng tên đăng nhập (không được để trống)
+    - Kiểm tra độ dài mật khẩu tối thiểu
+  * **Gọi API xác thực**: 
+    - Sử dụng `ICMSAuthService.LoginAsync(loginModel)` để xác thực
+    - Truyền thông tin đăng nhập dưới dạng `AuthenRequest`
+    - Xử lý response và kiểm tra `ResponseStatus == Success`
+  * **Xử lý lỗi đăng nhập**:
+    - Hiển thị thông báo lỗi cụ thể khi đăng nhập thất bại
+    - Clear form khi có lỗi để người dùng nhập lại
+    - Log lỗi để debug và theo dõi
+
+- **Logic Phân Quyền Truy Cập**:
+  * **Kiểm tra vai trò người dùng**: 
+    - Lấy danh sách vai trò: `AuthService.GetUserRolesAsync()`
+    - Chỉ cho phép Admin và Employee đăng nhập vào CMS
+    - Kiểm tra quyền truy cập các chức năng cụ thể
+  * **Xử lý khi không có quyền**: 
+    - Clear tokens và session khi người dùng không có quyền
+    - Hiển thị thông báo lỗi phù hợp
+    - Redirect về trang đăng nhập hoặc trang chủ
+
+- **Logic Quản Lý Trạng Thái Phiên Làm Việc**:
+  * **Thông báo trạng thái xác thực**: 
+    - Notify `CMSAuthStateProvider` khi đăng nhập thành công
+    - Cập nhật trạng thái xác thực trong toàn bộ ứng dụng
+    - Trigger re-render của các component phụ thuộc
+  * **Cập nhật giao diện**: 
+    - Force UI update với `StateHasChanged()`
+    - Hiển thị thông tin người dùng đã đăng nhập
+    - Ẩn/hiện các menu và chức năng theo quyền
+  * **Chuyển hướng sau đăng nhập**: 
+    - Redirect về trang chủ "/" với `forceLoad: true`
+    - Lưu URL trước đó để redirect về sau khi đăng nhập
+    - Xử lý deep linking và bookmark
+
+📌 2. QUẢN LÝ SẢN PHẨM
+--------------------------------------------------------------------------------
+
+**ProductPages/Product.razor - Quản Lý Danh Sách Sản Phẩm**
+- **Logic Lọc Và Tìm Kiếm Sản Phẩm**:
+  * **Tìm kiếm theo tên sản phẩm**: 
+    - Sử dụng LIKE search trên trường Product.Name
+    - Hỗ trợ tìm kiếm không phân biệt hoa thường
+    - Tìm kiếm theo từ khóa một phần (partial match)
+    - Hiển thị kết quả real-time khi người dùng nhập
+  * **Lọc theo thương hiệu**: 
+    - Dropdown chọn thương hiệu từ danh sách có sẵn
+    - WHERE BrandId = selectedBrandId
+    - Hiển thị số lượng sản phẩm của từng thương hiệu
+  * **Lọc theo danh mục**: 
+    - JOIN với bảng ProductCategory để lọc theo danh mục
+    - Hỗ trợ lọc theo nhiều danh mục cùng lúc
+    - Hiển thị cây danh mục phân cấp
+  * **Lọc theo kích thước**: 
+    - JOIN với ProductDetail WHERE SizeId = selectedSizeId
+    - Hiển thị các kích thước có sẵn cho từng sản phẩm
+    - Lọc theo kích thước cụ thể hoặc tất cả kích thước
+  * **Lọc theo khoảng giá**: 
+    - WHERE Price BETWEEN MinPrice AND MaxPrice
+    - Slider để chọn khoảng giá trực quan
+    - Hiển thị giá trung bình và giá cao nhất/thấp nhất
+  * **Lọc theo trạng thái sản phẩm**: 
+    - WHERE ProductDetail.Status = selectedStatus
+    - Các trạng thái: Đang bán, Tạm ngưng, Chờ duyệt, Nháp
+    - Hiển thị số lượng sản phẩm theo từng trạng thái
+
+- **Logic Sắp Xếp Dữ Liệu**:
+  * **Các trường sắp xếp**: 
+    - CreationTime: Thời gian tạo sản phẩm
+    - Name: Tên sản phẩm (A-Z hoặc Z-A)
+    - Price: Giá sản phẩm (thấp đến cao hoặc cao đến thấp)
+    - SellNumber: Số lượng đã bán
+    - ViewNumber: Số lượt xem
+  * **Hướng sắp xếp**: 
+    - ASC: Sắp xếp tăng dần
+    - DESC: Sắp xếp giảm dần
+    - Mặc định sắp xếp theo thời gian tạo mới nhất
+  * **Áp dụng sắp xếp**: 
+    - Sắp xếp trên cả Product và ProductDetail level
+    - Giữ nguyên thứ tự khi thay đổi trang
+    - Cập nhật URL để bookmark được trạng thái sắp xếp
+
+- **Logic Thao Tác Hàng Loạt**:
+  * **Kiểm tra tính hợp lệ**: 
+    - Validate selectedRows không empty trước khi thực hiện
+    - Hiển thị cảnh báo nếu chưa chọn sản phẩm nào
+    - Cho phép chọn tất cả sản phẩm trên trang hiện tại
+  * **Cập nhật trạng thái hàng loạt**: 
+    - Loop qua từng product đã chọn
+    - Gọi `UpdateProductVariantStatusAsync()` cho từng sản phẩm
+    - Update tất cả variants của product với status mới
+    - Hiển thị progress bar khi đang xử lý
+  * **Xử lý lỗi**: 
+    - Tiếp tục xử lý các sản phẩm khác nếu một sản phẩm bị lỗi
+    - Hiển thị danh sách sản phẩm thành công và thất bại
+    - Log chi tiết lỗi để debug
+
+- **Logic Mở Rộng/Thu Gọn Chi Tiết**:
+  * **Kiểm tra khả năng mở rộng**: 
+    - `IsRowExpandable()`: Check ProductVariants.Any()
+    - Chỉ hiển thị nút mở rộng khi sản phẩm có biến thể
+    - Disable nút mở rộng cho sản phẩm chưa có biến thể
+  * **Hiển thị chi tiết biến thể**: 
+    - ExpandTemplate: Hiển thị table ProductVariants với full details
+    - Bao gồm: Màu sắc, Kích thước, Giá, Tồn kho, Trạng thái
+    - Cho phép chỉnh sửa trực tiếp trong bảng mở rộng
+  * **Quản lý trạng thái mở rộng**: 
+    - Lưu trạng thái mở rộng của từng hàng
+    - Hỗ trợ mở rộng tất cả hoặc thu gọn tất cả
+    - Giữ nguyên trạng thái khi phân trang
+
+- **Logic Tạo Mã QR Sản Phẩm**:
+  * **Kiểm tra điều kiện**: 
+    - Validate SKU exists và không null
+    - Kiểm tra sản phẩm đã được lưu vào database
+    - Hiển thị cảnh báo nếu sản phẩm chưa có SKU
+  * **Tạo dữ liệu QR Code**: 
+    - Tạo `ProductSearchResponseDTO` với đầy đủ thông tin sản phẩm
+    - Bao gồm: Tên sản phẩm, Giá, Thương hiệu, Mô tả, Hình ảnh
+    - Encode thông tin thành URL để quét QR
+  * **Hiển thị QR Code**: 
+    - Modal hiển thị QR Code với kích thước phù hợp
+    - Cho phép download QR Code dưới dạng hình ảnh
+    - Hiển thị thông tin sản phẩm bên cạnh QR Code
+
+**ProductPages/CreateOrUpdateProduct.razor - Tạo Mới/Cập Nhật Sản Phẩm**
+- **Logic Kiểm Tra Tính Hợp Lệ Form**:
+  * **Các trường bắt buộc**: 
+    - Name: Tên sản phẩm không được để trống
+    - BrandId: Phải chọn thương hiệu
+    - CategoryIds: Phải chọn ít nhất một danh mục
+    - SeasonIds: Phải chọn ít nhất một mùa
+    - MaterialIds: Phải chọn ít nhất một chất liệu
+  * **Kiểm tra media upload**: 
+    - Validate ít nhất 1 ảnh được upload
+    - Kiểm tra định dạng file hợp lệ (image/*, video/*)
+    - Validate kích thước file không vượt quá giới hạn
+  * **Kiểm tra biến thể sản phẩm**: 
+    - Validate ít nhất 1 biến thể được tạo
+    - Kiểm tra không có biến thể trùng lặp (cùng màu + kích thước)
+    - Validate thông tin vận chuyển cho từng biến thể
+
+- **Logic Upload Media (Hình Ảnh/Video)**:
+  * **Chấp nhận định dạng file**: 
+    - Accept: image/* (jpg, png, gif, webp)
+    - Accept: video/* (mp4, avi, mov)
+    - Reject các định dạng không hỗ trợ
+  * **Giới hạn số lượng**: 
+    - Tối đa 8 hình ảnh
+    - Tối đa 2 video
+    - Tổng dung lượng không quá 10MB
+  * **Xử lý file upload**: 
+    - Convert file thành Base64 để preview
+    - Hiển thị thumbnail và progress bar
+    - Validate kích thước và định dạng trước khi upload
+  * **Chuyển đổi khi lưu**: 
+    - Convert Base64 to FormFile khi gọi API
+    - Tối ưu hóa hình ảnh trước khi lưu
+    - Lưu metadata của file (tên, kích thước, loại)
+
+- **Logic Quản Lý Biến Thể Sản Phẩm**:
+  * **Thêm biến thể mới**: 
+    - `AddVariant()`: Check duplicate (ColorId + SizeId)
+    - Validate màu sắc và kích thước đã được chọn
+    - Tạo SKU tự động dựa trên ProductId + ColorId + SizeId
+  * **Giá trị mặc định**: 
+    - Price: 100,000 VNĐ
+    - OutOfStock: 5 (cảnh báo khi còn 5 sản phẩm)
+    - Weight: 500g (trọng lượng mặc định)
+    - Dimensions: 15x15x15cm (kích thước mặc định)
+    - ClosureType: LaceUp (kiểu đóng giày)
+    - AllowReturn: true (cho phép đổi trả)
+    - Status: Draft (trạng thái nháp)
+  * **Xóa biến thể**: 
+    - `RemoveVariant()`: Check dependencies (Orders, Cart, Promotions)
+    - Validate không thể xóa biến thể cuối cùng
+    - Kiểm tra biến thể đã được sử dụng trong đơn hàng
+    - Hiển thị cảnh báo nếu có ràng buộc dữ liệu
+
+- **Logic Quy Trình Lưu Sản Phẩm**:
+  * **Chuyển đổi dữ liệu binding**: 
+    - Convert categoryIdsBinding → CategoryIds (List<Guid>)
+    - Convert seasonIdsBinding → SeasonIds (List<Guid>)
+    - Convert materialIdsBinding → MaterialIds (List<Guid>)
+  * **Xử lý trạng thái biến thể**: 
+    - Sản phẩm mới: Set tất cả variants về Draft
+    - Sản phẩm cũ: Giữ nguyên trạng thái đã chọn
+    - Validate trạng thái hợp lệ trước khi lưu
+  * **Kiểm tra thông tin vận chuyển**: 
+    - Weight: 1-50000g (1g đến 50kg)
+    - Length: 1-200cm (1cm đến 2m)
+    - Width: 1-200cm (1cm đến 2m)
+    - Height: 1-200cm (1cm đến 2m)
+  * **Kiểm tra giới hạn mua hàng**: 
+    - MaxBuyPerOrder: 1-999 hoặc null (không giới hạn)
+    - Validate không âm và không quá lớn
+  * **Gọi API lưu dữ liệu**: 
+    - CreateProductAsync() cho sản phẩm mới
+    - UpdateProductAsync() cho sản phẩm cũ
+    - Xử lý response và hiển thị thông báo kết quả
+
+**ProductPages/DetailProductView.razor - Chi Tiết Sản Phẩm**
+- **Logic Load Data**:
+  * `GetProductByIdAsync(productId)` với full details
+  * Load ProductVariants với InventoryQuantity
+  * Load Media files với ImageUrl
+  * Load CategoryNames, MaterialNames, SeasonNames
+- **Logic Display**:
+  * Hiển thị tất cả variants trong table
+  * Show stock status: Available/OutOfStock
+  * Show price range: MinPrice - MaxPrice
+  * Show sales statistics: SellNumber, ViewNumber
+
+📌 3. QUẢN LÝ ĐƠN HÀNG
+--------------------------------------------------------------------------------
+
+**OrderPages/OrderList.razor - Quản Lý Danh Sách Đơn Hàng**
+- **Logic Lọc Và Tìm Kiếm Đơn Hàng**:
+  * **Tìm kiếm theo mã đơn hàng**: 
+    - LIKE search trên trường Order.Code
+    - Hỗ trợ tìm kiếm một phần mã đơn hàng
+    - Hiển thị kết quả real-time khi nhập
+  * **Tìm kiếm theo thông tin khách hàng**: 
+    - CustomerNameFilter: LIKE search trên Customer.Name
+    - CustomerPhoneFilter: LIKE search trên Customer.PhoneNumber
+    - Hỗ trợ tìm kiếm không phân biệt hoa thường
+  * **Lọc theo khoảng thời gian**: 
+    - DateRange: WHERE CreationTime BETWEEN StartDate AND EndDate
+    - Các khoảng thời gian có sẵn: Hôm nay, Tuần này, Tháng này, Tùy chỉnh
+    - Hiển thị số lượng đơn hàng trong khoảng thời gian đã chọn
+  * **Lọc theo phương thức thanh toán**: 
+    - PaymentMethodFilter: WHERE PaymentMethod = selectedMethod
+    - Các phương thức: Tiền mặt, Chuyển khoản, VnPay
+  * **Lọc theo trạng thái đơn hàng**: 
+    - StatusFilter: WHERE Status = selectedStatus
+    - Các trạng thái: Chờ xác nhận, Đã xác nhận, Đang giao, Hoàn thành, Đã hủy
+
+- **Logic Quản Lý Tab Trạng Thái**:
+  * **Tab Tất Cả**: 
+    - Không filter theo status
+    - Hiển thị tổng số đơn hàng
+    - Cho phép xem tất cả đơn hàng trong hệ thống
+  * **Tab Trạng Thái Cụ Thể**: 
+    - Filter theo EOrderStatus tương ứng
+    - Hiển thị số lượng đơn hàng cho từng tab
+    - Cập nhật số lượng real-time khi có thay đổi
+  * **Cập nhật metadata**: 
+    - Đếm số lượng đơn hàng cho mỗi tab
+    - Hiển thị badge số lượng trên tab
+    - Refresh số lượng khi có đơn hàng mới
+
+- **Logic Thao Tác Hàng Loạt**:
+  * **Kiểm tra tính hợp lệ**: 
+    - Validate selectedRows không empty
+    - Hiển thị cảnh báo nếu chưa chọn đơn hàng
+    - Cho phép chọn tất cả đơn hàng trên trang
+  * **Kiểm tra trạng thái hiện tại**: 
+    - Chỉ hiển thị actions phù hợp với trạng thái:
+      - Pending → Xác nhận, Hủy đơn
+      - Confirmed → Giao hàng, Hủy đơn
+      - InTransit → Hoàn thành, Hủy đơn
+      - PendingReturn → Chấp nhận hoàn trả, Từ chối hoàn trả
+  * **Xử lý cập nhật trạng thái**: 
+    - `UpdateStatusOrderAsync()` với danh sách OrderIds
+    - Validate business rules (không thể chuyển từ Completed về Pending)
+    - Log lý do khi hủy đơn hàng
+    - Cập nhật OrderHistory với chi tiết hành động
+
+- **Logic Mở Rộng Chi Tiết Đơn Hàng**:
+  * **Tải chi tiết đơn hàng**: 
+    - Load OrderDetails với ProductName, SKU, Quantity, Price
+    - Hiển thị thông tin địa chỉ giao hàng
+    - Tính toán tổng tiền: Subtotal, ShippingFee, DiscountPrice, TotalPrice
+  * **Hiển thị thông tin sản phẩm**: 
+    - Tên sản phẩm và biến thể (màu sắc, kích thước)
+    - Giá gốc và giá sau giảm giá
+    - Số lượng và tổng tiền từng sản phẩm
+  * **Thông tin vận chuyển**: 
+    - Địa chỉ giao hàng đầy đủ
+    - Phí vận chuyển và phương thức thanh toán
+    - Thời gian giao hàng dự kiến
+
+**OrderPages/OrderDetail.razor - Chi Tiết Đơn Hàng**
+- **Logic Load Data**:
+  * `GetOrderByIdAsync(orderId)` với full details
+  * Load OrderDetails với ProductDetail info
+  * Load OrderHistory với timeline
+  * Load Customer info và DeliveryAddress
+- **Logic Status Management**:
+  * Show current status với color coding
+  * Enable/disable actions based on current status
+  * Validate status transitions theo business rules
+- **Logic History Tracking**:
+  * Log mọi thay đổi status
+  * Show timestamp và user thực hiện
+  * Display reason cho Cancel/Reject actions
+
+**OrderPages/OrderAtCounter.razor - Đơn Hàng Tại Quầy**
+- **Logic Product Search**:
+  * Search by SKU: Exact match
+  * Search by Name: LIKE search
+  * Filter chỉ sản phẩm đang bán (Status = Selling)
+- **Logic Cart Management**:
+  * Add product với quantity
+  * Update quantity với validation
+  * Remove product khỏi cart
+  * Calculate totals real-time
+- **Logic Checkout**:
+  * Validate cart không empty
+  * Select payment method: Cash/Transfer
+  * Create order với OrderType = Store
+  * Generate order code tự động
+
+📌 4. QUẢN LÝ KHÁCH HÀNG
+--------------------------------------------------------------------------------
+
+**CustomerPages/Customer.razor - Danh Sách Khách Hàng**
+- **Logic Filtering**:
+  * NameFilter: LIKE search trên Customer.Name
+  * PhoneFilter: LIKE search trên Customer.PhoneNumber
+  * EmailFilter: LIKE search trên Customer.Email
+  * StatusFilter: WHERE Status = selectedStatus
+- **Logic Status Management**:
+  * Enable/Disable customer account
+  * Lock customer account (tạm khóa)
+  * Validate không thể disable customer có đơn hàng pending
+- **Logic Customer Details**:
+  * Show order history với status
+  * Show total spent amount
+  * Show registration date và last login
+
+**CustomerPages/CustomerDetail.razor - Chi Tiết Khách Hàng**
+- **Logic Load Data**:
+  * Load customer profile info
+  * Load order history với pagination
+  * Load delivery addresses
+  * Calculate statistics: TotalOrders, TotalSpent, AvgOrderValue
+- **Logic Order History**:
+  * Group orders theo status
+  * Show order timeline với status changes
+  * Link đến OrderDetail page
+
+📌 5. QUẢN LÝ NHÂN VIÊN
+--------------------------------------------------------------------------------
+
+**EmployeesPages/EmployeesPages.razor - Danh Sách Nhân Viên**
+- **Logic Employee Management**:
+  * CRUD operations cho Employee
+  * Link với User account (1-1 relationship)
+  * Manage roles: Admin, Employee
+- **Logic Role Assignment**:
+  * Assign multiple roles cho employee
+  * Validate role permissions
+  * Check role conflicts
+
+**EmployeesPages/AddEmployeesPages.razor - Thêm Nhân Viên**
+- **Logic User Creation**:
+  * Create User account với username/password
+  * Generate random password hoặc allow custom
+  * Send email với login credentials
+- **Logic Employee Profile**:
+  * Create Employee record với personal info
+  * Link với User account
+  * Set default status = Active
+
+📌 6. QUẢN LÝ TỒN KHO
+--------------------------------------------------------------------------------
+
+**ImportBatchPages/ImportBatch.razor - Lô Nhập Hàng**
+- **Logic Import Batch**:
+  * Create ImportBatch với batch code
+  * Add InventoryBatch items với ProductDetail, Quantity, Price
+  * Calculate total value và quantity
+- **Logic Inventory Update**:
+  * Update ProductDetail.InventoryQuantity
+  * Create InventoryTransaction records
+  * Update ProductDetail.Status nếu hết hàng
+- **Logic Validation**:
+  * Validate ProductDetail exists
+  * Validate Quantity > 0
+  * Validate Price > 0
+  * Check duplicate SKU trong batch
+
+**InventoryPages/InventoryStatistics.razor - Thống Kê Tồn Kho**
+- **Logic Statistics Calculation**:
+  * Total Products: COUNT(ProductDetail)
+  * Low Stock: COUNT(*) WHERE InventoryQuantity <= OutOfStock
+  * Out of Stock: COUNT(*) WHERE InventoryQuantity = 0
+  * Total Value: SUM(InventoryQuantity * Price)
+- **Logic Charts**:
+  * Stock by Product: Pie chart với ProductName và StockQuantity
+  * Stock Trend: Line chart theo thời gian
+  * Category Distribution: Bar chart theo Category
+
+📌 7. QUẢN LÝ KHUYẾN MÃI
+--------------------------------------------------------------------------------
+
+**PromotionPages/Promotion.razor - Chương Trình Khuyến Mãi**
+- **Logic Promotion Management**:
+  * Create Promotion với Title, StartDate, EndDate
+  * Add PromotionDetail cho từng ProductDetail
+  * Set discount percentage hoặc fixed amount
+- **Logic Validation**:
+  * StartDate < EndDate
+  * Không overlap với promotion khác của cùng sản phẩm
+  * Validate discount amount hợp lệ
+- **Logic Status Management**:
+  * Active: Current date BETWEEN StartDate AND EndDate
+  * Upcoming: Current date < StartDate
+  * Expired: Current date > EndDate
+
+**PromotionPages/PromotionCreate.razor - Tạo Khuyến Mãi**
+- **Logic Product Selection**:
+  * Multi-select ProductDetail với search
+  * Show current price và discount preview
+  * Validate không conflict với promotion khác
+- **Logic Discount Calculation**:
+  * Percentage: Price * (1 - Discount/100)
+  * Fixed Amount: Price - Discount
+  * Show preview với new price
+
+📌 8. QUẢN LÝ VOUCHER
+--------------------------------------------------------------------------------
+
+**VoucherPages/Voucher.razor - Mã Giảm Giá**
+- **Logic Voucher Management**:
+  * Create Voucher với Code, Discount, MinOrder, MaxDiscount
+  * Set usage limits: MaxUsage, MaxUsagePerUser
+  * Set validity period: StartDate, EndDate
+- **Logic Validation**:
+  * Code unique trong hệ thống
+  * MinOrder <= MaxDiscount
+  * StartDate < EndDate
+  * MaxUsage > 0
+- **Logic Usage Tracking**:
+  * Track usage count per voucher
+  * Track usage per user
+  * Validate eligibility khi apply
+
+📌 9. QUẢN LÝ HỆ THỐNG
+--------------------------------------------------------------------------------
+
+**BrandPages/BrandPages.razor - Thương Hiệu**
+- **Logic Brand Management**:
+  * CRUD operations cho Brand
+  * Upload logo với validation
+  * Link với Products (1-N relationship)
+- **Logic Validation**:
+  * Brand name unique
+  * Logo file size limit
+  * Validate không thể xóa brand có products
+
+**CategoryPages/CategoryPages.razor - Danh Mục**
+- **Logic Category Management**:
+  * Hierarchical category structure
+  * CRUD operations với parent-child relationship
+  * Link với Products qua ProductCategory
+- **Logic Tree Structure**:
+  * Build category tree từ flat list
+  * Support drag-drop để reorder
+  * Validate không thể xóa category có subcategories
+
+📌 10. QUẢN LÝ QUYỀN HẠN
+--------------------------------------------------------------------------------
+
+**PermissionPages/Roles.razor - Vai Trò**
+- **Logic Role Management**:
+  * Create Role với Name và Description
+  * Assign Permissions cho Role
+  * Manage Role hierarchy
+- **Logic Permission System**:
+  * Granular permissions: Create, Read, Update, Delete
+  * Module-based permissions: Product, Order, Customer, etc.
+  * Validate permission conflicts
+
+**PermissionPages/UserRoles.razor - Vai Trò Người Dùng**
+- **Logic User Role Assignment**:
+  * Assign multiple roles cho user
+  * Validate role permissions
+  * Check role conflicts và inheritance
+- **Logic Permission Validation**:
+  * Check user permissions trước khi thực hiện action
+  * Deny access nếu không có quyền
+  * Log permission violations
+
+📌 11. QUẢN LÝ ĐÁNH GIÁ
+--------------------------------------------------------------------------------
+
+**ProductReviewPages/ProductReviewManagement.razor - Đánh Giá Sản Phẩm**
+- **Logic Review Management**:
+  * Load reviews với pagination
+  * Filter theo Product, Rating, Status
+  * Approve/Reject reviews
+- **Logic Review Validation**:
+  * Chỉ customer đã mua sản phẩm mới được đánh giá
+  * Validate rating: 1-5 stars
+  * Validate content không chứa spam
+- **Logic Review Display**:
+  * Show customer info (masked phone number)
+  * Show product variant info (Size, Color)
+  * Show review media (images, videos)
+  * Show admin reply
+
+📌 12. QUẢN LÝ CẤU HÌNH
+--------------------------------------------------------------------------------
+
+**SystemConfigPages/SystemConfigPages.razor - Cấu Hình Hệ Thống**
+- **Logic Configuration Management**:
+  * Store configuration trong database
+  * Support different environments (Dev, Staging, Prod)
+  * Validate configuration values
+- **Logic Configuration Types**:
+  * String, Number, Boolean, JSON
+  * Encrypted values cho sensitive data
+  * Default values và validation rules
+
+🎯 LOGIC NGHIỆP VỤ CÁC MÀN HÌNH PORTAL
+================================================================================
+
+📌 1. TRANG CHỦ KHÁCH HÀNG
+--------------------------------------------------------------------------------
+
+**Pages/Home.razor - Trang Chủ Portal**
+- **Logic Product Loading**:
+  * Load products với pagination (PageSize = 12)
+  * Apply filters: Category, Brand, Material, Season, Size, Color, Price
+  * Sort by: CreationTime, Name, Price, SellNumber, ViewNumber
+- **Logic Filter Management**:
+  * Real-time filtering với debouncing
+  * Reset filters về default values
+  * Maintain filter state trong URL parameters
+- **Logic Load More**:
+  * Increment PageIndex để load trang tiếp theo
+  * Append new products vào existing list
+  * Check hasMoreProducts = products.Count < totalRecords
+- **Logic Best Sellers**:
+  * Load top 12 products với highest SellNumber
+  * Group by 4 products per carousel slide
+  * Show discount percentage và price comparison
+- **Logic Add to Cart**:
+  * Check authentication status
+  * Validate product availability
+  * Add to cart với quantity = 1
+  * Update cart count trong header
+
+📌 2. XÁC THỰC NGƯỜI DÙNG
+--------------------------------------------------------------------------------
+
+**Pages/Login.razor - Đăng Nhập Khách Hàng**
+- **Logic Authentication**:
+  * Validate form với Required rules
+  * Gọi `IAuthClientService.LoginAsync(loginModel)`
+  * Check ResponseStatus == Success
+- **Logic Session Management**:
+  * Store JWT token trong localStorage
+  * Set authentication state
+  * Redirect về trang trước hoặc home
+- **Logic Remember Me**:
+  * Store username trong localStorage
+  * Auto-fill username khi load page
+  * Clear sensitive data khi logout
+
+**Pages/Register.razor - Đăng Ký Tài Khoản**
+- **Logic Registration**:
+  * Validate form với email format, password strength
+  * Check email không tồn tại
+  * Create Customer account với User
+  * Auto-login sau khi register thành công
+- **Logic Validation**:
+  * Email format validation
+  * Password minimum 6 characters
+  * Phone number format (10-11 digits, start with 0)
+  * Terms and conditions acceptance
+
+📌 3. QUẢN LÝ GIỎ HÀNG
+--------------------------------------------------------------------------------
+
+**Pages/CartPages/Cart.razor - Trang Giỏ Hàng Khách Hàng**
+- **Logic Tải Dữ Liệu Giỏ Hàng**:
+  * **Tải giỏ hàng hiện tại**: 
+    - Load current cart với `ICartClientService.GetCurrentCartAsync()`
+    - Hiển thị danh sách sản phẩm trong giỏ với đầy đủ thông tin
+    - Tính toán tổng tiền real-time khi có thay đổi
+  * **Hiển thị thông tin sản phẩm**: 
+    - Tên sản phẩm và SKU
+    - Hình ảnh sản phẩm với fallback image
+    - Thông tin biến thể (màu sắc, kích thước)
+    - Giá gốc và giá sau giảm giá
+    - Số lượng và tổng tiền từng sản phẩm
+
+- **Logic Quản Lý Số Lượng Sản Phẩm**:
+  * **Tăng/giảm số lượng**: 
+    - Increment/Decrement quantity với validation
+    - Validate quantity >= 1 và <= MaxBuyPerOrder
+    - Gọi `UpdateQuantityAsync()` để cập nhật database
+    - Remove item khỏi giỏ nếu quantity = 0
+  * **Nhập số lượng trực tiếp**: 
+    - Validate input với min/max limits
+    - Hiển thị cảnh báo khi vượt quá giới hạn
+    - Auto-save khi người dùng thay đổi số lượng
+  * **Kiểm tra tồn kho**: 
+    - Validate số lượng không vượt quá tồn kho hiện có
+    - Hiển thị cảnh báo khi sản phẩm sắp hết hàng
+    - Disable nút tăng số lượng khi hết hàng
+
+- **Logic Tính Toán Giá Cả**:
+  * **Tính giá sau giảm giá**: 
+    - Công thức: Price * (1 - Discount/100)
+    - Hiển thị giá gốc và giá đã giảm
+    - Tính tổng tiền từng dòng: Quantity * PriceAfterDiscount
+  * **Tính tổng tiền**: 
+    - Subtotal: Tổng của tất cả các dòng sản phẩm
+    - Áp dụng mã giảm giá nếu có
+    - Cộng phí vận chuyển
+    - Hiển thị tổng tiền cuối cùng
+
+- **Logic Áp Dụng Mã Giảm Giá**:
+  * **Tìm kiếm mã giảm giá**: 
+    - Search voucher by code với validation
+    - Kiểm tra voucher có tồn tại và đang hoạt động
+    - Validate điều kiện sử dụng: MinOrder, Status, Expiry
+  * **Tính toán giảm giá**: 
+    - Công thức: Min(Subtotal * Discount%, MaxDiscount)
+    - Hiển thị số tiền được giảm
+    - Cập nhật tổng tiền cuối cùng
+  * **Quản lý voucher**: 
+    - Cho phép thay đổi hoặc xóa voucher đã áp dụng
+    - Hiển thị thông tin voucher: mã, tỷ lệ giảm, điều kiện
+    - Validate voucher có thể sử dụng cho đơn hàng hiện tại
+
+- **Logic Tính Phí Vận Chuyển**:
+  * **Tính toán thông số vận chuyển**: 
+    - Tổng trọng lượng từ các sản phẩm trong giỏ
+    - Tổng thể tích từ kích thước các sản phẩm
+    - Kích thước lớn nhất từ tất cả sản phẩm
+  * **Tích hợp API GHN**: 
+    - Gọi GHN API để tính phí vận chuyển
+    - Truyền thông tin: trọng lượng, kích thước, địa chỉ giao hàng
+    - Nhận về phí vận chuyển và thời gian giao hàng
+  * **Cập nhật tổng tiền**: 
+    - Cộng phí vận chuyển vào tổng tiền
+    - Hiển thị chi tiết phí vận chuyển
+    - Cho phép xem chi tiết cách tính phí
+
+- **Logic Quy Trình Thanh Toán**:
+  * **Kiểm tra điều kiện**: 
+    - Validate selected items không empty
+    - Validate địa chỉ giao hàng đã được chọn
+    - Kiểm tra tất cả sản phẩm còn tồn kho
+  * **Tạo đơn hàng**: 
+    - Gọi `CheckoutAsync()` để tạo đơn hàng
+    - Tạo đơn hàng vận chuyển GHN
+    - Cập nhật tồn kho sản phẩm
+  * **Xử lý thanh toán**: 
+    - Redirect đến trang thanh toán nếu chọn VnPay
+    - Hiển thị thông tin chuyển khoản nếu chọn QR Code
+    - Redirect đến trang xác nhận đơn hàng
+
+📌 4. CHI TIẾT SẢN PHẨM
+--------------------------------------------------------------------------------
+
+**Pages/ProductDetail/ProductDetail.razor - Chi Tiết Sản Phẩm**
+- **Logic Product Loading**:
+  * Load product với full details: `GetProductWithDetailsAsync()`
+  * Load media files với ImageUrl
+  * Load product variants với inventory info
+  * Load related products
+- **Logic Variant Selection**:
+  * Show all variants với Size + Color combination
+  * Highlight selected variant
+  * Update price và availability khi select variant
+  * Show stock status: Available/OutOfStock
+- **Logic Quantity Management**:
+  * Set maxPurchasableQuantity = Min(InventoryQuantity, MaxBuyPerOrder)
+  * Validate quantity input với min/max limits
+  * Show warning khi exceed limits
+- **Logic Add to Cart**:
+  * Validate variant selected
+  * Validate quantity > 0 và <= maxPurchasableQuantity
+  * Add to cart với `AddToCartAsync()`
+  * Update cart count trong header
+- **Logic Wishlist Management**:
+  * Check wishlist status cho selected variant
+  * Add/Remove from wishlist với `ToggleWishlist()`
+  * Update wishlist button state
+- **Logic Review System**:
+  * Load reviews với pagination
+  * Filter reviews theo rating (1-5 stars)
+  * Show review statistics: Average rating, rating distribution
+  * Enable review submission cho eligible customers
+- **Logic Review Eligibility**:
+  * Check customer đã mua sản phẩm này
+  * Check order status = Completed
+  * Check chưa review variant này
+  * Show eligible variants từ completed orders
+- **Logic Review Submission**:
+  * Select variant để review
+  * Upload media files (4 images + 1 video)
+  * Submit review với rating, content, media
+  * Reload reviews sau khi submit
+
+📌 5. QUẢN LÝ ĐƠN HÀNG
+--------------------------------------------------------------------------------
+
+**Pages/OrderPages/CustomerOrder.razor - Đơn Hàng Khách Hàng**
+- **Logic Order Loading**:
+  * Load customer orders với `GetMyOrdersAsync()`
+  * Filter theo status với tabs
+  * Show order details với pagination
+- **Logic Order Status**:
+  * Show status với color coding
+  * Enable actions based on status
+  * Show order timeline với status changes
+- **Logic Order Tracking**:
+  * Show current status và next steps
+  * Display estimated delivery date
+  * Show tracking information nếu available
+
+**Pages/OrderPages/OrderDetail.razor - Chi Tiết Đơn Hàng**
+- **Logic Order Details**:
+  * Load order với full details
+  * Show order items với product info
+  * Display delivery address và payment info
+- **Logic Order Actions**:
+  * Cancel order nếu status = Pending
+  * Request return nếu status = Completed
+  * Track order nếu status = InTransit
+- **Logic Return Request**:
+  * Select items để return
+  * Provide return reason
+  * Upload return evidence (photos)
+  * Submit return request
+
+📌 6. QUẢN LÝ HỒ SƠ KHÁCH HÀNG
+--------------------------------------------------------------------------------
+
+**Pages/ProfilePages/ProfileInfo.razor - Thông Tin Cá Nhân**
+- **Logic Profile Management**:
+  * Load customer profile info
+  * Update profile với validation
+  * Upload avatar với size limit
+- **Logic Password Change**:
+  * Validate current password
+  * Validate new password strength
+  * Confirm new password match
+  * Update password với encryption
+
+**Pages/ProfilePages/DeliveryAddresses.razor - Địa Chỉ Giao Hàng**
+- **Logic Address Management**:
+  * Load customer addresses
+  * CRUD operations cho addresses
+  * Set default address
+- **Logic Address Validation**:
+  * Validate phone number format
+  * Validate address completeness
+  * Check address uniqueness
+- **Logic GHN Integration**:
+  * Load provinces từ GHN API
+  * Load districts based on province
+  * Load communes based on district
+  * Build full address string
+
+**Pages/ProfilePages/Wishlist.razor - Danh Sách Yêu Thích**
+- **Logic Wishlist Management**:
+  * Load wishlist items
+  * Add/Remove items
+  * Move items to cart
+- **Logic Wishlist Actions**:
+  * Add to cart từ wishlist
+  * Remove from wishlist
+  * Share wishlist (future feature)
+
+**Pages/ProfilePages/ProductReviews.razor - Đánh Giá Sản Phẩm**
+- **Logic Review Management**:
+  * Load customer reviews
+  * Edit reviews (nếu chưa được reply)
+  * Delete reviews (nếu chưa được reply)
+- **Logic Review Display**:
+  * Show review details với product info
+  * Show admin replies
+  * Show review status (Pending/Approved/Rejected)
+
+📌 7. CÁC MÀN HÌNH KHÁC
+--------------------------------------------------------------------------------
+
+**Pages/Compare.razor - So Sánh Sản Phẩm**
+- **Logic Product Comparison**:
+  * Add products to comparison list
+  * Remove products from comparison
+  * Show comparison table với specifications
+- **Logic Comparison Features**:
+  * Compare up to 4 products
+  * Highlight differences
+  * Show price comparison
+  * Add to cart từ comparison
+
+🔧 LOGIC NGHIỆP VỤ CHUNG VÀ QUY TẮC HỆ THỐNG
+================================================================================
+
+📌 1. LOGIC KIỂM TRA TÍNH HỢP LỆ (VALIDATION LOGIC)
+--------------------------------------------------------------------------------
+- **Kiểm Tra Form Đầu Vào**:
+  * **Validation các trường bắt buộc**: 
+    - Kiểm tra không được để trống các trường required
+    - Hiển thị thông báo lỗi cụ thể cho từng trường
+    - Ngăn chặn submit form khi có lỗi validation
+  * **Validation định dạng dữ liệu**: 
+    - Email: Kiểm tra format email hợp lệ
+    - Số điện thoại: 10-11 số, bắt đầu bằng 0
+    - Mật khẩu: Tối thiểu 6 ký tự, có chữ và số
+    - Ngày tháng: Format dd/MM/yyyy
+  * **Validation quy tắc nghiệp vụ**: 
+    - Giá sản phẩm phải > 0
+    - Số lượng phải >= 1
+    - Ngày bắt đầu < ngày kết thúc
+    - Số lượng không vượt quá tồn kho
+  * **Validation liên quan giữa các trường**: 
+    - Giá sau giảm giá < giá gốc
+    - Số lượng tối đa mua <= tồn kho
+    - Địa chỉ giao hàng phải đầy đủ thông tin
+
+- **Kiểm Tra Quy Tắc Nghiệp Vụ**:
+  * **Kiểm tra tồn kho**: 
+    - Validate sản phẩm còn hàng trước khi thêm vào giỏ
+    - Kiểm tra số lượng không vượt quá tồn kho hiện có
+    - Cảnh báo khi sản phẩm sắp hết hàng
+  * **Kiểm tra giá cả**: 
+    - Validate giá sản phẩm phải là số dương
+    - Kiểm tra giá sau giảm giá hợp lệ
+    - Validate không được giảm giá âm
+  * **Kiểm tra ngày tháng**: 
+    - Ngày bắt đầu khuyến mãi < ngày kết thúc
+    - Ngày tạo đơn hàng không được trong tương lai
+    - Validate ngày hết hạn voucher
+  * **Kiểm tra số lượng**: 
+    - Số lượng sản phẩm >= 1
+    - Số lượng không vượt quá giới hạn mua hàng
+    - Validate số lượng nhập kho > 0
+
+📌 2. LOGIC QUẢN LÝ TRẠNG THÁI (STATE MANAGEMENT LOGIC)
+--------------------------------------------------------------------------------
+- **Trạng Thái Component**:
+  * **Trạng thái cục bộ**: 
+    - Sử dụng @bind-Value để bind dữ liệu
+    - Cập nhật UI với StateHasChanged() khi có thay đổi
+    - Quản lý loading states cho các thao tác async
+  * **Trạng thái form**: 
+    - Track dirty state của form
+    - Validate real-time khi người dùng nhập liệu
+    - Reset form về trạng thái ban đầu
+  * **Trạng thái modal/dialog**: 
+    - Quản lý visibility của modal
+    - Lưu trạng thái dữ liệu trong modal
+    - Xử lý cancel và save actions
+
+- **Trạng Thái Toàn Cục**:
+  * **Trạng thái giỏ hàng**: 
+    - CartStateService để quản lý số lượng sản phẩm trong giỏ
+    - Cập nhật real-time khi thêm/xóa sản phẩm
+    - Persist giỏ hàng trong localStorage
+  * **Trạng thái xác thực**: 
+    - AuthStateProvider để quản lý trạng thái đăng nhập
+    - Lưu thông tin user và permissions
+    - Auto-refresh token khi hết hạn
+  * **Trạng thái người dùng**: 
+    - Lưu preferences trong localStorage
+    - Remember các filter và sort options
+    - Cache dữ liệu static (categories, brands)
+
+📌 3. LOGIC XỬ LÝ LỖI (ERROR HANDLING LOGIC)
+--------------------------------------------------------------------------------
+- **Xử Lý Lỗi API**:
+  * **Try-catch blocks**: 
+    - Wrap tất cả API calls trong try-catch
+    - Catch các loại exception khác nhau
+    - Log chi tiết lỗi để debug
+  * **Kiểm tra response status**: 
+    - Check ResponseStatus == Success
+    - Xử lý các mã lỗi khác nhau (400, 401, 403, 500)
+    - Hiển thị thông báo lỗi phù hợp với từng trường hợp
+  * **Hiển thị thông báo lỗi**: 
+    - User-friendly error messages
+    - Không hiển thị technical details cho end user
+    - Cung cấp hướng dẫn khắc phục khi có thể
+  * **Log lỗi để debug**: 
+    - Log chi tiết lỗi với stack trace
+    - Include context information (user, action, timestamp)
+    - Send error reports đến monitoring system
+
+- **Xử Lý Lỗi Validation**:
+  * **Hiển thị lỗi inline**: 
+    - Show validation errors ngay dưới field
+    - Highlight field có lỗi với màu đỏ
+    - Clear errors khi user sửa input
+  * **Ngăn chặn submit**: 
+    - Disable submit button khi có lỗi
+    - Prevent form submission với errors
+    - Show summary errors ở đầu form
+  * **Xử lý lỗi real-time**: 
+    - Validate khi user blur khỏi field
+    - Clear errors khi user bắt đầu sửa
+    - Debounce validation để tránh spam
+
+📌 4. LOGIC TỐI ƯU HIỆU SUẤT (PERFORMANCE OPTIMIZATION LOGIC)
+--------------------------------------------------------------------------------
+- **Lazy Loading**:
+  * **Tải dữ liệu theo yêu cầu**: 
+    - Load data chỉ khi cần thiết
+    - Implement pagination cho large datasets
+    - Load more data khi user scroll đến cuối
+  * **Virtual scrolling**: 
+    - Render chỉ items visible trên màn hình
+    - Recycle DOM elements để tiết kiệm memory
+    - Smooth scrolling cho danh sách dài
+  * **Image lazy loading**: 
+    - Load images chỉ khi vào viewport
+    - Show placeholder trong khi loading
+    - Progressive image loading
+
+- **Caching Logic**:
+  * **Cache API responses**: 
+    - Cache static data (categories, brands, sizes)
+    - Implement cache invalidation strategy
+    - Use memory cache cho frequently accessed data
+  * **Cache user preferences**: 
+    - Cache filter và sort options
+    - Remember user's last viewed products
+    - Cache search results với TTL
+  * **Cache static data**: 
+    - Cache dropdown data (provinces, districts)
+    - Cache configuration settings
+    - Cache computed values (shipping fees)
+
+- **Debouncing**:
+  * **Search input debouncing**: 
+    - Delay API calls khi user đang typing
+    - Cancel previous requests khi có request mới
+    - Reduce server load và improve UX
+  * **Filter changes debouncing**: 
+    - Debounce filter changes để tránh excessive API calls
+    - Batch multiple filter changes
+    - Show loading indicator trong khi debouncing
+  * **Prevent excessive API calls**: 
+    - Rate limiting cho API calls
+    - Implement request queuing
+    - Cancel redundant requests
+
+📌 5. LOGIC BẢO MẬT (SECURITY LOGIC)
+--------------------------------------------------------------------------------
+- **Xác Thực (Authentication)**:
+  * **JWT token validation**: 
+    - Validate JWT token signature và expiry
+    - Refresh token khi gần hết hạn
+    - Handle token expiration gracefully
+  * **Token refresh logic**: 
+    - Auto-refresh token trước khi hết hạn
+    - Retry failed requests với new token
+    - Logout user khi refresh token hết hạn
+  * **Session timeout handling**: 
+    - Detect idle time và auto-logout
+    - Show warning trước khi logout
+    - Save user's work trước khi logout
+
+- **Phân Quyền (Authorization)**:
+  * **Role-based access control**: 
+    - Check user roles trước khi thực hiện action
+    - Hide/disable UI elements based on permissions
+    - Validate permissions ở cả client và server
+  * **Permission checking**: 
+    - Granular permissions cho từng feature
+    - Check permissions real-time
+    - Cache permissions để improve performance
+  * **Resource ownership validation**: 
+    - Validate user owns resource trước khi modify
+    - Prevent access to other users' data
+    - Audit access attempts
+
+- **Bảo Vệ Dữ Liệu**:
+  * **Input sanitization**: 
+    - Sanitize tất cả user inputs
+    - Escape special characters
+    - Validate data types và formats
+  * **SQL injection prevention**: 
+    - Use parameterized queries
+    - Validate input parameters
+    - Escape special SQL characters
+  * **XSS protection**: 
+    - Encode output data
+    - Use Content Security Policy
+    - Validate và sanitize HTML content
+
+📌 6. LOGIC TÍCH HỢP (INTEGRATION LOGIC)
+--------------------------------------------------------------------------------
+- **Tích Hợp Thanh Toán**:
+  * **VnPay payment processing**: 
+    - Generate payment URL với đầy đủ thông tin
+    - Handle payment callback và verify signature
+    - Update order status sau khi thanh toán thành công
+  * **QR Code generation**: 
+    - Generate QR code với thông tin chuyển khoản
+    - Include order code và amount
+    - Auto-refresh QR code khi amount thay đổi
+  * **Payment status tracking**: 
+    - Poll payment status từ VnPay
+    - Handle payment timeout
+    - Send notification khi payment completed
+
+- **Tích Hợp Vận Chuyển**:
+  * **GHN API integration**: 
+    - Calculate shipping fee dựa trên weight và dimensions
+    - Create shipping order với GHN
+    - Track shipping status real-time
+  * **Shipping fee calculation**: 
+    - Calculate total weight từ cart items
+    - Calculate total volume từ dimensions
+    - Get shipping fee từ GHN API
+  * **Order tracking**: 
+    - Track order status từ GHN
+    - Show delivery timeline
+    - Send tracking updates đến customer
+
+- **Tích Hợp Email**:
+  * **Order confirmation emails**: 
+    - Send email khi order được tạo
+    - Include order details và tracking info
+    - Send updates khi order status changes
+  * **Password reset emails**: 
+    - Generate secure reset token
+    - Send reset link với expiry time
+    - Validate reset token khi user clicks link
+  * **Newsletter subscriptions**: 
+    - Manage subscription preferences
+    - Send marketing emails với unsubscribe option
+    - Track email open và click rates
+
+📌 7. LOGIC QUY TẮC NGHIỆP VỤ (BUSINESS RULES LOGIC)
+--------------------------------------------------------------------------------
+- **Xử Lý Đơn Hàng**:
+  * **Order status workflow**: 
+    - Pending → Confirmed → InTransit → Completed
+    - Allow cancellation trong Pending và Confirmed
+    - Handle return requests từ Completed orders
+  * **Inventory deduction**: 
+    - Deduct inventory khi order confirmed
+    - Restore inventory khi order cancelled
+    - Handle partial fulfillment
+  * **Payment processing**: 
+    - Process payment theo method đã chọn
+    - Handle payment failures
+    - Refund processing cho cancelled orders
+  * **Shipping creation**: 
+    - Create shipping order với GHN
+    - Generate tracking number
+    - Send shipping notification
+
+- **Quản Lý Sản Phẩm**:
+  * **Variant creation rules**: 
+    - Unique combination của Color + Size
+    - Auto-generate SKU từ ProductId + ColorId + SizeId
+    - Validate variant không duplicate
+  * **Price calculation rules**: 
+    - Apply promotions và discounts
+    - Calculate final price với tax
+    - Handle bulk pricing
+  * **Inventory management rules**: 
+    - Track inventory theo variant
+    - Set low stock alerts
+    - Handle backorders
+  * **Status transition rules**: 
+    - Draft → Pending → Selling
+    - Prevent invalid status transitions
+    - Handle status dependencies
+
+- **Quản Lý Khách Hàng**:
+  * **Registration rules**: 
+    - Validate unique email và phone
+    - Send verification email
+    - Auto-create customer profile
+  * **Order eligibility rules**: 
+    - Check customer status (active/locked)
+    - Validate shipping address
+    - Check order limits
+  * **Review eligibility rules**: 
+    - Only customers who purchased can review
+    - One review per order item
+    - Review period limitations
+  * **Account status rules**: 
+    - Lock account sau multiple failed logins
+    - Suspend account cho violations
+    - Reactivate account với admin approval
+
+📌 8. LOGIC ĐẢM BẢO TÍNH NHẤT QUÁN DỮ LIỆU (DATA CONSISTENCY LOGIC)
+--------------------------------------------------------------------------------
+- **Quản Lý Transaction**:
+  * **Database transactions**: 
+    - Wrap related operations trong transaction
+    - Rollback toàn bộ khi có lỗi
+    - Ensure data consistency across tables
+  * **Rollback on errors**: 
+    - Automatic rollback khi exception occurs
+    - Manual rollback cho business rule violations
+    - Log rollback reasons
+  * **Data consistency checks**: 
+    - Validate foreign key constraints
+    - Check data integrity rules
+    - Prevent orphaned records
+
+- **Kiểm Soát Đồng Thời**:
+  * **Optimistic locking**: 
+    - Use version fields để detect conflicts
+    - Handle concurrent modifications
+    - Show conflict resolution UI
+  * **Conflict resolution**: 
+    - Detect data conflicts
+    - Provide resolution options
+    - Merge changes intelligently
+  * **Data synchronization**: 
+    - Sync data across multiple sources
+    - Handle sync conflicts
+    - Maintain data consistency
+
+- **Audit Trail**:
+  * **Log all changes**: 
+    - Track who made changes
+    - Log what was changed
+    - Record when changes occurred
+  * **Track user actions**: 
+    - Log user activities
+    - Track sensitive operations
+    - Monitor for suspicious activities
+  * **Maintain history records**: 
+    - Keep historical data
+    - Enable data recovery
+    - Support compliance requirements
+
+================================================================================

@@ -6,6 +6,8 @@ using MeoMeo.Domain.IRepositories;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using MeoMeo.Contract.DTOs.Product;
+using MeoMeo.Domain.Commons;
+using static MeoMeo.Domain.Commons.PagingExtensions;
 
 namespace MeoMeo.API.Controllers
 {
@@ -24,6 +26,14 @@ namespace MeoMeo.API.Controllers
         {
             var result = await _categoryService.GetAllCategoriesAsync();
             return Ok(result);
+        }
+
+        //
+        [HttpGet("get-all-categories-paged")]
+        public async Task<PagingExtensions.PagedResult<CategoryDTO>> GetAllCategoriesPaged([FromQuery] GetListCategoryRequestDTO request)
+        {
+            var result = await _categoryService.GetAllCategoriesPagedAsync(request);
+            return result;
         }
 
         // Hover preview products for a category - MUST be before {id} route

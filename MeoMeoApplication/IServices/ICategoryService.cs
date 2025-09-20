@@ -5,16 +5,19 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using MeoMeo.Contract.Commons;
+using MeoMeo.Domain.Commons;
 
 namespace MeoMeo.Application.IServices
 {
     public interface ICategoryService
     {
         Task<IEnumerable<Category>> GetAllCategoriesAsync();
+        Task<PagingExtensions.PagedResult<CategoryDTO>> GetAllCategoriesPagedAsync(GetListCategoryRequestDTO request);
         Task<CategoryResponseDTO> GetCategoryByIdAsync(Guid id);
         Task<CategoryResponseDTO> CreateCategoryAsync(CategoryDTO categoryDTO);
         Task<CategoryResponseDTO> UpdateCategoryAsync(CategoryDTO categoryDTO);
         Task<CategoryResponseDTO> DeleteCategoryAsync(Guid id);
         Task<MeoMeo.Contract.DTOs.Product.CategoryHoverResponseDTO> GetCategoryHoverPreviewAsync(Guid categoryId, int take = 6);
     }
-} 
+}

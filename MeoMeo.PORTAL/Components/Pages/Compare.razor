@@ -18,416 +18,515 @@
             So sánh sản phẩm chi tiết
         </h2>
         <p class="text-muted">
-            @if (string.IsNullOrEmpty(searchKeyword))
-            {
-                <span>Chọn tối đa 3 sản phẩm từ danh sách để so sánh các thông số kỹ thuật</span>
-            }
-            else
+          
+            @if (!string.IsNullOrEmpty(searchKeyword))
             {
                 <span>Kết quả tìm kiếm cho "<strong>@searchKeyword</strong>"</span>
-            }
-            @if (!isLoadingProducts && !string.IsNullOrEmpty(errorMessage) == false)
-            {
-                <span class="badge bg-primary ms-2">@recentOptions.Count sản phẩm</span>
+                 <span class="badge bg-primary ms-2">@recentOptions.Count sản phẩm</span>
             }
         </p>
     </div>
 
-    <!-- Product Selection -->
-    <div class="product-selection mb-4">
-        <!-- Search Box -->
-        <div class="row mb-3">
-            <div class="col-md-8">
-                <div class="input-group">
-                    <input type="text" 
-                           class="form-control" 
-                           placeholder="Tìm kiếm sản phẩm..." 
-                           @bind="searchKeyword"
-                           @onkeypress="@(async (e) => { if (e.Key == "Enter") await SearchProducts(); })" />
-                    <RadzenButton Text="Tìm kiếm" 
-                                  ButtonStyle="ButtonStyle.Primary" 
-                                  Click="@SearchProducts"
-                                  Disabled="@isLoadingProducts" />
-                </div>
-            </div>
-            <div class="col-md-4">
-                @if (!string.IsNullOrEmpty(searchKeyword))
-                {
-                    <RadzenButton Text="Xóa tìm kiếm" 
-                                  ButtonStyle="ButtonStyle.Secondary" 
-                                  Click="@(async () => { searchKeyword = string.Empty; await SearchProducts(); })"
-                                  Disabled="@isLoadingProducts" />
-                }
-            </div>
-        </div>
-        
-        <div class="row">
-            <div class="col-md-8">
-                @if (isLoadingProducts)
-                {
-                    <div class="loading-state">
-                        <Spin Size="SpinSize.Default" />
-                        <span class="ms-2">Đang tải danh sách sản phẩm...</span>
-                    </div>
-                }
-                else if (!string.IsNullOrEmpty(errorMessage))
-                {
-                    <div class="error-state">
-                        <Icon Type="exclamation-circle" Class="text-danger me-2" />
-                        <span class="text-danger">@errorMessage</span>
-                        <RadzenButton Text="Thử lại" 
+    <!-- Radzen Splitter Layout -->
+    <RadzenSplitter Orientation="Orientation.Horizontal" Style="height: 80vh;">
+        <!-- Left Pane: Product Selection -->
+        <RadzenSplitterPane Size="30" Min="300" Collapsible="true">
+            <div class="product-selection-pane">
+                <h4 class="mb-3">
+                    <Icon Type="search" Class="me-2" />
+                    Chọn sản phẩm
+                </h4>
+                
+                <!-- Search Box -->
+                <div class="search-section mb-3">
+                    <div class="input-group">
+                        <input type="text" 
+                               class="form-control" 
+                               placeholder="Tìm kiếm sản phẩm..." 
+                               @bind="searchKeyword"
+                               @onkeypress="@(async (e) => { if (e.Key == "Enter") await SearchProducts(); })" />
+                        <RadzenButton Text="Tìm" 
                                       ButtonStyle="ButtonStyle.Primary" 
-                                      Size="ButtonSize.Small"
-                                      Click="@LoadProductsFromBackend"
-                                       />
+                                      Click="@SearchProducts"
+                                      Disabled="@isLoadingProducts"
+                                      Size="ButtonSize.Small" />
                     </div>
-                }
-                else
-                {
-                    <Select Mode="SelectMode.Multiple"
-                            Placeholder="@(string.IsNullOrEmpty(searchKeyword) ? "Chọn sản phẩm để so sánh..." : $"Kết quả tìm kiếm '{searchKeyword}'")"
-                            @bind-Values="selectedProductIds"
-                            TItemValue="string"
-                            TItem="string"
-                            OnSelectedItemsChanged="OnSelectedItemsChangedHandler"
-                            Style="width: 100%;"
-                            EnableSearch
-                            AllowClear
-                            MaxTagCount="3"
-                            MaxTagTextLength="20">
-                        <SelectOptions>
-                            @foreach (var product in recentOptions)
+                    @if (!string.IsNullOrEmpty(searchKeyword))
+                    {
+                        <RadzenButton Text="Xóa tìm kiếm" 
+                                      ButtonStyle="ButtonStyle.Secondary" 
+                                      Click="@(async () => { searchKeyword = string.Empty; await SearchProducts(); })"
+                                      Disabled="@isLoadingProducts"
+                                      Size="ButtonSize.Small"
+                                      Class="mt-2 w-100" />
+                    }
+                </div>
+
+                <!-- Product List -->
+                <div class="product-list">
+                    @if (isLoadingProducts)
+                    {
+                        <div class="loading-state">
+                            <Spin Size="SpinSize.Default" />
+                            <span class="ms-2">Đang tải...</span>
+                        </div>
+                    }
+                    else if (!string.IsNullOrEmpty(errorMessage))
+                    {
+                        <div class="error-state">
+                            <Icon Type="exclamation-circle" Class="text-danger me-2" />
+                            <span class="text-danger">@errorMessage</span>
+                            <RadzenButton Text="Thử lại" 
+                                          ButtonStyle="ButtonStyle.Primary" 
+                                          Size="ButtonSize.Small"
+                                          Click="@LoadProductsFromBackend"
+                                          Class="mt-2 w-100" />
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="product-items">
+                            @foreach (var product in recentOptions.Take(50))
                             {
-                                <SelectOption TItemValue="string" TItem="string" 
-                                            Value="@product.ProductId.ToString()" 
-                                            Label="@($"{product.ProductName} - {product.BrandName}")" />
+                                <div class="product-item @(selectedProductIds.Contains(product.ProductDetailId.ToString()) ? "selected" : "")"
+                                     @onclick="@(() => ToggleProductSelection(product.ProductDetailId.ToString()))">
+                                    <div class="product-item-image">
+                                        <Image Src="@(string.IsNullOrEmpty(product.Thumbnail) ? "/images/products/chilli.png" : Configuration["ApiSettings:BaseUrl"] + "/" + product.Thumbnail)" 
+                                               Alt="@product.ProductName"
+                                               Width="60"
+                                               Height="60"
+                                               Preview="true"
+                                               Fallback="/images/products/chilli.png" />
+                                    </div>
+                                    <div class="product-item-info">
+                                        <h6 class="product-item-name">@product.ProductName</h6>
+                                        <div class="product-item-brand">@product.BrandName</div>
+                                        <div class="product-item-variant">
+                                            <span class="size-info">Size: @product.SizeValue</span>
+                                            <span class="color-info">Màu: @product.ColourName</span>
+                                        </div>
+                                        <div class="product-item-price">
+                                            @if (product.SalePrice.HasValue && product.SalePrice < product.Price)
+                                            {
+                                                <span class="sale-price">@product.SalePrice.Value.ToString("C0", new System.Globalization.CultureInfo("vi-VN"))</span>
+                                                <span class="original-price">@product.Price.ToString("C0", new System.Globalization.CultureInfo("vi-VN"))</span>
+                                            }
+                                            else
+                                            {
+                                                <span class="price">@product.Price.ToString("C0", new System.Globalization.CultureInfo("vi-VN"))</span>
+                                            }
+                                        </div>
+                                        <div class="product-item-rating">
+                                            <div class="stars">
+                                                @for (int i = 1; i <= 5; i++)
+                                                {
+                                                    <span class="star @(i <= Math.Round(product.Rating) ? "filled" : "")">★</span>
+                                                }
+                                            </div>
+                                            <span class="rating-text">@product.Rating.ToString("F1")</span>
+                                        </div>
+                                    </div>
+                                    <div class="product-item-checkbox">
+                                        <RadzenCheckBox Value="@selectedProductIds.Contains(product.ProductDetailId.ToString())" 
+                                                        ReadOnly="true" />
+                                    </div>
+                                </div>
                             }
-                        </SelectOptions>
-                    </Select>
-                }
-            </div>
-            <div class="col-md-4">
-                <div class="d-flex gap-2">
+        </div>
+                    }
+    </div>
+
+                <!-- Action Buttons -->
+                <div class="action-buttons mt-3">
                     <RadzenButton Text="So sánh" 
                                   Click="@(async () => await LoadSelection())" 
                                   Disabled="@(!selectedProductIds.Any())" 
                                   ButtonStyle="ButtonStyle.Primary"
-                                  Icon="swap_horiz" />
+                                  Icon="swap_horiz"
+                                  Class="w-100 mb-2" />
                     <RadzenButton Text="Xóa tất cả" 
                                   ButtonStyle="ButtonStyle.Secondary" 
                                   Click="@ClearSelection"
-                                  Icon="close" />
+                                  Icon="close"
+                                  Class="w-100" />
                 </div>
             </div>
-        </div>
-    </div>
+        </RadzenSplitterPane>
 
-    @if (compared.Any())
-    {
-            <!-- Comparison Table -->
-            <div class="comparison-container">
-                <div class="comparison-table-wrapper">
-                    <table class="comparison-table">
-                        <thead>
-                            <tr>
-                                <th class="feature-column">Thông số</th>
-                                @foreach (var product in compared)
-                                {
+        <!-- Right Pane: Comparison Table -->
+        <RadzenSplitterPane Size="70" Min="400">
+            <div class="comparison-pane">
+                @if (compared.Any())
+                {
+                    <h4 class="mb-3">
+                        <Icon Type="table_chart" Class="me-2" />
+                        Bảng so sánh (@compared.Count sản phẩm)
+                    </h4>
+                    
+                    <div class="comparison-table-wrapper">
+                        <table class="comparison-table">
+                            <thead>
+                                <tr>
+                                    <th class="feature-column">Thông số</th>
+                                    @foreach (var product in compared)
+                                    {
                                         <th class="product-column">
                                             <div class="product-header">
                                                 <div class="product-image">
-                                                    <img src="@(string.IsNullOrEmpty(product.Thumbnail) ? "/images/products/chilli.png" : Configuration["ApiSettings:BaseUrl"] + "/" + product.Thumbnail)" 
-                                                         alt="@product.Name" />
+                                                    <Image Src="@(string.IsNullOrEmpty(product.Thumbnail) ? Configuration["ApiSettings:BaseUrl"] + "/" + "Images/Fallback.jpeg" : Configuration["ApiSettings:BaseUrl"] + "/" + product.Thumbnail)" 
+                                                           Width="80"
+                                                           Height="80"
+                                                           Preview="true"
+                                                           Fallback="/images/products/chilli.png" />
                                                 </div>
                                                 <div class="product-info">
-                                                    <h5 class="product-name">@product.Name</h5>
+                                                    <h6 class="product-name">@product.ProductName</h6>
                                                     <div class="product-brand">@product.BrandName</div>
                                                 </div>
                                                 <div class="product-actions">
-                                                    <RadzenButton Text="Xem chi tiết" 
+                                                    <RadzenButton Text="Chi tiết" 
                                                                   ButtonStyle="ButtonStyle.Info" 
                                                                   Size="ButtonSize.Small"
-                                                                  Click="@(() => NavigateToProduct(product.Id))" />
+                                                                  Click="@(() => NavigateToProduct(product.ProductId))" />
                                                     <RadzenButton Text="Xóa" 
                                                                   ButtonStyle="ButtonStyle.Danger" 
                                                                   Size="ButtonSize.Small"
                                                                   Icon="close"
-                                                                  Click="@(() => RemoveProduct(product.Id))" />
+                                                                  Click="@(() => RemoveProduct(product.ProductDetailId))" />
                                                 </div>
                                             </div>
                                         </th>
-                                }
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <!-- Basic Information -->
-                            <tr class="section-header">
-                                <td colspan="@(compared.Count + 1)">Thông tin cơ bản</td>
-                            </tr>
-                        
-                            <tr>
-                                <td class="feature-name">Tên sản phẩm</td>
-                                @foreach (var product in compared)
-                                {
-                                        <td class="feature-value">@product.Name</td>
-                                }
-                            </tr>
-                        
-                            <tr>
-                                <td class="feature-name">Thương hiệu</td>
-                                @foreach (var product in compared)
-                                {
+                                    }
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <!-- Basic Information -->
+                                <tr class="section-header">
+                                    <td colspan="@(compared.Count + 1)">Thông tin cơ bản</td>
+                                </tr>
+                            
+                                <tr>
+                                    <td class="feature-name">Tên sản phẩm</td>
+                                    @foreach (var product in compared)
+                                    {
+                                        <td class="feature-value">@product.ProductName</td>
+                                    }
+                                </tr>
+                            
+                                <tr>
+                                    <td class="feature-name">Thương hiệu</td>
+                                    @foreach (var product in compared)
+                                    {
                                         <td class="feature-value">@product.BrandName</td>
-                                }
-                            </tr>
-                        
-                            <tr>
-                                <td class="feature-name">Mô tả</td>
-                                @foreach (var product in compared)
-                                {
+                                    }
+                                </tr>
+                            
+                                <tr>
+                                    <td class="feature-name">Mô tả</td>
+                                    @foreach (var product in compared)
+                                    {
                                         <td class="feature-value">@(string.IsNullOrEmpty(product.Description) ? "Không có mô tả" : (product.Description.Length > 100 ? product.Description.Substring(0, 100) + "..." : product.Description))</td>
-                                }
-                            </tr>
+                                    }
+                                </tr>
 
-                            <!-- Pricing -->
-                            <tr class="section-header">
-                                <td colspan="@(compared.Count + 1)">Giá cả & Khuyến mãi</td>
-                            </tr>
-                        
-                            <tr>
-                                <td class="feature-name">Giá thấp nhất</td>
-                                @foreach (var product in compared)
-                                {
-                                        <td class="feature-value price-value">@(product.MinPrice?.ToString("C0", new System.Globalization.CultureInfo("vi-VN")) ?? "N/A")</td>
-                                }
-                            </tr>
-                        
-                            <tr>
-                                <td class="feature-name">Giá cao nhất</td>
-                                @foreach (var product in compared)
-                                {
-                                        <td class="feature-value price-value">@(product.MaxPrice?.ToString("C0", new System.Globalization.CultureInfo("vi-VN")) ?? "N/A")</td>
-                                }
-                            </tr>
-                        
-                            <tr>
-                                <td class="feature-name">Giảm giá tối đa</td>
-                                @foreach (var product in compared)
-                                {
-                                        <td class="feature-value discount-value">@(product.MaxDiscount?.ToString("0") + "%" ?? "Không có")</td>
-                                }
-                            </tr>
-
-                            <!-- Product Specifications -->
-                            <tr class="section-header">
-                                <td colspan="@(compared.Count + 1)">Thông số kỹ thuật</td>
-                            </tr>
-                        
-                            <tr>
-                                <td class="feature-name">Màu sắc</td>
-                                @foreach (var product in compared)
-                                {
+                                <!-- Pricing -->
+                                <tr class="section-header">
+                                    <td colspan="@(compared.Count + 1)">Giá cả & Khuyến mãi</td>
+                                </tr>
+                            
+                                <tr>
+                                    <td class="feature-name">Giá gốc</td>
+                                    @foreach (var product in compared)
+                                    {
+                                        <td class="feature-value price-value">@product.Price.ToString("C0", new System.Globalization.CultureInfo("vi-VN"))</td>
+                                    }
+                                </tr>
+                            
+                                <tr>
+                                    <td class="feature-name">Giá khuyến mãi</td>
+                                    @foreach (var product in compared)
+                                    {
                                         <td class="feature-value">
-                                            <div class="color-list">
-                                                @foreach (var color in product.ColourNames ?? new List<string>())
-                                                {
-                                                        <span class="color-tag">@color</span>
-                                                }
-                                            </div>
+                                            @if (product.SalePrice.HasValue && product.SalePrice < product.Price)
+                                            {
+                                                <span class="sale-price">@product.SalePrice.Value.ToString("C0", new System.Globalization.CultureInfo("vi-VN"))</span>
+                                            }
+                                            else
+                                            {
+                                                <span class="text-muted">Không có</span>
+                                            }
                                         </td>
-                                }
-                            </tr>
-                        
-                            <tr>
-                                <td class="feature-name">Kích thước</td>
-                                @foreach (var product in compared)
-                                {
-                                        <td class="feature-value">
-                                            <div class="size-list">
-                                                @foreach (var size in product.SizeValues ?? new List<string>())
-                                                {
-                                                        <span class="size-tag">@size</span>
-                                                }
-                                            </div>
+                                    }
+                                </tr>
+                            
+                                <tr>
+                                    <td class="feature-name">Phần trăm giảm giá</td>
+                                    @foreach (var product in compared)
+                                    {
+                                        <td class="feature-value discount-value">
+                                            @if (product.MaxDiscount.HasValue)
+                                            {
+                                                <span>@product.MaxDiscount.Value.ToString("0")%</span>
+                                            }
+                                            else
+                                            {
+                                                <span class="text-muted">Không có</span>
+                                            }
                                         </td>
-                                }
-                            </tr>
-                        
-                            <tr>
-                                <td class="feature-name">Chất liệu</td>
-                                @foreach (var product in compared)
-                                {
-                                        <td class="feature-value">@string.Join(", ", product.MaterialNames ?? new List<string>())</td>
-                                }
-                            </tr>
-                        
-                            <tr>
-                                <td class="feature-name">Mùa</td>
-                                @foreach (var product in compared)
-                                {
-                                        <td class="feature-value">@string.Join(", ", product.SeasonNames ?? new List<string>())</td>
-                                }
-                            </tr>
-                        
-                            <tr>
-                                <td class="feature-name">Danh mục</td>
-                                @foreach (var product in compared)
-                                {
-                                        <td class="feature-value">@string.Join(", ", product.CategoryNames ?? new List<string>())</td>
-                                }
-                            </tr>
+                                    }
+                                </tr>
 
-                            <!-- Inventory & Sales -->
-                            <tr class="section-header">
-                                <td colspan="@(compared.Count + 1)">Tồn kho & Bán hàng</td>
-                            </tr>
-                        
-                            <tr>
-                                <td class="feature-name">Tổng tồn kho</td>
-                                @foreach (var product in compared)
-                                {
-                                        <td class="feature-value stock-value">@(product.ProductVariants?.Sum(v => v.InventoryQuantity) ?? 0)</td>
-                                }
-                            </tr>
-                        
-                            <tr>
-                                <td class="feature-name">Số lượng bán</td>
-                                @foreach (var product in compared)
-                                {
+                                <!-- Product Specifications -->
+                                <tr class="section-header">
+                                    <td colspan="@(compared.Count + 1)">Thông số kỹ thuật</td>
+                                </tr>
+                            
+                                <tr>
+                                    <td class="feature-name">Màu sắc</td>
+                                    @foreach (var product in compared)
+                                    {
+                                        <td class="feature-value">
+                                            <span class="color-tag">@product.ColourName</span>
+                                        </td>
+                                    }
+                                </tr>
+                            
+                                <tr>
+                                    <td class="feature-name">Kích thước</td>
+                                    @foreach (var product in compared)
+                                    {
+                                        <td class="feature-value">
+                                            <span class="size-tag">@product.SizeValue</span>
+                                        </td>
+                                    }
+                                </tr>
+                            
+                                <tr>
+                                    <td class="feature-name">Chất liệu</td>
+                                    @foreach (var product in compared)
+                                    {
+                                        <td class="feature-value">@product.Material</td>
+                                    }
+                                </tr>
+                            
+                                <tr>
+                                    <td class="feature-name">Mùa</td>
+                                    @foreach (var product in compared)
+                                    {
+                                        <td class="feature-value">@product.Season</td>
+                                    }
+                                </tr>
+                            
+                                <tr>
+                                    <td class="feature-name">Danh mục</td>
+                                    @foreach (var product in compared)
+                                    {
+                                        <td class="feature-value">@product.CategoryName</td>
+                                    }
+                                </tr>
+                            
+                            
+                                <tr>
+                                    <td class="feature-name">Trọng lượng</td>
+                                    @foreach (var product in compared)
+                                    {
+                                        <td class="feature-value">@product.Weight g</td>
+                                    }
+                                </tr>
+                            
+                                <tr>
+                                    <td class="feature-name">Chiều cao đế</td>
+                                    @foreach (var product in compared)
+                                    {
+                                        <td class="feature-value">@product.StockHeight cm</td>
+                                    }
+                                </tr>
+                            
+                                <tr>
+                                    <td class="feature-name">Chiều dài giày</td>
+                                    @foreach (var product in compared)
+                                    {
+                                        <td class="feature-value">@product.Length cm</td>
+                                    }
+                                </tr>
+                            
+                                <tr>
+                                    <td class="feature-name">Chiều rộng giày</td>
+                                    @foreach (var product in compared)
+                                    {
+                                        <td class="feature-value">@product.Width cm</td>
+                                    }
+                                </tr>
+                            
+                                <tr>
+                                    <td class="feature-name">Chiều cao giày</td>
+                                    @foreach (var product in compared)
+                                    {
+                                        <td class="feature-value">@product.Height cm</td>
+                                    }
+                                </tr>
+                            
+                                <tr>
+                                    <td class="feature-name">Loại khóa</td>
+                                    @foreach (var product in compared)
+                                    {
+                                        <td class="feature-value">@product.ClosureType</td>
+                                    }
+                                </tr>
+                            
+                                <tr>
+                                    <td class="feature-name">Kích thước đóng gói</td>
+                                    @foreach (var product in compared)
+                                    {
+                                        <td class="feature-value">@product.Dimensions</td>
+                                    }
+                                </tr>
+
+                                <!-- Inventory & Sales -->
+                                <tr class="section-header">
+                                    <td colspan="@(compared.Count + 1)">Tồn kho & Bán hàng</td>
+                                </tr>
+                            
+                                <tr>
+                                    <td class="feature-name">Tồn kho</td>
+                                    @foreach (var product in compared)
+                                    {
+                                        <td class="feature-value stock-value">@product.StockQuantity</td>
+                                    }
+                                </tr>
+                            
+                                <tr>
+                                    <td class="feature-name">Số lượng bán</td>
+                                    @foreach (var product in compared)
+                                    {
                                         <td class="feature-value sales-value">@product.SaleNumber</td>
-                                }
-                            </tr>
-                        
-                            <tr>
-                                <td class="feature-name">Số lượng xem</td>
-                                @foreach (var product in compared)
-                                {
-                                        <td class="feature-value views-value">@(product.ProductVariants?.Sum(v => v.ViewNumber ?? 0) ?? 0)</td>
-                                }
-                            </tr>
-
-                            <!-- Ratings & Reviews -->
-                            <tr class="section-header">
-                                <td colspan="@(compared.Count + 1)">Đánh giá & Nhận xét</td>
-                            </tr>
-                        
-                            <tr>
-                                <td class="feature-name">Đánh giá trung bình</td>
-                                @foreach (var product in compared)
-                                {
+                                    }
+                                </tr>
+                            
+                            
+                                <tr>
+                                    <td class="feature-name">Cho phép trả hàng</td>
+                                    @foreach (var product in compared)
+                                    {
                                         <td class="feature-value">
-                                            <div class="rating-display">
-                                                <div class="stars">
-                                                    @for (int i = 1; i <= 5; i++)
-                                                    {
-                                                            <span class="star @(i <= Math.Round(product.Rating) ? "filled" : "")">★</span>
-                                                    }
-                                                </div>
-                                                <span class="rating-text">@product.Rating.ToString("F1")/5</span>
-                                            </div>
+                                            <span class="badge @(product.AllowReturn ? "badge-success" : "badge-danger")">
+                                                @(product.AllowReturn ? "Có" : "Không")
+                                            </span>
                                         </td>
-                                }
-                            </tr>
-                        
-                            <tr>
-                                <td class="feature-name">Phân bố đánh giá</td>
-                                @foreach (var product in compared)
-                                {
+                                    }
+                                </tr>
+
+                                <!-- Ratings & Reviews -->
+                                <tr class="section-header">
+                                    <td colspan="@(compared.Count + 1)">Đánh giá & Nhận xét</td>
+                                </tr>
+                            
+                                <tr>
+                                    <td class="feature-name">Đánh giá trung bình</td>
+                                    @foreach (var product in compared)
+                                    {
+                                        <td class="feature-value">
+                                            @if (product.Rating > 0)
+                                            {
+                                                <div class="rating-display">
+                                                    <div class="stars">
+                                                        @for (int i = 1; i <= 5; i++)
+                                                        {
+                                                            <span class="star @(i <= Math.Round(product.Rating) ? "filled" : "")">★</span>
+                                                        }
+                                                    </div>
+                                                    <span class="rating-text">@product.Rating.ToString("F1")/5</span>
+                                                </div>
+                                            }
+                                            else
+                                            {
+                                                <span class="text-muted">Chưa có đánh giá</span>
+                                            }
+                                        </td>
+                                    }
+                                </tr>
+                            
+                                <tr>
+                                    <td class="feature-name">Phân bố đánh giá</td>
+                                    @foreach (var product in compared)
+                                    {
                                         <td class="feature-value">
                                             <div class="rating-breakdown">
                                                 @for (int i = 5; i >= 1; i--)
                                                 {
-                                                        var ratingCount = GetRatingCount(product, i);
-                                                        <div class="rating-bar">
-                                                            <span class="rating-label">@i★</span>
-                                                            <div class="rating-progress">
-                                                                <div class="rating-fill" style="width: @(GetRatingPercentage(product, i))%"></div>
-                                                            </div>
-                                                            <span class="rating-count">@ratingCount</span>
+                                                    var ratingCount = GetRatingCount(product, i);
+                                                    <div class="rating-bar">
+                                                        <span class="rating-label">@i★</span>
+                                                        <div class="rating-progress">
+                                                            <div class="rating-fill" style="width: @(GetRatingPercentage(product, i))%"></div>
                                                         </div>
+                                                        <span class="rating-count">@ratingCount</span>
+                                                    </div>
                                                 }
                                             </div>
                                         </td>
-                                }
-                            </tr>
+                                    }
+                                </tr>
 
-                            <!-- Product Variants Details -->
-                            <tr class="section-header">
-                                <td colspan="@(compared.Count + 1)">Chi tiết biến thể</td>
-                            </tr>
-                        
-                            <tr>
-                                <td class="feature-name">Số biến thể</td>
-                                @foreach (var product in compared)
-                                {
-                                        <td class="feature-value">@(product.ProductVariants?.Count ?? 0)</td>
-                                }
-                            </tr>
-                        
-                            <tr>
-                                <td class="feature-name">Kích thước đóng gói</td>
-                                @foreach (var product in compared)
-                                {
+                                <!-- Additional Information -->
+                                <tr class="section-header">
+                                    <td colspan="@(compared.Count + 1)">Thông tin bổ sung</td>
+                                </tr>
+                            
+                                <tr>
+                                    <td class="feature-name">Hình ảnh</td>
+                                    @foreach (var product in compared)
+                                    {
                                         <td class="feature-value">
-                                            @if (product.ProductVariants?.Any() == true)
+                                            @if (product.ImageUrls?.Any() == true)
                                             {
-                                                    var variant = product.ProductVariants.First();
-                                                    <div class="dimensions">
-                                                        <div>Dài: @variant.Length cm</div>
-                                                        <div>Rộng: @variant.Width cm</div>
-                                                        <div>Cao: @variant.Height cm</div>
-                                                        <div>Trọng lượng: @variant.Weight g</div>
-                                                    </div>
+                                                <div class="image-gallery">
+                                                    @foreach (var imageUrl in product.ImageUrls.Take(3))
+                                                    {
+                                                        <Image Src="@(Configuration["ApiSettings:BaseUrl"] + "/" + imageUrl)" 
+                                                               Alt="@product.ProductName"
+                                                               Width="40"
+                                                               Height="40"
+                                                               Preview="true"
+                                                               Fallback="/images/products/chilli.png" />
+                                                    }
+                                                    @if (product.ImageUrls.Count > 3)
+                                                    {
+                                                        <span class="more-images">+@(product.ImageUrls.Count - 3)</span>
+                                                    }
+                                                </div>
                                             }
                                             else
                                             {
-                                                    <span>N/A</span>
+                                                <span class="text-muted">Không có hình ảnh</span>
                                             }
                                         </td>
-                                }
-                            </tr>
-                        
-                            <tr>
-                                <td class="feature-name">Loại khóa</td>
-                                @foreach (var product in compared)
-                                {
-                                        <td class="feature-value">@(product.ProductVariants?.FirstOrDefault()?.ClosureType.ToString() ?? "N/A")</td>
-                                }
-                            </tr>
-                        
-                            <tr>
-                                <td class="feature-name">Cho phép trả hàng</td>
-                                @foreach (var product in compared)
-                                {
-                                        <td class="feature-value">
-                                            <span class="badge @(product.ProductVariants?.FirstOrDefault()?.AllowReturn == true ? "badge-success" : "badge-danger")">
-                                                @(product.ProductVariants?.FirstOrDefault()?.AllowReturn == true ? "Có" : "Không")
-                                            </span>
-                                        </td>
-                                }
-                            </tr>
-                        </tbody>
-                    </table>
-                </div>
+                                    }
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                }
+                else
+                {
+                    <!-- Empty State -->
+                    <div class="empty-state">
+                        <div class="empty-icon">
+                            <Icon Type="swap" />
+                        </div>
+                        <h4>Chưa có sản phẩm nào để so sánh</h4>
+                        <p>Hãy chọn ít nhất 2 sản phẩm từ danh sách bên trái để bắt đầu so sánh</p>
+                    </div>
+                }
             </div>
-    }
-    else
-    {
-            <!-- Empty State -->
-            <div class="empty-state">
-                <div class="empty-icon">
-                    <Icon Type="swap"  />
-                </div>
-                <h4>Chưa có sản phẩm nào để so sánh</h4>
-                <p>Hãy chọn ít nhất 2 sản phẩm từ danh sách để bắt đầu so sánh</p>
-            </div>
-    }
+        </RadzenSplitterPane>
+    </RadzenSplitter>
 </div>
 
 @code {
     private List<ProductSearchResponseDTO> recentOptions = new();
-    private IEnumerable<string> selectedProductIds = new List<string>();
-    private List<ProductResponseDTO> compared = new();
+    private List<string> selectedProductIds = new List<string>();
+    private List<ProductSearchResponseDTO> compared = new();
     private bool isLoadingProducts = true;
     private string errorMessage = string.Empty;
     private string searchKeyword = string.Empty;
@@ -480,41 +579,36 @@
         }
     }
 
-    private async Task LoadSelection()
+    private void ToggleProductSelection(string productId)
     {
-        var selectedIds = selectedProductIds?.Select(x => Guid.Parse(x)).ToList() ?? new List<Guid>();
-        
-        if (selectedIds.Count > 3)
+        if (selectedProductIds.Contains(productId))
         {
-            selectedIds = selectedIds.Take(3).ToList();
-            selectedProductIds = selectedIds.Select(x => x.ToString()).ToList();
+            selectedProductIds.Remove(productId);
         }
-        
-        if (!selectedIds.Any()) return;
-        compared = await ProductClient.GetByIdsAsync(selectedIds);
+        else
+        {
+            if (selectedProductIds.Count >= 3)
+            {
+                // Remove the first selected product if we're at the limit
+                selectedProductIds.RemoveAt(0);
+            }
+            selectedProductIds.Add(productId);
+        }
+        StateHasChanged();
     }
 
-    private void OnSelectedItemsChangedHandler(IEnumerable<string> values)
+    private Task LoadSelection()
     {
-        if (values != null)
-        {
-            var selectedCount = values.Count();
-            if (selectedCount > 3)
-            {
-                // Limit to 3 products
-                selectedProductIds = values.Take(3);
-            }
-            else
-            {
-                selectedProductIds = values;
-            }
-            StateHasChanged();
-        }
+        if (!selectedProductIds.Any()) return Task.CompletedTask;
+        
+        compared = recentOptions.Where(p => selectedProductIds.Contains(p.ProductDetailId.ToString())).ToList();
+        StateHasChanged();
+        return Task.CompletedTask;
     }
 
     private void ClearSelection()
     {
-        selectedProductIds = new List<string>();
+        selectedProductIds.Clear();
         compared.Clear();
         StateHasChanged();
     }
@@ -524,15 +618,15 @@
         Nav.NavigateTo($"/san-pham/{productId}");
     }
 
-    private void RemoveProduct(Guid productId)
+    private void RemoveProduct(Guid productDetailId)
     {
-        var productIdString = productId.ToString();
-        selectedProductIds = selectedProductIds.Where(x => x != productIdString).ToList();
-        compared.RemoveAll(p => p.Id == productId);
+        var productIdString = productDetailId.ToString();
+        selectedProductIds.Remove(productIdString);
+        compared.RemoveAll(p => p.ProductDetailId == productDetailId);
         StateHasChanged();
     }
 
-    private int GetRatingCount(ProductResponseDTO product, int rating)
+    private int GetRatingCount(ProductSearchResponseDTO product, int rating)
     {
         return rating switch
         {
@@ -545,7 +639,7 @@
         };
     }
 
-    private double GetRatingPercentage(ProductResponseDTO product, int rating)
+    private double GetRatingPercentage(ProductSearchResponseDTO product, int rating)
     {
         var totalRatings = product.Rating1 + product.Rating2 + product.Rating3 + product.Rating4 + product.Rating5;
         if (totalRatings == 0) return 0;

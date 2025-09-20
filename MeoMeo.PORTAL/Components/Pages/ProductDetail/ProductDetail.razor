@@ -5,14 +5,13 @@
 @using MeoMeo.Contract.DTOs 
 @using MeoMeo.Contract.DTOs.ProductReview
 @using MeoMeo.Contract.DTOs.Order
-@using MeoMeo.Contract.DTOs.OrderDetail
 @using MeoMeo.Domain.Commons.Enums
 @using ButtonType = AntDesign.ButtonType
 @using MeoMeo.PORTAL.Components.Pages.ProductCard
 @using System.ComponentModel.DataAnnotations
 @using System.Reflection
 @inject NavigationManager NavigationManager 
-@inject IMessageService MessageService 
+@inject MeoMeo.Shared.Utilities.MessageModalService MessageModalService
 @inject IConfiguration Configuration 
 @inject IProductClientService ProductClientService 
 @inject IProductReviewClientService ProductReviewClientService
@@ -281,19 +280,11 @@
                                 
                                 <div class="purchase-buttons">
                                     <Button Class="add-to-cart-btn" 
-                                           
+                                            OnClick="AddToCart"
                                             Loading="@isAddingToCart"
                                             Disabled="@(maxPurchasableQuantity <= 0 || isAddingToCart)"
                                             Icon="@IconType.Outline.ShoppingCart">
                                         Thêm vào giỏ hàng
-                                    </Button>
-                                    <Button Class="buy-now-btn" 
-                                            Type="@ButtonType.Primary"
-                                          
-                                            Loading="@isAddingToCart"
-                                            Disabled="@(maxPurchasableQuantity <= 0 || isAddingToCart)"
-                                            Icon="@IconType.Outline.Thunderbolt">
-                                        Mua ngay
                                     </Button>
                                 </div>
                             </div>
@@ -1087,7 +1078,7 @@
         }
         catch (Exception ex)
         {
-            MessageService.Error($"Có lỗi xảy ra: {ex.Message}");
+            MessageModalService.Error($"Có lỗi xảy ra: {ex.Message}");
         }
         finally
         {
@@ -1123,7 +1114,7 @@
         } 
         catch (Exception ex) 
         { 
-           MessageService.Error($"Không thể tải sản phẩm: {ex.Message}"); 
+           MessageModalService.Error($"Không thể tải sản phẩm: {ex.Message}"); 
         } 
     } 
 
@@ -1136,7 +1127,18 @@
         } 
         else 
         { 
-            MessageService.Warning($"Bạn chỉ có thể mua tối đa {maxPurchasableQuantity} sản phẩm cho đơn này."); 
+            var selectedVariant = productDetail.ProductVariants?.FirstOrDefault(v => v.Id == selectedProductDetailId.Value);
+            var inventoryLimit = selectedVariant?.InventoryQuantity ?? 0;
+            var maxBuyLimit = selectedVariant?.MaxBuyPerOrder ?? null;
+            
+            if (maxBuyLimit.HasValue && maxBuyLimit.Value > 0 && inventoryLimit > maxBuyLimit.Value)
+            {
+                MessageModalService.Warning($"Bạn chỉ có thể mua tối đa {maxBuyLimit.Value} sản phẩm cho đơn này (giới hạn mua hàng)."); 
+            }
+            else
+            {
+                MessageModalService.Warning($"Bạn chỉ có thể mua tối đa {maxPurchasableQuantity} sản phẩm cho đơn này (còn {inventoryLimit} sản phẩm trong kho)."); 
+            }
         } 
     }
    
@@ -1166,7 +1168,18 @@
         if (selectedProductDetailId.HasValue)
         {
             var selectedVariant = productDetail.ProductVariants?.FirstOrDefault(v => v.Id == selectedProductDetailId.Value);
-            maxPurchasableQuantity = selectedVariant?.InventoryQuantity ?? 0;
+            if (selectedVariant != null)
+            {
+                // Lấy số lượng tối đa có thể mua = min(InventoryQuantity, MaxBuyPerOrder)
+                var inventoryLimit = selectedVariant.InventoryQuantity;
+                var maxBuyLimit = selectedVariant.MaxBuyPerOrder ?? int.MaxValue; // Nếu null thì không giới hạn
+                
+                maxPurchasableQuantity = Math.Min(inventoryLimit, maxBuyLimit);
+            }
+            else
+            {
+                maxPurchasableQuantity = 0;
+            }
         }
         else
         {
@@ -1174,6 +1187,82 @@
         }
     } 
 
+
+    private async Task AddToCart()
+    {
+        try
+        {
+            isAddingToCart = true;
+            StateHasChanged();
+
+            if (selectedProductDetailId == null)
+            {
+                MessageModalService.Warning("Vui lòng chọn biến thể sản phẩm");
+                StateHasChanged();
+                return;
+            }
+
+            if (maxPurchasableQuantity <= 0)
+            {
+                var selectedVariant = productDetail.ProductVariants?.FirstOrDefault(v => v.Id == selectedProductDetailId.Value);
+                var inventoryLimit = selectedVariant?.InventoryQuantity ?? 0;
+                var maxBuyLimit = selectedVariant?.MaxBuyPerOrder;
+                
+                if (inventoryLimit <= 0)
+                {
+                    MessageModalService.Warning("Sản phẩm đã hết hàng");
+                    StateHasChanged();
+                }
+                else if (maxBuyLimit.HasValue && maxBuyLimit.Value <= 0)
+                {
+                    MessageModalService.Warning("Sản phẩm này không được phép mua");
+                    StateHasChanged();
+                }
+                else
+                {
+                    MessageModalService.Warning("Không thể thêm sản phẩm vào giỏ hàng");
+                    StateHasChanged();
+                    
+                }
+                return;
+            }
+
+            if (productQuantity <= 0)
+            {
+                MessageModalService.Warning("Số lượng phải lớn hơn 0");
+                return;
+            }
+
+            var addToCartRequest = new AddToCartDTO
+            {
+                ProductDetailId = selectedProductDetailId.Value,
+                Quantity = productQuantity
+            };
+
+            var result = await CartClientService.AddToCartAsync(addToCartRequest);
+            
+            if (result?.ResponseStatus == BaseStatus.Success)
+            {
+                MessageModalService.Success($"Đã thêm sản phẩm vào giỏ hàng");
+                StateHasChanged();
+                CartStateService.IncrementCartCount(productQuantity);
+            }
+            else
+            {
+                MessageModalService.Error(result?.Message ?? "Có lỗi xảy ra khi thêm vào giỏ hàng");
+                StateHasChanged();
+            }
+        }
+        catch (Exception ex)
+        {
+            MessageModalService.Error($"Có lỗi xảy ra: {ex.Message}");
+        }
+        finally
+        {
+            isAddingToCart = false;
+            StateHasChanged();
+        }
+    }
 
     private async Task ToggleWishlist(bool add) 
     { 
@@ -1184,7 +1273,7 @@
 
             if (selectedProductDetailId == null)
             {
-                MessageService.Warning("Vui lòng chọn biến thể sản phẩm");
+                MessageModalService.Warning("Vui lòng chọn biến thể sản phẩm");
                 return;
             }
 
@@ -1193,7 +1282,7 @@
                 // Add to wishlist logic here
                 var result = await WishlistClientService.AddToWishlistAsync(selectedProductDetailId.Value);
                 isFavorited = true;
-                MessageService.Success("Đã thêm vào yêu thích");
+                MessageModalService.Success("Đã thêm vào yêu thích");
             }
             else
             {
@@ -1201,12 +1290,12 @@
                 var result = await WishlistClientService.RemoveFromWishlistAsync(selectedProductDetailId.Value);
             
                 isFavorited = false;
-                MessageService.Success("Đã bỏ yêu thích");
+                MessageModalService.Success("Đã bỏ yêu thích");
             }
         }
         catch (Exception ex)
         {
-            MessageService.Error($"Có lỗi xảy ra: {ex.Message}");
+            MessageModalService.Error($"Có lỗi xảy ra: {ex.Message}");
         }
         finally
         {
@@ -1318,7 +1407,7 @@
             eligibleVariantsFromOrders = new Dictionary<Guid, List<EligibleVariantFromOrder>>();
             canComment = false;
             selectedOrderForReview = null;
-            MessageService.Error($"Không thể kiểm tra quyền đánh giá: {ex.Message}");
+            MessageModalService.Error($"Không thể kiểm tra quyền đánh giá: {ex.Message}");
         }
     }
 
@@ -1373,31 +1462,31 @@
 
             if (!canComment)
             {
-                MessageService.Warning("Bạn không thể đánh giá sản phẩm này.");
+                MessageModalService.Warning("Bạn không thể đánh giá sản phẩm này.");
                 return;
             }
 
             if (reviewSelectedProductDetailId == null)
             {
-                MessageService.Warning("Vui lòng chọn biến thể sản phẩm để đánh giá");
+                MessageModalService.Warning("Vui lòng chọn biến thể sản phẩm để đánh giá");
                 return;
             }
 
             if (selectedOrderForReview == null)
             {
-                MessageService.Warning("Không tìm thấy thông tin đơn hàng để đánh giá");
+                MessageModalService.Warning("Không tìm thấy thông tin đơn hàng để đánh giá");
                 return;
             }
 
             if (rating <= 0)
             {
-                MessageService.Warning("Vui lòng chọn số sao đánh giá");
+                MessageModalService.Warning("Vui lòng chọn số sao đánh giá");
                 return;
             }
 
             if (string.IsNullOrWhiteSpace(comment))
             {
-                MessageService.Warning("Vui lòng nhập nhận xét");
+                MessageModalService.Warning("Vui lòng nhập nhận xét");
                 return;
             }
 
@@ -1422,7 +1511,7 @@
             var result = await ProductReviewClientService.CreateAsync(reviewRequest);
             if (result?.ResponseStatus == BaseStatus.Success)
             {
-                MessageService.Success($"Gửi đánh giá thành công cho đơn hàng {selectedOrderForReview.OrderCode}"); 
+                MessageModalService.Success($"Gửi đánh giá thành công cho đơn hàng {selectedOrderForReview.OrderCode}"); 
                 modalVisible = false;
                 CancelComment();
                 // Reload reviews và re-check eligibility
@@ -1431,12 +1520,12 @@
             }
             else
             {
-                MessageService.Error(result?.Message ?? "Có lỗi xảy ra khi gửi đánh giá");
+                MessageModalService.Error(result?.Message ?? "Có lỗi xảy ra khi gửi đánh giá");
             }
         }
         catch (Exception ex)
         {
-            MessageService.Error($"Có lỗi xảy ra: {ex.Message}");
+            MessageModalService.Error($"Có lỗi xảy ra: {ex.Message}");
         }
         finally
         {
@@ -1462,7 +1551,7 @@
 
                     if (!isImage && !isVideo) 
                     {
-                         MessageService.Error($"File {file.Name} không phải là ảnh hoặc video.");
+                         MessageModalService.Error($"File {file.Name} không phải là ảnh hoặc video.");
                         continue;
                     }
 
@@ -1473,7 +1562,7 @@
                     {
                         if (currentImages >= 4)
                         {
-                             MessageService.Warning("Bạn chỉ có thể tải tối đa 4 ảnh!");
+                             MessageModalService.Warning("Bạn chỉ có thể tải tối đa 4 ảnh!");
                             continue;
                         }
                     }
@@ -1481,7 +1570,7 @@
                     {
                         if (currentVideos >= 1)
                         {
-                             MessageService.Warning("Bạn chỉ có thể tải tối đa 1 video!");
+                             MessageModalService.Warning("Bạn chỉ có thể tải tối đa 1 video!");
                             continue;
                         }
                     }
@@ -1501,7 +1590,7 @@
             }
             catch (Exception ex)
             {
-                 MessageService.Error($"Lỗi khi xử lý file: {ex.Message}");
+                 MessageModalService.Error($"Lỗi khi xử lý file: {ex.Message}");
             }
             finally
             {
@@ -1652,7 +1741,7 @@
         } 
         catch (Exception ex)
         { 
-            MessageService.Error($"Không thể tải đánh giá: {ex.Message}");
+            MessageModalService.Error($"Không thể tải đánh giá: {ex.Message}");
         } 
     } 
 

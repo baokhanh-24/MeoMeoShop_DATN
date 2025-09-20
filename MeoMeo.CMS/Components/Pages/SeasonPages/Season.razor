@@ -5,6 +5,7 @@
 @using MeoMeo.Shared.IServices
 @using ButtonSize = AntDesign.ButtonSize
 @using ButtonType = AntDesign.ButtonType
+@using AntDesign
 @inject MeoMeo.Shared.Utilities.MessageModalService MessageModalService
 @rendermode InteractiveServer
 
@@ -13,9 +14,11 @@
         <i class="fas fa-plus"></i> Thêm mới
     </Button>
     <div style="width: 200px">
-        <Input AllowClear="true" OnClear="OnFilterChanged" @bind-Value="filter.NameFilter" Placeholder="Nhập tên Season" />
+        <Input AllowClear="true" OnClear="OnFilterChanged" @bind-Value="filter.NameFilter"
+            Placeholder="Nhập tên Season" />
     </div>
-    <Button @onclick="OnFilterChanged" Type="ButtonType.Primary" Shape="ButtonShape.Circle" Icon="@IconType.Outline.Search" />
+    <Button @onclick="OnFilterChanged" Type="ButtonType.Primary" Shape="ButtonShape.Circle"
+        Icon="@IconType.Outline.Search" />
 </div>
 
 <Table DataSource="listOfData" TItem="SeasonDTO" Bordered TableLayout="fixed">
@@ -78,6 +81,12 @@
     </ChildContent>
 </Table>
 
+<!-- Pagination -->
+<div class="d-flex justify-content-end mt-3">
+    <Pagination Current="@filter.PageIndex" Total="@totalRecords" PageSize="@filter.PageSize" OnChange="@OnPageChange"
+        ShowSizeChanger="true" OnShowSizeChange="@OnPageSizeChange" ShowQuickJumper="true" />
+</div>
+
 @code {
     [Inject] private ISeasonClientService SeasonClientService { get; set; } = default!;
 
@@ -92,6 +101,8 @@
         PageSize = 10
     };
 
+    int totalRecords = 0;
+
     protected override async Task OnInitializedAsync()
     {
         await LoadDataAsync();
@@ -101,12 +112,14 @@
     {
         var response = await SeasonClientService.GetAllSeasonsAsync(filter);
         listOfData = response?.Items ?? new List<SeasonDTO>();
+        totalRecords = response?.TotalRecords ?? 0;
         editCache = listOfData.ToDictionary(item => item.Id, item => (false, CloneSeason(item)));
         await InvokeAsync(StateHasChanged);
     }
 
     async void OnFilterChanged()
     {
+        filter.PageIndex = 1; // Reset về trang đầu khi filter
         await LoadDataAsync();
     }
 
@@ -206,5 +219,20 @@
             Description = dto.Description,
             Status = dto.Status
         };
+    }
+
+    // Pagination handlers
+    private async Task OnPageChange(PaginationEventArgs args)
+    {
+        filter.PageIndex = args.Page;
+        filter.PageSize = args.PageSize;
+        await LoadDataAsync();
+    }
+
+    private async Task OnPageSizeChange(PaginationEventArgs args)
+    {
+        filter.PageIndex = 1; // Reset về trang đầu khi thay đổi page size
+        filter.PageSize = args.PageSize;
+        await LoadDataAsync();
     }
 }

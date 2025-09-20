@@ -89,7 +89,7 @@ namespace MeoMeo.Application.Services
                 };
             }
 
-            var brandToUpdate = await _brandRepository.GetBrandByIdAsync(brandDto.Id);
+            var brandToUpdate = await _brandRepository.GetBrandByIdAsync(brandDto.Id.Value);
             if (brandToUpdate == null)
             {
                 return new CreateOrUpdateBrandResponseDTO

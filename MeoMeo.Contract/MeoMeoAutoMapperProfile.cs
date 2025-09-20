@@ -48,7 +48,7 @@ namespace MeoMeo.Contract
             CreateMap<CartDTO, Cart>();
             CreateMap<CartDetailDTO, CartDetail>();
             CreateMap<ImageDTO, Image>();
-            CreateMap<ColourDTO, Colour>();
+            CreateMap<Colour, ColourDTO>();
             CreateMap<SizeDTO, Size>();
             CreateMap<CreateOrUpdateOrderDetailDTO, OrderDetail>();
             CreateMap<CreateOrUpdateDeliveryAddressDTO, DeliveryAddress>();

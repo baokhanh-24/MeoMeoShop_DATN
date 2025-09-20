@@ -5,12 +5,15 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using MeoMeo.Contract.Commons;
+using MeoMeo.Domain.Commons;
 
 namespace MeoMeo.Application.IServices
 {
     public interface IColourService
     {
         Task<IEnumerable<Colour>> GetAllColoursAsync();
+        Task<PagingExtensions.PagedResult<ColourDTO>> GetAllColoursPagedAsync(GetListColourRequest request);
         Task<ColourResponseDTO> GetColourByIdAsync(Guid id);
         Task<ColourResponseDTO> CreateColourAsync(ColourDTO colourDTO);
         Task<ColourResponseDTO> UpdateColourAsync(ColourDTO colourDTO);

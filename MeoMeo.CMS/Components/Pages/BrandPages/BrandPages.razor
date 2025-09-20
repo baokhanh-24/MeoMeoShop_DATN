@@ -7,6 +7,7 @@
 @using MeoMeo.Contract.Commons
 @using MeoMeo.Domain.Commons.Enums
 @using AntDesign
+@using AntDesign.TableModels
 @inject MeoMeo.Shared.Utilities.MessageModalService MessageModalService
 @using ButtonSize = AntDesign.ButtonSize
 @using ButtonType = AntDesign.ButtonType
@@ -47,6 +48,7 @@
 </div>
 
 <Table DataSource="listOfData" TItem="CreateOrUpdateBrandDTO" RowClassName="@(_ => "editable-row")" Bordered
+       Total="@totalRecords" PageSize="@filter.PageSize" OnChange="@OnPageChange"
     TableLayout="fixed">
     <ChildContent Context="data">
         <Column TData="CreateOrUpdateBrandDTO" Title="STT" Width="70px">
@@ -54,13 +56,13 @@
         </Column>
 
         <Column TData="string" Title="Tên thương hiệu">
-            @if (editCache.ContainsKey(data.Id) && !editCache[data.Id].edit)
+            @if (editCache.ContainsKey(data.Id.Value) && !editCache[data.Id.Value].edit)
             {
                     @data.Name
             }
-            else if (editCache.ContainsKey(data.Id))
+            else if (editCache.ContainsKey(data.Id.Value))
             {
-                    <Input MaxLength="100" @bind-Value="editCache[data.Id].data.Name" />
+                    <Input MaxLength="100" @bind-Value="editCache[data.Id.Value].data.Name" />
             }
         </Column>
 
@@ -69,41 +71,41 @@
         </Column>
 
         <Column TData="DateTime" Title="Năm thành lập">
-            @if (editCache.ContainsKey(data.Id) && !editCache[data.Id].edit)
+            @if (editCache.ContainsKey(data.Id.Value) && !editCache[data.Id.Value].edit)
             {
                     @data.EstablishYear.ToString("yyyy")
             }
-            else if (editCache.ContainsKey(data.Id))
+            else if (editCache.ContainsKey(data.Id.Value))
             {
-                    <AntDesign.InputNumber TValue="int" @bind-Value="editCache[data.Id].data.EstablishYearInt" 
+                    <AntDesign.InputNumber TValue="int" @bind-Value="editCache[data.Id.Value].data.EstablishYearInt" 
                         Min="1900" Max="2100" Placeholder="Năm thành lập" />
             }
         </Column>
 
         <Column TData="string" Title="Quốc gia">
-            @if (editCache.ContainsKey(data.Id) && !editCache[data.Id].edit)
+            @if (editCache.ContainsKey(data.Id.Value) && !editCache[data.Id.Value].edit)
             {
                     @data.Country
             }
-            else if (editCache.ContainsKey(data.Id))
+            else if (editCache.ContainsKey(data.Id.Value))
             {
-                    <Input MaxLength="100" @bind-Value="editCache[data.Id].data.Country" placeholder="Quốc gia" />
+                    <Input MaxLength="100" @bind-Value="editCache[data.Id.Value].data.Country" placeholder="Quốc gia" />
             }
         </Column>
 
         <Column TData="string" Title="Mô tả">
-            @if (editCache.ContainsKey(data.Id) && !editCache[data.Id].edit)
+            @if (editCache.ContainsKey(data.Id.Value) && !editCache[data.Id.Value].edit)
             {
                     @(string.IsNullOrEmpty(data.Description) ? "-" : data.Description)
             }
-            else if (editCache.ContainsKey(data.Id))
+            else if (editCache.ContainsKey(data.Id.Value))
             {
-                    <Input MaxLength="500" @bind-Value="editCache[data.Id].data.Description" placeholder="Mô tả" />
+                    <Input MaxLength="500" @bind-Value="editCache[data.Id.Value].data.Description" placeholder="Mô tả" />
             }
         </Column>
 
         <Column TData="string" Title="Logo">
-            @if (editCache.ContainsKey(data.Id) && !editCache[data.Id].edit)
+            @if (editCache.ContainsKey(data.Id.Value) && !editCache[data.Id.Value].edit)
             {
                     @if (!string.IsNullOrEmpty(data.Logo))
                     {
@@ -114,15 +116,15 @@
                             <span>-</span>
                     }
             }
-            else if (editCache.ContainsKey(data.Id))
+            else if (editCache.ContainsKey(data.Id.Value))
             {
                     <div class="brand-logo-upload-container">
-                        @if (!string.IsNullOrEmpty(editCache[data.Id].data.Logo))
+                        @if (!string.IsNullOrEmpty(editCache[data.Id.Value].data.Logo))
                         {
                                 <div class="brand-logo-preview">
-                                    <Image Src="@GetBrandLogoUrl(editCache[data.Id].data.Logo)" Width="100%" Style="object-fit: cover;" />
+                                    <Image Src="@GetBrandLogoUrl(editCache[data.Id.Value].data.Logo)" Width="100%" Style="object-fit: cover;" />
                                     <Button Size="ButtonSize.Small" Danger Shape="ButtonShape.Circle" 
-                                            @onclick="() => RemoveBrandLogo(data.Id)" 
+                                            @onclick="() => RemoveBrandLogo(data.Id.Value)" 
                                             Style="position: absolute; top: -5px; right: -5px; width: 20px; height: 20px; font-size: 10px;">
                                         <i class="fas fa-times"></i>
                                     </Button>
@@ -133,7 +135,7 @@
                                 <div class="brand-logo-upload-area">
                                     <Icon Type="@IconType.Outline.Upload" Style="font-size: 16px; color: #999;"/>
                                     <div style="font-size: 10px; color: #666; margin-top: 2px;">Upload Logo</div>
-                                    <InputFile OnChange="@(async (e) => await OnBrandLogoSelected(e, data.Id))" 
+                                    <InputFile OnChange="@(async (e) => await OnBrandLogoSelected(e, data.Id.Value))" 
                                                accept="image/*" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; opacity: 0; cursor: pointer;" />
                                 </div>
                         }
@@ -142,15 +144,15 @@
         </Column>
 
         <ActionColumn Title="Thao tác" Class="text-end gap-2">
-            @if (editCache.ContainsKey(data.Id) && !editCache[data.Id].edit)
+            @if (editCache.ContainsKey(data.Id.Value) && !editCache[data.Id.Value].edit)
             {
                     <Tooltip Title="Sửa">
-                        <Button Size="ButtonSize.Small" @onclick="() => StartEdit(data.Id)" Shape="ButtonShape.Circle">
+                        <Button Size="ButtonSize.Small" @onclick="() => StartEdit(data.Id.Value)" Shape="ButtonShape.Circle">
                             <i class="fas fa-pen"></i>
                         </Button>
                     </Tooltip>
 
-                    <Popconfirm Title=@($"Bạn có chắc muốn xóa thương hiệu {data.Name}?") OnConfirm="() => DeleteBrand(data.Id)"
+                    <Popconfirm Title=@($"Bạn có chắc muốn xóa thương hiệu {data.Name}?") OnConfirm="() => DeleteBrand(data.Id.Value)"
                         OkText="Đồng ý" CancelText="Hủy">
                         <Tooltip Title="Xóa">
                             <Button Size="ButtonSize.Small" Danger Shape="ButtonShape.Circle">
@@ -162,13 +164,13 @@
             else
             {
                     <Tooltip Title="Lưu">
-                        <Button Size="ButtonSize.Small" @onclick="() => SaveEdit(data.Id)" Shape="ButtonShape.Circle">
+                        <Button Size="ButtonSize.Small" @onclick="() => SaveEdit(data.Id.Value)" Shape="ButtonShape.Circle">
                             <i class="fas fa-check"></i>
                         </Button>
                     </Tooltip>
 
                     <Popconfirm Title=@($"Bạn có chắc muốn hủy chỉnh sửa thương hiệu {data.Name}?")
-                        OnConfirm="() => CancelEdit(data.Id)" OkText="Đồng ý" CancelText="Hủy">
+                        OnConfirm="() => CancelEdit(data.Id.Value)" OkText="Đồng ý" CancelText="Hủy">
                         <Button Size="ButtonSize.Small" Shape="ButtonShape.Circle">
                             <i class="fa-solid fa-xmark"></i>
                         </Button>
@@ -177,6 +179,7 @@
         </ActionColumn>
     </ChildContent>
 </Table>
+
 
 <style>
     .brand-logo-upload-container {
@@ -232,6 +235,8 @@
         PageSize = 10
     };
 
+    int totalRecords = 0;
+
     protected override async Task OnInitializedAsync()
     {
         ApiBaseUrl = Configuration["ApiSettings:BaseUrl"] ?? string.Empty;
@@ -252,14 +257,16 @@
             Logo = b.Logo
         }).ToList() ?? new List<CreateOrUpdateBrandDTO>();
 
+        totalRecords = response.TotalRecords;
         editCache = listOfData.ToDictionary(
-        item => item.Id,
+        item => item.Id.Value,
         item => (false, CloneBrand(item)));
         await InvokeAsync(StateHasChanged);
     }
 
     private async Task OnFilterChanged()
     {
+        filter.PageIndex = 1; // Reset về trang đầu khi filter
         await LoadData();
     }
 
@@ -276,7 +283,7 @@
             Logo = ""
         };
         listOfData.Insert(0, newBrand);
-        editCache[newBrand.Id] = (true, CloneBrand(newBrand));
+        editCache[newBrand.Id.Value] = (true, CloneBrand(newBrand));
         await InvokeAsync(StateHasChanged);
     }
 
@@ -447,11 +454,11 @@
         var bytes = Convert.FromBase64String(base64Data);
         var stream = new MemoryStream(bytes);
 
-        return new FormFile(stream, 0, bytes.Length, fileName, fileName)
+        return await Task.FromResult(new FormFile(stream, 0, bytes.Length, fileName, fileName)
         {
             Headers = new HeaderDictionary(),
             ContentType = contentType
-        };
+        });
     }
 
     private void RemoveBrandLogo(Guid brandId)
@@ -480,5 +487,20 @@
         
         // Nếu là relative path, thêm ApiBaseUrl
         return ApiBaseUrl + "/" + logo.TrimStart('/');
+    }
+
+    // Pagination handlers
+    private async Task OnPageChange(QueryModel<CreateOrUpdateBrandDTO> args)
+    {
+        filter.PageIndex = args.PageIndex;
+        filter.PageSize = args.PageSize;
+        await LoadData();
+    }
+
+    private async Task OnPageSizeChange(PaginationEventArgs args)
+    {
+        filter.PageIndex = 1; // Reset về trang đầu khi thay đổi page size
+        filter.PageSize = args.PageSize;
+        await LoadData();
     }
 }

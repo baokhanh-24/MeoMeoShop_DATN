@@ -9,6 +9,8 @@
 @inject MeoMeo.Shared.Utilities.MessageModalService MessageModalService
 @using ButtonSize = AntDesign.ButtonSize
 @using ButtonType = AntDesign.ButtonType
+@using AntDesign
+@using AntDesign.TableModels
 @rendermode InteractiveServer
 
 
@@ -78,7 +80,9 @@
 </div>
 
 <Table DataSource="listOfData" TItem="CreateOrUpdateMaterialDTO" RowClassName="@(_ => "editable-row")" Bordered
-    TableLayout="fixed">
+       TableLayout="fixed"
+       Total="@totalRecords" PageSize="@filter.PageSize" OnChange="@OnPageChange"
+       >
     <ChildContent Context="data">
 
         <Column TData="CreateOrUpdateMaterialDTO" Title="STT" Width="70px">
@@ -231,6 +235,8 @@
         PageSize = 10
     };
 
+    int totalRecords = 0;
+
     protected override async Task OnInitializedAsync()
     {
         materialStatuslist = Enum.GetValues(typeof(EMaterialStatus))
@@ -262,6 +268,7 @@
     {
         var response = await MaterialClientService.GetAllMaterialsAsync(filter);
         listOfData = response.Items;
+        totalRecords = response.TotalRecords;
         editCache = listOfData.ToDictionary(
         item => item.Id,
         item => (false, CloneMaterial(item)));
@@ -270,6 +277,7 @@
 
     private async Task OnFilterChanged()
     {
+        filter.PageIndex = 1; // Reset về trang đầu khi filter
         await LoadData();
     }
 
@@ -287,6 +295,7 @@
             _ => null // "all" tab
         };
 
+        filter.PageIndex = 1; // Reset về trang đầu khi chuyển tab
         await LoadData();
     }
 
@@ -394,6 +403,21 @@
             Description = dto.Description,
             Status = dto.Status
         };
+    }
+
+    // Pagination handlers
+    private async Task OnPageChange(QueryModel<CreateOrUpdateMaterialDTO> args)
+    {
+        filter.PageIndex = args.PageIndex;
+        filter.PageSize = args.PageSize;
+        await LoadData();
+    }
+
+    private async Task OnPageSizeChange(PaginationEventArgs args)
+    {
+        filter.PageIndex = 1; // Reset về trang đầu khi thay đổi page size
+        filter.PageSize = args.PageSize;
+        await LoadData();
     }
 
 }

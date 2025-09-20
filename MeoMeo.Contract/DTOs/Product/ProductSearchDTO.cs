@@ -43,5 +43,19 @@ namespace MeoMeo.Contract.DTOs.Product
         public string Material { get; set; } = string.Empty;
         public string Season { get; set; } = string.Empty;
         public List<string> ImageUrls { get; set; } = new List<string>();
+
+        // Shoe-specific fields
+        public float StockHeight { get; set; } // Chiều cao đế
+        public int Length { get; set; } // Chiều dài giày
+        public int Width { get; set; } // Chiều rộng giày  
+        public int Height { get; set; } // Chiều cao giày
+        public string ClosureType { get; set; } = string.Empty; // Loại khóa (dây buộc, khóa kéo, etc.)
+
+        // Rating breakdown
+        public int Rating1 { get; set; }
+        public int Rating2 { get; set; }
+        public int Rating3 { get; set; }
+        public int Rating4 { get; set; }
+        public int Rating5 { get; set; }
     }
 }

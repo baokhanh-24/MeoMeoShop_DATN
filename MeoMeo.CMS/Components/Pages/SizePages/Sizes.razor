@@ -8,6 +8,8 @@
 @using MeoMeo.Domain.Commons.Enums
 @using ButtonSize = AntDesign.ButtonSize
 @using ButtonType = AntDesign.ButtonType
+@using AntDesign
+@using AntDesign.TableModels
 @inject MeoMeo.Shared.Utilities.MessageModalService MessageModalService
 @rendermode InteractiveServer
 
@@ -57,7 +59,9 @@
     </Tooltip>
 </div>
 
-<Table DataSource="listOfData" TItem="SizeDTO" RowClassName="@(_ => "editable-row")" Bordered TableLayout="fixed">
+<Table DataSource="listOfData" TItem="SizeDTO" RowClassName="@(_ => "editable-row")" Bordered TableLayout="fixed"
+       Total="@totalRecords" PageSize="@filter.PageSize" OnChange="@OnPageChange"
+       >
     <ChildContent Context="data">
 
         <Column TData="SizeDTO" Title="STT" Width="40px">
@@ -151,6 +155,7 @@
 </Table>
 
 
+
 @code {
     [Inject] private ISizeClientService SizeClientService { get; set; } = default!; 
 
@@ -168,6 +173,8 @@
             PageSize = 10,
     };
 
+    int totalRecords = 0;
+
     protected override async Task OnInitializedAsync()
     {
         sizeStatusList = Enum.GetValues(typeof(ESizeStatus))
@@ -184,12 +191,14 @@
     {
         var response = await SizeClientService.GetAllSizeAsync(filter);
         listOfData = response.Items;
+        totalRecords = response.TotalRecords;
         editCache = listOfData.ToDictionary(item => item.Id,
                                             item => (false, CloneSize(item)));
         await InvokeAsync(StateHasChanged);
     }
     private async Task OnFilterChanged()
     {
+        filter.PageIndex = 1; // Reset về trang đầu khi filter
         await LoadData();
     }
 
@@ -207,6 +216,7 @@
             _ => null // "all" tab
         };
 
+        filter.PageIndex = 1; // Reset về trang đầu khi chuyển tab
         await LoadData();
     }
 
@@ -245,7 +255,10 @@
         else
         {
             var Original = listOfData.FirstOrDefault(x => x.Id == Id);
-            editCache[Id] = (false, CloneSize(Original));
+            if (Original != null)
+            {
+                editCache[Id] = (false, CloneSize(Original));
+            }
         }
         await InvokeAsync(StateHasChanged);
     }
@@ -309,5 +322,20 @@
                 Status = size.Status
         };
         
+    }
+
+    // Pagination handlers
+    private async Task OnPageChange(QueryModel<SizeDTO> args)
+    {
+        filter.PageIndex = args.PageIndex;
+        filter.PageSize = args.PageSize;
+        await LoadData();
+    }
+
+    private async Task OnPageSizeChange(PaginationEventArgs args)
+    {
+        filter.PageIndex = 1; // Reset về trang đầu khi thay đổi page size
+        filter.PageSize = args.PageSize;
+        await LoadData();
     }
 }

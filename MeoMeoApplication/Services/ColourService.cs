@@ -9,6 +9,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using MeoMeo.Domain.Commons;
 using Microsoft.EntityFrameworkCore;
 
 namespace MeoMeo.Application.Services
@@ -70,6 +71,47 @@ namespace MeoMeo.Application.Services
         {
             var colour = await _colourRepository.GetAllColour();
             return colour;
+        }
+
+        public async Task<PagingExtensions.PagedResult<ColourDTO>> GetAllColoursPagedAsync(GetListColourRequest request)
+        {
+            try
+            {
+                var query = _colourRepository.Query();
+
+                if (!string.IsNullOrEmpty(request.NameFilter))
+                {
+                    query = query.Where(c => EF.Functions.Like(c.Name, $"%{request.NameFilter}%"));
+                }
+
+                if (!string.IsNullOrEmpty(request.CodeFilter))
+                {
+                    query = query.Where(c => EF.Functions.Like(c.Code, $"%{request.CodeFilter}%"));
+                }
+
+                if (request.StatusFilter.HasValue)
+                {
+                    query = query.Where(c => c.Status == (int)request.StatusFilter.Value);
+                }
+
+                query = query.OrderByDescending(c => c.Name);
+
+                var pagedResult = await _colourRepository.GetPagedAsync(query, request.PageIndex, request.PageSize);
+                var dtoItems = _mapper.Map<List<ColourDTO>>(pagedResult.Items);
+
+                return new PagingExtensions.PagedResult<ColourDTO>
+                {
+                    TotalRecords = pagedResult.TotalRecords,
+                    PageIndex = pagedResult.PageIndex,
+                    PageSize = pagedResult.PageSize,
+                    Items = dtoItems
+                };
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error in GetAllColoursPagedAsync: {ex.Message}");
+                throw;
+            }
         }
 
         public async Task<ColourResponseDTO> GetColourByIdAsync(Guid id)

@@ -5,6 +5,7 @@ using MeoMeo.Domain.Commons;
 using MeoMeo.Domain.Entities;
 using MeoMeo.Shared.Utilities;
 using Microsoft.Extensions.Logging;
+using static MeoMeo.Domain.Commons.PagingExtensions;
 
 namespace MeoMeo.Shared.Services
 {
@@ -31,6 +32,34 @@ namespace MeoMeo.Shared.Services
             {
                 _logger.LogError(ex, "Lỗi khi lấy danh sách Colour: {Message}", ex.Message);
                 return new List<Colour>();
+            }
+        }
+
+        public async Task<PagedResult<ColourDTO>> GetAllColoursPagedAsync(GetListColourRequest request)
+        {
+            try
+            {
+                var queryString = BuildQuery.ToQueryString(request);
+                var url = $"/api/Colour/get-all-colours-paged?{queryString}";
+                var response = await _httpClient.GetAsync<PagedResult<ColourDTO>>(url);
+                return response ?? new PagedResult<ColourDTO>
+                {
+                    TotalRecords = 0,
+                    PageIndex = 1,
+                    PageSize = 10,
+                    Items = new List<ColourDTO>()
+                };
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Lỗi khi lấy danh sách Colour phân trang: {Message}", ex.Message);
+                return new PagedResult<ColourDTO>
+                {
+                    TotalRecords = 0,
+                    PageIndex = 1,
+                    PageSize = 10,
+                    Items = new List<ColourDTO>()
+                };
             }
         }
 
@@ -122,4 +151,4 @@ namespace MeoMeo.Shared.Services
             }
         }
     }
-} 
+}

@@ -2103,6 +2103,24 @@ namespace MeoMeo.Application.Services
                     var salePrice = activePromotion != null ? originalPrice * (1 - (decimal)activePromotion.Discount / 100) : (decimal?)null;
                     var maxDiscount = activePromotion?.Discount;
 
+                    // Calculate rating for this product detail
+                    var reviews = _reviewRepository.Query()
+                        .Where(r => r.ProductDetailId == pd.Id && !r.IsHidden)
+                        .ToList();
+
+                    decimal rating = 0;
+                    int rating1 = 0, rating2 = 0, rating3 = 0, rating4 = 0, rating5 = 0;
+
+                    if (reviews.Any())
+                    {
+                        rating = (decimal)reviews.Average(r => r.Rating);
+                        rating1 = reviews.Count(r => Math.Round(r.Rating) == 1);
+                        rating2 = reviews.Count(r => Math.Round(r.Rating) == 2);
+                        rating3 = reviews.Count(r => Math.Round(r.Rating) == 3);
+                        rating4 = reviews.Count(r => Math.Round(r.Rating) == 4);
+                        rating5 = reviews.Count(r => Math.Round(r.Rating) == 5);
+                    }
+
                     return new ProductSearchResponseDTO
                     {
                         ProductDetailId = pd.Id,
@@ -2118,7 +2136,7 @@ namespace MeoMeo.Application.Services
                         OutOfStock = stockQuantityDict.GetValueOrDefault(pd.Id, 0) == 0 ? 1 : 0,
                         Thumbnail = pd.Product.Thumbnail,
                         Description = pd.Product.Description ?? string.Empty,
-                        Rating = 0, // Cần tính từ ProductReview
+                        Rating = rating,
                         SaleNumber = pd.SellNumber ?? 0,
                         IsActive = pd.Status == EProductStatus.Selling,
                         AllowReturn = pd.AllowReturn,
@@ -2128,7 +2146,21 @@ namespace MeoMeo.Application.Services
                         Material = string.Join(", ", materialIds.Select(id => materialsDict.GetValueOrDefault(id, string.Empty))),
                         Season = string.Join(", ", seasonIds.Select(id => seasonsDict.GetValueOrDefault(id, string.Empty))),
                         CategoryName = string.Join(", ", categoryIds.Select(id => categoriesDict.GetValueOrDefault(id, string.Empty))),
-                        ImageUrls = imageUrls
+                        ImageUrls = imageUrls,
+
+                        // Shoe-specific fields
+                        StockHeight = pd.StockHeight,
+                        Length = pd.Length,
+                        Width = pd.Width,
+                        Height = pd.Height,
+                        ClosureType = pd.ClosureType.ToString(),
+
+                        // Rating breakdown
+                        Rating1 = rating1,
+                        Rating2 = rating2,
+                        Rating3 = rating3,
+                        Rating4 = rating4,
+                        Rating5 = rating5
                     };
                 }).ToList();
 
@@ -2220,6 +2252,24 @@ namespace MeoMeo.Application.Services
                 var salePrice = activePromotion != null ? originalPrice * (1 - (decimal)activePromotion.Discount / 100) : (decimal?)null;
                 var maxDiscount = activePromotion?.Discount;
 
+                // Calculate rating for this product detail
+                var reviews = _reviewRepository.Query()
+                    .Where(r => r.ProductDetailId == productDetail.Id && !r.IsHidden)
+                    .ToList();
+
+                decimal rating = 0;
+                int rating1 = 0, rating2 = 0, rating3 = 0, rating4 = 0, rating5 = 0;
+
+                if (reviews.Any())
+                {
+                    rating = (decimal)reviews.Average(r => r.Rating);
+                    rating1 = reviews.Count(r => Math.Round(r.Rating) == 1);
+                    rating2 = reviews.Count(r => Math.Round(r.Rating) == 2);
+                    rating3 = reviews.Count(r => Math.Round(r.Rating) == 3);
+                    rating4 = reviews.Count(r => Math.Round(r.Rating) == 4);
+                    rating5 = reviews.Count(r => Math.Round(r.Rating) == 5);
+                }
+
                 return new ProductSearchResponseDTO
                 {
                     ProductDetailId = productDetail.Id,
@@ -2235,7 +2285,7 @@ namespace MeoMeo.Application.Services
                     OutOfStock = stockQuantity == 0 ? 1 : 0,
                     Thumbnail = productDetail.Product.Thumbnail,
                     Description = productDetail.Product.Description ?? string.Empty,
-                    Rating = 0, // Cần tính từ ProductReview
+                    Rating = rating,
                     SaleNumber = productDetail.SellNumber ?? 0,
                     IsActive = productDetail.Status == EProductStatus.Selling,
                     AllowReturn = productDetail.AllowReturn,
@@ -2245,7 +2295,21 @@ namespace MeoMeo.Application.Services
                     Material = string.Join(", ", materials.Select(m => m.Name)),
                     Season = string.Join(", ", seasons.Select(s => s.Name)),
                     CategoryName = string.Join(", ", categories.Select(c => c.Name)),
-                    ImageUrls = imageUrls
+                    ImageUrls = imageUrls,
+
+                    // Shoe-specific fields
+                    StockHeight = productDetail.StockHeight,
+                    Length = productDetail.Length,
+                    Width = productDetail.Width,
+                    Height = productDetail.Height,
+                    ClosureType = productDetail.ClosureType.ToString(),
+
+                    // Rating breakdown
+                    Rating1 = rating1,
+                    Rating2 = rating2,
+                    Rating3 = rating3,
+                    Rating4 = rating4,
+                    Rating5 = rating5
                 };
             }
             catch (Exception ex)
@@ -2508,7 +2572,7 @@ namespace MeoMeo.Application.Services
 
                 if (hasInventoryBatches)
                     return true;
-                
+
 
                 // Nếu không có phụ thuộc nào, có thể xóa
                 return false;

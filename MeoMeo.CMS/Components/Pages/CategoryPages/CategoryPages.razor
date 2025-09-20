@@ -48,6 +48,7 @@
 </div>
 
 <Table DataSource="listOfData" TItem="CategoryDTO" RowClassName="@(_ => "editable-row")" Bordered TableLayout="fixed"
+       Total="@totalRecords" PageSize="@filter.PageSize" OnChange="@OnPageChange"
     OnExpand="@OnRowExpand">
     <ChildContent Context="data">
         <Column TData="CategoryDTO" Title="STT" Width="70px">
@@ -57,70 +58,70 @@
         <Column TData="string" Title="Tên danh mục">
             @if (editCache.ContainsKey(data.Id) && !editCache[data.Id].edit)
             {
-                    @data.Name
+                @data.Name
             }
             else if (editCache.ContainsKey(data.Id))
             {
-                    <Input MaxLength="100" @bind-Value="editCache[data.Id].data.Name" />
+                <Input MaxLength="100" @bind-Value="editCache[data.Id].data.Name" />
             }
         </Column>
 
         <Column TData="string" Title="Mô tả">
             @if (editCache.ContainsKey(data.Id) && !editCache[data.Id].edit)
             {
-                    @(string.IsNullOrEmpty(data.Description) ? "-" : data.Description)
+                @(string.IsNullOrEmpty(data.Description) ? "-" : data.Description)
             }
             else if (editCache.ContainsKey(data.Id))
             {
-                    <Input MaxLength="500" @bind-Value="editCache[data.Id].data.Description" placeholder="Mô tả" />
+                <Input MaxLength="500" @bind-Value="editCache[data.Id].data.Description" placeholder="Mô tả" />
             }
         </Column>
 
         <Column TData="bool" Title="Trạng thái">
             @if (editCache.ContainsKey(data.Id) && !editCache[data.Id].edit)
             {
-                    @(data.Status ? "Hoạt động" : "Không hoạt động")
+                @(data.Status ? "Hoạt động" : "Không hoạt động")
             }
             else if (editCache.ContainsKey(data.Id))
             {
-                    <Select TItem="(bool Value, string Name)" TItemValue="bool" DataSource="statusOptions"
-                        @bind-Value="editCache[data.Id].data.Status" ItemValue="c => c.Value" ItemLabel="c => c.Name">
-                    </Select>
+                <Select TItem="(bool Value, string Name)" TItemValue="bool" DataSource="statusOptions"
+                    @bind-Value="editCache[data.Id].data.Status" ItemValue="c => c.Value" ItemLabel="c => c.Name">
+                </Select>
             }
         </Column>
 
         <ActionColumn Title="Thao tác" Class="text-end gap-2">
             @if (editCache.ContainsKey(data.Id) && !editCache[data.Id].edit)
             {
-                    <Tooltip Title="Sửa">
-                        <Button Size="ButtonSize.Small" @onclick="() => StartEdit(data.Id)" Shape="ButtonShape.Circle">
-                            <i class="fas fa-pen"></i>
+                <Tooltip Title="Sửa">
+                    <Button Size="ButtonSize.Small" @onclick="() => StartEdit(data.Id)" Shape="ButtonShape.Circle">
+                        <i class="fas fa-pen"></i>
+                    </Button>
+                </Tooltip>
+
+                <Popconfirm Title=@($"Bạn có chắc muốn xóa danh mục {data.Name}?") OnConfirm="() => DeleteCategory(data.Id)"
+                    OkText="Đồng ý" CancelText="Hủy">
+                    <Tooltip Title="Xóa">
+                        <Button Size="ButtonSize.Small" Danger Shape="ButtonShape.Circle">
+                            <i class="fas fa-minus"></i>
                         </Button>
                     </Tooltip>
-
-                    <Popconfirm Title=@($"Bạn có chắc muốn xóa danh mục {data.Name}?") OnConfirm="() => DeleteCategory(data.Id)"
-                        OkText="Đồng ý" CancelText="Hủy">
-                        <Tooltip Title="Xóa">
-                            <Button Size="ButtonSize.Small" Danger Shape="ButtonShape.Circle">
-                                <i class="fas fa-minus"></i>
-                            </Button>
-                        </Tooltip>
-                    </Popconfirm>
+                </Popconfirm>
             }
             else
             {
-                    <Tooltip Title="Lưu">
-                        <Button Size="ButtonSize.Small" @onclick="() => SaveEdit(data.Id)" Shape="ButtonShape.Circle">
-                            <i class="fas fa-check"></i>
-                        </Button>
-                    </Tooltip>
+                <Tooltip Title="Lưu">
+                    <Button Size="ButtonSize.Small" @onclick="() => SaveEdit(data.Id)" Shape="ButtonShape.Circle">
+                        <i class="fas fa-check"></i>
+                    </Button>
+                </Tooltip>
 
-                    <Popconfirm Title=@($"Bạn có chắc muốn hủy chỉnh sửa danh mục {data.Name}?")
-                        OnConfirm="() => CancelEdit(data.Id)" OkText="Đồng ý" CancelText="Hủy">
-                        <Button Size="ButtonSize.Small" Shape="ButtonShape.Circle">
-                            <i class="fa-solid fa-xmark"></i>
-                        </Button>
-                    </Popconfirm>
+                <Popconfirm Title=@($"Bạn có chắc muốn hủy chỉnh sửa danh mục {data.Name}?")
+                    OnConfirm="() => CancelEdit(data.Id)" OkText="Đồng ý" CancelText="Hủy">
+                    <Button Size="ButtonSize.Small" Shape="ButtonShape.Circle">
+                        <i class="fa-solid fa-xmark"></i>
+                    </Button>
+                </Popconfirm>
             }
         </ActionColumn>
     </ChildContent>
@@ -129,40 +130,40 @@
             <h4>Sản phẩm trong danh mục "@data.Data.Name"</h4>
             @if (expandedCategoryProducts.ContainsKey(data.Data.Id) && expandedCategoryProducts[data.Data.Id].Any())
             {
-                    <Table DataSource="expandedCategoryProducts[data.Data.Id]" TItem="ProductPreviewDTO" Size="TableSize.Small">
-                        <Column TData="string" Title="Ảnh" Width="80">
-                            <Image Width="60" Height="60" Fallback="@(ApiBaseUrl+"/"+ "/Images/fallback.jpeg")"
-                                Src="@GetProductImageUrl(context.Thumbnail)" Class="search-result-image" />
-                        </Column>
-                        <Column TData="string" Title="Sản phẩm" Width="200">
-                            <div>
-                                <div><Text Strong>@context.Name</Text></div>
-                            </div>
-                        </Column>
-                        <Column TData="float?" Title="Giá" Width="150" Align="@ColumnAlign.Right">
-                            @if (context.MinPrice.HasValue && context.MaxPrice.HasValue)
+                <Table DataSource="expandedCategoryProducts[data.Data.Id]" TItem="ProductPreviewDTO" Size="TableSize.Small">
+                    <Column TData="string" Title="Ảnh" Width="80">
+                        <Image Width="60" Height="60" Fallback="@(ApiBaseUrl + "/" + "/Images/fallback.jpeg")"
+                            Src="@GetProductImageUrl(context.Thumbnail)" Class="search-result-image" />
+                    </Column>
+                    <Column TData="string" Title="Sản phẩm" Width="200">
+                        <div>
+                            <div><Text Strong>@context.Name</Text></div>
+                        </div>
+                    </Column>
+                    <Column TData="float?" Title="Giá" Width="150" Align="@ColumnAlign.Right">
+                        @if (context.MinPrice.HasValue && context.MaxPrice.HasValue)
+                        {
+                            @if (context.MinPrice == context.MaxPrice)
                             {
-                                    @if (context.MinPrice == context.MaxPrice)
-                                    {
-                                            @($"{context.MinPrice:N0} ₫")
-                                    }
-                                    else
-                                    {
-                                            @($"{context.MinPrice:N0} - {context.MaxPrice:N0} ₫")
-                                    }
+                                @($"{context.MinPrice:N0} ₫")
                             }
                             else
                             {
-                                    <span style="color: #999;">Chưa có giá</span>
+                                @($"{context.MinPrice:N0} - {context.MaxPrice:N0} ₫")
                             }
-                        </Column>
-                    </Table>
+                        }
+                        else
+                        {
+                            <span style="color: #999;">Chưa có giá</span>
+                        }
+                    </Column>
+                </Table>
             }
             else
             {
-                    <div class="text-center p-3">
-                        <p>Chưa có sản phẩm nào trong danh mục này</p>
-                    </div>
+                <div class="text-center p-3">
+                    <p>Chưa có sản phẩm nào trong danh mục này</p>
+                </div>
             }
         </div>
     </ExpandTemplate>
@@ -180,11 +181,16 @@
 (false, "Không hoạt động")
 };
 
-    CategoryFilter filter = new CategoryFilter()
+    GetListCategoryRequestDTO filter = new GetListCategoryRequestDTO()
     {
         NameFilter = "",
-        DescriptionFilter = ""
+        DescriptionFilter = "",
+        StatusFilter = null,
+        PageIndex = 1,
+        PageSize = 10
     };
+
+    int totalRecords = 0;
 
     protected override async Task OnInitializedAsync()
     {
@@ -194,25 +200,17 @@
 
     private async Task LoadData()
     {
-        var response = await CategoryClientService.GetAllCategoriesAsync();
-        listOfData = response.Select(c => new CategoryDTO
+        // Apply tab filter
+        filter.StatusFilter = selectedTab switch
         {
-            Id = c.Id,
-            Name = c.Name,
-            Description = c.Description,
-            Status = c.Status
-        }).ToList();
+            "active" => true,
+            "inactive" => false,
+            _ => null
+        };
 
-        // Apply filters
-        if (!string.IsNullOrEmpty(filter.NameFilter))
-        {
-            listOfData = listOfData.Where(c => c.Name.Contains(filter.NameFilter, StringComparison.OrdinalIgnoreCase)).ToList();
-        }
-        if (!string.IsNullOrEmpty(filter.DescriptionFilter))
-        {
-            listOfData = listOfData.Where(c => !string.IsNullOrEmpty(c.Description) &&
-            c.Description.Contains(filter.DescriptionFilter, StringComparison.OrdinalIgnoreCase)).ToList();
-        }
+        var response = await CategoryClientService.GetAllCategoriesPagedAsync(filter);
+        listOfData = response.Items?.ToList() ?? new List<CategoryDTO>();
+        totalRecords = response.TotalRecords;
 
         editCache = listOfData.ToDictionary(
         item => item.Id,
@@ -222,6 +220,7 @@
 
     private async Task OnFilterChanged()
     {
+        filter.PageIndex = 1; // Reset về trang đầu khi filter
         await LoadData();
     }
 
@@ -230,6 +229,7 @@
     private async Task OnTabChanged(string key)
     {
         selectedTab = key;
+        filter.PageIndex = 1; // Reset về trang đầu khi thay đổi tab
         await LoadData();
     }
 
@@ -360,9 +360,18 @@
         };
     }
 
-    public class CategoryFilter
+    // Pagination handlers
+    private async Task OnPageChange(QueryModel<CategoryDTO> query)
     {
-        public string NameFilter { get; set; } = "";
-        public string DescriptionFilter { get; set; } = "";
+        filter.PageIndex = query.PageIndex;
+        filter.PageSize = query.PageSize;
+        await LoadData();
+    }
+
+    private async Task OnPageSizeChange(PaginationEventArgs args)
+    {
+        filter.PageIndex = 1; // Reset về trang đầu khi thay đổi page size
+        filter.PageSize = args.PageSize;
+        await LoadData();
     }
 }

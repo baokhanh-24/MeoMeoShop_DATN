@@ -76,8 +76,6 @@
             }
 
         </div>
-        else
-        {
         <div class="empty-state">
             <Empty>
                 <Button Type="@ButtonType.Primary" Icon="plus" OnClick="ShowCreateAddressModal">
@@ -85,7 +83,6 @@
                 </Button>
             </Empty>
         </div>
-        }
     </div>
 </div>
 
@@ -194,7 +191,8 @@
         districts.Clear();
         wards.Clear();
 
-        await LoadDistricts(province.GhnProvinceId);
+        // Use province.Id instead of province.GhnProvinceId
+        await LoadDistricts(province.Id);
     }
 
     private async Task LoadDistricts(int ghnProvinceId)
@@ -203,6 +201,7 @@
         {
             var result = await GhnService.GetDistrictsAsync(ghnProvinceId);
             districts = result?.ToList() ?? new List<GhnLocationItem>();
+            await InvokeAsync(StateHasChanged);
         }
         catch (Exception ex)
         {
@@ -211,7 +210,7 @@
         }
     }
 
-    private async void OnDistrictChange(GhnLocationItem district)
+    private async Task OnDistrictChange(GhnLocationItem district)
     {
         selectedDistrictId = district.Id;
         editingAddress.DistrictId = district.Id;
@@ -222,7 +221,8 @@
 
         wards.Clear();
 
-        await LoadCommunes(district.GhnDistrictId);
+        // Use district.Id instead of district.GhnDistrictId
+        await LoadCommunes(district.Id);
     }
 
     private async Task LoadCommunes(int ghnDistrictId)
@@ -231,6 +231,7 @@
         {
             var result = await GhnService.GetWardsAsync(ghnDistrictId);
             wards = result?.ToList() ?? new List<GhnLocationItem>();
+            await InvokeAsync(StateHasChanged);
         }
         catch (Exception ex)
         {
@@ -239,7 +240,7 @@
         }
     }
 
-    private async void OnCommuneChange(GhnLocationItem commune)
+    private void OnCommuneChange(GhnLocationItem commune)
     {
         selectedCommuneId = commune.Id;
         editingAddress.CommuneId = commune.Id;
@@ -279,13 +280,13 @@
             var province = provinces.FirstOrDefault(p => p.Id == address.ProvinceId);
             if (province != null)
             {
-                await LoadDistricts(province.GhnProvinceId);
+                await LoadDistricts(province.Id);
                 if (address.DistrictId != -1)
                 {
                     var district = districts.FirstOrDefault(d => d.Id == address.DistrictId);
                     if (district != null)
                     {
-                        await LoadCommunes(district.GhnDistrictId);
+                        await LoadCommunes(district.Id);
                     }
                 }
             }

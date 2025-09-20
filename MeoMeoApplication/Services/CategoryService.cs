@@ -9,6 +9,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using MeoMeo.Domain.Commons;
 using Microsoft.EntityFrameworkCore;
 
 namespace MeoMeo.Application.Services
@@ -46,7 +47,7 @@ namespace MeoMeo.Application.Services
                     Message = "Tên danh mục đã tồn tại."
                 };
             }
-            
+
 
             var category = _mapper.Map<Category>(categoryDTO);
             category.Id = Guid.NewGuid();
@@ -75,6 +76,48 @@ namespace MeoMeo.Application.Services
         {
             var categories = await _categoryRepository.GetAllAsync();
             return categories;
+        }
+
+        public async Task<PagingExtensions.PagedResult<CategoryDTO>> GetAllCategoriesPagedAsync(GetListCategoryRequestDTO request)
+        {
+            try
+            {
+                var query = _categoryRepository.Query();
+
+                if (!string.IsNullOrEmpty(request.NameFilter))
+                {
+                    query = query.Where(c => EF.Functions.Like(c.Name, $"%{request.NameFilter}%"));
+                }
+                
+
+                if (!string.IsNullOrEmpty(request.DescriptionFilter))
+                {
+                    query = query.Where(c => EF.Functions.Like(c.Description, $"%{request.DescriptionFilter}%"));
+                }
+
+                if (request.StatusFilter.HasValue)
+                {
+                    query = query.Where(c => c.Status == request.StatusFilter);
+                }
+
+                query = query.OrderByDescending(c => c.Name);
+
+                var pagedResult = await _categoryRepository.GetPagedAsync(query, request.PageIndex, request.PageSize);
+                var dtoItems = _mapper.Map<List<CategoryDTO>>(pagedResult.Items);
+
+                return new PagingExtensions.PagedResult<CategoryDTO>
+                {
+                    TotalRecords = pagedResult.TotalRecords,
+                    PageIndex = pagedResult.PageIndex,
+                    PageSize = pagedResult.PageSize,
+                    Items = dtoItems
+                };
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error in GetAllCategoriesPagedAsync: {ex.Message}");
+                throw;
+            }
         }
 
         public async Task<CategoryResponseDTO> GetCategoryByIdAsync(Guid id)
@@ -113,7 +156,7 @@ namespace MeoMeo.Application.Services
                     Message = "Tên danh mục đã tồn tại."
                 };
             }
-            
+
             _mapper.Map(categoryDTO, category);
 
             await _categoryRepository.UpdateAsync(category);
@@ -173,5 +216,5 @@ namespace MeoMeo.Application.Services
         }
     }
 
-        
+
 }

@@ -12,6 +12,6 @@ namespace MeoMeo.Contract.DTOs
         public string? NameFilter { get; set; }
         public string? CodeFilter { get; set; }
         public string? DescriptionFilter { get; set; }
-        public int? StatusFilter { get; set; }
+        public bool? StatusFilter { get; set; }
     }
 } 
