@@ -117,9 +117,9 @@ namespace MeoMeo.API.Controllers
         [HttpDelete("remove-item/{id}")]
         public async Task<IActionResult> RemoveItem(Guid id)
         {
-            var userId = _httpContextAccessor.HttpContext.GetCurrentUserId();
-            if (userId == Guid.Empty) return BadRequest();
-            var result = await _cartService.RemoveCartItemAsync(id, userId);
+            var customerId = _httpContextAccessor.HttpContext.GetCurrentCustomerId();
+            if (customerId == Guid.Empty) return BadRequest();
+            var result = await _cartService.RemoveCartItemAsync(id, customerId);
             return Ok(result);
         }
         //add
