@@ -1,0 +1,322 @@
+================================================================================
+                    MEOMEOSHOP - HỆ THỐNG QUẢN LÝ KHO CHI TIẾT
+================================================================================
+
+I. TỔNG QUAN HỆ THỐNG QUẢN LÝ KHO
+================================================================================
+
+Hệ thống quản lý kho MeoMeoShop được thiết kế theo mô hình Batch Management với 
+các tính năng chính:
+- Quản lý theo lô hàng (Inventory Batch)
+- Theo dõi giao dịch xuất/nhập kho (Inventory Transaction)
+- Validation tồn kho real-time
+- Quy trình duyệt nhập kho
+- Thống kê và báo cáo kho
+
+II. CÁC ENTITY CHÍNH TRONG HỆ THỐNG KHO
+================================================================================
+
+1. IMPORTBATCH (Lô nhập hàng)
+   - Id: Guid (Primary Key)
+   - Code: string (Mã lô nhập - VD: "IMP-2024-001")
+   - ImportDate: DateTime (Ngày nhập hàng)
+   - Note: string (Ghi chú)
+   - CreationTime: DateTime
+   - LastModificationTime: DateTime
+   - CreateBy: int (ID người tạo)
+   - LastModificationBy: int (ID người sửa cuối)
+
+2. INVENTORYBATCH (Lô tồn kho)
+   - Id: Guid (Primary Key)
+   - ImportBatchId: Guid? (Liên kết với lô nhập)
+   - ProductDetailId: Guid (Liên kết với biến thể sản phẩm)
+   - OriginalPrice: float (Giá gốc của lô hàng)
+   - Quantity: int (Số lượng tồn kho)
+   - Status: EInventoryBatchStatus (Trạng thái lô hàng)
+   - CreationTime: DateTime
+   - LastModificationTime: DateTime
+   - CreateBy: int
+   - LastModificationBy: int
+
+3. INVENTORYTRANSACTION (Giao dịch kho)
+   - Id: Guid (Primary Key)
+   - InventoryBatchId: Guid (Liên kết với lô tồn kho)
+   - Quantity: int (Số lượng giao dịch)
+   - CreationTime: DateTime (Thời gian giao dịch)
+   - CreateBy: int (ID người thực hiện)
+   - Type: EInventoryTranctionType (Loại giao dịch: Import/Export)
+   - Note: string? (Ghi chú giao dịch)
+
+4. ORDERDETAILINVENTORYBATCH (Liên kết đơn hàng - lô kho)
+   - Id: Guid (Primary Key)
+   - OrderDetailId: Guid (Liên kết với chi tiết đơn hàng)
+   - InventoryBatchId: Guid (Liên kết với lô tồn kho)
+   - Quantity: int (Số lượng sử dụng từ lô này)
+
+III. CÁC TRẠNG THÁI TRONG HỆ THỐNG KHO
+================================================================================
+
+1. EINVENTORYBATCHSTATUS (Trạng thái lô tồn kho)
+   - Draft: "Lưu tạm" - Lô hàng được tạo nhưng chưa gửi duyệt
+   - PendingApproval: "Chờ duyệt" - Lô hàng đã gửi và đang chờ phê duyệt
+   - Approved: "Đã phê duyệt" - Lô hàng đã được phê duyệt, có thể sử dụng
+   - Rejected: "Bị từ chối" - Lô hàng bị từ chối, không thể sử dụng
+
+2. EINVENTORYTRANSACTIONTYPE (Loại giao dịch kho)
+   - Import: "Nhập kho" - Giao dịch nhập hàng vào kho
+   - Export: "Xuất kho" - Giao dịch xuất hàng ra khỏi kho
+
+3. EIMPORTSTATUS (Trạng thái lô nhập - tương tự InventoryBatch)
+   - Draft: "Lưu tạm"
+   - PendingApproval: "Chờ duyệt"
+   - Approved: "Đã phê duyệt"
+   - Rejected: "Bị từ chối"
+
+IV. LUỒNG QUẢN LÝ KHO CHI TIẾT
+================================================================================
+
+A. LUỒNG NHẬP KHO
+-----------------
+
+Bước 1: Tạo lô nhập hàng (ImportBatch)
+   - Admin/Quản lý kho tạo ImportBatch mới
+   - Nhập thông tin: Code, ImportDate, Note
+   - Trạng thái: Draft
+   - API: POST /api/ImportBatch/create-import-batch-async
+
+Bước 2: Tạo các lô tồn kho (InventoryBatch)
+   - Tạo các InventoryBatch thuộc ImportBatch
+   - Mỗi InventoryBatch tương ứng với 1 ProductDetail (biến thể sản phẩm)
+   - Nhập thông tin: ProductDetailId, OriginalPrice, Quantity
+   - Trạng thái: Draft
+   - API: POST /api/InventoryBatches/create-inventoryBatch-async
+
+Bước 3: Gửi duyệt
+   - Cập nhật trạng thái ImportBatch và các InventoryBatch thành PendingApproval
+   - Hệ thống gửi thông báo cho quản lý cấp cao
+
+Bước 4: Phê duyệt/Từ chối
+   - Quản lý cấp cao xem xét và quyết định:
+     + Approved: Phê duyệt, hàng hóa có thể sử dụng
+     + Rejected: Từ chối, cần sửa đổi hoặc hủy bỏ
+   - API: PUT /api/ImportBatch/update-import-batch-async/{id}
+
+Bước 5: Tạo giao dịch nhập kho
+   - Khi trạng thái chuyển sang Approved, hệ thống tự động:
+     + Tạo InventoryTransaction với Type = Import
+     + Ghi lại số lượng nhập và thời gian
+     + Cập nhật tồn kho khả dụng
+
+B. LUỒNG XUẤT KHO
+-----------------
+
+Bước 1: Kiểm tra tồn kho khi đặt hàng
+   - Khi khách hàng thêm sản phẩm vào giỏ hàng
+   - Hệ thống kiểm tra tồn kho khả dụng:
+     + Chỉ tính các InventoryBatch có Status = Approved
+     + Tổng số lượng = Sum(Quantity) của tất cả lô Approved
+   - Validation: Số lượng đặt hàng <= Tồn kho khả dụng
+
+Bước 2: Kiểm tra tồn kho khi thanh toán
+   - Trước khi tạo đơn hàng, hệ thống validate lại tồn kho
+   - Sử dụng OrderValidator.ValidateInventoryAsync()
+   - Trả về danh sách sản phẩm thiếu hàng nếu có
+
+Bước 3: Xuất kho khi đơn hàng hoàn thành
+   - Khi đơn hàng chuyển sang trạng thái "Completed"
+   - Hệ thống thực hiện xuất kho theo nguyên tắc FIFO:
+     
+     For each OrderDetail:
+       requiredQuantity = OrderDetail.Quantity
+       availableBatches = GetInventoryBatches(ProductDetailId, Status=Approved, Quantity>0)
+       Sort by CreationTime (FIFO)
+       
+       For each batch in availableBatches:
+         if requiredQuantity <= 0: break
+         deductedQuantity = Min(batch.Quantity, requiredQuantity)
+         batch.Quantity -= deductedQuantity
+         requiredQuantity -= deductedQuantity
+         
+         // Tạo giao dịch xuất kho
+         Create InventoryTransaction:
+           - InventoryBatchId = batch.Id
+           - Quantity = deductedQuantity
+           - Type = Export
+           - CreationTime = DateTime.Now
+
+Bước 4: Cập nhật liên kết đơn hàng - lô kho
+   - Tạo OrderDetailInventoryBatch records
+   - Ghi lại lô kho nào được sử dụng cho đơn hàng nào
+   - Hỗ trợ traceability và audit trail
+
+C. LUỒNG QUẢN LÝ TỒN KHO
+-------------------------
+
+Bước 1: Theo dõi tồn kho real-time
+   - Tồn kho khả dụng = Sum(Quantity) của tất cả InventoryBatch có Status = Approved
+   - Cập nhật real-time khi có giao dịch xuất/nhập
+   - Hiển thị trên giao diện sản phẩm
+
+Bước 2: Cảnh báo tồn kho thấp
+   - Hệ thống có thể cấu hình ngưỡng cảnh báo
+   - Gửi thông báo khi tồn kho xuống dưới ngưỡng
+   - Đề xuất nhập hàng bổ sung
+
+Bước 3: Thống kê và báo cáo
+   - InventoryStatisticsService cung cấp các báo cáo:
+     + Tồn kho theo sản phẩm/biến thể
+     + Lịch sử xuất/nhập kho
+     + Tốc độ tiêu thụ hàng hóa
+     + Dự báo nhu cầu nhập hàng
+
+V. CÁC API ENDPOINTS CHÍNH
+================================================================================
+
+1. IMPORTBATCH CONTROLLER
+   - GET /api/ImportBatch/get-all-import-batch-async
+   - GET /api/ImportBatch/get-import-batch-by-id-async/{id}
+   - GET /api/ImportBatch/get-import-batch-detail-async/{id}
+   - POST /api/ImportBatch/create-import-batch-async
+   - PUT /api/ImportBatch/update-import-batch-async/{id}
+
+2. INVENTORYBATCHES CONTROLLER
+   - GET /api/InventoryBatches/get-all-inventoryBatch-async
+   - GET /api/InventoryBatches/find-inventoryBatch-by-id-async/{id}
+   - POST /api/InventoryBatches/create-inventoryBatch-async
+   - PUT /api/InventoryBatches/update-inventoryBatch-async/{id}
+   - DELETE /api/InventoryBatches/delete-inventoryBatch-async/{id}
+
+3. INVENTORYTRANSACTIONS CONTROLLER
+   - GET /api/InventoryTransactions
+   - GET /api/InventoryTransactions/{id}
+   - PUT /api/InventoryTransactions/{id}
+   - POST /api/InventoryTransactions
+
+4. INVENTORYSTATISTICS CONTROLLER
+   - POST /api/InventoryStatistics/get-statistics
+   - POST /api/InventoryStatistics/get-history
+
+VI. CÁC SERVICE CHÍNH
+================================================================================
+
+1. INVENTORYBATCHSERVICE
+   - CreateAsync(): Tạo nhiều lô tồn kho
+   - GetAllAsync(): Lấy danh sách lô tồn kho với phân trang và filter
+   - GetByIdAsync(): Lấy thông tin lô tồn kho theo ID
+   - UpdateAsync(): Cập nhật thông tin lô tồn kho
+   - DeleteAsync(): Xóa lô tồn kho
+
+2. INVENTORYTRANSACTIONSERVICE
+   - GetAllAsync(): Lấy tất cả giao dịch kho
+   - GetByIdAsync(): Lấy giao dịch theo ID
+   - UpdateAsync(): Cập nhật giao dịch
+   - DeleteAsync(): Xóa giao dịch
+
+3. INVENTORYSTATISTICSSERVICE
+   - GetInventoryStatisticsAsync(): Lấy thống kê tồn kho
+   - GetInventoryHistoryAsync(): Lấy lịch sử giao dịch kho
+
+VII. CÁC QUY TẮC NGHIỆP VỤ
+================================================================================
+
+1. NGUYÊN TẮC FIFO (First In, First Out)
+   - Xuất kho theo thứ tự nhập trước, xuất trước
+   - Sắp xếp InventoryBatch theo CreationTime
+   - Đảm bảo hàng hóa không bị hết hạn
+
+2. VALIDATION TỒN KHO
+   - Chỉ cho phép đặt hàng khi có đủ tồn kho
+   - Kiểm tra real-time khi thêm vào giỏ hàng
+   - Kiểm tra lại khi thanh toán
+
+3. QUY TRÌNH DUYỆT
+   - Tất cả lô nhập phải qua quy trình duyệt
+   - Chỉ lô Approved mới được sử dụng
+   - Ghi lại đầy đủ lịch sử thay đổi trạng thái
+
+4. AUDIT TRAIL
+   - Ghi lại tất cả giao dịch xuất/nhập
+   - Theo dõi người thực hiện và thời gian
+   - Hỗ trợ truy xuất nguồn gốc hàng hóa
+
+VIII. CÁC TÍNH NĂNG NÂNG CAO
+================================================================================
+
+1. TRACEABILITY
+   - Theo dõi từng sản phẩm từ lô nhập đến đơn hàng
+   - Hỗ trợ recall sản phẩm khi cần thiết
+   - Báo cáo chi tiết về nguồn gốc hàng hóa
+
+2. MULTI-WAREHOUSE SUPPORT
+   - Hệ thống có thể mở rộng cho nhiều kho
+   - Quản lý tồn kho theo từng kho riêng biệt
+   - Chuyển kho giữa các kho
+
+3. AUTOMATED REORDERING
+   - Tự động đề xuất nhập hàng khi tồn kho thấp
+   - Tính toán số lượng nhập tối ưu
+   - Tích hợp với nhà cung cấp
+
+4. INTEGRATION
+   - Tích hợp với hệ thống POS
+   - Đồng bộ với hệ thống kế toán
+   - API mở cho các hệ thống bên ngoài
+
+IX. CÁC TRƯỜNG HỢP XỬ LÝ ĐẶC BIỆT
+================================================================================
+
+1. HÀNG HÓA HẾT HẠN
+   - Đánh dấu lô hàng hết hạn
+   - Tự động loại bỏ khỏi tồn kho khả dụng
+   - Báo cáo tổn thất
+
+2. HÀNG HÓA HỎNG HÓC
+   - Tạo giao dịch xuất kho đặc biệt
+   - Ghi chú lý do hỏng hóc
+   - Cập nhật tồn kho thực tế
+
+3. KIỂM KÊ KHO
+   - So sánh tồn kho hệ thống vs thực tế
+   - Điều chỉnh chênh lệch
+   - Tạo báo cáo kiểm kê
+
+4. HOÀN TRẢ HÀNG
+   - Khi khách hàng trả hàng
+   - Tạo giao dịch nhập kho đặc biệt
+   - Kiểm tra chất lượng trước khi nhập lại
+
+X. BẢO MẬT VÀ PHÂN QUYỀN
+================================================================================
+
+1. PHÂN QUYỀN NGƯỜI DÙNG
+   - Admin: Toàn quyền quản lý kho
+   - Quản lý kho: Tạo và quản lý lô nhập
+   - Nhân viên bán hàng: Chỉ xem tồn kho
+   - Khách hàng: Xem tồn kho công khai
+
+2. AUDIT LOG
+   - Ghi lại tất cả thao tác quan trọng
+   - Theo dõi thay đổi dữ liệu
+   - Hỗ trợ điều tra khi có sự cố
+
+3. DATA INTEGRITY
+   - Ràng buộc dữ liệu chặt chẽ
+   - Transaction để đảm bảo tính nhất quán
+   - Backup và recovery dữ liệu
+
+================================================================================
+KẾT LUẬN
+================================================================================
+
+Hệ thống quản lý kho MeoMeoShop được thiết kế toàn diện với các tính năng:
+- Quản lý theo lô hàng chuyên nghiệp
+- Quy trình duyệt rõ ràng
+- Validation tồn kho real-time
+- Thống kê và báo cáo chi tiết
+- Hỗ trợ traceability và audit trail
+- Tích hợp tốt với hệ thống đơn hàng
+
+Hệ thống phù hợp cho các cửa hàng thời trang với nhiều biến thể sản phẩm
+và yêu cầu quản lý kho chuyên nghiệp.
+
+================================================================================
