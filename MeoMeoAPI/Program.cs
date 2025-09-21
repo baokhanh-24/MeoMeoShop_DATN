@@ -96,14 +96,9 @@ builder.Services.AddScoped<IOrderReturnItemRepository, OrderReturnItemRepository
 builder.Services.AddScoped<IOrderReturnFileRepository, OrderReturnFileRepository>();
 builder.Services.AddScoped<IProductReviewFileRepository, ProductReviewFileRepository>();
 builder.Services.AddScoped<IOrderReturnService, OrderReturnService>();
-// Permission services
-builder.Services.AddScoped<IPermissionRepository, PermissionRepository>();
-builder.Services.AddScoped<IPermissionService, PermissionService>();
-builder.Services.AddScoped<IPermissionGroupRepository, PermissionGroupRepository>();
-builder.Services.AddScoped<IPermissionGroupService, PermissionGroupService>();
+// Role services
 builder.Services.AddScoped<IRoleRepository, RoleRepository>();
 builder.Services.AddScoped<IRoleService, RoleService>();
-builder.Services.AddScoped<IRolePermissionRepository, RolePermissionRepository>();
 builder.Services.AddScoped<IUserRoleRepository, UserRoleRepository>();
 builder.Services.AddScoped<IUserRoleService, UserRoleService>();
 builder.Services.AddScoped<IWishlistRepository, WishlistRepository>();

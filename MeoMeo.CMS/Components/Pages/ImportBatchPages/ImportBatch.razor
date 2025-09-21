@@ -1,4 +1,5 @@
 @page "/manage-inventoryBatch"
+@attribute [Authorize(Roles = "Admin,Employee")]
 @using System
 @using System.ComponentModel.DataAnnotations
 @using System.Reflection
@@ -14,6 +15,7 @@
 @using MeoMeo.Domain.Commons.Enums
 @using MeoMeo.Shared.IServices
 @using MeoMeo.Shared.Utilities
+@using Microsoft.AspNetCore.Authorization
 @using static MeoMeo.Domain.Commons.PagingExtensions
 @inject MessageModalService MessageModalService
 @using ButtonSize = AntDesign.ButtonSize
@@ -51,8 +53,8 @@
     <ChildContent Context="data">
         <Column TData="int" Title="STT">
             @{
-                var index = listOfData.IndexOf(data);
-                @((filter.PageIndex - 1) * filter.PageSize + index + 1)
+                    var index = listOfData.IndexOf(data);
+                    @((filter.PageIndex - 1) * filter.PageSize + index + 1)
             }
         </Column>
         <Column TData="string" Title="Mã lô nhập">
@@ -92,81 +94,81 @@
             <h4>Sản phẩm trong lô nhập</h4>
             @if (expandedInventoryBatches.ContainsKey(data.Data.Id) && expandedInventoryBatches[data.Data.Id].Any())
             {
-                <Table DataSource="expandedInventoryBatches[data.Data.Id]" TItem="InventoryBatchDetailItem"
-                    Size="TableSize.Small">
-                    <Column TData="string" Title="Ảnh" Width="80">
-  <Image Width="80" Height="80" Fallback="@(ApiBaseUrl + "/Images/fallback.jpeg")"
-                                   Src="@(ApiBaseUrl + "/" + context.Thumbnail)" Class="search-result-image" />
-                    </Column>
-                    <Column TData="string" DataIndex="SKU" Title="SKU">
-                        <Text Strong>@context.SKU</Text>
-                    </Column>
-                    <Column TData="string" DataIndex="ProductName" Title="Sản phẩm">
-                        <div>
-                            <div><Text Strong>@context.ProductName</Text></div>
-                            <div style="color: #666; font-size: 12px;">
-                                <Tag Color="@("blue")">@context.ColourName</Tag>
-                                <Tag Color="@("green")">Size: @context.SizeValue</Tag>
+                    <Table DataSource="expandedInventoryBatches[data.Data.Id]" TItem="InventoryBatchDetailItem"
+                        Size="TableSize.Small">
+                        <Column TData="string" Title="Ảnh" Width="80">
+      <Image Width="80" Height="80" Fallback="@(ApiBaseUrl + "/Images/fallback.jpeg")"
+                                       Src="@(ApiBaseUrl + "/" + context.Thumbnail)" Class="search-result-image" />
+                        </Column>
+                        <Column TData="string" DataIndex="SKU" Title="SKU">
+                            <Text Strong>@context.SKU</Text>
+                        </Column>
+                        <Column TData="string" DataIndex="ProductName" Title="Sản phẩm">
+                            <div>
+                                <div><Text Strong>@context.ProductName</Text></div>
+                                <div style="color: #666; font-size: 12px;">
+                                    <Tag Color="@("blue")">@context.ColourName</Tag>
+                                    <Tag Color="@("green")">Size: @context.SizeValue</Tag>
+                                </div>
                             </div>
-                        </div>
-                    </Column>
-                    <Column TData="float" DataIndex="OriginalPrice" Title="Giá nhập">
-                        @($"{context.OriginalPrice:N0} VNĐ")
-                    </Column>
-                    <Column TData="int" DataIndex="Quantity" Title="Số lượng">
-                        <Text Strong>@context.Quantity</Text>
-                    </Column>
-                    <Column TData="EInventoryBatchStatus" DataIndex="Status" Title="Trạng thái">
-                        <Tag Color="@GetInventoryBatchStatusColor(context.Status)">
-                            @inventoryBatchStatusList.FirstOrDefault(p => p.Value == context.Status).Name
-                        </Tag>
-                    </Column>
-                    <ActionColumn Title="Thao tác" Width="200">
-                        <Space>
-                            @if (context.Status == EInventoryBatchStatus.Draft)
-                            {
-                                <Tooltip Title="Gửi duyệt">
-                                    <Button Size="ButtonSize.Small" Type="ButtonType.Primary"
-                                        OnClick="() => OnClickConfirm(context, EInventoryBatchStatus.PendingApproval)"
-                                        Shape="ButtonShape.Circle">
-                                        <i class="fas fa-paper-plane"></i>
-                                    </Button>
-                                </Tooltip>
-                            }
-                            @if (context.Status == EInventoryBatchStatus.PendingApproval)
-                            {
-                                <Tooltip Title="Phê duyệt">
-                                    <Button Size="ButtonSize.Small" Type="ButtonType.Primary"
-                                        OnClick="() => OnClickConfirm(context, EInventoryBatchStatus.Approved)"
-                                        Shape="ButtonShape.Circle">
-                                        <i class="fas fa-check"></i>
-                                    </Button>
-                                </Tooltip>
-                                <Tooltip Title="Từ chối">
-                                    <Button Size="ButtonSize.Small" Type="ButtonType.Default"
-                                        OnClick="() => OnClickConfirm(context, EInventoryBatchStatus.Rejected)"
-                                        Shape="ButtonShape.Circle">
-                                        <i class="fas fa-times"></i>
-                                    </Button>
-                                </Tooltip>
-                            }
-                            @if (context.Status == EInventoryBatchStatus.Rejected)
-                            {
-                                <Tooltip Title="Gửi lại duyệt">
-                                    <Button Size="ButtonSize.Small" Type="ButtonType.Primary"
-                                        OnClick="() => OnClickConfirm(context, EInventoryBatchStatus.PendingApproval)"
-                                        Shape="ButtonShape.Circle">
-                                        <i class="fas fa-redo"></i>
-                                    </Button>
-                                </Tooltip>
-                            }
-                        </Space>
-                    </ActionColumn>
-                </Table>
+                        </Column>
+                        <Column TData="float" DataIndex="OriginalPrice" Title="Giá nhập">
+                            @($"{context.OriginalPrice:N0} VNĐ")
+                        </Column>
+                        <Column TData="int" DataIndex="Quantity" Title="Số lượng">
+                            <Text Strong>@context.Quantity</Text>
+                        </Column>
+                        <Column TData="EInventoryBatchStatus" DataIndex="Status" Title="Trạng thái">
+                            <Tag Color="@GetInventoryBatchStatusColor(context.Status)">
+                                @inventoryBatchStatusList.FirstOrDefault(p => p.Value == context.Status).Name
+                            </Tag>
+                        </Column>
+                        <ActionColumn Title="Thao tác" Width="200">
+                            <Space>
+                                @if (context.Status == EInventoryBatchStatus.Draft)
+                                {
+                                        <Tooltip Title="Gửi duyệt">
+                                            <Button Size="ButtonSize.Small" Type="ButtonType.Primary"
+                                                OnClick="() => OnClickConfirm(context, EInventoryBatchStatus.PendingApproval)"
+                                                Shape="ButtonShape.Circle">
+                                                <i class="fas fa-paper-plane"></i>
+                                            </Button>
+                                        </Tooltip>
+                                }
+                                @if (context.Status == EInventoryBatchStatus.PendingApproval)
+                                {
+                                        <Tooltip Title="Phê duyệt">
+                                            <Button Size="ButtonSize.Small" Type="ButtonType.Primary"
+                                                OnClick="() => OnClickConfirm(context, EInventoryBatchStatus.Approved)"
+                                                Shape="ButtonShape.Circle">
+                                                <i class="fas fa-check"></i>
+                                            </Button>
+                                        </Tooltip>
+                                        <Tooltip Title="Từ chối">
+                                            <Button Size="ButtonSize.Small" Type="ButtonType.Default"
+                                                OnClick="() => OnClickConfirm(context, EInventoryBatchStatus.Rejected)"
+                                                Shape="ButtonShape.Circle">
+                                                <i class="fas fa-times"></i>
+                                            </Button>
+                                        </Tooltip>
+                                }
+                                @if (context.Status == EInventoryBatchStatus.Rejected)
+                                {
+                                        <Tooltip Title="Gửi lại duyệt">
+                                            <Button Size="ButtonSize.Small" Type="ButtonType.Primary"
+                                                OnClick="() => OnClickConfirm(context, EInventoryBatchStatus.PendingApproval)"
+                                                Shape="ButtonShape.Circle">
+                                                <i class="fas fa-redo"></i>
+                                            </Button>
+                                        </Tooltip>
+                                }
+                            </Space>
+                        </ActionColumn>
+                    </Table>
             }
             else
             {
-                <p style="color: #999; font-style: italic;">Chưa có sản phẩm nào trong lô nhập này</p>
+                    <p style="color: #999; font-style: italic;">Chưa có sản phẩm nào trong lô nhập này</p>
             }
         </div>
     </ExpandTemplate>
@@ -180,9 +182,9 @@
        ConfirmLoading="@_confirmLoading">
     <p>@_modalText</p>
     @if (targetStatus == EInventoryBatchStatus.Rejected)
-    {   
-        <div class="mb-2">Lý do từ chối: <span class="text-danger"> *</span> </div>
-        <TextArea @bind-Value="rejectReason" Placeholder="Nhập lý do từ chối..."></TextArea>
+    {
+            <div class="mb-2">Lý do từ chối: <span class="text-danger"> *</span> </div>
+            <TextArea @bind-Value="rejectReason" Placeholder="Nhập lý do từ chối..."></TextArea>
     }
 </Modal>
 

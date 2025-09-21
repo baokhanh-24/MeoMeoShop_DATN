@@ -13,20 +13,20 @@ var builder = WebApplication.CreateBuilder(args);
 // Add services to the container.
 var apiBaseUrl = builder.Configuration["ApiSettings:BaseUrl"];
 
-// Configure data protection
-if (builder.Environment.IsDevelopment())
-{
-    // For development: persist keys to file system
-    builder.Services.AddDataProtection()
-        .PersistKeysToFileSystem(new DirectoryInfo(Path.Combine(builder.Environment.ContentRootPath, "DataProtection-Keys")))
-        .SetDefaultKeyLifetime(TimeSpan.FromDays(90));
-}
-else
-{
-    // For production: use in-memory keys with longer lifetime
-    builder.Services.AddDataProtection()
-        .SetDefaultKeyLifetime(TimeSpan.FromDays(30));
-}
+// // Configure data protection
+// if (builder.Environment.IsDevelopment())
+// {
+//     // For development: persist keys to file system
+//     builder.Services.AddDataProtection()
+//         .PersistKeysToFileSystem(new DirectoryInfo(Path.Combine(builder.Environment.ContentRootPath, "DataProtection-Keys")))
+//         .SetDefaultKeyLifetime(TimeSpan.FromDays(90));
+// }
+// else
+// {
+//     // For production: use in-memory keys with longer lifetime
+//     builder.Services.AddDataProtection()
+//         .SetDefaultKeyLifetime(TimeSpan.FromDays(30));
+// }
 
 builder.Services.AddRazorComponents()
     .AddInteractiveServerComponents();

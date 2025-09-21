@@ -11,32 +11,22 @@ namespace MeoMeo.Application.Services
     public class RoleService : IRoleService
     {
         private readonly IRoleRepository _roleRepository;
-        private readonly IRolePermissionRepository _rolePermissionRepository;
-        private readonly IPermissionRepository _permissionRepository;
         private readonly IUserRoleRepository _userRoleRepository;
-        private readonly IPermissionGroupRepository _permissionGroupRepository;
         private readonly IMapper _mapper;
 
         public RoleService(
             IRoleRepository roleRepository,
-            IRolePermissionRepository rolePermissionRepository,
-            IPermissionRepository permissionRepository,
             IUserRoleRepository userRoleRepository,
-            IMapper mapper, IPermissionGroupRepository permissionGroupRepository)
+            IMapper mapper)
         {
             _roleRepository = roleRepository;
-            _rolePermissionRepository = rolePermissionRepository;
-            _permissionRepository = permissionRepository;
             _userRoleRepository = userRoleRepository;
             _mapper = mapper;
-            _permissionGroupRepository = permissionGroupRepository;
         }
 
         public async Task<List<RoleDTO>> GetAllRolesAsync()
         {
             var roles = await _roleRepository.Query()
-                .Include(r => r.RolePermissions)
-                .ThenInclude(rp => rp.Permission)
                 .Include(r => r.UserRoles)
                 .ThenInclude(ur => ur.User)
                 .Select(r => new RoleDTO
@@ -45,16 +35,6 @@ namespace MeoMeo.Application.Services
                     Name = r.Name,
                     Description = r.Description,
                     Status = r.Status,
-                    Permissions = r.RolePermissions.Select(rp => new PermissionDTO
-                    {
-                        Id = rp.Permission.Id,
-                        Function = rp.Permission.Function,
-                        PermissionGroupId = rp.Permission.PermissionGroupId,
-                        Command = rp.Permission.Command,
-                        Name = rp.Permission.Name,
-                        Description = rp.Permission.Description,
-                        IsAssigned = true
-                    }).ToList(),
                     UserRoles = r.UserRoles.Select(ur => new UserRoleDTO
                     {
                         UserId = ur.UserId,
@@ -74,9 +54,6 @@ namespace MeoMeo.Application.Services
         public async Task<RoleDTO> GetRoleByIdAsync(Guid id)
         {
             var role = await _roleRepository.Query()
-                .Include(r => r.RolePermissions)
-                .ThenInclude(rp => rp.Permission)
-                .ThenInclude(p => p.PermissionGroup)
                 .Include(r => r.UserRoles)
                 .ThenInclude(ur => ur.User)
                 .Where(r => r.Id == id)
@@ -86,17 +63,6 @@ namespace MeoMeo.Application.Services
                     Name = r.Name,
                     Description = r.Description,
                     Status = r.Status,
-                    Permissions = r.RolePermissions.Select(rp => new PermissionDTO
-                    {
-                        Id = rp.Permission.Id,
-                        Function = rp.Permission.Function,
-                        PermissionGroupId = rp.Permission.PermissionGroupId,
-                        PermissionGroupName = rp.Permission.PermissionGroup.Name,
-                        Command = rp.Permission.Command,
-                        Name = rp.Permission.Name,
-                        Description = rp.Permission.Description,
-                        IsAssigned = true
-                    }).ToList(),
                     UserRoles = r.UserRoles.Select(ur => new UserRoleDTO
                     {
                         UserId = ur.UserId,
@@ -127,16 +93,6 @@ namespace MeoMeo.Application.Services
 
                 await _roleRepository.AddAsync(role);
 
-                // Assign permissions if provided
-                if (dto.PermissionIds.Any())
-                {
-                    await AssignPermissionsToRoleAsync(new AssignPermissionsToRoleDTO
-                    {
-                        RoleId = role.Id,
-                        PermissionIds = dto.PermissionIds
-                    });
-                }
-
                 return new BaseResponse { ResponseStatus = BaseStatus.Success, Message = "Tạo vai trò thành công" };
             }
             catch (Exception ex)
@@ -158,16 +114,6 @@ namespace MeoMeo.Application.Services
                 role.Status = dto.Status;
 
                 await _roleRepository.UpdateAsync(role);
-
-                // Update permissions if provided
-                if (dto.PermissionIds.Any())
-                {
-                    await AssignPermissionsToRoleAsync(new AssignPermissionsToRoleDTO
-                    {
-                        RoleId = role.Id,
-                        PermissionIds = dto.PermissionIds
-                    });
-                }
 
                 return new BaseResponse { ResponseStatus = BaseStatus.Success, Message = "Cập nhật vai trò thành công" };
             }
@@ -201,27 +147,26 @@ namespace MeoMeo.Application.Services
             }
         }
 
-        public async Task<BaseResponse> AssignPermissionsToRoleAsync(AssignPermissionsToRoleDTO dto)
+        public async Task<BaseResponse> AssignUserToRoleAsync(Guid userId, Guid roleId)
         {
             try
             {
-                // Remove existing permissions
-                await _rolePermissionRepository.DeleteByRoleIdAsync(dto.RoleId);
+                // Check if user already has this role
+                var existingUserRole = await _userRoleRepository.Query()
+                    .FirstOrDefaultAsync(ur => ur.UserId == userId && ur.RoleId == roleId);
 
-                // Add new permissions
-                foreach (var permissionId in dto.PermissionIds)
+                if (existingUserRole != null)
+                    return new BaseResponse { ResponseStatus = BaseStatus.Error, Message = "Người dùng đã có vai trò này" };
+
+                var userRole = new UserRole
                 {
-                    var rolePermission = new RolePermission
-                    {
-                        Id = Guid.NewGuid(),
-                        RoleId = dto.RoleId,
-                        PermissionId = permissionId
-                    };
+                    UserId = userId,
+                    RoleId = roleId
+                };
 
-                    await _rolePermissionRepository.AddAsync(rolePermission);
-                }
+                await _userRoleRepository.AddAsync(userRole);
 
-                return new BaseResponse { ResponseStatus = BaseStatus.Success, Message = "Gán quyền cho vai trò thành công" };
+                return new BaseResponse { ResponseStatus = BaseStatus.Success, Message = "Gán vai trò cho người dùng thành công" };
             }
             catch (Exception ex)
             {
@@ -229,81 +174,23 @@ namespace MeoMeo.Application.Services
             }
         }
 
-        public async Task<List<PermissionDTO>> GetRolePermissionsAsync(Guid roleId)
+        public async Task<BaseResponse> RemoveUserFromRoleAsync(Guid userId, Guid roleId)
         {
-            var rolePermissions = await _rolePermissionRepository.GetByRoleIdAsync(roleId);
-
-            return rolePermissions.Select(rp => new PermissionDTO
+            try
             {
-                Id = rp.Permission.Id,
-                Function = rp.Permission.Function,
-                PermissionGroupId = rp.Permission.PermissionGroupId,
-                PermissionGroupName = rp.Permission.PermissionGroup.Name,
-                Command = rp.Permission.Command,
-                Name = rp.Permission.Name,
-                Description = rp.Permission.Description,
-                IsAssigned = true
-            }).ToList();
-        }
+                var userRole = await _userRoleRepository.Query()
+                    .FirstOrDefaultAsync(ur => ur.UserId == userId && ur.RoleId == roleId);
 
-        public async Task<List<PermissionGroupDTO>> GetRolePermissionsTreeAsync(Guid roleId)
-        {
-            // Get all permission groups with their permissions
-            var allGroups = await _permissionGroupRepository.Query()
-                .Include(pg => pg.Permissions)
-                .Select(pg => new PermissionGroupDTO
-                {
-                    Id = pg.Id,
-                    Name = pg.Name,
-                    Description = pg.Description,
-                    ParentId = pg.ParentId,
-                    Order = Convert.ToInt32(pg.Order),
-                    Permissions = pg.Permissions.Select(p => new PermissionDTO
-                    {
-                        Id = p.Id,
-                        Function = p.Function,
-                        PermissionGroupId = p.PermissionGroupId,
-                        Command = p.Command,
-                        Name = p.Name,
-                        Description = p.Description,
-                        IsAssigned = false // Will be updated below
-                    }).ToList()
-                })
-                .ToListAsync();
+                if (userRole == null)
+                    return new BaseResponse { ResponseStatus = BaseStatus.Error, Message = "Không tìm thấy vai trò của người dùng" };
 
-            // Get role's assigned permissions
-            var rolePermissions = await _rolePermissionRepository.GetByRoleIdAsync(roleId);
-            var assignedPermissionIds = rolePermissions.Select(rp => rp.PermissionId).ToHashSet();
+                await _userRoleRepository.DeleteAsync(userRole);
 
-            // Mark assigned permissions
-            foreach (var group in allGroups)
-            {
-                foreach (var permission in group.Permissions)
-                {
-                    permission.IsAssigned = assignedPermissionIds.Contains(permission.Id);
-                }
+                return new BaseResponse { ResponseStatus = BaseStatus.Success, Message = "Xóa vai trò của người dùng thành công" };
             }
-
-            // Build tree structure
-            var rootGroups = allGroups.Where(g => g.ParentId == null).OrderBy(g => g.Order).ToList();
-            foreach (var rootGroup in rootGroups)
+            catch (Exception ex)
             {
-                BuildPermissionTree(rootGroup, allGroups);
-            }
-
-            return rootGroups;
-        }
-
-        private void BuildPermissionTree(PermissionGroupDTO parent, List<PermissionGroupDTO> allGroups)
-        {
-            parent.Children = allGroups
-                .Where(g => g.ParentId == parent.Id)
-                .OrderBy(g => g.Order)
-                .ToList();
-
-            foreach (var child in parent.Children)
-            {
-                BuildPermissionTree(child, allGroups);
+                return new BaseResponse { ResponseStatus = BaseStatus.Error, Message = ex.Message };
             }
         }
     }

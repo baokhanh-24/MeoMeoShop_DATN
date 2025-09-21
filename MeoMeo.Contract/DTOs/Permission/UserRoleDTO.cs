@@ -19,6 +19,12 @@ namespace MeoMeo.Contract.DTOs.Permission
         public Guid RoleId { get; set; }
     }
 
+    public class AssignUserToRoleDTO
+    {
+        public Guid UserId { get; set; }
+        public Guid RoleId { get; set; }
+    }
+
     public class UserWithRolesDTO : BaseResponse
     {
         public Guid Id { get; set; }

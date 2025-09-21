@@ -13,6 +13,8 @@
 @using MeoMeo.Contract.DTOs.Size
 @using MeoMeo.Shared.Services
 @using MeoMeo.Shared.Utilities
+@using Microsoft.AspNetCore.Authorization
+@attribute [Authorize(Roles = "Admin,Employee")]
 @inject IBrandClientService BrandClientService
 @inject ISizeClientService SizeClientService
 @inject IMaterialClientService MaterialClientService

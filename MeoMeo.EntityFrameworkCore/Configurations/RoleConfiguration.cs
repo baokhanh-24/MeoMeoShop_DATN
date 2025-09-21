@@ -16,10 +16,6 @@ namespace MeoMeo.EntityFrameworkCore.Configurations
                 .WithOne()
                 .HasForeignKey(x => x.RoleId)
                 .OnDelete(DeleteBehavior.Cascade);
-            builder.HasMany(x => x.RolePermissions)
-                .WithOne(x => x.Role)
-                .HasForeignKey(x => x.RoleId)
-                .OnDelete(DeleteBehavior.Cascade);
         }
     }
 } 

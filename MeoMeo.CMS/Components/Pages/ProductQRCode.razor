@@ -1,8 +1,10 @@
 @page "/product-qr-code"
+@attribute [Authorize(Roles = "Admin")]
 @page "/product-qr-code/{sku}"
 @using MeoMeo.Contract.DTOs.Product
 @using MeoMeo.Shared.IServices
 @using MeoMeo.CMS.Components.Common
+@using Microsoft.AspNetCore.Authorization
 @inject IProductClientService ProductClientService
 @inject IMessageService MessageService
 @inject NavigationManager Navigation

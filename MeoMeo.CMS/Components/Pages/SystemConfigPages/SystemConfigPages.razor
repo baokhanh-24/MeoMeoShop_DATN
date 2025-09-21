@@ -1,10 +1,12 @@
 ﻿@page "/manage-systemconfig"
+@attribute [Authorize(Roles = "Admin")]
 @using System.ComponentModel.DataAnnotations
 @using System.Reflection
 @using MeoMeo.Contract.Commons
 @using MeoMeo.Contract.DTOs.SystemConfig
 @using MeoMeo.Domain.Commons.Enums
 @using MeoMeo.Shared.IServices
+@using Microsoft.AspNetCore.Authorization
 @using ButtonSize = AntDesign.ButtonSize
 @using ButtonType = AntDesign.ButtonType
 @inject MeoMeo.Shared.Utilities.MessageModalService MessageModalService
@@ -40,12 +42,12 @@
     </div>
     <div style="width: 150px">
         <Select TItem="(ESystemConfigType Value, string Name)"
-        TItemValue="ESystemConfigType?"
+        TItemValue="ESystemConfigType ?"
         AllowClear
         DataSource="systemConfigTypesList"
         @bind-Value="filter.TypeFilter"
         Placeholder="Chọn type"
-        ItemValue="c=> (ESystemConfigType?)c.Value"
+        ItemValue="c => (ESystemConfigType?)c.Value"
         ItemLabel="c => c.Name">
         </Select>
     </div>
@@ -59,81 +61,81 @@
         <Column TData="string" Title="Tên cấu hình">
             @if (editCache.ContainsKey(data.Id) && !editCache[data.Id].edit)
             {
-                @data.Name
+                    @data.Name
             }
             else if (editCache.ContainsKey(data.Id))
             {
-                <Input MaxLength="100" @bind-Value="editCache[data.Id].data.Name" Placeholder="Nhập tên cấu hình hệ thống" />
+                    <Input MaxLength="100" @bind-Value="editCache[data.Id].data.Name" Placeholder="Nhập tên cấu hình hệ thống" />
             }
         </Column>
 
         <Column TData="string" Title="Giá trị">
             @if (editCache.ContainsKey(data.Id) && !editCache[data.Id].edit)
             {
-                @data.Value
+                    @data.Value
             }
             else if (editCache.ContainsKey(data.Id))
             {
-                <Input MaxLength="100" @bind-Value="editCache[data.Id].data.Value" Placeholder="Nhập giá trị cấu hình hệ thống" />
+                    <Input MaxLength="100" @bind-Value="editCache[data.Id].data.Value" Placeholder="Nhập giá trị cấu hình hệ thống" />
             }
         </Column>
 
         <Column TData="ESystemConfigType" Title="Trạng thái">
             @if (editCache.ContainsKey(data.Id) && !editCache[data.Id].edit)
             {
-                @systemConfigTypesList.FirstOrDefault(x => x.Value == data.Type).Name
+                    @systemConfigTypesList.FirstOrDefault(x => x.Value == data.Type).Name
             }
             else if (editCache.ContainsKey(data.Id))
             {
 
-                <Select TItem="(ESystemConfigType Value, string Name)"
-                TItemValue="ESystemConfigType"
-                DataSource="systemConfigTypesList"
-                @bind-Value="editCache[data.Id].data.Type"
-                ItemValue="c => c.Value"
-                ItemLabel="c => c.Name">
-                </Select>
+                    <Select TItem="(ESystemConfigType Value, string Name)"
+                    TItemValue="ESystemConfigType"
+                    DataSource="systemConfigTypesList"
+                    @bind-Value="editCache[data.Id].data.Type"
+                    ItemValue="c => c.Value"
+                    ItemLabel="c => c.Name">
+                    </Select>
             }
         </Column>
 
         <ActionColumn Title="Thao tác" Class="text-end gap-2">
             @if (editCache.ContainsKey(data.Id) && !editCache[data.Id].edit)
             {
-                <Tooltip Title="Sửa">
-                    <Button Size="ButtonSize.Small" @onclick="() => StartEdit(data.Id)" Shape="ButtonShape.Circle">
-                        <i class="fas fa-pen"></i>
-                    </Button>
-                </Tooltip>
-
-                <Popconfirm Title=@($"Bạn có chắc muốn xóa {data.Name}?")
-                OnConfirm="() => DeleteEmployee(data.Id)"
-                OkText="Đồng ý"
-                CancelText="Hủy">
-
-                    <Tooltip Title="Xóa">
-                        <Button Size="ButtonSize.Small" Danger Shape="ButtonShape.Circle">
-                            <i class="fas fa-minus"></i>
+                    <Tooltip Title="Sửa">
+                        <Button Size="ButtonSize.Small" @onclick="() => StartEdit(data.Id)" Shape="ButtonShape.Circle">
+                            <i class="fas fa-pen"></i>
                         </Button>
                     </Tooltip>
 
-                </Popconfirm>
+                    <Popconfirm Title=@($"Bạn có chắc muốn xóa {data.Name}?")
+                    OnConfirm="() => DeleteEmployee(data.Id)"
+                    OkText="Đồng ý"
+                    CancelText="Hủy">
+
+                        <Tooltip Title="Xóa">
+                            <Button Size="ButtonSize.Small" Danger Shape="ButtonShape.Circle">
+                                <i class="fas fa-minus"></i>
+                            </Button>
+                        </Tooltip>
+
+                    </Popconfirm>
             }
             else if (editCache.ContainsKey(data.Id))
             {
-                <Tooltip Title="Lưu">
-                    <Button Size="ButtonSize.Small" @onclick="() => saveEdit(data.Id)" Shape="ButtonShape.Circle">
-                        <i class="fas fa-check"></i>
-                    </Button>
-                </Tooltip>
-                <Popconfirm Title=@($"Bạn có chắc muốn hủy {(data.Id ==Guid.Empty ?"thêm mới":"chỉnh sửa")} khách hàng {data.Name}?")
-                OnConfirm="() => cancelEdit(data.Id)"
-                OkText="Đồng ý"
-                CancelText="Hủy">
+                    <Tooltip Title="Lưu">
+                        <Button Size="ButtonSize.Small" @onclick="() => saveEdit(data.Id)" Shape="ButtonShape.Circle">
+                            <i class="fas fa-check"></i>
+                        </Button>
+                    </Tooltip>
+                    <Popconfirm Title=@($"Bạn có chắc muốn hủy {(data.Id == Guid.Empty ? "thêm mới" : "chỉnh sửa")} khách hàng {data.Name}?")
+                    OnConfirm="() => cancelEdit(data.Id)"
+                    OkText="Đồng ý"
+                    CancelText="Hủy">
 
-                    <Button Size="ButtonSize.Small" Shape="ButtonShape.Circle">
-                        <i class="fa-solid fa-xmark"></i>
-                    </Button>
-                </Popconfirm>
+                        <Button Size="ButtonSize.Small" Shape="ButtonShape.Circle">
+                            <i class="fa-solid fa-xmark"></i>
+                        </Button>
+                    </Popconfirm>
             }
         </ActionColumn>
 
@@ -147,13 +149,13 @@
     List<CreateOrUpdateSystemConfigDTO> listOfData = new();
 
     GetListSystemConfigRequestDTO filter = new GetListSystemConfigRequestDTO
-        {
-            NameFilter = "",
-            ValueFilter = "",
-            TypeFilter = null,
-            PageIndex = 1,
-            PageSize = 10
-        };
+    {
+        NameFilter = "",
+        ValueFilter = "",
+        TypeFilter = null,
+        PageIndex = 1,
+        PageSize = 10
+    };
 
     protected override async Task OnInitializedAsync()
     {
@@ -204,12 +206,12 @@
     async Task addNewSystemConfig()
     {
         var newsys = new CreateOrUpdateSystemConfigDTO
-            {
-                Id = Guid.Empty,
-                Name = "",
-                Value = "",
-                Type = ESystemConfigType.StoreName
-            };
+        {
+            Id = Guid.Empty,
+            Name = "",
+            Value = "",
+            Type = ESystemConfigType.StoreName
+        };
         listOfData.Insert(0, newsys);
         editCache[newsys.Id] = (true, CloneSystemConfig(newsys));
         await InvokeAsync(StateHasChanged);
@@ -241,12 +243,12 @@
     {
         var dto = editCache[Id].data;
         var createOrUpdateDto = new CreateOrUpdateSystemConfigDTO
-            {
-                Id = dto.Id,
-                Name = dto.Name,
-                Value = dto.Value,
-                Type = dto.Type
-            };
+        {
+            Id = dto.Id,
+            Name = dto.Name,
+            Value = dto.Value,
+            Type = dto.Type
+        };
         BaseResponse response;
         if (dto.Id == Guid.Empty)
         {
@@ -287,11 +289,11 @@
     CreateOrUpdateSystemConfigDTO CloneSystemConfig(CreateOrUpdateSystemConfigDTO item)
     {
         return new CreateOrUpdateSystemConfigDTO
-            {
-                Id = item.Id,
-                Name = item.Name,
-                Value = item.Value,
-                Type = item.Type,
-            };
+        {
+            Id = item.Id,
+            Name = item.Name,
+            Value = item.Value,
+            Type = item.Type,
+        };
     }
 }
