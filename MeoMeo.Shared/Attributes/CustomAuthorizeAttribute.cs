@@ -1,38 +1,48 @@
 using System.IdentityModel.Tokens.Jwt;
-using System.Text.Json;
-using MeoMeo.Domain.Commons.Enums;
-using MeoMeo.Shared.Constants;
-using MeoMeo.Shared.Utilities;
+using System.Security.Claims;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Filters;
 
 namespace MeoMeo.Shared.Attributes;
 
 [AttributeUsage(AttributeTargets.Method | AttributeTargets.Class, AllowMultiple = false)]
-public class CustomAuthorizeAttribute(EFunctionCode functionCode, ECommandCode commandCode) : Attribute, IAuthorizationFilter
+public class CustomAuthorizeAttribute(params string[] roles) : Attribute, IAuthorizationFilter
 {
-    private readonly ECommandCode _commandCode = commandCode;
-    private readonly EFunctionCode _functionCode = functionCode;
+    private readonly string[] _roles = roles;
 
     public void OnAuthorization(AuthorizationFilterContext context)
     {
-        string token = context.HttpContext.Request.Headers.Authorization.FirstOrDefault().Split(" ")[1];
-        var handler = new JwtSecurityTokenHandler();
-        JwtSecurityToken jwtSecurityToken = handler.ReadJwtToken(token);
-        System.Security.Claims.Claim permissionsClaim = jwtSecurityToken.Claims.First(claim => claim.Type == ClaimTypeConst.Permissions);
-        if (permissionsClaim != null)
+        try
         {
-            List<string> permissions = JsonSerializer.Deserialize<List<string>>(permissionsClaim.Value);
-            if (!permissions.Contains(FunctionHelper.PermissionAuthorize.GetPermission(_functionCode, _commandCode)))
+            string token = context.HttpContext.Request.Headers.Authorization.FirstOrDefault()?.Split(" ")[1];
+            if (string.IsNullOrEmpty(token))
+            {
+                context.Result = new UnauthorizedObjectResult(string.Empty);
+                return;
+            }
+
+            var handler = new JwtSecurityTokenHandler();
+            JwtSecurityToken jwtSecurityToken = handler.ReadJwtToken(token);
+
+            var rolesClaim = jwtSecurityToken.Claims.FirstOrDefault(claim => claim.Type == ClaimTypes.Role || claim.Type == "Roles");
+            if (rolesClaim != null)
+            {
+                string[] userRoles = rolesClaim.Value.Split(';');
+                if (!_roles.Any(requiredRole => userRoles.Contains(requiredRole)))
+                {
+                    context.Result = new UnauthorizedObjectResult(string.Empty);
+                    return;
+                }
+            }
+            else
             {
                 context.Result = new UnauthorizedObjectResult(string.Empty);
                 return;
             }
         }
-        else
+        catch (Exception)
         {
             context.Result = new UnauthorizedObjectResult(string.Empty);
-            return;
         }
     }
 }

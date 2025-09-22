@@ -1,10 +1,13 @@
 @page "/user-roles"
+@attribute [Authorize(Roles = "Admin")]
 @using MeoMeo.Shared.IServices
 @using MeoMeo.Contract.DTOs.Permission
 @using MeoMeo.Contract.Commons
 @using AntDesign
+@using Microsoft.AspNetCore.Authorization
 @using ButtonSize = AntDesign.ButtonSize
 @using ButtonType = AntDesign.ButtonType
+@using SpinSize = AntDesign.SpinSize
 @inject IUserRoleClientService UserRoleService
 @inject IRoleClientService RoleService
 @inject MessageService MessageService
@@ -29,106 +32,81 @@
     </div>
 
     <div class="content-section">
-        <Table DataSource="@users" Bordered>
-            <PropertyColumn Property="@(u => u.UserName)" Title="Tên đăng nhập" />
-            <PropertyColumn Property="@(u => u.Email)" Title="Email" />
-            <Column TData="int" Title="Trạng thái">
-                <Template>
-                    <Tag Color="@(context.Status == 1 ? "green" : "red")">
-                        @(context.Status == 1 ? "Hoạt động" : "Không hoạt động")
-                    </Tag>
-                </Template>
-            </Column>
-            <PropertyColumn TItem="UserWithRolesDTO" TProp="List<RoleDTO>" Title="Vai trò">
-                <Template>
-                    @if (context.Roles.Any())
-                    {
-                        @foreach (var role in context.Roles)
+        @if (isLoading)
+        {
+            <div class="loading-section">
+                <Spin Size="@SpinSize.Large" />
+                <p>Đang tải dữ liệu...</p>
+            </div>
+        }
+        else
+        {
+            <Table DataSource="@users" Bordered>
+                <PropertyColumn Property="@(u => u.UserName)" Title="Tên đăng nhập" />
+                <PropertyColumn Property="@(u => u.Email)" Title="Email" />
+                <Column TData="int" Title="Trạng thái">
+                    <Template>
+                        <Tag Color="@(context.Status == 1 ? "green" : "red")">
+                            @(context.Status == 1 ? "Hoạt động" : "Không hoạt động")
+                        </Tag>
+                    </Template>
+                </Column>
+                <Column TData="string" Title="Vai trò">
+                    <Template>
+                        @if (context.Roles.Any())
                         {
-                            <Tag Style="margin: 2px;">@role.Name</Tag>
+                            @foreach (var role in context.Roles)
+                            {
+                                <Tag Style="margin: 2px;">@role.Name</Tag>
+                            }
                         }
-                    }
-                    else
-                    {
-                        <span class="text-muted">Chưa có vai trò</span>
-                    }
-                </Template>
-            </PropertyColumn>
-            <ActionColumn Title="Thao tác">
-                <Template>
-                    <Button Type="@ButtonType.Link" Size="@ButtonSize.Small" Icon="setting"
-                        @onclick="() => ShowRoleAssignmentModal(context)">
-                        Gán vai trò
-                    </Button>
-                </Template>
-            </ActionColumn>
-        </Table>
+                        else
+                        {
+                            <span class="text-muted">Chưa có vai trò</span>
+                        }
+                    </Template>
+                </Column>
+                <ActionColumn Title="Thao tác">
+                    <Template>
+                        <Button Type="@ButtonType.Link" Size="@ButtonSize.Small" Icon="plus"
+                            @onclick="() => ShowRoleAssignmentModal(context)">
+                            Gán vai trò
+                        </Button>
+                    </Template>
+                </ActionColumn>
+            </Table>
+        }
     </div>
 </div>
 
 <!-- Role Assignment Modal -->
-<Modal Title="Gán vai trò cho người dùng" @bind-Visible="showRoleModal" OnOk="SaveUserRoles" OnCancel="CancelRoleModal"
-    Width="600">
+<Modal Title="Gán vai trò cho người dùng" @bind-Visible="showRoleModal" OnOk="AssignRoleToUser"
+    OnCancel="CancelRoleModal" Width="500">
     <div class="user-info">
         <div class="user-avatar">
             <Avatar Size="@AntDesign.AvatarSize.Large" Src="@selectedUser.Avatar">
-                @selectedUser.UserName.Substring(0, 1).ToUpper()
+                @(string.IsNullOrEmpty(selectedUser.UserName) ? "U" : selectedUser.UserName.Substring(0, 1).ToUpper())
             </Avatar>
         </div>
         <div class="user-details">
-            <h4>@selectedUser.UserName</h4>
-            <p>@selectedUser.Email</p>
+            <h4>@(selectedUser.UserName ?? "N/A")</h4>
+            <p>@(selectedUser.Email ?? "N/A")</p>
         </div>
     </div>
 
     <Divider />
 
     <div class="role-assignment">
-        <h4>Vai trò hiện tại:</h4>
-        @if (selectedUser.Roles.Any())
-        {
-            <div class="current-roles">
-                @foreach (var role in selectedUser.Roles)
-                {
-                    <Tag Closable OnClose="() => RemoveRoleFromUser(role.Id)" Style="margin: 4px;">
-                        @role.Name
-                        @if (!string.IsNullOrEmpty(role.Description))
-                        {
-                            <span style="font-size: 11px; color: #666;">- @role.Description</span>
-                        }
-                    </Tag>
-                }
-            </div>
-        }
-        else
-        {
-            <p class="text-muted">Chưa có vai trò nào</p>
-        }
-
-        <Divider />
-
-        <h4>Thêm vai trò:</h4>
-        <div class="add-role-section">
-            <Select TItemValue="Guid ?" TItem="RoleDTO" @bind-Value="selectedRoleId" Placeholder="Chọn vai trò để thêm"
-                Style="width: 100%; margin-bottom: 8px;">
-                @foreach (var role in availableRoles)
-                {
-                    <SelectOption TItemValue="Guid ?" TItem="RoleDTO" Value="@role.Id"
-                        Label="@($"{role.Name} - {role.Description}")" />
-                }
-            </Select>
-            <Button Type="@ButtonType.Primary" Icon="plus" @onclick="AddRoleToUser"
-                Disabled="@(!selectedRoleId.HasValue)" Style="width: 100%;">
-                Thêm vai trò
-            </Button>
-        </div>
+        <h4>Chọn vai trò để gán:</h4>
+        <Select TItem="RoleDTO" TItemValue="Guid ?" DataSource="@allRoles" @bind-Value="selectedRoleId"
+            Placeholder="Chọn vai trò" Style="width: 100%;" ItemValue="r => r.Id" ItemLabel="r => r.Name">
+        </Select>
     </div>
 </Modal>
 
 @code {
     private List<UserWithRolesDTO> users = new();
     private List<RoleDTO> allRoles = new();
-    private List<RoleDTO> availableRoles = new();
     private bool isLoading = true;
     private bool showRoleModal = false;
     private UserWithRolesDTO selectedUser = new();
@@ -162,52 +140,31 @@
     private void ShowRoleAssignmentModal(UserWithRolesDTO user)
     {
         selectedUser = user;
-        availableRoles = allRoles.Where(r => !user.Roles.Any(ur => ur.Id == r.Id)).ToList();
+        selectedRoleId = null;
         showRoleModal = true;
     }
 
-    private async Task AddRoleToUser()
+    private async Task AssignRoleToUser()
     {
-        if (selectedRoleId.HasValue)
+        if (!selectedRoleId.HasValue)
         {
-            try
-            {
-                var result = await UserRoleService.AssignRoleToUserAsync(new AssignRoleToUserDTO
-                {
-                    UserId = selectedUser.Id,
-                    RoleId = selectedRoleId.Value
-                });
-
-                if (result.ResponseStatus == BaseStatus.Success)
-                {
-                    MessageService.Success(result.Message);
-                    await LoadData();
-                    ShowRoleAssignmentModal(selectedUser); // Refresh modal
-                    selectedRoleId = null;
-                }
-                else
-                {
-                    MessageService.Error(result.Message);
-                }
-            }
-            catch (Exception ex)
-            {
-                MessageService.Error("Có lỗi xảy ra!");
-                Console.WriteLine($"Error adding role to user: {ex.Message}");
-            }
+            MessageService.Warning("Vui lòng chọn vai trò!");
+            return;
         }
-    }
 
-    private async Task RemoveRoleFromUser(Guid roleId)
-    {
         try
         {
-            var result = await UserRoleService.RemoveRoleFromUserAsync(selectedUser.Id, roleId);
+            var result = await UserRoleService.AssignRoleToUserAsync(new AssignRoleToUserDTO
+            {
+                UserId = selectedUser.Id,
+                RoleId = selectedRoleId.Value
+            });
+
             if (result.ResponseStatus == BaseStatus.Success)
             {
                 MessageService.Success(result.Message);
                 await LoadData();
-                ShowRoleAssignmentModal(selectedUser); // Refresh modal
+                CancelRoleModal();
             }
             else
             {
@@ -217,7 +174,7 @@
         catch (Exception ex)
         {
             MessageService.Error("Có lỗi xảy ra!");
-            Console.WriteLine($"Error removing role from user: {ex.Message}");
+            Console.WriteLine($"Error assigning role to user: {ex.Message}");
         }
     }
 
@@ -226,12 +183,6 @@
         showRoleModal = false;
         selectedUser = new UserWithRolesDTO();
         selectedRoleId = null;
-    }
-
-    private async Task SaveUserRoles()
-    {
-        // Modal will be closed by CancelRoleModal
-        CancelRoleModal();
     }
 }
 
@@ -288,32 +239,6 @@
     .user-details p {
         margin: 4px 0 0 0;
         color: #666;
-    }
-
-    .role-assignment h4 {
-        margin-bottom: 12px;
-        color: #333;
-    }
-
-    .current-roles {
-        margin-bottom: 16px;
-        min-height: 40px;
-        padding: 8px;
-        border: 1px solid #f0f0f0;
-        border-radius: 4px;
-        background-color: #fafafa;
-    }
-
-    .current-roles .ant-tag {
-        margin: 4px;
-        display: inline-block;
-    }
-
-    .add-role-section {
-        padding: 16px;
-        border: 1px solid #e8e8e8;
-        border-radius: 4px;
-        background-color: #f9f9f9;
     }
 
     .role-assignment h4 {

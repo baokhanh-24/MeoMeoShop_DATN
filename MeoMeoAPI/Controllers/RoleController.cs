@@ -52,19 +52,18 @@ namespace MeoMeoAPI.Controllers
             return Ok(result.ResponseStatus == BaseStatus.Success);
         }
 
-        [HttpPost("assign-permissions")]
-        public async Task<ActionResult<BaseResponse>> AssignPermissionsToRole([FromBody] AssignPermissionsToRoleDTO dto)
+        [HttpPost("assign-user")]
+        public async Task<ActionResult<BaseResponse>> AssignUserToRole([FromBody] AssignUserToRoleDTO dto)
         {
-            var result = await _roleService.AssignPermissionsToRoleAsync(dto);
+            var result = await _roleService.AssignUserToRoleAsync(dto.UserId, dto.RoleId);
             return Ok(result);
         }
 
-        [HttpGet("{id}/permissions-tree")]
-        public async Task<ActionResult<List<PermissionGroupDTO>>> GetRolePermissionsTree(Guid id)
+        [HttpDelete("remove-user")]
+        public async Task<ActionResult<BaseResponse>> RemoveUserFromRole([FromQuery] Guid userId, [FromQuery] Guid roleId)
         {
-            var permissions = await _roleService.GetRolePermissionsTreeAsync(id);
-            return Ok(permissions);
+            var result = await _roleService.RemoveUserFromRoleAsync(userId, roleId);
+            return Ok(result);
         }
-        
     }
 }

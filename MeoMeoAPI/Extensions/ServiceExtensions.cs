@@ -38,9 +38,8 @@ public static class ServiceExtensions
         return services;
     }
 
-    public static IServiceCollection AddPolicyMiddleWare(this IServiceCollection services,IConfiguration configuration)
+    public static IServiceCollection AddPolicyMiddleWare(this IServiceCollection services, IConfiguration configuration)
     {
-        services.AddSingleton<IAuthorizationHandler, PermissionHandler>();
         services.AddAuthentication(o =>
             {
                 o.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
@@ -83,28 +82,27 @@ public static class ServiceExtensions
                         if (userToken == null || userToken.IsRevoked)
                         {
                             context.Fail("Unauthorized");
-                        }   
-                       
+                        }
+
                     }
-                 };
-              
+                };
+
 
 
             });
-       services.AddAuthorization(options =>
-        {
-            options.AddPolicy("Admin", policy =>
-                policy.Requirements.Add(new PermissionRequirement(new[] { "ADMIN.ADMIN" }, requiresAll: false)));
-            options.AddPolicy("Customer", policy =>
-                policy.Requirements.Add(new PermissionRequirement(new[] { "CUSTOMER.CUSTOMER" }, requiresAll: false))); 
-           
-            options.AddPolicy("AdminOrCustomer", policy =>
-            {
-                policy.Requirements.Add(new PermissionRequirement(new[] { "ADMIN.ADMIN", "CUSTOMER.CUSTOMER" }, requiresAll: false));
-                
-            });
-            
-        });
+        services.AddAuthorization(options =>
+         {
+             options.AddPolicy("Admin", policy =>
+                 policy.RequireRole("Admin"));
+             options.AddPolicy("Customer", policy =>
+                 policy.RequireRole("Customer"));
+
+             options.AddPolicy("AdminOrCustomer", policy =>
+             {
+                 policy.RequireRole("Admin", "Customer");
+             });
+
+         });
         return services;
     }
     private static void ConfigureSwagger(this IServiceCollection services)

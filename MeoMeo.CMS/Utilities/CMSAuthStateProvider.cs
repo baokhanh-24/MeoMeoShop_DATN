@@ -22,7 +22,7 @@ namespace MeoMeo.CMS.Utilities
             try
             {
                 var isAuthenticated = await _authService.IsAuthenticatedAsync();
-                _logger.LogInformation("CMS IsAuthenticated: {IsAuthenticated}", isAuthenticated);
+                _logger.LogInformation("CMS GetAuthenticationStateAsync - IsAuthenticated: {IsAuthenticated}", isAuthenticated);
 
                 if (!isAuthenticated)
                 {
@@ -40,11 +40,12 @@ namespace MeoMeo.CMS.Utilities
                 var claims = ParseClaimsFromJwt(token);
                 _logger.LogInformation("CMS Parsed {ClaimCount} claims from JWT", claims.Count());
 
-                var identity = new ClaimsIdentity(claims, "jwt");
+                // Tạo identity với authentication type để Blazor nhận diện
+                var identity = new ClaimsIdentity(claims, "jwt", "userName", "roles");
                 var user = new ClaimsPrincipal(identity);
 
                 _logger.LogInformation("CMS Created authenticated user: {UserName}",
-                    user.FindFirst("UserName")?.Value ?? "Unknown");
+                    user.FindFirst("userName")?.Value ?? "Unknown");
 
                 return new AuthenticationState(user);
             }
@@ -78,11 +79,19 @@ namespace MeoMeo.CMS.Utilities
                     return;
                 }
 
-                var identity = new ClaimsIdentity(claims, "jwt");
+                // Tạo identity với authentication type để Blazor nhận diện
+                var identity = new ClaimsIdentity(claims, "jwt", "userName", "roles");
                 var user = new ClaimsPrincipal(identity);
 
                 _logger.LogInformation("CMS Notifying authentication state change for user: {UserName}",
-                    user.FindFirst("UserName")?.Value ?? "Unknown");
+                    user.FindFirst("userName")?.Value ?? "Unknown");
+
+                // Debug: Log all claims before notifying
+                _logger.LogInformation("CMS All claims before notification:");
+                foreach (var claim in claims)
+                {
+                    _logger.LogInformation("CMS Claim: {Type} = {Value}", claim.Type, claim.Value);
+                }
 
                 NotifyAuthenticationStateChanged(Task.FromResult(new AuthenticationState(user)));
                 _logger.LogInformation("CMS Authentication state change notification sent successfully");

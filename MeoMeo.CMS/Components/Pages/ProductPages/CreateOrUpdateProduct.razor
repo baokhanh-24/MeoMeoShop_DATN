@@ -1,5 +1,6 @@
 @page "/product/create"
 @page "/product/update/{id:guid?}"
+@attribute [Authorize(Roles = "Admin")]
 @using AntDesign
 @using MeoMeo.Shared.Utilities
 @using MeoMeo.Contract.DTOs.Product
@@ -16,6 +17,7 @@
 @using ProductMediaUpload = MeoMeo.Contract.DTOs.Product.ProductMediaUpload
 @using PinguApps.Blazor.QRCode
 @using MeoMeo.CMS.Components.Common
+@using Microsoft.AspNetCore.Authorization
 @inject IProductClientService ProductClientService
 @inject NavigationManager Navigation
 @inject MessageModalService MessageModalService
@@ -103,18 +105,18 @@
                                      style="cursor: pointer;">
                                     @if (isProcessingImages)
                                     {
-                                            <div style="display: flex; flex-direction: column; align-items: center;">
-                                                <Spin Size="SpinSize.Large"/>
-                                                <div style="margin-top: 8px; color: #666;">Đang xử lý file...</div>
-                                            </div>
+                                                <div style="display: flex; flex-direction: column; align-items: center;">
+                                                    <Spin Size="SpinSize.Large"/>
+                                                    <div style="margin-top: 8px; color: #666;">Đang xử lý file...</div>
+                                                </div>
                                     }
                                     else
                                     {
-                                            <Icon Type="@IconType.Outline.Upload" Style="font-size: 24px; color: #999;"/>
-                                            <div style="margin-top: 8px; color: #666;">Tải ảnh và video (Tối đa 8 ảnh + 2
-                                                video)
-                                            </div>
-                                            <div style="font-size: 12px; color: #999;">Click để chọn file</div>
+                                                <Icon Type="@IconType.Outline.Upload" Style="font-size: 24px; color: #999;"/>
+                                                <div style="margin-top: 8px; color: #666;">Tải ảnh và video (Tối đa 8 ảnh + 2
+                                                    video)
+                                                </div>
+                                                <div style="font-size: 12px; color: #999;">Click để chọn file</div>
                                     }
                                 </div>
 
@@ -136,32 +138,32 @@
 
                             @if (productModel.MediaUploads != null && productModel.MediaUploads.Any())
                             {
-                                    <div class="image-preview-container">
-                                        @for (int i = 0; i < productModel.MediaUploads.Count; i++)
-                                        {
-                                                var index = i;
-                                                var media = productModel.MediaUploads[i];
-                                                <div class="image-preview-item">
-                                                    @if (media.ContentType.StartsWith("video/"))
-                                                    {
-                                                            <video controls class="image-preview">
-                                                                <source src="@GetImagePreviewUrl(media)" type="video/mp4"/>
-                                                                Trình duyệt của bạn không hỗ trợ video.
-                                                            </video>
-                                                    }
-                                                    else
-                                                    {
-                                                            <Image Src=@GetImagePreviewUrl(media) Class="image-preview"/>
-                                                    }
-                                                    <div class="image-actions">
-                                                        <Button Type="@ButtonType.Dashed" Color="Color.Red6"
-                                                                Size="@AntDesign.ButtonSize.Small"
-                                                                Icon="@IconType.Outline.Delete"
-                                                                OnClick="@(() => RemoveImage(index))"/>
-                                                    </div>
-                                                </div>
-                                        }
-                                    </div>
+                                        <div class="image-preview-container">
+                                            @for (int i = 0; i < productModel.MediaUploads.Count; i++)
+                                            {
+                                                        var index = i;
+                                                        var media = productModel.MediaUploads[i];
+                                                        <div class="image-preview-item">
+                                                            @if (media.ContentType.StartsWith("video/"))
+                                                            {
+                                                                        <video controls class="image-preview">
+                                                                            <source src="@GetImagePreviewUrl(media)" type="video/mp4"/>
+                                                                            Trình duyệt của bạn không hỗ trợ video.
+                                                                        </video>
+                                                            }
+                                                            else
+                                                            {
+                                                                        <Image Src=@GetImagePreviewUrl(media) Class="image-preview"/>
+                                                            }
+                                                            <div class="image-actions">
+                                                                <Button Type="@ButtonType.Dashed" Color="Color.Red6"
+                                                                        Size="@AntDesign.ButtonSize.Small"
+                                                                        Icon="@IconType.Outline.Delete"
+                                                                        OnClick="@(() => RemoveImage(index))"/>
+                                                            </div>
+                                                        </div>
+                                            }
+                                        </div>
                             }
                         </FormItem>
                     </Col>
@@ -209,90 +211,90 @@
 
                 @if (productModel.ProductVariants != null && productModel.ProductVariants.Any())
                 {
-                        <div class="product-variants-table-container">
-                            <Table TItem="ProductDetailGrid" DataSource="@productModel.ProductVariants" Bordered="true">
-                            <ChildContent Context="data">
-                                <PropertyColumn Property="c => GetColorName(c.ColourId)" Title="Màu sắc"/>
-                                <PropertyColumn Property="c => GetSizeName(c.SizeId)" Title="Size"/>
-                                <PropertyColumn Property="c => c.Price" Title="Giá (đ)">
-                                    <AntDesign.InputNumber TValue="float" @bind-Value="@data.Price" Min="0"
-                                                           Style="width: 100%;"/>
-                                </PropertyColumn>
-                                <PropertyColumn Property="c => c.OutOfStock" Title="Cảnh báo hết hàng">
-                                    <AntDesign.InputNumber TValue="int" @bind-Value="@data.OutOfStock" Min="0"
-                                                           Style="width: 100%;"/>
-                                </PropertyColumn>
-                                <PropertyColumn Property="c => c.StockHeight" Title="Chiều cao đế (cm)">
-                                    <AntDesign.InputNumber TValue="float" @bind-Value="@data.StockHeight" Min="0"
-                                                           Step="0.1f"
-                                                           Style="width: 100%;"/>
-                                </PropertyColumn>
-                                <PropertyColumn Property="c => c.ClosureType" Title="Loại giày">
-                                    <Select TItem="(EClosureType Value, string Name)" TItemValue="EClosureType"
-                                            DataSource="closureTypeOptions" @bind-Value="@data.ClosureType"
-                                            ItemValue="c => c.Value"
-                                            ItemLabel="c => c.Name" Style="width: 100%;"/>
-                                </PropertyColumn>
+                            <div class="product-variants-table-container">
+                                <Table TItem="ProductDetailGrid" DataSource="@productModel.ProductVariants" Bordered="true">
+                                <ChildContent Context="data">
+                                    <PropertyColumn Property="c => GetColorName(c.ColourId)" Title="Màu sắc"/>
+                                    <PropertyColumn Property="c => GetSizeName(c.SizeId)" Title="Size"/>
+                                    <PropertyColumn Property="c => c.Price" Title="Giá (đ)">
+                                        <AntDesign.InputNumber TValue="float" @bind-Value="@data.Price" Min="0"
+                                                               Style="width: 100%;"/>
+                                    </PropertyColumn>
+                                    <PropertyColumn Property="c => c.OutOfStock" Title="Cảnh báo hết hàng">
+                                        <AntDesign.InputNumber TValue="int" @bind-Value="@data.OutOfStock" Min="0"
+                                                               Style="width: 100%;"/>
+                                    </PropertyColumn>
+                                    <PropertyColumn Property="c => c.StockHeight" Title="Chiều cao đế (cm)">
+                                        <AntDesign.InputNumber TValue="float" @bind-Value="@data.StockHeight" Min="0"
+                                                               Step="0.1f"
+                                                               Style="width: 100%;"/>
+                                    </PropertyColumn>
+                                    <PropertyColumn Property="c => c.ClosureType" Title="Loại giày">
+                                        <Select TItem="(EClosureType Value, string Name)" TItemValue="EClosureType"
+                                                DataSource="closureTypeOptions" @bind-Value="@data.ClosureType"
+                                                ItemValue="c => c.Value"
+                                                ItemLabel="c => c.Name" Style="width: 100%;"/>
+                                    </PropertyColumn>
                             
-                                <!-- Thông tin vận chuyển -->
-                                <PropertyColumn Property="c => c.Weight" Title="Trọng lượng (g)">
-                                    <AntDesign.InputNumber TValue="int" @bind-Value="@data.Weight" Min="1" Max="50000"
-                                                           Style="width: 100%;" Placeholder="500"/>
-                                </PropertyColumn>
-                                <PropertyColumn Property="c => c.Length" Title="Chiều dài (cm)">
-                                    <AntDesign.InputNumber TValue="int" @bind-Value="@data.Length" Min="1" Max="200"
-                                                           Style="width: 100%;" Placeholder="15"/>
-                                </PropertyColumn>
-                                <PropertyColumn Property="c => c.Width" Title="Chiều rộng (cm)">
-                                    <AntDesign.InputNumber TValue="int" @bind-Value="@data.Width" Min="1" Max="200"
-                                                           Style="width: 100%;" Placeholder="15"/>
-                                </PropertyColumn>
-                                <PropertyColumn Property="c => c.Height" Title="Chiều cao (cm)">
-                                    <AntDesign.InputNumber TValue="int" @bind-Value="@data.Height" Min="1" Max="200"
-                                                           Style="width: 100%;" Placeholder="15"/>
-                                </PropertyColumn>
+                                    <!-- Thông tin vận chuyển -->
+                                    <PropertyColumn Property="c => c.Weight" Title="Trọng lượng (g)">
+                                        <AntDesign.InputNumber TValue="int" @bind-Value="@data.Weight" Min="1" Max="50000"
+                                                               Style="width: 100%;" Placeholder="500"/>
+                                    </PropertyColumn>
+                                    <PropertyColumn Property="c => c.Length" Title="Chiều dài (cm)">
+                                        <AntDesign.InputNumber TValue="int" @bind-Value="@data.Length" Min="1" Max="200"
+                                                               Style="width: 100%;" Placeholder="15"/>
+                                    </PropertyColumn>
+                                    <PropertyColumn Property="c => c.Width" Title="Chiều rộng (cm)">
+                                        <AntDesign.InputNumber TValue="int" @bind-Value="@data.Width" Min="1" Max="200"
+                                                               Style="width: 100%;" Placeholder="15"/>
+                                    </PropertyColumn>
+                                    <PropertyColumn Property="c => c.Height" Title="Chiều cao (cm)">
+                                        <AntDesign.InputNumber TValue="int" @bind-Value="@data.Height" Min="1" Max="200"
+                                                               Style="width: 100%;" Placeholder="15"/>
+                                    </PropertyColumn>
                             
-                                <PropertyColumn Property="c => c.MaxBuyPerOrder" Title="Giới hạn mua/đơn">
-                                    <AntDesign.InputNumber TValue="int?" @bind-Value="@data.MaxBuyPerOrder" Min="1" Max="999"
-                                                           Style="width: 100%;" Placeholder="Không giới hạn"
-                                                           AllowEmpty="true"/>
-                                </PropertyColumn>
+                                    <PropertyColumn Property="c => c.MaxBuyPerOrder" Title="Giới hạn mua/đơn">
+                                        <AntDesign.InputNumber TValue="int?" @bind-Value="@data.MaxBuyPerOrder" Min="1" Max="999"
+                                                               Style="width: 100%;" Placeholder="Không giới hạn"
+                                                               AllowEmpty="true"/>
+                                    </PropertyColumn>
                             
-                                <PropertyColumn Property="c => c.AllowReturn" Title="Cho phép trả hàng">
-                                    <Checkbox @bind-Value="@data.AllowReturn"/>
-                                </PropertyColumn>
+                                    <PropertyColumn Property="c => c.AllowReturn" Title="Cho phép trả hàng">
+                                        <Checkbox @bind-Value="@data.AllowReturn"/>
+                                    </PropertyColumn>
                             
-                                <PropertyColumn Property="c => c.Status" Title="Trạng thái">
-                                    <Select TItem="(EProductStatus Value, string Name)" TItemValue="EProductStatus"
-                                            DataSource="productStatusOptions" @bind-Value="@data.Status"
-                                            ItemValue="s => s.Value"
-                                            ItemLabel="s => s.Name" Style="width: 100%;"/>
-                                </PropertyColumn>
-                                <ActionColumn Title="Thao tác">
-                                    <Space>
-                                        @if (Id.HasValue && data.Id.HasValue)
-                                        {
-                                                <SpaceItem>
-                                                    <Button Type="@ButtonType.Default" Size="@AntDesign.ButtonSize.Small"
-                                                            Icon="@IconType.Outline.Qrcode" OnClick="@(() => ShowVariantQRCode(data))"
-                                                           >
-                                                    </Button>
-                                                </SpaceItem>
-                                        }
-                                        <SpaceItem>
-                                            <Button Type="@ButtonType.Dashed" Color="Color.Red6"
-                                                    Size="@AntDesign.ButtonSize.Small"
-                                                    Icon="@IconType.Outline.Delete" OnClick="@(async () => await RemoveVariant(data))"></Button>
-                                        </SpaceItem>
-                                    </Space>
-                                </ActionColumn>
-                            </ChildContent>
-                            </Table>
-                        </div>
+                                    <PropertyColumn Property="c => c.Status" Title="Trạng thái">
+                                        <Select TItem="(EProductStatus Value, string Name)" TItemValue="EProductStatus"
+                                                DataSource="productStatusOptions" @bind-Value="@data.Status"
+                                                ItemValue="s => s.Value"
+                                                ItemLabel="s => s.Name" Style="width: 100%;"/>
+                                    </PropertyColumn>
+                                    <ActionColumn Title="Thao tác">
+                                        <Space>
+                                            @if (Id.HasValue && data.Id.HasValue)
+                                            {
+                                                        <SpaceItem>
+                                                            <Button Type="@ButtonType.Default" Size="@AntDesign.ButtonSize.Small"
+                                                                    Icon="@IconType.Outline.Qrcode" OnClick="@(() => ShowVariantQRCode(data))"
+                                                                   >
+                                                            </Button>
+                                                        </SpaceItem>
+                                            }
+                                            <SpaceItem>
+                                                <Button Type="@ButtonType.Dashed" Color="Color.Red6"
+                                                        Size="@AntDesign.ButtonSize.Small"
+                                                        Icon="@IconType.Outline.Delete" OnClick="@(async () => await RemoveVariant(data))"></Button>
+                                            </SpaceItem>
+                                        </Space>
+                                    </ActionColumn>
+                                </ChildContent>
+                                </Table>
+                            </div>
                 }
                 else
                 {
-                        <Empty/>
+                            <Empty/>
                 }
             </Card><Card Title="Mô tả sản phẩm" Style="margin-bottom: 24px;">
                 <div style="margin-bottom: 16px;">
@@ -322,9 +324,9 @@
        Width="400">
     @if (selectedVariantForQR != null && !string.IsNullOrEmpty(selectedVariantForQR.Sku))
     {
-        <div style="text-align: center;">
-            <QRCodeProduct Product="@GetVariantProductDTO(selectedVariantForQR)" QrSize="250px" />
-        </div>
+            <div style="text-align: center;">
+                <QRCodeProduct Product="@GetVariantProductDTO(selectedVariantForQR)" QrSize="250px" />
+            </div>
     }
 </Modal>
 

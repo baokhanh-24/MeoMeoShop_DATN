@@ -860,68 +860,6 @@ namespace MeoMeo.EntityFrameworkCore.Migrations
                     b.ToTable("OrderReturnItems", (string)null);
                 });
 
-            modelBuilder.Entity("MeoMeo.Domain.Entities.Permission", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<string>("Command")
-                        .IsRequired()
-                        .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)");
-
-                    b.Property<string>("Description")
-                        .IsRequired()
-                        .HasMaxLength(500)
-                        .HasColumnType("nvarchar(500)");
-
-                    b.Property<string>("Function")
-                        .IsRequired()
-                        .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)");
-
-                    b.Property<string>("Name")
-                        .IsRequired()
-                        .HasMaxLength(255)
-                        .HasColumnType("nvarchar(255)");
-
-                    b.Property<Guid>("PermissionGroupId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("PermissionGroupId");
-
-                    b.ToTable("Permissions", (string)null);
-                });
-
-            modelBuilder.Entity("MeoMeo.Domain.Entities.PermissionGroup", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<string>("Description")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("Name")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<int?>("Order")
-                        .HasColumnType("int");
-
-                    b.Property<Guid?>("ParentId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("ParentId");
-
-                    b.ToTable("PermissionGroups", (string)null);
-                });
-
             modelBuilder.Entity("MeoMeo.Domain.Entities.Product", b =>
                 {
                     b.Property<Guid>("Id")
@@ -1269,27 +1207,6 @@ namespace MeoMeo.EntityFrameworkCore.Migrations
                     b.HasKey("Id");
 
                     b.ToTable("Roles", (string)null);
-                });
-
-            modelBuilder.Entity("MeoMeo.Domain.Entities.RolePermission", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<Guid>("PermissionId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<Guid>("RoleId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("PermissionId");
-
-                    b.HasIndex("RoleId");
-
-                    b.ToTable("RolePermissions", (string)null);
                 });
 
             modelBuilder.Entity("MeoMeo.Domain.Entities.Season", b =>
@@ -1806,27 +1723,6 @@ namespace MeoMeo.EntityFrameworkCore.Migrations
                     b.Navigation("OrderReturn");
                 });
 
-            modelBuilder.Entity("MeoMeo.Domain.Entities.Permission", b =>
-                {
-                    b.HasOne("MeoMeo.Domain.Entities.PermissionGroup", "PermissionGroup")
-                        .WithMany("Permissions")
-                        .HasForeignKey("PermissionGroupId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("PermissionGroup");
-                });
-
-            modelBuilder.Entity("MeoMeo.Domain.Entities.PermissionGroup", b =>
-                {
-                    b.HasOne("MeoMeo.Domain.Entities.PermissionGroup", "Parent")
-                        .WithMany()
-                        .HasForeignKey("ParentId")
-                        .OnDelete(DeleteBehavior.Restrict);
-
-                    b.Navigation("Parent");
-                });
-
             modelBuilder.Entity("MeoMeo.Domain.Entities.Product", b =>
                 {
                     b.HasOne("MeoMeo.Domain.Entities.Brand", "Brand")
@@ -1979,25 +1875,6 @@ namespace MeoMeo.EntityFrameworkCore.Migrations
                     b.Navigation("Promotion");
                 });
 
-            modelBuilder.Entity("MeoMeo.Domain.Entities.RolePermission", b =>
-                {
-                    b.HasOne("MeoMeo.Domain.Entities.Permission", "Permission")
-                        .WithMany("RolePermissions")
-                        .HasForeignKey("PermissionId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.HasOne("MeoMeo.Domain.Entities.Role", "Role")
-                        .WithMany("RolePermissions")
-                        .HasForeignKey("RoleId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Permission");
-
-                    b.Navigation("Role");
-                });
-
             modelBuilder.Entity("MeoMeo.Domain.Entities.UserRole", b =>
                 {
                     b.HasOne("MeoMeo.Domain.Entities.Role", "Role")
@@ -2125,16 +2002,6 @@ namespace MeoMeo.EntityFrameworkCore.Migrations
                     b.Navigation("Items");
                 });
 
-            modelBuilder.Entity("MeoMeo.Domain.Entities.Permission", b =>
-                {
-                    b.Navigation("RolePermissions");
-                });
-
-            modelBuilder.Entity("MeoMeo.Domain.Entities.PermissionGroup", b =>
-                {
-                    b.Navigation("Permissions");
-                });
-
             modelBuilder.Entity("MeoMeo.Domain.Entities.Product", b =>
                 {
                     b.Navigation("Images");
@@ -2182,8 +2049,6 @@ namespace MeoMeo.EntityFrameworkCore.Migrations
 
             modelBuilder.Entity("MeoMeo.Domain.Entities.Role", b =>
                 {
-                    b.Navigation("RolePermissions");
-
                     b.Navigation("UserRoles");
                 });
 

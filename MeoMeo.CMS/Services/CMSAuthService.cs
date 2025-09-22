@@ -104,17 +104,32 @@ namespace MeoMeo.CMS.Services
         {
             var token = await GetAccessTokenAsync();
             if (string.IsNullOrEmpty(token))
+            {
+                _logger.LogWarning("CMS Token is null or empty");
                 return false;
+            }
 
             try
             {
                 var handler = new JwtSecurityTokenHandler();
                 var jwtToken = handler.ReadJwtToken(token);
 
-                return jwtToken.ValidTo > DateTime.UtcNow;
+                var isValid = jwtToken.ValidTo > DateTime.UtcNow;
+                _logger.LogInformation("CMS Token validation - ValidTo: {ValidTo}, Current: {Current}, IsValid: {IsValid}",
+                    jwtToken.ValidTo, DateTime.UtcNow, isValid);
+
+                // Debug: Log token claims
+                _logger.LogInformation("CMS Token claims:");
+                foreach (var claim in jwtToken.Claims)
+                {
+                    _logger.LogInformation("CMS Claim: {Type} = {Value}", claim.Type, claim.Value);
+                }
+
+                return isValid;
             }
-            catch
+            catch (Exception ex)
             {
+                _logger.LogError(ex, "Error validating CMS token");
                 return false;
             }
         }

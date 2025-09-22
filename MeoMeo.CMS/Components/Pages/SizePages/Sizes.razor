@@ -1,4 +1,5 @@
 ﻿@page "/manage-sizes"
+@attribute [Authorize(Roles = "Admin")]
 @using System.ComponentModel.DataAnnotations
 @using System.Reflection
 @using MeoMeo.Contract.DTOs
@@ -10,6 +11,7 @@
 @using ButtonType = AntDesign.ButtonType
 @using AntDesign
 @using AntDesign.TableModels
+@using Microsoft.AspNetCore.Authorization
 @inject MeoMeo.Shared.Utilities.MessageModalService MessageModalService
 @rendermode InteractiveServer
 
@@ -44,7 +46,7 @@
 
     <div style="width: 150px">
         <Select TItem="(ESizeStatus Value, string Name)"
-        TItemValue="ESizeStatus?"
+        TItemValue="ESizeStatus ?"
         AllowClear
         DataSource="sizeStatusList"
         @bind-Value="filter.StatusFilter"
@@ -71,84 +73,84 @@
         <Column TData="string" Title="Tên kích thước" Width="150px">
             @if (editCache.ContainsKey(data.Id) && !editCache[data.Id].edit)
             {
-                @data.Value
+                    @data.Value
             }
-            else if(editCache.ContainsKey(data.Id))
+            else if (editCache.ContainsKey(data.Id))
             {
-                <Input MaxLength="100" @bind-Value="editCache[data.Id].data.Value"></Input>
+                    <Input MaxLength="100" @bind-Value="editCache[data.Id].data.Value"></Input>
             }
         </Column>
 
         <Column TData="string" Title="Mã kích thước" Width="150px">
             @if (editCache.ContainsKey(data.Id) && !editCache[data.Id].edit)
             {
-                @data.Code
+                    @data.Code
             }
             else if (editCache.ContainsKey(data.Id))
             {
-                <Input MaxLength="100" @bind-Value="editCache[data.Id].data.Code"></Input>
+                    <Input MaxLength="100" @bind-Value="editCache[data.Id].data.Code"></Input>
             }
         </Column>
 
         <Column TData="ESizeStatus" Title="Trạng thái" Width="150px">
             @if (editCache.ContainsKey(data.Id) && !editCache[data.Id].edit)
             {
-                @sizeStatusList.FirstOrDefault(x => x.Value == (ESizeStatus)data.Status).Name
+                    @sizeStatusList.FirstOrDefault(x => x.Value == (ESizeStatus)data.Status).Name
             }
             else if (editCache.ContainsKey(data.Id))
             {
-                <Select TItem="(ESizeStatus Value, string Name)"
-                TItemValue="ESizeStatus"
-                DataSource="sizeStatusList" 
-                @bind-Value="editCache[data.Id].data.StatusEnum"
-                ItemValue="c => c.Value"
-                ItemLabel="p => p.Name">
+                    <Select TItem="(ESizeStatus Value, string Name)"
+                    TItemValue="ESizeStatus"
+                    DataSource="sizeStatusList" 
+                    @bind-Value="editCache[data.Id].data.StatusEnum"
+                    ItemValue="c => c.Value"
+                    ItemLabel="p => p.Name">
 
-                </Select>
+                    </Select>
 
             }
         </Column>
 
         <ActionColumn Title="Thao tác" Class="text-end gap-2" Width="150px">
-            @if(editCache.ContainsKey(data.Id) && !editCache[data.Id].edit)
+            @if (editCache.ContainsKey(data.Id) && !editCache[data.Id].edit)
             {
-                <Tooltip Title="Sửa">
-                    <Button Size="ButtonSize.Small" @onclick="() => StartEdit(data.Id)" Shape="ButtonShape.Circle">
-                        <i class="fas fa-pen">
-                        </i>
-                    </Button>
-                </Tooltip>
-
-                <Popconfirm Title=@($"Bạn có chắc muốn xóa kích thước '{data.Value}'?")
-                OnConfirm="() => deleteSize(data.Id)"
-                OkText="Đồng ý"
-                CancelText="Hủy">
-
-                    <Tooltip Title="Xóa">
-                        <Button Size="ButtonSize.Small" Danger Shape="ButtonShape.Circle">
-                            <i class="fas fa-minus"></i>
+                    <Tooltip Title="Sửa">
+                        <Button Size="ButtonSize.Small" @onclick="() => StartEdit(data.Id)" Shape="ButtonShape.Circle">
+                            <i class="fas fa-pen">
+                            </i>
                         </Button>
                     </Tooltip>
-                </Popconfirm>
+
+                    <Popconfirm Title=@($"Bạn có chắc muốn xóa kích thước '{data.Value}'?")
+                    OnConfirm="() => deleteSize(data.Id)"
+                    OkText="Đồng ý"
+                    CancelText="Hủy">
+
+                        <Tooltip Title="Xóa">
+                            <Button Size="ButtonSize.Small" Danger Shape="ButtonShape.Circle">
+                                <i class="fas fa-minus"></i>
+                            </Button>
+                        </Tooltip>
+                    </Popconfirm>
             }
-            else if(editCache.ContainsKey(data.Id))
+            else if (editCache.ContainsKey(data.Id))
             {
-                <Tooltip Title="Lưu">
-                    <Button Size="ButtonSize.Small" @onclick="() => SaveEdit(data.Id)" Shape="ButtonShape.Circle">
-                        <i class="fas fa-check"></i>
+                    <Tooltip Title="Lưu">
+                        <Button Size="ButtonSize.Small" @onclick="() => SaveEdit(data.Id)" Shape="ButtonShape.Circle">
+                            <i class="fas fa-check"></i>
+                        </Button>
+                    </Tooltip>
+
+                    <Popconfirm Title=@($"Bạn có chắc chắn muốn hủy {(data.Id == Guid.Empty ? "Thêm mới" : "Chỉnh sửa")} Kích thước")
+                    OnConfirm="() => CancalEdit(data.Id)"
+                    OkText="Đồng ý"
+                    CancelText="Hủy">
+
+                    <Button Size="ButtonSize.Small" Shape="ButtonShape.Circle">
+                        <i class="fa-solid fa-xmark"></i>
                     </Button>
-                </Tooltip>
 
-                <Popconfirm Title=@($"Bạn có chắc chắn muốn hủy {(data.Id == Guid.Empty ? "Thêm mới" : "Chỉnh sửa")} Kích thước")
-                OnConfirm="() => CancalEdit(data.Id)"
-                OkText="Đồng ý"
-                CancelText="Hủy">
-
-                <Button Size="ButtonSize.Small" Shape="ButtonShape.Circle">
-                    <i class="fa-solid fa-xmark"></i>
-                </Button>
-
-                </Popconfirm>
+                    </Popconfirm>
             }
         </ActionColumn>
     </ChildContent>
@@ -157,7 +159,7 @@
 
 
 @code {
-    [Inject] private ISizeClientService SizeClientService { get; set; } = default!; 
+    [Inject] private ISizeClientService SizeClientService { get; set; } = default!;
 
     IDictionary<Guid, (bool edit, SizeDTO data)> editCache = new Dictionary<Guid, (bool, SizeDTO)>();
     List<SizeDTO> listOfData = new();
@@ -166,11 +168,11 @@
 
     GetListSizeRequestDTO filter = new GetListSizeRequestDTO
     {
-            ValueFilter = "",
-            CodeFilter = "",
-            StatusFilter = null,
-            PageIndex = 1,
-            PageSize = 10,
+        ValueFilter = "",
+        CodeFilter = "",
+        StatusFilter = null,
+        PageIndex = 1,
+        PageSize = 10,
     };
 
     int totalRecords = 0;
@@ -223,12 +225,12 @@
     async Task AddNewSize()
     {
         var newSize = new SizeDTO
-            {
-                Id = Guid.Empty,
-                Code = "",
-                Value = "",
-                Status = (int)ESizeStatus.Active
-            };
+        {
+            Id = Guid.Empty,
+            Code = "",
+            Value = "",
+            Status = (int)ESizeStatus.Active
+        };
 
         listOfData.Insert(0, newSize);
         editCache[newSize.Id] = (true, CloneSize(newSize));
@@ -238,11 +240,11 @@
     async Task StartEdit(Guid Id)
     {
         var data = editCache[Id];
-        editCache[Id] = (true, data.data);  
+        editCache[Id] = (true, data.data);
         await InvokeAsync(StateHasChanged);
     }
 
-    async Task CancalEdit(Guid Id )
+    async Task CancalEdit(Guid Id)
     {
         var Item = listOfData.FirstOrDefault(x => x.Id == Id);
         var isNew = Item == null || Item.Id == Guid.Empty;
@@ -268,10 +270,10 @@
         var dto = editCache[id].data;
         var CreateOrUpdateDTO = new SizeDTO
         {
-                Id = dto.Id,
-                Code = dto.Code,
-                Value = dto.Value,
-                Status = dto.Status
+            Id = dto.Id,
+            Code = dto.Code,
+            Value = dto.Value,
+            Status = dto.Status
         };
 
         BaseResponse response;
@@ -284,7 +286,7 @@
             response = await SizeClientService.UpdateSizeAsync(CreateOrUpdateDTO);
         }
 
-        if(response.ResponseStatus == BaseStatus.Success)
+        if (response.ResponseStatus == BaseStatus.Success)
         {
             await MessageModalService.Success("Lưu kích thước thành công!");
             await LoadData();
@@ -298,7 +300,7 @@
     async Task deleteSize(Guid id)
     {
         var sucsess = await SizeClientService.DeleteSizeAsync(id);
-        if(sucsess)
+        if (sucsess)
         {
             listOfData.RemoveAll(x => x.Id == id);
             editCache.Remove(id);
@@ -316,10 +318,10 @@
     {
         return new SizeDTO
         {
-                Id = size.Id,
-                Code = size.Code,
-                Value = size.Value,
-                Status = size.Status
+            Id = size.Id,
+            Code = size.Code,
+            Value = size.Value,
+            Status = size.Status
         };
         
     }

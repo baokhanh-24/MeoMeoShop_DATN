@@ -1,10 +1,12 @@
 ﻿@using MeoMeo.CMS.Components.Loading
 @using MeoMeo.CMS.Components.Common
 @using MeoMeo.CMS.Components.Layout
-@using MeoMeo.CMS.IServices
 @using MeoMeo.Contract.DTOs.Auth
 @using Microsoft.AspNetCore.Components.Authorization
+@using ButtonType = AntDesign.ButtonType
 @inherits LayoutComponentBase
+@inject NavigationManager NavigationManager
+
 <RadzenDialog />
 <RadzenNotification />
 <RadzenTooltip />
@@ -28,9 +30,22 @@
         <RadzenRow class="rz-mx-auto" Style="max-width: 100%;">
             <RadzenColumn Size="12">
                 <GlobalSpin>
-                    <CMSAuthGuard>
-                        @Body
-                    </CMSAuthGuard>
+                    <AuthorizeView Roles="Admin,Employee">
+                        <Authorized>
+                            @Body
+                        </Authorized>
+                        <NotAuthorized>
+                            <div class="access-denied">
+                                <Result Status="ResultStatus.Http403" Title="Vui lòng đăng nhập">
+                                    <Extra>
+                                        <Button Type="@ButtonType.Primary" @onclick="GoToLogin">
+                                            Đăng nhập
+                                        </Button>
+                                    </Extra>
+                                </Result>
+                            </div>
+                        </NotAuthorized>
+                    </AuthorizeView>
                 </GlobalSpin>
             </RadzenColumn>
         </RadzenRow>
@@ -60,5 +75,10 @@
     void SidebarToggleClick()
     {
         sidebarExpanded = !sidebarExpanded;
+    }
+
+    private void GoToLogin()
+    {
+        NavigationManager.NavigateTo("/cms/login", forceLoad: true);
     }
 }

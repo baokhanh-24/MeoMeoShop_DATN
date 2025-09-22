@@ -113,6 +113,9 @@ new FormValidationRule { Min = 6, Message = "Mật khẩu phải có ít nhất 
                     // Force UI update
                     StateHasChanged();
 
+                    // Đợi một chút để authentication state được cập nhật
+                    await Task.Delay(100);
+
                     // Chuyển hướng về trang CMS chính
                     NavigationManager.NavigateTo("/", forceLoad: true);
                 }

@@ -41,11 +41,8 @@ namespace MeoMeo.EntityFrameworkCore.Configurations.Contexts
         public DbSet<OrderReturnFile> orderReturnFiles { get; set; }
         public DbSet<Category> categories { get; set; }
         public DbSet<ProductCategory> productCategories { get; set; }
-        public DbSet<Permission> permissions { get; set; }
-        public DbSet<PermissionGroup> permissionGroups { get; set; }
         public DbSet<ProductReview> productReviews { get; set; }
         public DbSet<Role> roles { get; set; }
-        public DbSet<RolePermission> rolePermissions { get; set; }
         public DbSet<UserRole> userRoles { get; set; }
         public DbSet<UserToken> userTokens { get; set; }
         public DbSet<Wishlist> wishlists { get; set; }
@@ -90,10 +87,7 @@ namespace MeoMeo.EntityFrameworkCore.Configurations.Contexts
             modelBuilder.ApplyConfiguration(new OrderReturnFileConfiguration());
             modelBuilder.ApplyConfiguration(new CategoryConfiguration());
             modelBuilder.ApplyConfiguration(new ProductCategoryConfiguration());
-            modelBuilder.ApplyConfiguration(new PermissionGroupConfiguration());
-            modelBuilder.ApplyConfiguration(new PermissionConfiguration());
             modelBuilder.ApplyConfiguration(new RoleConfiguration());
-            modelBuilder.ApplyConfiguration(new RolePermissionConfiguration());
             modelBuilder.ApplyConfiguration(new UserRoleConfiguration());
             modelBuilder.ApplyConfiguration(new UserTokenConfiguration());
             modelBuilder.ApplyConfiguration(new ProductMaterialConfiguration());

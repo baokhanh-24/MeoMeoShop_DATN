@@ -1,36 +1,71 @@
 ﻿<RadzenPanelMenu Style="width: 100%;">
     <RadzenPanelMenuItem Text="Dashboard" Path="/" Icon="list" />
-    <RadzenPanelMenuItem Text="Quản lý đơn hàng" Expanded="false">
-        <RadzenPanelMenuItem Text="Danh sách đơn hàng" Path="manage-order" Icon="list" />
-        <RadzenPanelMenuItem Text="Đơn hàng tại quầy" Path="order-at-counter" Icon="list" />
-    </RadzenPanelMenuItem>
-    <RadzenPanelMenuItem Text="Quản lý sản phẩm" Expanded="false">
-        <RadzenPanelMenuItem Text="Danh sách sản phẩm" Path="manage-product" Icon="list" />
-        <RadzenPanelMenuItem Text="Tạo QR Code Sản Phẩm" Path="product-qr-code" Icon="qr_code" />
-        <RadzenPanelMenuItem Text="Quản lý đánh giá" Path="product-reviews" Icon="rate_review" />
-    </RadzenPanelMenuItem>
-    <RadzenPanelMenuItem Text="Quản lý khách hàng" Path="manage-customer" Icon="list" />
-    <RadzenPanelMenuItem Text="Quản lý kho" Expanded="false">
-        <RadzenPanelMenuItem Text="Danh sách lô nhập" Path="manage-inventoryBatch" Icon="list" />
-        <RadzenPanelMenuItem Text="Danh sách tồn kho" Path="inventory-statistics" Icon="list" />
-    </RadzenPanelMenuItem>
-    <RadzenPanelMenuItem Text="Quản lý marketing" Expanded="false">
-        <RadzenPanelMenuItem Text="Quản lý voucher" Path="manage-voucher" Icon="list" />
-        <RadzenPanelMenuItem Text="Quản lý khuyến mãi" Path="manage-promotion" Icon="list" />
-    </RadzenPanelMenuItem>
-    <RadzenPanelMenuItem Text="Danh mục chung" Expanded="false">
-        <RadzenPanelMenuItem Text="Quản lý danh mục" Path="manage-categories" Icon="list" />
-        <RadzenPanelMenuItem Text="Quản lý kích thước" Path="manage-sizes" Icon="list" />
-        <RadzenPanelMenuItem Text="Quản lý chất liệu" Path="manage-materials" Icon="list" />
-        <RadzenPanelMenuItem Text="Quản lý màu sắc" Path="manage-colours" Icon="list" />
-        <RadzenPanelMenuItem Text="Quản lý thương hiệu" Path="manage-brands" Icon="list" />
-    </RadzenPanelMenuItem>
-    <RadzenPanelMenuItem Text="Quản lý nhân viên" Path="employees-pages" Icon="list" />
-    <RadzenPanelMenuItem Text="Cấu hình hệ thống" Path="manage-systemconfig" Icon="list" />
-    <!-- Permission Management -->
-    <RadzenPanelMenuItem Text="Phân quyền" Expanded="false">
-        <RadzenPanelMenuItem Text="Nhóm quyền" Path="permission-groups"  />
-        <RadzenPanelMenuItem Text="Vai trò" Path="roles" />
-        <RadzenPanelMenuItem Text="Người dùng & Vai trò" />
-    </RadzenPanelMenuItem>
+
+    <!-- Quản lý đơn hàng - Admin và Employee -->
+    <AuthorizeView Roles="Admin,Employee">
+        <RadzenPanelMenuItem Text="Quản lý đơn hàng" Expanded="false">
+            <RadzenPanelMenuItem Text="Danh sách đơn hàng" Path="manage-order" Icon="list" />
+            <RadzenPanelMenuItem Text="Đơn hàng tại quầy" Path="order-at-counter" Icon="list" />
+        </RadzenPanelMenuItem>
+    </AuthorizeView>
+
+    <!-- Quản lý sản phẩm - Admin và Employee -->
+    <AuthorizeView Roles="Admin,Employee">
+        <RadzenPanelMenuItem Text="Quản lý sản phẩm" Expanded="false">
+            <RadzenPanelMenuItem Text="Danh sách sản phẩm" Path="manage-product" Icon="list" />
+            <AuthorizeView Roles="Admin" Context="adminContext">
+                <RadzenPanelMenuItem Text="Tạo QR Code Sản Phẩm" Path="product-qr-code" Icon="qr_code" />
+            </AuthorizeView>
+            <RadzenPanelMenuItem Text="Quản lý đánh giá" Path="product-reviews" Icon="rate_review" />
+        </RadzenPanelMenuItem>
+    </AuthorizeView>
+
+    <!-- Quản lý khách hàng - Admin và Employee -->
+    <AuthorizeView Roles="Admin,Employee">
+        <RadzenPanelMenuItem Text="Quản lý khách hàng" Path="manage-customer" Icon="list" />
+    </AuthorizeView>
+
+    <!-- Quản lý kho - Admin và Employee -->
+    <AuthorizeView Roles="Admin,Employee">
+        <RadzenPanelMenuItem Text="Quản lý kho" Expanded="false">
+            <RadzenPanelMenuItem Text="Danh sách lô nhập" Path="manage-inventoryBatch" Icon="list" />
+            <RadzenPanelMenuItem Text="Danh sách tồn kho" Path="inventory-statistics" Icon="list" />
+        </RadzenPanelMenuItem>
+    </AuthorizeView>
+
+    <!-- Quản lý marketing - Chỉ Admin -->
+    <AuthorizeView Roles="Admin">
+        <RadzenPanelMenuItem Text="Quản lý marketing" Expanded="false">
+            <RadzenPanelMenuItem Text="Quản lý voucher" Path="manage-voucher" Icon="list" />
+            <RadzenPanelMenuItem Text="Quản lý khuyến mãi" Path="manage-promotion" Icon="list" />
+        </RadzenPanelMenuItem>
+    </AuthorizeView>
+
+    <!-- Danh mục chung - Chỉ Admin -->
+    <AuthorizeView Roles="Admin">
+        <RadzenPanelMenuItem Text="Danh mục chung" Expanded="false">
+            <RadzenPanelMenuItem Text="Quản lý danh mục" Path="manage-categories" Icon="list" />
+            <RadzenPanelMenuItem Text="Quản lý kích thước" Path="manage-sizes" Icon="list" />
+            <RadzenPanelMenuItem Text="Quản lý chất liệu" Path="manage-materials" Icon="list" />
+            <RadzenPanelMenuItem Text="Quản lý màu sắc" Path="manage-colours" Icon="list" />
+            <RadzenPanelMenuItem Text="Quản lý thương hiệu" Path="manage-brands" Icon="list" />
+        </RadzenPanelMenuItem>
+    </AuthorizeView>
+
+    <!-- Quản lý nhân viên - Chỉ Admin -->
+    <AuthorizeView Roles="Admin">
+        <RadzenPanelMenuItem Text="Quản lý nhân viên" Path="employees-pages" Icon="list" />
+    </AuthorizeView>
+
+    <!-- Cấu hình hệ thống - Chỉ Admin -->
+    <AuthorizeView Roles="Admin">
+        <RadzenPanelMenuItem Text="Cấu hình hệ thống" Path="manage-systemconfig" Icon="list" />
+    </AuthorizeView>
+
+    <!-- Phân quyền - Chỉ Admin -->
+    <AuthorizeView Roles="Admin">
+        <RadzenPanelMenuItem Text="Phân quyền" Expanded="false">
+            <RadzenPanelMenuItem Text="Người dùng & Vai trò" Path="user-roles" />
+        </RadzenPanelMenuItem>
+    </AuthorizeView>
 </RadzenPanelMenu>

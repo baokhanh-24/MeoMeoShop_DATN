@@ -74,8 +74,12 @@ namespace MeoMeo.Shared.Services
         {
             try
             {
-                var response = await _apiCaller.DeleteAsync($"api/role/{id}");
-                return new BaseResponse { ResponseStatus = response ? BaseStatus.Success : BaseStatus.Error, Message = response ? "" : "Có lỗi xảy ra" };
+                var success = await _apiCaller.DeleteAsync($"api/role/{id}");
+                return new BaseResponse
+                {
+                    ResponseStatus = success ? BaseStatus.Success : BaseStatus.Error,
+                    Message = success ? "Xóa vai trò thành công" : "Có lỗi xảy ra"
+                };
             }
             catch (Exception ex)
             {
@@ -84,45 +88,35 @@ namespace MeoMeo.Shared.Services
             }
         }
 
-        public async Task<BaseResponse> AssignPermissionsToRoleAsync(AssignPermissionsToRoleDTO dto)
+        public async Task<BaseResponse> AssignUserToRoleAsync(AssignUserToRoleDTO dto)
         {
             try
             {
-                var response = await _apiCaller.PostAsync<AssignPermissionsToRoleDTO, BaseResponse>("api/role/assign-permissions", dto);
+                var response = await _apiCaller.PostAsync<AssignUserToRoleDTO, BaseResponse>("api/role/assign-user", dto);
                 return response ?? new BaseResponse { ResponseStatus = BaseStatus.Error, Message = "Có lỗi xảy ra" };
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Error assigning permissions to role: {ex.Message}");
+                Console.WriteLine($"Error assigning user to role: {ex.Message}");
                 return new BaseResponse { ResponseStatus = BaseStatus.Error, Message = ex.Message };
             }
         }
 
-        public async Task<List<PermissionGroupDTO>> GetRolePermissionsTreeAsync(Guid roleId)
+        public async Task<BaseResponse> RemoveUserFromRoleAsync(AssignUserToRoleDTO dto)
         {
             try
             {
-                var response = await _apiCaller.GetAsync<List<PermissionGroupDTO>>($"api/role/{roleId}/permissions-tree");
-                return response ?? new List<PermissionGroupDTO>();
+                var success = await _apiCaller.DeleteAsync($"api/role/remove-user?userId={dto.UserId}&roleId={dto.RoleId}");
+                return new BaseResponse
+                {
+                    ResponseStatus = success ? BaseStatus.Success : BaseStatus.Error,
+                    Message = success ? "Xóa vai trò thành công" : "Có lỗi xảy ra"
+                };
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Error getting role permissions tree: {ex.Message}");
-                return new List<PermissionGroupDTO>();
-            }
-        }
-
-        public async Task<List<UserRoleDTO>> GetRoleUsersAsync(Guid roleId)
-        {
-            try
-            {
-                var response = await _apiCaller.GetAsync<List<UserRoleDTO>>($"api/role/{roleId}/users");
-                return response ?? new List<UserRoleDTO>();
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine($"Error getting role users: {ex.Message}");
-                return new List<UserRoleDTO>();
+                Console.WriteLine($"Error removing user from role: {ex.Message}");
+                return new BaseResponse { ResponseStatus = BaseStatus.Error, Message = ex.Message };
             }
         }
     }

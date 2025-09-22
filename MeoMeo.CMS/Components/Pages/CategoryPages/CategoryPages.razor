@@ -1,4 +1,5 @@
 @page "/manage-categories"
+@attribute [Authorize(Policy = "Admin")]
 @using System.ComponentModel.DataAnnotations
 @using System.Reflection
 @using MeoMeo.Contract.DTOs
@@ -8,6 +9,7 @@
 @using MeoMeo.Domain.Commons.Enums
 @using AntDesign
 @using AntDesign.TableModels
+@using Microsoft.AspNetCore.Authorization
 @inject MeoMeo.Shared.Utilities.MessageModalService MessageModalService
 @using ButtonSize = AntDesign.ButtonSize
 @using ButtonType = AntDesign.ButtonType
@@ -48,8 +50,7 @@
 </div>
 
 <Table DataSource="listOfData" TItem="CategoryDTO" RowClassName="@(_ => "editable-row")" Bordered TableLayout="fixed"
-       Total="@totalRecords" PageSize="@filter.PageSize" OnChange="@OnPageChange"
-    OnExpand="@OnRowExpand">
+    Total="@totalRecords" PageSize="@filter.PageSize" OnChange="@OnPageChange" OnExpand="@OnRowExpand">
     <ChildContent Context="data">
         <Column TData="CategoryDTO" Title="STT" Width="70px">
             @(listOfData.IndexOf(data) + 1)

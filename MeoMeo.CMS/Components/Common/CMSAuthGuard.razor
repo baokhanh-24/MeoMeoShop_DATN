@@ -4,14 +4,7 @@
 @inject ICMSAuthService AuthService
 @inject NavigationManager NavigationManager
 
-@if (isLoading)
-{
-    <div class="auth-loading">
-        <Spin Size="SpinSize.Large" />
-        <p>Đang tải...</p>
-    </div>
-}
-else if (isAuthenticated && hasAccess)
+@if (isAuthenticated && hasAccess)
 {
     @ChildContent
 }
@@ -37,6 +30,7 @@ else
 
     protected override async Task OnInitializedAsync()
     {
+        Console.WriteLine("CMSAuthGuard - OnInitializedAsync called");
         await CheckAccess();
     }
 
@@ -48,14 +42,26 @@ else
             StateHasChanged();
 
             isAuthenticated = await AuthService.IsAuthenticatedAsync();
+            Console.WriteLine($"CMS AuthGuard - IsAuthenticated: {isAuthenticated}");
 
             if (isAuthenticated)
             {
+                // Debug: Lấy thông tin user và roles
+                var user = await AuthService.GetCurrentUserAsync();
+                var roles = await AuthService.GetUserRolesAsync();
+                var claims = await AuthService.GetTokenClaimsAsync();
+
+                Console.WriteLine($"CMS AuthGuard - User: {user?.UserName ?? "null"}");
+                Console.WriteLine($"CMS AuthGuard - Roles: {string.Join(", ", roles)}");
+                Console.WriteLine($"CMS AuthGuard - Claims: {string.Join(", ", claims.Select(c => $"{c.Key}={c.Value}"))}");
+
                 // Kiểm tra từng role được yêu cầu
                 hasAccess = false;
                 foreach (var role in RequiredRoles)
                 {
-                    if (await AuthService.HasRoleAsync(role))
+                    var hasRole = await AuthService.HasRoleAsync(role);
+                    Console.WriteLine($"CMS AuthGuard - Has role '{role}': {hasRole}");
+                    if (hasRole)
                     {
                         hasAccess = true;
                         break;
@@ -65,11 +71,15 @@ else
             else
             {
                 hasAccess = false;
+                Console.WriteLine("CMS AuthGuard - User not authenticated");
             }
+
+            Console.WriteLine($"CMS AuthGuard - Final hasAccess: {hasAccess}");
         }
         catch (Exception ex)
         {
             Console.WriteLine($"Error checking CMS access: {ex.Message}");
+            Console.WriteLine($"Stack trace: {ex.StackTrace}");
             hasAccess = false;
         }
         finally

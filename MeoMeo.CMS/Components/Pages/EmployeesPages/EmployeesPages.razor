@@ -1,4 +1,5 @@
 ﻿@page "/employees-pages"
+@attribute [Authorize(Roles = "Admin")]
 @using System.ComponentModel.DataAnnotations
 @using System.Reflection
 @using AntDesign.TableModels
@@ -8,6 +9,7 @@
 @using MeoMeo.Domain.Commons.Enums
 @using MeoMeo.CMS.Components.Pages.EmployeesPages
 @using MeoMeo.Shared.Utilities
+@using Microsoft.AspNetCore.Authorization
 @using ButtonSize = AntDesign.ButtonSize
 @using ButtonType = AntDesign.ButtonType
 @inject MeoMeo.Shared.Utilities.MessageModalService MessageModalService
@@ -158,9 +160,8 @@
     </Tooltip>
 </div>
 
-<Table DataSource="listOfData" TItem="CreateOrUpdateEmployeeDTO" Bordered TableLayout="fixed"
-       Total="@totalRecords" PageSize="@filter.PageSize" OnChange="@OnPageChange"
-       >
+<Table DataSource="listOfData" TItem="CreateOrUpdateEmployeeDTO" Bordered TableLayout="fixed" Total="@totalRecords"
+    PageSize="@filter.PageSize" OnChange="@OnPageChange">
     <ChildContent Context="data">
         <Column TData="string" Title="Họ và tên nhân viên">
             @data.Name

@@ -4,30 +4,22 @@ using MeoMeo.CMS.Services;
 using MeoMeo.CMS.Utilities;
 using MeoMeo.Shared.IServices;
 using System.Globalization;
+using System.IdentityModel.Tokens.Jwt;
+using System.Security.Claims;
+using System.Text;
+using MeoMeo.Shared.Constants;
 using MeoMeo.Shared.Services;
 using MeoMeo.Shared.Utilities;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Components.Authorization;
 using Microsoft.AspNetCore.DataProtection;
+using Microsoft.IdentityModel.Tokens;
 using Radzen;
 
 var builder = WebApplication.CreateBuilder(args);
 
 var apiBaseUrl = builder.Configuration["ApiSettings:BaseUrl"];
 
-// Configure data protection
-if (builder.Environment.IsDevelopment())
-{
-    // For development: persist keys to file system
-    builder.Services.AddDataProtection()
-        .PersistKeysToFileSystem(new DirectoryInfo(Path.Combine(builder.Environment.ContentRootPath, "DataProtection-Keys")))
-        .SetDefaultKeyLifetime(TimeSpan.FromDays(90));
-}
-else
-{
-    // For production: use in-memory keys with longer lifetime
-    builder.Services.AddDataProtection()
-        .SetDefaultKeyLifetime(TimeSpan.FromDays(30));
-}
 
 builder.Services.AddRazorComponents()
     .AddInteractiveServerComponents();
@@ -40,6 +32,46 @@ builder.Services.AddSignalR(e =>
     e.MaximumReceiveMessageSize = 102400000;
 });
 
+builder.Services.AddAuthentication(options =>
+    {
+        options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
+        options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
+    })
+    .AddJwtBearer(options =>
+    {
+        options.BackchannelHttpHandler = new HttpClientHandler
+        {
+            ServerCertificateCustomValidationCallback = HttpClientHandler.DangerousAcceptAnyServerCertificateValidator
+        };
+
+        options.RequireHttpsMetadata = false;
+        options.SaveToken = true;
+
+        options.TokenValidationParameters = new TokenValidationParameters
+        {
+            ValidateIssuer = true,
+            ValidateAudience = true,
+            ValidateLifetime = true,
+            ValidateIssuerSigningKey = true,
+            IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(builder.Configuration.GetSection("Jwt:key").Value)),
+            ValidIssuer = builder.Configuration.GetSection("Jwt:Issuer").Value,
+            ValidAudience = builder.Configuration.GetSection("Jwt:Audience").Value,
+            RoleClaimType = "roles",
+            NameClaimType = "userName"
+        };
+    });
+builder.Services.AddAuthorization(options =>
+{
+    options.AddPolicy("Admin", policy =>
+        policy.RequireRole("Admin"));
+
+    options.AddPolicy("Customer", policy =>
+        policy.RequireRole("Customer"));
+
+    options.AddPolicy("AdminOrCustomer", policy =>
+        policy.RequireRole("Admin", "Customer"));
+});
+builder.Services.AddCascadingAuthenticationState();
 builder.Services.Configure<Microsoft.AspNetCore.Http.Features.FormOptions>(options =>
 {
     options.MultipartBodyLengthLimit = long.MaxValue;
@@ -57,7 +89,6 @@ builder.Services.AddHttpClient<IApiCaller, ApiCaller>(client =>
 {
     client.BaseAddress = new Uri(apiBaseUrl!);
 });
-builder.Services.AddAuthorizationCore();
 CultureInfo culture = new CultureInfo("vi-VN");
 CultureInfo.DefaultThreadCurrentUICulture = culture;
 // đăng kí 
@@ -83,8 +114,6 @@ builder.Services.AddScoped<ISystemConfigClientService, SystenConfigClientService
 builder.Services.AddScoped<IGhnClientService, GhnClientService>();
 builder.Services.AddScoped<IDeliveryAddressClientService, DeliveryAddressClientService>();
 // Permission services
-builder.Services.AddScoped<IPermissionClientService, PermissionClientService>();
-builder.Services.AddScoped<IPermissionGroupClientService, PermissionGroupClientService>();
 builder.Services.AddScoped<IRoleClientService, RoleClientService>();
 builder.Services.AddScoped<IUserRoleClientService, UserRoleClientService>();
 builder.Services.AddScoped<IUserProfileClientService, UserProfileClientService>();
@@ -104,7 +133,12 @@ if (!app.Environment.IsDevelopment())
 
 app.UseHttpsRedirection();
 app.UseStaticFiles();
-app.UseAntiforgery();
+
+app.UseRouting();
+app.UseAuthentication();
+app.UseAuthorization();
+app.UseAntiforgery(); 
+
 app.MapControllers();
 app.MapRazorComponents<App>()
     .AddInteractiveServerRenderMode();
