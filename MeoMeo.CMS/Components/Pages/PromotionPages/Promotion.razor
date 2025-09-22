@@ -1,5 +1,5 @@
 ﻿@page "/manage-promotion"
-@attribute [Authorize(Roles = "Admin")]
+@* @attribute [Authorize(Roles = "Admin")] *@
 @using AntDesign.TableModels
 @using MeoMeo.Shared.IServices;
 @using MeoMeo.Contract.Commons
@@ -50,8 +50,8 @@
     <ChildContent Context="data">
         <Column TData="int" Title="STT">
             @{
-                var index = listOfData.IndexOf(data);
-                @((filter.PageIndex - 1) * filter.PageSize + index + 1)
+                    var index = listOfData.IndexOf(data);
+                    @((filter.PageIndex - 1) * filter.PageSize + index + 1)
             }
         </Column>
         <Column TData="string" Title="Tên chương trình">
@@ -70,8 +70,8 @@
         </Column>
         <Column TData="string" Title="Trạng thái">
             @{
-                var status = CalculatePromotionStatus(data.StartDate, data.EndDate);
-                var statusInfo = GetStatusInfo(status);
+                    var status = CalculatePromotionStatus(data.StartDate, data.EndDate);
+                    var statusInfo = GetStatusInfo(status);
             }
             <Tag Color="@statusInfo.Color">@statusInfo.Name</Tag>
         </Column>
@@ -97,41 +97,41 @@
             <h4>Sản phẩm trong chương trình khuyến mãi</h4>
             @if (expandedPromotionProducts.ContainsKey(data.Data.Id) && expandedPromotionProducts[data.Data.Id].Any())
             {
-                <Table DataSource="expandedPromotionProducts[data.Data.Id]" TItem="PromotionDetailWithProductInfoDTO"
-                    Size="TableSize.Small">
-                    <Column TData="string" Title="Ảnh" Width="80">
-                        <Image Width="60" Height="60" Fallback="@(ApiBaseUrl + "/Images/fallback.jpeg")"
-                            Src="@GetProductImageUrl(context.Thumbnail)" Class="search-result-image" />
-                    </Column>
-                    <Column TData="string" Title="Sản phẩm" Width="200">
-                        <div>
-                            <div><Text Strong>@context.ProductName</Text></div>
-                            <div style="color: #666; font-size: 12px;">
-                                <Tag>@context.ColourName</Tag>
-                                <Tag>Size: @context.SizeName</Tag>
+                    <Table DataSource="expandedPromotionProducts[data.Data.Id]" TItem="PromotionDetailWithProductInfoDTO"
+                        Size="TableSize.Small">
+                        <Column TData="string" Title="Ảnh" Width="80">
+                            <Image Width="60" Height="60" Fallback="@(ApiBaseUrl + "/Images/fallback.jpeg")"
+                                Src="@GetProductImageUrl(context.Thumbnail)" Class="search-result-image" />
+                        </Column>
+                        <Column TData="string" Title="Sản phẩm" Width="200">
+                            <div>
+                                <div><Text Strong>@context.ProductName</Text></div>
+                                <div style="color: #666; font-size: 12px;">
+                                    <Tag>@context.ColourName</Tag>
+                                    <Tag>Size: @context.SizeName</Tag>
+                                </div>
                             </div>
-                        </div>
-                    </Column>
-                    <Column TData="decimal" Title="Giá gốc" Width="120" Align="@ColumnAlign.Right">
-                        @($"{context.OriginalPrice:N0} ₫")
-                    </Column>
-                    <Column TData="decimal" Title="Giá khuyến mãi" Width="120" Align="@ColumnAlign.Right">
-                        <Text Strong Style="color: #ff4d4f;">@($"{context.DiscountPrice:N0} ₫")</Text>
-                    </Column>
-                    <Column TData="decimal" Title="Giảm giá" Width="100" Align="@ColumnAlign.Center">
-                        @{
-                            var discountPercent = context.OriginalPrice > 0 ? ((context.OriginalPrice - context.DiscountPrice) /
-                            context.OriginalPrice * 100) : 0;
-                        }
-                        <Tag>@discountPercent.ToString("F0")%</Tag>
-                    </Column>
-                </Table>
+                        </Column>
+                        <Column TData="decimal" Title="Giá gốc" Width="120" Align="@ColumnAlign.Right">
+                            @($"{context.OriginalPrice:N0} ₫")
+                        </Column>
+                        <Column TData="decimal" Title="Giá khuyến mãi" Width="120" Align="@ColumnAlign.Right">
+                            <Text Strong Style="color: #ff4d4f;">@($"{context.DiscountPrice:N0} ₫")</Text>
+                        </Column>
+                        <Column TData="decimal" Title="Giảm giá" Width="100" Align="@ColumnAlign.Center">
+                            @{
+                                    var discountPercent = context.OriginalPrice > 0 ? ((context.OriginalPrice - context.DiscountPrice) /
+                                    context.OriginalPrice * 100) : 0;
+                            }
+                            <Tag>@discountPercent.ToString("F0")%</Tag>
+                        </Column>
+                    </Table>
             }
             else
             {
-                <div class="text-center p-3">
-                    <p>Chưa có sản phẩm nào trong chương trình khuyến mãi này</p>
-                </div>
+                    <div class="text-center p-3">
+                        <p>Chưa có sản phẩm nào trong chương trình khuyến mãi này</p>
+                    </div>
             }
         </div>
     </ExpandTemplate>

@@ -37,6 +37,45 @@ namespace MeoMeo.CMS.Utilities
                     return new AuthenticationState(new ClaimsPrincipal(new ClaimsIdentity()));
                 }
 
+                // Kiểm tra token có hết hạn không và thử refresh
+                var isTokenExpired = await _authService.IsTokenExpiredAsync();
+                if (isTokenExpired)
+                {
+                    _logger.LogInformation("CMS Token is expired, attempting to refresh");
+                    var refreshToken = await _authService.GetRefreshTokenAsync();
+                    if (!string.IsNullOrEmpty(refreshToken))
+                    {
+                        try
+                        {
+                            var refreshRequest = new MeoMeo.Contract.DTOs.Auth.RefreshTokenRequest
+                            {
+                                RefreshToken = refreshToken
+                            };
+                            var refreshResponse = await _authService.RefreshTokenAsync(refreshRequest);
+                            if (refreshResponse?.ResponseStatus == MeoMeo.Contract.Commons.BaseStatus.Success)
+                            {
+                                _logger.LogInformation("CMS Token refreshed successfully");
+                                token = refreshResponse.AccessToken;
+                            }
+                            else
+                            {
+                                _logger.LogWarning("CMS Token refresh failed, returning anonymous state");
+                                return new AuthenticationState(new ClaimsPrincipal(new ClaimsIdentity()));
+                            }
+                        }
+                        catch (Exception ex)
+                        {
+                            _logger.LogError(ex, "CMS Error during token refresh");
+                            return new AuthenticationState(new ClaimsPrincipal(new ClaimsIdentity()));
+                        }
+                    }
+                    else
+                    {
+                        _logger.LogWarning("CMS No refresh token available, returning anonymous state");
+                        return new AuthenticationState(new ClaimsPrincipal(new ClaimsIdentity()));
+                    }
+                }
+
                 var claims = ParseClaimsFromJwt(token);
                 _logger.LogInformation("CMS Parsed {ClaimCount} claims from JWT", claims.Count());
 
@@ -129,6 +168,48 @@ namespace MeoMeo.CMS.Utilities
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error in CMS NotifyUserInfoRefresh");
+            }
+        }
+
+        public async Task<bool> TryRefreshTokenAsync()
+        {
+            try
+            {
+                _logger.LogInformation("CMS TryRefreshTokenAsync called");
+
+                var refreshToken = await _authService.GetRefreshTokenAsync();
+                if (string.IsNullOrEmpty(refreshToken))
+                {
+                    _logger.LogWarning("CMS No refresh token available");
+                    return false;
+                }
+
+                var refreshRequest = new MeoMeo.Contract.DTOs.Auth.RefreshTokenRequest
+                {
+                    RefreshToken = refreshToken
+                };
+
+                var refreshResponse = await _authService.RefreshTokenAsync(refreshRequest);
+                if (refreshResponse?.ResponseStatus == MeoMeo.Contract.Commons.BaseStatus.Success)
+                {
+                    _logger.LogInformation("CMS Token refreshed successfully");
+
+                    // Notify authentication state change
+                    var authState = await GetAuthenticationStateAsync();
+                    NotifyAuthenticationStateChanged(Task.FromResult(authState));
+
+                    return true;
+                }
+                else
+                {
+                    _logger.LogWarning("CMS Token refresh failed");
+                    return false;
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error in CMS TryRefreshTokenAsync");
+                return false;
             }
         }
 

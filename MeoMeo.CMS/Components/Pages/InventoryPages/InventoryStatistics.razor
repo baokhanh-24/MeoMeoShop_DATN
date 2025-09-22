@@ -1,5 +1,5 @@
 @page "/inventory-statistics"
-@attribute [Authorize(Roles = "Admin,Employee")]
+@* @attribute [Authorize(Roles = "Admin,Employee")] *@
 @using System
 @using System.ComponentModel.DataAnnotations
 @using System.Reflection
@@ -82,8 +82,8 @@
     <ChildContent Context="data">
         <Column TData="int" Title="STT" Width="60">
             @{
-                var index = listOfData.IndexOf(data);
-                @((filter.PageIndex - 1) * filter.PageSize + index + 1)
+                    var index = listOfData.IndexOf(data);
+                    @((filter.PageIndex - 1) * filter.PageSize + index + 1)
             }
         </Column>
         <Column TData="string" Title="Ảnh" Width="120">
@@ -134,31 +134,31 @@
     <div>
         @if (selectedProductHistory != null)
         {
-            <div class="mb-3">
-                <Title Level="5">@selectedProductHistory.ProductName (@selectedProductHistory.SKU)</Title>
-            </div>
+                <div class="mb-3">
+                    <Title Level="5">@selectedProductHistory.ProductName (@selectedProductHistory.SKU)</Title>
+                </div>
 
-            <Table DataSource="inventoryHistory" TItem="InventoryHistoryItem" Size="TableSize.Small">
-                <Column TData="DateTime" Title="Thời gian" Width="150">
-                    @context.Date.ToString("dd/MM/yyyy HH:mm")
-                </Column>
-                <Column TData="string" Title="Loại giao dịch" Width="120">
-                    <Tag Color="@GetTransactionTypeColor(context.TransactionType)">
-                        @GetTransactionTypeName(context.TransactionType)
-                    </Tag>
-                </Column>
-                <Column TData="int" Title="Số lượng thay đổi" Width="120">
-                    <Text Style="@GetQuantityChangeStyle(context.QuantityChange)">
-                        @(context.QuantityChange > 0 ? "+" : "")@context.QuantityChange
-                    </Text>
-                </Column>
-                <Column TData="int" Title="Tồn kho sau" Width="100">
-                    <Text Strong>@context.StockAfter</Text>
-                </Column>
-                <Column TData="string" Title="Ghi chú">
-                    @context.Note
-                </Column>
-            </Table>
+                <Table DataSource="inventoryHistory" TItem="InventoryHistoryItem" Size="TableSize.Small">
+                    <Column TData="DateTime" Title="Thời gian" Width="150">
+                        @context.Date.ToString("dd/MM/yyyy HH:mm")
+                    </Column>
+                    <Column TData="string" Title="Loại giao dịch" Width="120">
+                        <Tag Color="@GetTransactionTypeColor(context.TransactionType)">
+                            @GetTransactionTypeName(context.TransactionType)
+                        </Tag>
+                    </Column>
+                    <Column TData="int" Title="Số lượng thay đổi" Width="120">
+                        <Text Style="@GetQuantityChangeStyle(context.QuantityChange)">
+                            @(context.QuantityChange > 0 ? "+" : "")@context.QuantityChange
+                        </Text>
+                    </Column>
+                    <Column TData="int" Title="Tồn kho sau" Width="100">
+                        <Text Strong>@context.StockAfter</Text>
+                    </Column>
+                    <Column TData="string" Title="Ghi chú">
+                        @context.Note
+                    </Column>
+                </Table>
         }
     </div>
 </Modal>

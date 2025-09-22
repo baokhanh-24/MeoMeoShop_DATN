@@ -30,7 +30,7 @@ namespace MeoMeo.API.Controllers
         [HttpGet("get-all-inventoryBatch-async")]
         public async Task<PagingExtensions.PagedResult<InventoryBatchDTO>> GetAllInventoryBatch([FromQuery] GetListInventoryBatchRequestDTO request)
         {
-            var result =  await _inventoryBatchServices.GetAllAsync(request);
+            var result = await _inventoryBatchServices.GetAllAsync(request);
             return result;
         }
 
@@ -39,7 +39,7 @@ namespace MeoMeo.API.Controllers
         public async Task<ActionResult<InventoryBatchDTO>> GetByIdInventoryBatch(Guid id)
         {
             var result = await _inventoryBatchServices.GetByIdAsync(id);
-            if(result == null)
+            if (result == null)
             {
                 return NotFound();
             }
@@ -55,10 +55,18 @@ namespace MeoMeo.API.Controllers
             return Ok(updateBatch);
         }
 
+        // PUT: api/InventoryBatches/update-status
+        [HttpPut("update-status-async")]
+        public async Task<IActionResult> UpdateInventoryBatchStatus([FromBody] UpdateInventoryBatchStatusDTO dto)
+        {
+            var result = await _inventoryBatchServices.UpdateStatusAsync(dto);
+            return Ok(result);
+        }
+
         // POST: api/InventoryBatches
         // To protect from overposting attacks, see https://go.microsoft.com/fwlink/?linkid=2123754
         [HttpPost("create-inventoryBatch-async")]
-        public async Task<InventoryBatchResponseDTO> CreateInventoryBatch([FromBody] List<InventoryBatchDTO> dto )
+        public async Task<InventoryBatchResponseDTO> CreateInventoryBatch([FromBody] List<InventoryBatchDTO> dto)
         {
             var result = await _inventoryBatchServices.CreateAsync(dto);
             return result;
@@ -68,8 +76,8 @@ namespace MeoMeo.API.Controllers
         [HttpDelete("delete-inventoryBatch-async/{id}")]
         public async Task<bool> DeleteInventoryBatch(Guid id)
         {
-             var result =  await _inventoryBatchServices.DeleteAsync(id);
-            return result;       
+            var result = await _inventoryBatchServices.DeleteAsync(id);
+            return result;
         }
     }
 }

@@ -1,5 +1,5 @@
 @page "/product-qr-code"
-@attribute [Authorize(Roles = "Admin")]
+@* @attribute [Authorize(Roles = "Admin")] *@
 @page "/product-qr-code/{sku}"
 @using MeoMeo.Contract.DTOs.Product
 @using MeoMeo.Shared.IServices
@@ -48,36 +48,36 @@
 
         @if (IsLoading)
         {
-            <div class="qr-loading">
-                <Spin Size="@AntDesign.SpinSize.Large" />
-                <p>Đang tìm kiếm sản phẩm...</p>
-            </div>
+                <div class="qr-loading">
+                    <Spin Size="@AntDesign.SpinSize.Large" />
+                    <p>Đang tìm kiếm sản phẩm...</p>
+                </div>
         }
         else if (SelectedProduct != null)
         {
-            <div class="qr-result">
-                <QRCodeProduct Product="@SelectedProduct" QrSize="250px" />
+                <div class="qr-result">
+                    <QRCodeProduct Product="@SelectedProduct" QrSize="250px" />
 
-                <div class="qr-actions">
-                    <Button Type="@AntDesign.ButtonType.Primary" Icon="printer" OnClick="HandlePrintQR" Block>
-                        In QR Code
-                    </Button>
-                    <Button Icon="reload" OnClick="HandleReset" Block>
-                        Tạo QR Code Khác
-                    </Button>
+                    <div class="qr-actions">
+                        <Button Type="@AntDesign.ButtonType.Primary" Icon="printer" OnClick="HandlePrintQR" Block>
+                            In QR Code
+                        </Button>
+                        <Button Icon="reload" OnClick="HandleReset" Block>
+                            Tạo QR Code Khác
+                        </Button>
+                    </div>
                 </div>
-            </div>
         }
         else if (!string.IsNullOrEmpty(SearchModel.Sku) && !IsLoading)
         {
-            <div class="qr-not-found">
-                <Icon Type="exclamation-circle" Style="font-size: 48px; color: #ff4d4f;" />
-                <h3>Không tìm thấy sản phẩm</h3>
-                <p>Mã SKU "@SearchModel.Sku" không tồn tại trong hệ thống</p>
-                <Button Type="@AntDesign.ButtonType.Primary" OnClick="HandleReset">
-                    Thử lại
-                </Button>
-            </div>
+                <div class="qr-not-found">
+                    <Icon Type="exclamation-circle" Style="font-size: 48px; color: #ff4d4f;" />
+                    <h3>Không tìm thấy sản phẩm</h3>
+                    <p>Mã SKU "@SearchModel.Sku" không tồn tại trong hệ thống</p>
+                    <Button Type="@AntDesign.ButtonType.Primary" OnClick="HandleReset">
+                        Thử lại
+                    </Button>
+                </div>
         }
     </div>
 </div>

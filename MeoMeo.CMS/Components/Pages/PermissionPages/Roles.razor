@@ -1,5 +1,5 @@
 @page "/roles"
-@attribute [Authorize(Roles = "Admin")]
+@* @attribute [Authorize(Roles = "Admin")] *@
 @using MeoMeo.Shared.IServices
 @using MeoMeo.Contract.DTOs.Permission
 @using MeoMeo.Contract.Commons
@@ -37,39 +37,39 @@
     <div class="content-section">
         @if (isLoading)
         {
-            <div class="loading-section">
-                <Spin Size="@SpinSize.Large" />
-                <p>Đang tải dữ liệu...</p>
-            </div>
+                <div class="loading-section">
+                    <Spin Size="@SpinSize.Large" />
+                    <p>Đang tải dữ liệu...</p>
+                </div>
         }
         else
         {
-            <Table DataSource="@roles" Bordered>
-                <PropertyColumn Property="@(r => r.Name)" Title="Tên vai trò" />
-                <PropertyColumn Property="@(r => r.Description)" Title="Mô tả" />
-                <PropertyColumn Property="@(r => r.Status)" Title="Trạng thái">
-                    <Template>
-                        <Tag Color="@(context.Status == 1 ? "green" : "red")">
-                            @(context.Status == 1 ? "Hoạt động" : "Không hoạt động")
-                        </Tag>
-                    </Template>
-                </PropertyColumn>
-                <PropertyColumn Property="@(r => r.UserRoles.Count)" Title="Số người dùng" />
-                <ActionColumn Title="Thao tác">
-                    <Template>
-                        <Space>
-                            <Button Type="@ButtonType.Link" Size="@ButtonSize.Small" Icon="edit"
-                                OnClick="() => ShowEditModal(context)">
-                                Chỉnh sửa
-                            </Button>
-                            <Popconfirm Title="Bạn có chắc chắn muốn xóa vai trò này?" OnConfirm="() => DeleteRole(context)"
-                                OkText="Đồng ý" CancelText="Hủy">
-                                <Button Type="@ButtonType.Link" Size="@ButtonSize.Small" Icon="delete" Danger></Button>
-                            </Popconfirm>
-                        </Space>
-                    </Template>
-                </ActionColumn>
-            </Table>
+                <Table DataSource="@roles" Bordered>
+                    <PropertyColumn Property="@(r => r.Name)" Title="Tên vai trò" />
+                    <PropertyColumn Property="@(r => r.Description)" Title="Mô tả" />
+                    <PropertyColumn Property="@(r => r.Status)" Title="Trạng thái">
+                        <Template>
+                            <Tag Color="@(context.Status == 1 ? "green" : "red")">
+                                @(context.Status == 1 ? "Hoạt động" : "Không hoạt động")
+                            </Tag>
+                        </Template>
+                    </PropertyColumn>
+                    <PropertyColumn Property="@(r => r.UserRoles.Count)" Title="Số người dùng" />
+                    <ActionColumn Title="Thao tác">
+                        <Template>
+                            <Space>
+                                <Button Type="@ButtonType.Link" Size="@ButtonSize.Small" Icon="edit"
+                                    OnClick="() => ShowEditModal(context)">
+                                    Chỉnh sửa
+                                </Button>
+                                <Popconfirm Title="Bạn có chắc chắn muốn xóa vai trò này?" OnConfirm="() => DeleteRole(context)"
+                                    OkText="Đồng ý" CancelText="Hủy">
+                                    <Button Type="@ButtonType.Link" Size="@ButtonSize.Small" Icon="delete" Danger></Button>
+                                </Popconfirm>
+                            </Space>
+                        </Template>
+                    </ActionColumn>
+                </Table>
         }
     </div>
 </div>

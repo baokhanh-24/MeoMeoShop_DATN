@@ -416,9 +416,8 @@
             {
                 PageIndex = 1,
                 PageSize = int.MaxValue,
-                InStockOnly = true
+                InStockOnly = false
             };
-
             var result = await ProductClientService.SearchProductsAsync(request);
             allProducts = result.Items ?? new List<ProductSearchResponseDTO>();
 

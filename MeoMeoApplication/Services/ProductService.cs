@@ -101,6 +101,7 @@ namespace MeoMeo.Application.Services
                 {
                     var latestSKU = await _productDetailRepository.Query().OrderByDescending(p => p.Sku).Select(p => p.Sku)
                         .FirstOrDefaultAsync();
+                    var newSkus = SkuGenerator.GenerateRange(latestSKU, productDto.ProductVariants.Count()).ToList();
                     var variantEntities = productDto.ProductVariants.Select((variant, index) =>
                     {
                         var mappedVariant = _mapper.Map<ProductDetail>(variant);
@@ -109,7 +110,8 @@ namespace MeoMeo.Application.Services
                         mappedVariant.CreationTime = DateTime.Now;
                         mappedVariant.ViewNumber = 0;
                         mappedVariant.SellNumber = 0;
-                        mappedVariant.Sku = SkuGenerator.GenerateNextSku(latestSKU + index);
+                        mappedVariant.Sku = newSkus[index];
+                        mappedVariant.Status = variant.Status;
                         return mappedVariant;
                     });
                     await _productDetailRepository.AddRangeAsync(variantEntities);
@@ -316,11 +318,10 @@ namespace MeoMeo.Application.Services
                     if (variantsToAdd.Any())
                     {
                         // Lấy SKU cuối cùng để tạo SKU mới
-                        var latestSKU = await _productDetailRepository.Query()
-                            .OrderByDescending(p => p.Sku)
-                            .Select(p => p.Sku)
-                            .FirstOrDefaultAsync();
 
+                        var latestSKU = await _productDetailRepository.Query().OrderByDescending(p => p.Sku).Select(p => p.Sku)
+                            .FirstOrDefaultAsync();
+                        var newSkus = SkuGenerator.GenerateRange(latestSKU, productDto.ProductVariants.Count()).ToList();
                         // Tạo các entity biến thể mới
                         var newVariantEntities = variantsToAdd.Select((variant, index) =>
                         {
@@ -329,7 +330,7 @@ namespace MeoMeo.Application.Services
                             mappedVariant.ProductId = existingProduct.Id;
                             mappedVariant.ViewNumber = 0; // Khởi tạo số lượt xem = 0
                             mappedVariant.SellNumber = 0; // Khởi tạo số lượng đã bán = 0
-                            mappedVariant.Sku = SkuGenerator.GenerateNextSku(latestSKU + index); // Tạo SKU mới
+                            mappedVariant.Sku = newSkus[index]; // Tạo SKU mới
                             mappedVariant.CreationTime = DateTime.Now;
                             mappedVariant.LastModificationTime = DateTime.Now;
                             return mappedVariant;
@@ -459,8 +460,15 @@ namespace MeoMeo.Application.Services
 
         public async Task<List<Image>> GetOldImagesAsync(Guid productId)
         {
+            var currentThumbnail = "";
+            var currentProduct= await _repository.Query().FirstOrDefaultAsync(c=>c.Id==productId);
+            if (currentProduct != null)
+            {
+                currentThumbnail= currentProduct.Thumbnail;
+            }
+            //tránh xóa thumbnail để phần orderdetail có lưu Trường Image không bị lỗi
             return await _imageRepository.Query()
-                .Where(i => i.ProductId == productId)
+                .Where(i => i.ProductId == productId && i.Name !=currentThumbnail)
                 .ToListAsync();
         }
 
@@ -2015,11 +2023,7 @@ namespace MeoMeo.Application.Services
                                                          ProductDetail = pd,
                                                          StockQuantity = (from ib in _inventoryBatchRepository.Query()
                                                                           where ib.ProductDetailId == pd.Id && ib.Status == EInventoryBatchStatus.Approved
-                                                                          select ib.Quantity).Sum() -
-                                                                       (from ib in _inventoryBatchRepository.Query()
-                                                                        join it in _inventoryTransactionRepository.Query() on ib.Id equals it.InventoryBatchId
-                                                                        where ib.ProductDetailId == pd.Id && ib.Status == EInventoryBatchStatus.Approved
-                                                                        select it.Quantity).Sum()
+                                                                          select ib.Quantity).Sum()
                                                      }).ToListAsync();
 
                 // Filter only products with stock > 0

@@ -1,5 +1,5 @@
 @page "/user-roles"
-@attribute [Authorize(Roles = "Admin")]
+@* @attribute [Authorize(Roles = "Admin")] *@
 @using MeoMeo.Shared.IServices
 @using MeoMeo.Contract.DTOs.Permission
 @using MeoMeo.Contract.Commons
@@ -34,47 +34,47 @@
     <div class="content-section">
         @if (isLoading)
         {
-            <div class="loading-section">
-                <Spin Size="@SpinSize.Large" />
-                <p>Đang tải dữ liệu...</p>
-            </div>
+                <div class="loading-section">
+                    <Spin Size="@SpinSize.Large" />
+                    <p>Đang tải dữ liệu...</p>
+                </div>
         }
         else
         {
-            <Table DataSource="@users" Bordered>
-                <PropertyColumn Property="@(u => u.UserName)" Title="Tên đăng nhập" />
-                <PropertyColumn Property="@(u => u.Email)" Title="Email" />
-                <Column TData="int" Title="Trạng thái">
-                    <Template>
-                        <Tag Color="@(context.Status == 1 ? "green" : "red")">
-                            @(context.Status == 1 ? "Hoạt động" : "Không hoạt động")
-                        </Tag>
-                    </Template>
-                </Column>
-                <Column TData="string" Title="Vai trò">
-                    <Template>
-                        @if (context.Roles.Any())
-                        {
-                            @foreach (var role in context.Roles)
+                <Table DataSource="@users" Bordered>
+                    <PropertyColumn Property="@(u => u.UserName)" Title="Tên đăng nhập" />
+                    <PropertyColumn Property="@(u => u.Email)" Title="Email" />
+                    <Column TData="int" Title="Trạng thái">
+                        <Template>
+                            <Tag Color="@(context.Status == 1 ? "green" : "red")">
+                                @(context.Status == 1 ? "Hoạt động" : "Không hoạt động")
+                            </Tag>
+                        </Template>
+                    </Column>
+                    <Column TData="string" Title="Vai trò">
+                        <Template>
+                            @if (context.Roles.Any())
                             {
-                                <Tag Style="margin: 2px;">@role.Name</Tag>
+                                    @foreach (var role in context.Roles)
+                                    {
+                                            <Tag Style="margin: 2px;">@role.Name</Tag>
+                                    }
                             }
-                        }
-                        else
-                        {
-                            <span class="text-muted">Chưa có vai trò</span>
-                        }
-                    </Template>
-                </Column>
-                <ActionColumn Title="Thao tác">
-                    <Template>
-                        <Button Type="@ButtonType.Link" Size="@ButtonSize.Small" Icon="plus"
-                            @onclick="() => ShowRoleAssignmentModal(context)">
-                            Gán vai trò
-                        </Button>
-                    </Template>
-                </ActionColumn>
-            </Table>
+                            else
+                            {
+                                    <span class="text-muted">Chưa có vai trò</span>
+                            }
+                        </Template>
+                    </Column>
+                    <ActionColumn Title="Thao tác">
+                        <Template>
+                            <Button Type="@ButtonType.Link" Size="@ButtonSize.Small" Icon="plus"
+                                @onclick="() => ShowRoleAssignmentModal(context)">
+                                Gán vai trò
+                            </Button>
+                        </Template>
+                    </ActionColumn>
+                </Table>
         }
     </div>
 </div>

@@ -146,5 +146,36 @@ namespace MeoMeo.Application.Services
             await _inventoryBatchRepository.UpdateAsync(inventoryBatch);
             return new InventoryBatchResponseDTO { ResponseStatus = BaseStatus.Success, Message = "Cập nhật thành công" };
         }
+
+        public async Task<InventoryBatchResponseDTO> UpdateStatusAsync(UpdateInventoryBatchStatusDTO dto)
+        {
+            var inventoryBatch = await _inventoryBatchRepository.GetByIdAsync(dto.Id);
+            if (inventoryBatch == null)
+            {
+                return new InventoryBatchResponseDTO { ResponseStatus = BaseStatus.Error, Message = "Không tìm thấy InventoryBatch để cập nhật trạng thái" };
+            }
+            var currentStatus = inventoryBatch.Status;
+            var newStatus = dto.Status;
+            if (currentStatus == EInventoryBatchStatus.Approved && newStatus == EInventoryBatchStatus.Draft)
+            {
+                return new InventoryBatchResponseDTO { ResponseStatus = BaseStatus.Error, Message = "Không thể chuyển từ trạng thái 'Đã duyệt' về 'Lưu tạm'" };
+            }
+
+            if (currentStatus == EInventoryBatchStatus.Rejected && newStatus == EInventoryBatchStatus.Approved)
+            {
+                return new InventoryBatchResponseDTO { ResponseStatus = BaseStatus.Error, Message = "Không thể chuyển từ trạng thái 'Từ chối' sang 'Đã duyệt'" };
+            }
+            
+            inventoryBatch.Status = newStatus;
+            await _inventoryBatchRepository.UpdateAsync(inventoryBatch);
+
+            return new InventoryBatchResponseDTO
+            {
+                ResponseStatus = BaseStatus.Success,
+                Message = $"Cập nhật trạng thái thành công từ '{currentStatus}' sang '{newStatus}'",
+                Id = inventoryBatch.Id,
+                Status = inventoryBatch.Status
+            };
+        }
     }
 }

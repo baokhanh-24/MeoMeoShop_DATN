@@ -1,5 +1,5 @@
 @page "/manage-categories"
-@attribute [Authorize(Policy = "Admin")]
+@* @attribute [Authorize(Policy = "Admin")] *@
 @using System.ComponentModel.DataAnnotations
 @using System.Reflection
 @using MeoMeo.Contract.DTOs
@@ -59,70 +59,70 @@
         <Column TData="string" Title="Tên danh mục">
             @if (editCache.ContainsKey(data.Id) && !editCache[data.Id].edit)
             {
-                @data.Name
+                    @data.Name
             }
             else if (editCache.ContainsKey(data.Id))
             {
-                <Input MaxLength="100" @bind-Value="editCache[data.Id].data.Name" />
+                    <Input MaxLength="100" @bind-Value="editCache[data.Id].data.Name" />
             }
         </Column>
 
         <Column TData="string" Title="Mô tả">
             @if (editCache.ContainsKey(data.Id) && !editCache[data.Id].edit)
             {
-                @(string.IsNullOrEmpty(data.Description) ? "-" : data.Description)
+                    @(string.IsNullOrEmpty(data.Description) ? "-" : data.Description)
             }
             else if (editCache.ContainsKey(data.Id))
             {
-                <Input MaxLength="500" @bind-Value="editCache[data.Id].data.Description" placeholder="Mô tả" />
+                    <Input MaxLength="500" @bind-Value="editCache[data.Id].data.Description" placeholder="Mô tả" />
             }
         </Column>
 
         <Column TData="bool" Title="Trạng thái">
             @if (editCache.ContainsKey(data.Id) && !editCache[data.Id].edit)
             {
-                @(data.Status ? "Hoạt động" : "Không hoạt động")
+                    @(data.Status ? "Hoạt động" : "Không hoạt động")
             }
             else if (editCache.ContainsKey(data.Id))
             {
-                <Select TItem="(bool Value, string Name)" TItemValue="bool" DataSource="statusOptions"
-                    @bind-Value="editCache[data.Id].data.Status" ItemValue="c => c.Value" ItemLabel="c => c.Name">
-                </Select>
+                    <Select TItem="(bool Value, string Name)" TItemValue="bool" DataSource="statusOptions"
+                        @bind-Value="editCache[data.Id].data.Status" ItemValue="c => c.Value" ItemLabel="c => c.Name">
+                    </Select>
             }
         </Column>
 
         <ActionColumn Title="Thao tác" Class="text-end gap-2">
             @if (editCache.ContainsKey(data.Id) && !editCache[data.Id].edit)
             {
-                <Tooltip Title="Sửa">
-                    <Button Size="ButtonSize.Small" @onclick="() => StartEdit(data.Id)" Shape="ButtonShape.Circle">
-                        <i class="fas fa-pen"></i>
-                    </Button>
-                </Tooltip>
-
-                <Popconfirm Title=@($"Bạn có chắc muốn xóa danh mục {data.Name}?") OnConfirm="() => DeleteCategory(data.Id)"
-                    OkText="Đồng ý" CancelText="Hủy">
-                    <Tooltip Title="Xóa">
-                        <Button Size="ButtonSize.Small" Danger Shape="ButtonShape.Circle">
-                            <i class="fas fa-minus"></i>
+                    <Tooltip Title="Sửa">
+                        <Button Size="ButtonSize.Small" @onclick="() => StartEdit(data.Id)" Shape="ButtonShape.Circle">
+                            <i class="fas fa-pen"></i>
                         </Button>
                     </Tooltip>
-                </Popconfirm>
+
+                    <Popconfirm Title=@($"Bạn có chắc muốn xóa danh mục {data.Name}?") OnConfirm="() => DeleteCategory(data.Id)"
+                        OkText="Đồng ý" CancelText="Hủy">
+                        <Tooltip Title="Xóa">
+                            <Button Size="ButtonSize.Small" Danger Shape="ButtonShape.Circle">
+                                <i class="fas fa-minus"></i>
+                            </Button>
+                        </Tooltip>
+                    </Popconfirm>
             }
             else
             {
-                <Tooltip Title="Lưu">
-                    <Button Size="ButtonSize.Small" @onclick="() => SaveEdit(data.Id)" Shape="ButtonShape.Circle">
-                        <i class="fas fa-check"></i>
-                    </Button>
-                </Tooltip>
+                    <Tooltip Title="Lưu">
+                        <Button Size="ButtonSize.Small" @onclick="() => SaveEdit(data.Id)" Shape="ButtonShape.Circle">
+                            <i class="fas fa-check"></i>
+                        </Button>
+                    </Tooltip>
 
-                <Popconfirm Title=@($"Bạn có chắc muốn hủy chỉnh sửa danh mục {data.Name}?")
-                    OnConfirm="() => CancelEdit(data.Id)" OkText="Đồng ý" CancelText="Hủy">
-                    <Button Size="ButtonSize.Small" Shape="ButtonShape.Circle">
-                        <i class="fa-solid fa-xmark"></i>
-                    </Button>
-                </Popconfirm>
+                    <Popconfirm Title=@($"Bạn có chắc muốn hủy chỉnh sửa danh mục {data.Name}?")
+                        OnConfirm="() => CancelEdit(data.Id)" OkText="Đồng ý" CancelText="Hủy">
+                        <Button Size="ButtonSize.Small" Shape="ButtonShape.Circle">
+                            <i class="fa-solid fa-xmark"></i>
+                        </Button>
+                    </Popconfirm>
             }
         </ActionColumn>
     </ChildContent>
@@ -131,40 +131,40 @@
             <h4>Sản phẩm trong danh mục "@data.Data.Name"</h4>
             @if (expandedCategoryProducts.ContainsKey(data.Data.Id) && expandedCategoryProducts[data.Data.Id].Any())
             {
-                <Table DataSource="expandedCategoryProducts[data.Data.Id]" TItem="ProductPreviewDTO" Size="TableSize.Small">
-                    <Column TData="string" Title="Ảnh" Width="80">
-                        <Image Width="60" Height="60" Fallback="@(ApiBaseUrl + "/" + "/Images/fallback.jpeg")"
-                            Src="@GetProductImageUrl(context.Thumbnail)" Class="search-result-image" />
-                    </Column>
-                    <Column TData="string" Title="Sản phẩm" Width="200">
-                        <div>
-                            <div><Text Strong>@context.Name</Text></div>
-                        </div>
-                    </Column>
-                    <Column TData="float?" Title="Giá" Width="150" Align="@ColumnAlign.Right">
-                        @if (context.MinPrice.HasValue && context.MaxPrice.HasValue)
-                        {
-                            @if (context.MinPrice == context.MaxPrice)
+                    <Table DataSource="expandedCategoryProducts[data.Data.Id]" TItem="ProductPreviewDTO" Size="TableSize.Small">
+                        <Column TData="string" Title="Ảnh" Width="80">
+                            <Image Width="60" Height="60" Fallback="@(ApiBaseUrl + "/" + "/Images/fallback.jpeg")"
+                                Src="@GetProductImageUrl(context.Thumbnail)" Class="search-result-image" />
+                        </Column>
+                        <Column TData="string" Title="Sản phẩm" Width="200">
+                            <div>
+                                <div><Text Strong>@context.Name</Text></div>
+                            </div>
+                        </Column>
+                        <Column TData="float?" Title="Giá" Width="150" Align="@ColumnAlign.Right">
+                            @if (context.MinPrice.HasValue && context.MaxPrice.HasValue)
                             {
-                                @($"{context.MinPrice:N0} ₫")
+                                    @if (context.MinPrice == context.MaxPrice)
+                                    {
+                                            @($"{context.MinPrice:N0} ₫")
+                                    }
+                                    else
+                                    {
+                                            @($"{context.MinPrice:N0} - {context.MaxPrice:N0} ₫")
+                                    }
                             }
                             else
                             {
-                                @($"{context.MinPrice:N0} - {context.MaxPrice:N0} ₫")
+                                    <span style="color: #999;">Chưa có giá</span>
                             }
-                        }
-                        else
-                        {
-                            <span style="color: #999;">Chưa có giá</span>
-                        }
-                    </Column>
-                </Table>
+                        </Column>
+                    </Table>
             }
             else
             {
-                <div class="text-center p-3">
-                    <p>Chưa có sản phẩm nào trong danh mục này</p>
-                </div>
+                    <div class="text-center p-3">
+                        <p>Chưa có sản phẩm nào trong danh mục này</p>
+                    </div>
             }
         </div>
     </ExpandTemplate>

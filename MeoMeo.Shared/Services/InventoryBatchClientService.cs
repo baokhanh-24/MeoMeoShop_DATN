@@ -51,7 +51,7 @@ namespace MeoMeo.Shared.Services
                     Message = "Không có dữ liệu trả về"
                 };
             }
-            catch (Exception ex) 
+            catch (Exception ex)
             {
                 _logger.LogError(ex, "Có lỗi xảy ra khi tạo InventotyBatch : {Message}", ex.Message);
                 return new InventoryBatchResponseDTO
@@ -85,6 +85,29 @@ namespace MeoMeo.Shared.Services
             }
         }
 
+        public async Task<InventoryBatchResponseDTO> UpdateInventoryBatchStatusAsync(UpdateInventoryBatchStatusDTO dto)
+        {
+            try
+            {
+                var url = "/api/InventoryBatches/update-status-async";
+                var result = await _httpClient.PutAsync<UpdateInventoryBatchStatusDTO, InventoryBatchResponseDTO>(url, dto);
+                return result ?? new InventoryBatchResponseDTO
+                {
+                    ResponseStatus = BaseStatus.Error,
+                    Message = "Không có dữ liệu trả về"
+                };
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Có lỗi xảy ra khi cập nhật trạng thái InventoryBatch {Id} : {Message}", dto.Id, ex.Message);
+                return new InventoryBatchResponseDTO
+                {
+                    ResponseStatus = BaseStatus.Error,
+                    Message = ex.Message
+                };
+            }
+        }
+
         public async Task<bool> DeleteInventoryBatchAsync(Guid id)
         {
             try
@@ -99,7 +122,7 @@ namespace MeoMeo.Shared.Services
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Có lỗi xảy ra khi xóa InventoryBatch {Id} : {Message}",id, ex.Message);
+                _logger.LogError(ex, "Có lỗi xảy ra khi xóa InventoryBatch {Id} : {Message}", id, ex.Message);
                 return false;
             }
         }

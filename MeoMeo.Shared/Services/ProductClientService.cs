@@ -278,7 +278,7 @@ namespace MeoMeo.Shared.Services
                         $"ProductVariants[{i}].ClosureType");
                     formData.Add(new StringContent(variant.AllowReturn.ToString()),
                         $"ProductVariants[{i}].AllowReturn");
-                    formData.Add(new StringContent(variant.Status.ToString()), $"ProductVariants[{i}].Status");
+                    formData.Add(new StringContent(Convert.ToInt32(variant.Status).ToString()), $"ProductVariants[{i}].Status");
                     formData.Add(new StringContent("0"), $"ProductVariants[{i}].ViewNumber");
                     formData.Add(new StringContent("0"), $"ProductVariants[{i}].SellNumber");
                 }

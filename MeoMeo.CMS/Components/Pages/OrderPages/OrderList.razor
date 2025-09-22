@@ -1,5 +1,5 @@
 @page "/manage-order"
-@attribute [Authorize(Roles = "Admin,Employee")]
+@* @attribute [Authorize(Roles = "Admin,Employee")] *@
 @using System.ComponentModel.DataAnnotations
 @using System.Globalization
 @using System.Reflection
@@ -17,6 +17,7 @@
 @inject NavigationManager Navigation
 @using ButtonSize = AntDesign.ButtonSize
 @using ButtonType = AntDesign.ButtonType
+@inject IConfiguration Configuration
 <div class="d-flex justify-content-between">
     <Breadcrumb>
         <BreadcrumbItem Href="/">Trang chủ</BreadcrumbItem>
@@ -25,45 +26,45 @@
     <div>
         @if (selectedRows != null && selectedRows.Any())
         {
-                if (filter.OrderStatusFilter == EOrderStatus.Pending)
-                {
-                        <Button Class="mb-2" OnClick="() => ShowPopUpConfirm(EOrderStatus.Confirmed)">
-                            <i class="fa-solid fa-circle-check"></i>  Xác nhận
-                        </Button>
-                }
-                else if (filter.OrderStatusFilter == EOrderStatus.Confirmed)
-                {
-                        <Button Class="mb-2" OnClick="() => ShowPopUpConfirm(EOrderStatus.InTransit)">
-                            <i class="fa-solid fa-truck"></i>  Giao hàng
-                        </Button>     
-                        <Button Class="mb-2" OnClick="() => ShowPopUpConfirm(EOrderStatus.Canceled)">
-                            <i class="fa-solid fa-xmark"></i>  Hủy đơn
-                        </Button>
-                }
-                else if (filter.OrderStatusFilter == EOrderStatus.InTransit)
-                {
-                        <Button Class="mb-2" OnClick="() => ShowPopUpConfirm(EOrderStatus.Completed)">
-                            <i class="fa-solid fa-check-double"></i>  Hoàn thành
-                        </Button>     
-                        <Button Class="mb-2" OnClick="() => ShowPopUpConfirm(EOrderStatus.Canceled)">
-                            <i class="fa-solid fa-xmark"></i>  Hủy đơn
-                        </Button>
-                }
-                else if (filter.OrderStatusFilter == EOrderStatus.PendingReturn)
-                {
-                        <Button Class="mb-2" OnClick="() => ShowPopUpConfirm(EOrderStatus.Returned)">
-                            <i class="fa-solid fa-check"></i>  Chấp nhận hoàn trả
-                        </Button>     
-                        <Button Class="mb-2" OnClick="() => ShowPopUpConfirm(EOrderStatus.RejectReturned)">
-                            <i class="fa-solid fa-times"></i>  Từ chối hoàn trả
-                        </Button>
-                }
-                else if (filter.OrderStatusFilter == EOrderStatus.Returned)
-                {
-                        <Button Class="mb-2" OnClick="() => ShowPopUpConfirm(EOrderStatus.Completed)">
-                            <i class="fa-solid fa-check-double"></i>  Hoàn tất hoàn trả
-                        </Button>
-                }
+                            if (filter.OrderStatusFilter == EOrderStatus.Pending)
+                            {
+                                                <Button Class="mb-2" OnClick="() => ShowPopUpConfirm(EOrderStatus.Confirmed)">
+                                                    <i class="fa-solid fa-circle-check"></i>  Xác nhận
+                                                </Button>
+                            }
+                            else if (filter.OrderStatusFilter == EOrderStatus.Confirmed)
+                            {
+                                                <Button Class="mb-2" OnClick="() => ShowPopUpConfirm(EOrderStatus.InTransit)">
+                                                    <i class="fa-solid fa-truck"></i>  Giao hàng
+                                                </Button>     
+                                                <Button Class="mb-2" OnClick="() => ShowPopUpConfirm(EOrderStatus.Canceled)">
+                                                    <i class="fa-solid fa-xmark"></i>  Hủy đơn
+                                                </Button>
+                            }
+                            else if (filter.OrderStatusFilter == EOrderStatus.InTransit)
+                            {
+                                                <Button Class="mb-2" OnClick="() => ShowPopUpConfirm(EOrderStatus.Completed)">
+                                                    <i class="fa-solid fa-check-double"></i>  Hoàn thành
+                                                </Button>     
+                                                <Button Class="mb-2" OnClick="() => ShowPopUpConfirm(EOrderStatus.Canceled)">
+                                                    <i class="fa-solid fa-xmark"></i>  Hủy đơn
+                                                </Button>
+                            }
+                            else if (filter.OrderStatusFilter == EOrderStatus.PendingReturn)
+                            {
+                                                <Button Class="mb-2" OnClick="() => ShowPopUpConfirm(EOrderStatus.Returned)">
+                                                    <i class="fa-solid fa-check"></i>  Chấp nhận hoàn trả
+                                                </Button>     
+                                                <Button Class="mb-2" OnClick="() => ShowPopUpConfirm(EOrderStatus.RejectReturned)">
+                                                    <i class="fa-solid fa-times"></i>  Từ chối hoàn trả
+                                                </Button>
+                            }
+                            else if (filter.OrderStatusFilter == EOrderStatus.Returned)
+                            {
+                                                <Button Class="mb-2" OnClick="() => ShowPopUpConfirm(EOrderStatus.Completed)">
+                                                    <i class="fa-solid fa-check-double"></i>  Hoàn tất hoàn trả
+                                                </Button>
+                            }
         }
         <Button OnClick="() => ExpandCollapseOrder()" Type="ButtonType.Primary" Class="mb-2">
             <i class="fa-solid @(isExpaned ? "fa-minimize" : "fa-up-right-and-down-left-from-center")"></i>
@@ -79,8 +80,8 @@
     <p>@_modalText</p>
     @if (targetStatusOrder == EOrderStatus.Canceled)
     {
-        <div class="mb-2">Lý do: <spann class="text-danger"> *</spann> </div>
-            <TextArea @bind-Value="reason"></TextArea>
+                    <div class="mb-2">Lý do: <spann class="text-danger"> *</spann> </div>
+                        <TextArea @bind-Value="reason"></TextArea>
     }
 </Modal>
 
@@ -149,12 +150,12 @@
     <ColumnDefinitions>
         @if (activeTab != "All")
         {
-                <Selection Type="@selectionType"/>
+                            <Selection Type="@selectionType"/>
         }
         <Column TData="OrderDTO" Title="STT">
                 @{
-                        var indexInPage = orders.IndexOf(context);
-                        var stt = (filter.PageIndex - 1) * filter.PageSize + indexInPage + 1;
+                                    var indexInPage = orders.IndexOf(context);
+                                    var stt = (filter.PageIndex - 1) * filter.PageSize + indexInPage + 1;
                 }
                 @stt
         </Column>
@@ -163,9 +164,11 @@
         <PropertyColumn Property="o => o.CustomerPhoneNumber" Title="SĐT"/>
         <PropertyColumn Property="o => o.CustomerEmail" Title="Email"/>
         <PropertyColumn Property="o => o.CreationTime" Title="Thời gian đặt hàng"/>
-        @* <PropertyColumn Property="o => o.DeliveryDate" Title="Thời gian giao hàng"/> *@
         <PropertyColumn Property="o => o.TotalPrice" Title="Tổng tiền (đ)"/>
 
+        <Column TData="OrderDTO" Title="Loại đơn hàng">
+            @GetOrderTypeName(context.Type)
+        </Column>
         <Column TData="OrderDTO" Title="Phương thức thanh toán">
             @GetPaymentMethodName(context.PaymentMethod)
         </Column>
@@ -179,58 +182,56 @@
 
         @if (context.Status == EOrderStatus.Pending)
         {
-                <Tooltip Title="Xác nhận đơn">
-                    <Button Size="ButtonSize.Small" Shape="ButtonShape.Circle" OnClick="@(() => OnClickConfirm(EOrderStatus.Confirmed, context))">
-                        <i class="fa-solid fa-circle-check text-success"></i>
-                    </Button>
-                </Tooltip>
+                            <Tooltip Title="Xác nhận đơn">
+                                <Button Size="ButtonSize.Small" Shape="ButtonShape.Circle" OnClick="@(() => OnClickConfirm(EOrderStatus.Confirmed, context))">
+                                    <i class="fa-solid fa-circle-check text-success"></i>
+                                </Button>
+                            </Tooltip>
         }
         else if (context.Status == EOrderStatus.Confirmed)
         {
-                <Tooltip Title="Giao hàng">
-                    <Button Size="ButtonSize.Small" Shape="ButtonShape.Circle" OnClick="@(() => OnClickConfirm(EOrderStatus.InTransit, context))">
-                        <i class="fa-solid fa-truck text-primary"></i>
-                    </Button>
-                </Tooltip>
-                <Tooltip Title="Huỷ đơn">
-                    <Button Size="ButtonSize.Small" Shape="ButtonShape.Circle" OnClick="@(() => OnClickConfirm(EOrderStatus.Canceled, context))">
-                        <i class="fa-solid fa-xmark text-danger"></i>
-                    </Button>
-                </Tooltip>
+                            <Tooltip Title="Giao hàng">
+                                <Button Size="ButtonSize.Small" Shape="ButtonShape.Circle" OnClick="@(() => OnClickConfirm(EOrderStatus.InTransit, context))">
+                                    <i class="fa-solid fa-truck text-primary"></i>
+                                </Button>
+                            </Tooltip>
+                            <Tooltip Title="Huỷ đơn">
+                                <Button Size="ButtonSize.Small" Shape="ButtonShape.Circle" OnClick="@(() => OnClickConfirm(EOrderStatus.Canceled, context))">
+                                    <i class="fa-solid fa-xmark text-danger"></i>
+                                </Button>
+                            </Tooltip>
         }
         else if (context.Status == EOrderStatus.InTransit)
         {
-                <Tooltip Title="Hoàn thành">
-                    <Button Size="ButtonSize.Small" Shape="ButtonShape.Circle" OnClick="@(() => OnClickConfirm(EOrderStatus.Completed, context))">
-                        <i class="fa-solid fa-check-double text-success"></i>
-                    </Button>
-                </Tooltip>
-                <Tooltip Title="Huỷ đơn">
-                    <Button Size="ButtonSize.Small" Shape="ButtonShape.Circle" OnClick="@(() => OnClickConfirm(EOrderStatus.Canceled, context))">
-                        <i class="fa-solid fa-xmark text-danger"></i>
-                    </Button>
-                </Tooltip>
+                            <Tooltip Title="Hoàn thành">
+                                <Button Size="ButtonSize.Small" Shape="ButtonShape.Circle" OnClick="@(() => OnClickConfirm(EOrderStatus.Completed, context))">
+                                    <i class="fa-solid fa-check-double text-success"></i>
+                                </Button>
+                            </Tooltip>
+                            <Tooltip Title="Huỷ đơn">
+                                <Button Size="ButtonSize.Small" Shape="ButtonShape.Circle" OnClick="@(() => OnClickConfirm(EOrderStatus.Canceled, context))">
+                                    <i class="fa-solid fa-xmark text-danger"></i>
+                                </Button>
+                            </Tooltip>
         }
         else if (context.Status == EOrderStatus.PendingReturn)
         {
-                <Tooltip Title="Chấp nhận hoàn trả">
-                    <Button Size="ButtonSize.Small" Shape="ButtonShape.Circle" OnClick="@(() => OnClickConfirm(EOrderStatus.Returned, context))">
-                        <i class="fa-solid fa-check text-success"></i>
-                    </Button>
-                </Tooltip>
-                <Tooltip Title="Từ chối hoàn trả">
-                    <Button Size="ButtonSize.Small" Shape="ButtonShape.Circle" OnClick="@(() => OnClickConfirm(EOrderStatus.RejectReturned, context))">
-                        <i class="fa-solid fa-times text-danger"></i>
-                    </Button>
-                </Tooltip>
+                    @if (context.OrderReturn != null)
+                    {
+                                <Tooltip Title="Xem chi tiết phiếu hoàn trả">
+                                    <Button Size="ButtonSize.Small" Shape="ButtonShape.Circle" OnClick="@(() => ShowOrderReturnDialog(context.OrderReturn))">
+                                        <i class="fas fa-info-circle"></i>
+                                    </Button>
+                                </Tooltip>
+                    }
         }
         else if (context.Status == EOrderStatus.Returned)
         {
-                <Tooltip Title="Hoàn tất hoàn trả">
-                    <Button Size="ButtonSize.Small" Shape="ButtonShape.Circle" OnClick="@(() => OnClickConfirm(EOrderStatus.Completed, context))">
-                        <i class="fa-solid fa-check-double text-success"></i>
-                    </Button>
-                </Tooltip>
+                            <Tooltip Title="Hoàn tất hoàn trả">
+                                <Button Size="ButtonSize.Small" Shape="ButtonShape.Circle" OnClick="@(() => OnClickConfirm(EOrderStatus.Completed, context))">
+                                    <i class="fa-solid fa-check-double text-success"></i>
+                                </Button>
+                            </Tooltip>
         }
         
         <Tooltip Title="Lịch sử">
@@ -251,110 +252,125 @@
     <ExpandTemplate>
         @if (context.Data.OrderDetails.Any())
         {
-                <div class="row">
-                    <div class="col-3">
-                        <div class="space-coverage">
-                            <div class="title mb-2">
-                                Thông tin nhận hàng
-                            </div>
-                            <div class="d-flex justify-content-between">
-                                <div class="left-content">
-                                    Họ tên
-                                </div>
-                                <div class="right-content">
-                                    @context.Data.CustomerName
-                                </div>
-                            </div>
-                            <hr/>
-                            <div class="d-flex justify-content-between">
-                                <div class="left-content">
-                                    Điện thoại
-                                </div>
-                                <div class="right-content">
-                                    @context.Data.CustomerPhoneNumber
-                                </div>
-                            </div>
-                            <hr/>
-                            <div class="d-flex justify-content-between">
-                                <div class="left-content">
-                                    Địa chỉ
-                                </div>
-                                <div class="right-content">
-                                    @context.Data.DeliveryAddress
-                                </div>
-                            </div>
-                            <hr/>
-                            <div class="d-flex justify-content-between">
-                                <div class="left-content">
-                                    Ghi chú
-                                </div>
-                                <div class="right-content">
-                                    @context.Data.Note
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="col-9">
-                        <div class="space-coverage">
-                            <Table TItem="OrderDetailDTO" DataSource="(context.Data.OrderDetails)" Size="TableSize.Middle">
-                                <ColumnDefinitions Context="detailContext">
-                                    <PropertyColumn Property="d => d.ProductName" Title="Tên sản phẩm"/>
-                                    <PropertyColumn Property="d => d.Sku" Title="SKU"/>
-                                    <PropertyColumn Property="d => d.Quantity" Title="Số lượng"/>
-                                    <PropertyColumn Property="d => FormatCurrency.ToVnCurrency((decimal)d.Price, true)" Title="Giá"/>
-                                    <PropertyColumn Property="d => d.Discount" Title="Giảm giá"/>
-                                    <PropertyColumn Property="d => FormatCurrency.ToVnCurrency((decimal)d.GrandTotal, true)" Title="Thành tiền"/>
-                                </ColumnDefinitions>
-                            </Table>
                             <div class="row">
-                                <div class="col-8">
-
+                                <div class="col-3">
+                                    <div class="space-coverage">
+                                        <div class="title mb-2">
+                                            Thông tin nhận hàng
+                                        </div>
+                                        <div class="d-flex justify-content-between">
+                                            <div class="left-content">
+                                                Họ tên
+                                            </div>
+                                            <div class="right-content">
+                                                @context.Data.CustomerName
+                                            </div>
+                                        </div>
+                                        <hr/>
+                                        <div class="d-flex justify-content-between">
+                                            <div class="left-content">
+                                                Điện thoại
+                                            </div>
+                                            <div class="right-content">
+                                                @context.Data.CustomerPhoneNumber
+                                            </div>
+                                        </div>
+                                        <hr/>
+                                        <div class="d-flex justify-content-between">
+                                            <div class="left-content">
+                                                Địa chỉ
+                                            </div>
+                                            <div class="right-content">
+                                                @context.Data.DeliveryAddress
+                                            </div>
+                                        </div>
+                                        <hr/>
+                                        <div class="d-flex justify-content-between">
+                                            <div class="left-content">
+                                                Ghi chú
+                                            </div>
+                                            <div class="right-content">
+                                                @context.Data.Note
+                                            </div>
+                                        </div>
+                                        <hr/>
+                                        @if (!string.IsNullOrEmpty(context.Data.Reason))
+                                        {
+                                                        <div class="d-flex justify-content-between">
+                                                            <div class="left-content">
+                                                                Lý do hủy
+                                                            </div>
+                                                            <div class="right-content text-danger">
+                                                                @context.Data.Reason
+                                                            </div>
+                                                        </div>
+                                                        <hr/>
+                                        }
+                                    </div>
                                 </div>
-                                <div class="col-4">
-                                    <div class="d-flex justify-content-between mb-2">
-                                        <div class="left-content">
-                                            Cộng thành tiền:
-                                        </div>
-                                        <div class="right-content">
-                                            @(FormatCurrency.ToVnCurrency((decimal)context.Data.OrderDetails.Sum(c => c.GrandTotal), true))
-                                        </div>
-                                    </div>
-                                    <div class="d-flex justify-content-between mb-2">
-                                        <div class="left-content">
-                                            Phí vận chuyển:
+                                <div class="col-9">
+                                    <div class="space-coverage">
+                                        <Table TItem="OrderDetailDTO" DataSource="(context.Data.OrderDetails)" Size="TableSize.Middle">
+                                            <ColumnDefinitions Context="detailContext">
+                                                <PropertyColumn Property="d => d.ProductName" Title="Tên sản phẩm"/>
+                                                <PropertyColumn Property="d => d.Sku" Title="SKU"/>
+                                                <PropertyColumn Property="d => d.SizeName" Title="Size"/>
+                                                <PropertyColumn Property="d => d.ColourName" Title="Màu sắc"/>
+                                                <PropertyColumn Property="d => d.Quantity" Title="Số lượng"/>
+                                                <PropertyColumn Property="d => FormatCurrency.ToVnCurrency((decimal)d.Price, true)" Title="Giá"/>
+                                                <PropertyColumn Property="d => d.Discount" Title="Giảm giá"/>
+                                                <PropertyColumn Property="d => FormatCurrency.ToVnCurrency((decimal)d.GrandTotal, true)" Title="Thành tiền"/>
+                                            </ColumnDefinitions>
+                                        </Table>
+                                        <div class="row">
+                                            <div class="col-8">
 
-                                        </div>
-                                        <div class="right-content">
-                                            @(FormatCurrency.ToVnCurrency(context.Data.ShippingFee ?? 0, true))
+                                            </div>
+                                            <div class="col-4">
+                                                <div class="d-flex justify-content-between mb-2">
+                                                    <div class="left-content">
+                                                        Cộng thành tiền:
+                                                    </div>
+                                                    <div class="right-content">
+                                                        @(FormatCurrency.ToVnCurrency((decimal)context.Data.OrderDetails.Sum(c => c.GrandTotal), true))
+                                                    </div>
+                                                </div>
+                                                <div class="d-flex justify-content-between mb-2">
+                                                    <div class="left-content">
+                                                        Phí vận chuyển:
+
+                                                    </div>
+                                                    <div class="right-content">
+                                                        @(FormatCurrency.ToVnCurrency(context.Data.ShippingFee ?? 0, true))
+                                                    </div>
+                                                </div>
+                                                <div class="d-flex justify-content-between mb-2">
+                                                    <div class="left-content">
+                                                        Mã giảm giá:
+                                                    </div>
+                                                    <div class="right-content">
+                                                        - @(FormatCurrency.ToVnCurrency(context.Data.DiscountPrice ?? 0, true))
+                                                    </div>
+                                                </div>
+                                                <hr>
+                                                <div class="d-flex justify-content-between mb-2">
+                                                    <div class="left-content">
+                                                        Tổng tiền:
+                                                    </div>
+                                                    <div class="right-content">
+                                                         @(FormatCurrency.ToVnCurrency(context.Data.TotalPrice, true))
+                                                    </div>
+                                                </div>
+                                            </div>
                                         </div>
                                     </div>
-                                    <div class="d-flex justify-content-between mb-2">
-                                        <div class="left-content">
-                                            Mã giảm giá:
-                                        </div>
-                                        <div class="right-content">
-                                            - @(FormatCurrency.ToVnCurrency(context.Data.DiscountPrice ?? 0, true))
-                                        </div>
-                                    </div>
-                                    <hr>
-                                    <div class="d-flex justify-content-between mb-2">
-                                        <div class="left-content">
-                                            Tổng tiền:
-                                        </div>
-                                        <div class="right-content">
-                                             @(FormatCurrency.ToVnCurrency(context.Data.TotalPrice, true))
-                                        </div>
-                                    </div>
+
                                 </div>
                             </div>
-                        </div>
-
-                    </div>
-                </div>
         }
         else
         {
-                <span>Không có chi tiết đơn hàng</span>
+                            <span>Không có chi tiết đơn hàng</span>
         }
     </ExpandTemplate>
 </Table>
@@ -364,6 +380,212 @@
                OnClose="@CloseDrawer"
                Items="@orderHistories">
 </DrawerHistory>
+
+<!-- Order Return Dialog -->
+<Modal Title="Chi tiết đơn hoàn hàng" 
+       Visible="@orderReturnDialogVisible"
+       OnCancel="@(() => orderReturnDialogVisible = false)"
+       Footer="null"
+       Width="800">
+    @if (selectedOrderReturn != null)
+    {
+                <div class="order-return-detail">
+                    <!-- Basic Info -->
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <div class="info-item">
+                                <label>Mã đơn hoàn hàng:</label>
+                                <span class="value">@selectedOrderReturn.Code</span>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="info-item">
+                                <label>Trạng thái:</label>
+                                <span class="badge bg-info">@selectedOrderReturn.StatusDisplayName</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <div class="info-item">
+                                <label>Lý do hoàn hàng:</label>
+                                <span class="value">@selectedOrderReturn.Reason</span>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="info-item">
+                                <label>Phương thức hoàn tiền:</label>
+                                <span class="value">@selectedOrderReturn.RefundMethodDisplayName</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <div class="info-item">
+                                <label>Số tiền hoàn:</label>
+                                <span class="value text-success fw-bold">@FormatCurrency.ToVnCurrency(selectedOrderReturn.TotalRefundAmount, true)</span>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="info-item">
+                                <label>Số lượng sản phẩm:</label>
+                                <span class="value">@selectedOrderReturn.TotalItemCount</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Products Returned -->
+                    @if (selectedOrderReturn.Items != null && selectedOrderReturn.Items.Any())
+                    {
+                                <div class="mb-3">
+                                    <h6>Sản phẩm hoàn trả</h6>
+                                    <div class="table-responsive">
+                                        <table class="table table-sm table-bordered">
+                                            <thead class="table-light">
+                                                <tr>
+                                                    <th>Sản phẩm</th>
+                                                    <th>Size</th>
+                                                    <th>Màu sắc</th>
+                                                    <th>SKU</th>
+                                                    <th>Số lượng</th>
+                                                    <th>Đơn giá</th>
+                                                    <th>Thành tiền</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                @foreach (var item in selectedOrderReturn.Items)
+                                                {
+                                                            <tr>
+                                                                <td>
+                                                                    <div class="d-flex align-items-center">
+                                                                        @if (!string.IsNullOrEmpty(item.ImageUrl))
+                                                                        {
+                                                                                    <Image Src="@(backendUrl + "/" + item.ImageUrl)" 
+                                                                                           Width="40" 
+                                                                                           Height="40" 
+                                                                                           Class="me-2 rounded"
+                                                                                           Preview="true"/>
+                                                                        }
+                                                                        <span>@item.ProductName</span>
+                                                                    </div>
+                                                                </td>
+                                                                <td>@item.SizeName</td>
+                                                                <td>@item.ColourName</td>
+                                                                <td>@item.Sku</td>
+                                                                <td class="text-center">@item.Quantity</td>
+                                                                <td class="text-end">@FormatCurrency.ToVnCurrency(item.UnitPrice, true)</td>
+                                                                <td class="text-end fw-bold">@FormatCurrency.ToVnCurrency(item.TotalPrice, true)</td>
+                                                            </tr>
+                                                }
+                                            </tbody>
+                                            <tfoot class="table-light">
+                                                <tr>
+                                                    <td colspan="6" class="text-end fw-bold">Tổng cộng:</td>
+                                                    <td class="text-end fw-bold text-success">@FormatCurrency.ToVnCurrency(selectedOrderReturn.TotalRefundAmount, true)</td>
+                                                </tr>
+                                            </tfoot>
+                                        </table>
+                                    </div>
+                                </div>
+                    }
+
+                    <!-- Bank Information -->
+                    @if (selectedOrderReturn.BankInfo != null && selectedOrderReturn.RefundMethod == ERefundMethod.ViaShipper)
+                    {
+                                <div class="mb-3">
+                                    <h6>Thông tin ngân hàng</h6>
+                                    <div class="row">
+                                        <div class="col-md-6">
+                                            <div class="info-item">
+                                                <label>Tên ngân hàng:</label>
+                                                <span class="value">@selectedOrderReturn.BankInfo.BankName</span>
+                                            </div>
+                                        </div>
+                                        <div class="col-md-6">
+                                            <div class="info-item">
+                                                <label>Số tài khoản:</label>
+                                                <span class="value fw-bold">@selectedOrderReturn.BankInfo.AccountNumber</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="row">
+                                        <div class="col-md-6">
+                                            <div class="info-item">
+                                                <label>Tên chủ tài khoản:</label>
+                                                <span class="value">@selectedOrderReturn.BankInfo.AccountHolderName</span>
+                                            </div>
+                                        </div>
+                                        @if (!string.IsNullOrEmpty(selectedOrderReturn.BankInfo.BranchName))
+                                        {
+                                                    <div class="col-md-6">
+                                                        <div class="info-item">
+                                                            <label>Chi nhánh:</label>
+                                                            <span class="value">@selectedOrderReturn.BankInfo.BranchName</span>
+                                                        </div>
+                                                    </div>
+                                        }
+                                    </div>
+                                </div>
+                    }
+                    @if (selectedOrderReturn.Files != null && selectedOrderReturn.Files.Any())
+                    {
+                                <div class="mb-3">
+                                    <h6>File đính kèm</h6>
+                                    <div class="order-return-files-grid">
+                                        @foreach (var file in selectedOrderReturn.Files)
+                                        {
+                                                    <div class="file-preview-item">
+                                                        @if (file.ContentType.StartsWith("video/"))
+                                                        {
+                                                                    <div class="video-preview-container">
+                                                                        <video controls class="file-preview-video">
+                                                                            <source src="@file.Url" type="video/mp4"/>
+                                                                            Trình duyệt của bạn không hỗ trợ video.
+                                                                        </video>
+                                                                        <div class="file-info">
+                                                                            <div class="file-name">@file.Name</div>
+                                                                            <div class="file-type">Video</div>
+                                                                        </div>
+                                                                    </div>
+                                                        }
+                                                        else if (file.ContentType.StartsWith("image/"))
+                                                        {
+                                                                    <div class="image-preview-container">
+                                                                        <Image Src="@(backendUrl + "/" + file.Url)" 
+                                                                               Class="file-preview-image" 
+                                                                               Alt="@file.Name"
+                                                                               Preview="true"/>
+                                                                    </div>
+                                                        }
+                                
+                                                    </div>
+                                        }
+                                    </div>
+                                </div>
+                    }
+
+                    <!-- Action Buttons -->
+                    @if (selectedOrderReturn.Status == EOrderReturnStatus.Pending)
+                    {
+                                <div class="d-flex justify-content-end gap-2 mt-4">
+                                    <Button Type="ButtonType.Default" 
+                                            Danger="true"
+                                            OnClick="@(() => HandleOrderReturnAction(EOrderReturnStatus.Rejected))"
+                                            Loading="@isProcessingOrderReturn">
+                                        <i class="fas fa-times"></i> Từ chối
+                                    </Button>
+                                    <Button Type="ButtonType.Primary" 
+                                            OnClick="@(() => HandleOrderReturnAction(EOrderReturnStatus.Approved))"
+                                            Loading="@isProcessingOrderReturn">
+                                        <i class="fas fa-check"></i> Chấp nhận
+                                    </Button>
+                                </div>
+                    }
+                </div>
+    }
+</Modal>
 
 
 
@@ -401,8 +623,16 @@
     };
     private List<OrderHistoryDTO> orderHistories = new List<OrderHistoryDTO>();
     private bool isDrawerVisible = false;
+    
+    // Order Return Dialog
+    private bool orderReturnDialogVisible = false;
+    private OrderReturnSummaryDTO? selectedOrderReturn = null;
+    private bool isProcessingOrderReturn = false;
+    private string backendUrl = "";
     protected override async Task OnInitializedAsync()
     {
+        backendUrl = Configuration["ApiSettings:BaseUrl"] ?? "";
+        
         orderStatusList = Enum.GetValues(typeof(EOrderStatus))
             .Cast<EOrderStatus>()
             .Select(x => (
@@ -626,9 +856,231 @@
         };
     }
 
+    string GetOrderTypeName(EOrderType type)
+    {
+        return type switch
+        {
+            EOrderType.Online => "Online",
+            EOrderType.Store => "Tại quầy",
+            _ => type.ToString()
+        };
+    }
+
     private void NavigateToOrderDetail(Guid orderId)
     {
         Navigation.NavigateTo($"/order-detail/{orderId}");
     }
 
+    private void ShowOrderReturnDialog(OrderReturnSummaryDTO orderReturn)
+    {
+        selectedOrderReturn = orderReturn;
+        orderReturnDialogVisible = true;
+    }
+
+    private async Task HandleOrderReturnAction(EOrderReturnStatus newStatus)
+    {
+        if (selectedOrderReturn == null) return;
+
+        isProcessingOrderReturn = true;
+        try
+        {
+            // TODO: Implement OrderReturn status update API call
+            // var result = await OrderReturnClientService.UpdateOrderReturnStatusAsync(selectedOrderReturn.Id, new UpdateOrderReturnStatusRequestDTO
+            // {
+            //     Status = newStatus
+            // });
+
+            // if (result.ResponseStatus == BaseStatus.Success)
+            // {
+            //     await MessageModalService.Success($"Cập nhật trạng thái hoàn hàng thành công!");
+            //     orderReturnDialogVisible = false;
+            //     await LoadOrdersAsync(); // Reload to get updated data
+            // }
+            // else
+            // {
+            //     await MessageModalService.Error($"Lỗi: {result.Message}");
+            // }
+
+            // Temporary success message
+            await MessageModalService.Success($"Đã {(newStatus == EOrderReturnStatus.Approved ? "chấp nhận" : "từ chối")} đơn hoàn hàng!");
+            orderReturnDialogVisible = false;
+        }
+        catch (Exception ex)
+        {
+            await MessageModalService.Error($"Lỗi: {ex.Message}");
+        }
+        finally
+        {
+            isProcessingOrderReturn = false;
+        }
+    }
+
 }
+
+<style>
+    /* Order Return Dialog */
+    .order-return-detail {
+        padding: 16px;
+    }
+
+    .info-item {
+        margin-bottom: 12px;
+    }
+
+    .info-item label {
+        font-weight: 600;
+        color: #666;
+        display: block;
+        margin-bottom: 4px;
+    }
+
+    .info-item .value {
+        color: #333;
+        font-size: 14px;
+    }
+
+    /* Order Return Products Table */
+    .table-responsive {
+        border-radius: 8px;
+        overflow: hidden;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    }
+
+    .table-sm th,
+    .table-sm td {
+        padding: 8px 12px;
+        vertical-align: middle;
+    }
+
+    .table-light th {
+        background-color: #f8f9fa;
+        font-weight: 600;
+        color: #495057;
+        border-bottom: 2px solid #dee2e6;
+    }
+
+    .table tbody tr:hover {
+        background-color: #f8f9fa;
+    }
+
+    .table tfoot tr {
+        background-color: #e9ecef;
+        font-weight: 600;
+    }
+
+    /* Order Return Files Display */
+    .order-return-files-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+        gap: 12px;
+        margin-top: 8px;
+    }
+
+    .file-preview-item {
+        border: 1px solid #e8e8e8;
+        border-radius: 8px;
+        overflow: hidden;
+        background: #fff;
+        transition: all 0.3s ease;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+    }
+
+    .file-preview-item:hover {
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+        transform: translateY(-2px);
+        border-color: #1890ff;
+    }
+
+    /* Video Preview */
+    .video-preview-container {
+        position: relative;
+    }
+
+    .file-preview-video {
+        width: 100%;
+        height: 120px;
+        object-fit: cover;
+        background: #f5f5f5;
+    }
+
+    /* Image Preview */
+    .image-preview-container {
+        position: relative;
+    }
+
+    .file-preview-image {
+        width: 100%;
+        height: 120px;
+        object-fit: cover;
+        background: #f5f5f5;
+        border-radius: 4px;
+    }
+
+    /* Ant Design Image specific styles */
+    .image-preview-container .ant-image {
+        width: 100%;
+        height: 120px;
+        display: block;
+    }
+
+    .image-preview-container .ant-image-img {
+        width: 100%;
+        height: 120px;
+        object-fit: cover;
+        border-radius: 4px;
+    }
+
+    .image-preview-container .ant-image-placeholder {
+        height: 120px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: #f5f5f5;
+        border-radius: 4px;
+    }
+
+    /* File Preview */
+    .file-preview-container {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        padding: 16px;
+        height: 120px;
+        justify-content: center;
+        position: relative;
+    }
+
+    .file-icon {
+        font-size: 32px;
+        color: #1890ff;
+        margin-bottom: 8px;
+    }
+
+    /* File Info */
+    .file-info {
+        padding: 8px;
+        background: rgba(0, 0, 0, 0.7);
+        color: white;
+        position: absolute;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        font-size: 12px;
+    }
+
+    .file-name {
+        font-weight: 600;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        margin-bottom: 2px;
+    }
+
+    .file-type {
+        opacity: 0.8;
+        font-size: 10px;
+    }
+
+    /* Responsive */
+   
+</style>

@@ -12,6 +12,7 @@ namespace MeoMeo.Shared.IServices
         Task<InventoryBatchDTO> GetInventoryBatchByIdAsync(Guid id);
         Task<InventoryBatchResponseDTO> CreateInventoryBatchAsync(List<InventoryBatchDTO> dto);
         Task<InventoryBatchResponseDTO> UpdateInventoryBatchAsync(InventoryBatchDTO dto);
+        Task<InventoryBatchResponseDTO> UpdateInventoryBatchStatusAsync(UpdateInventoryBatchStatusDTO dto);
         Task<bool> DeleteInventoryBatchAsync(Guid id);
     }
 }

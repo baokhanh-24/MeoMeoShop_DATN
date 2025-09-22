@@ -1,5 +1,5 @@
 ﻿@page "/employees-pages"
-@attribute [Authorize(Roles = "Admin")]
+@* @attribute [Authorize(Roles = "Admin")] *@
 @using System.ComponentModel.DataAnnotations
 @using System.Reflection
 @using AntDesign.TableModels
@@ -36,37 +36,37 @@
     <Modal Title="Chi tiết nhân viên" Visible="@showDetailModal" OnCancel="HideDetailModal" Footer="null" Width="800">
         @if (selectedEmployee != null)
         {
-            <Descriptions Column="2" Bordered>
-                <DescriptionsItem Title="Mã nhân viên">
-                    @selectedEmployee.Code
-                </DescriptionsItem>
-                <DescriptionsItem Title="Họ và tên">
-                    @selectedEmployee.Name
-                </DescriptionsItem>
-                <DescriptionsItem Title="Số điện thoại">
-                    @selectedEmployee.PhoneNumber
-                </DescriptionsItem>
-                <DescriptionsItem Title="Email">
-                    @(selectedEmployee.Email ?? "Chưa cập nhật")
-                </DescriptionsItem>
-                <DescriptionsItem Title="Ngày sinh">
-                    @(selectedEmployee.DateOfBird?.ToString("dd/MM/yyyy") ?? "Chưa cập nhật")
-                </DescriptionsItem>
-                <DescriptionsItem Title="Trạng thái">
-                    <Tag Color="@GetEmployeeStatusColor(selectedEmployee.StatusEnum)">
-                        @GetEmployeeStatusName(selectedEmployee.StatusEnum)
-                    </Tag>
-                </DescriptionsItem>
-                <DescriptionsItem Title="Địa chỉ" Span="2">
-                    @selectedEmployee.Address
-                </DescriptionsItem>
-            </Descriptions>
+                <Descriptions Column="2" Bordered>
+                    <DescriptionsItem Title="Mã nhân viên">
+                        @selectedEmployee.Code
+                    </DescriptionsItem>
+                    <DescriptionsItem Title="Họ và tên">
+                        @selectedEmployee.Name
+                    </DescriptionsItem>
+                    <DescriptionsItem Title="Số điện thoại">
+                        @selectedEmployee.PhoneNumber
+                    </DescriptionsItem>
+                    <DescriptionsItem Title="Email">
+                        @(selectedEmployee.Email ?? "Chưa cập nhật")
+                    </DescriptionsItem>
+                    <DescriptionsItem Title="Ngày sinh">
+                        @(selectedEmployee.DateOfBird?.ToString("dd/MM/yyyy") ?? "Chưa cập nhật")
+                    </DescriptionsItem>
+                    <DescriptionsItem Title="Trạng thái">
+                        <Tag Color="@GetEmployeeStatusColor(selectedEmployee.StatusEnum)">
+                            @GetEmployeeStatusName(selectedEmployee.StatusEnum)
+                        </Tag>
+                    </DescriptionsItem>
+                    <DescriptionsItem Title="Địa chỉ" Span="2">
+                        @selectedEmployee.Address
+                    </DescriptionsItem>
+                </Descriptions>
 
-            <div class="text-end mt-3">
-                <Button OnClick="HideDetailModal" Type="ButtonType.Default" Class="me-2">Đóng</Button>
-                <Button OnClick="EditEmployeeFromDetail" Type="ButtonType.Primary" Class="me-2">Chỉnh sửa</Button>
-                <Button OnClick="ChangePasswordFromDetail" Type="ButtonType.Default" Class="me-2">Đổi mật khẩu</Button>
-            </div>
+                <div class="text-end mt-3">
+                    <Button OnClick="HideDetailModal" Type="ButtonType.Default" Class="me-2">Đóng</Button>
+                    <Button OnClick="EditEmployeeFromDetail" Type="ButtonType.Primary" Class="me-2">Chỉnh sửa</Button>
+                    <Button OnClick="ChangePasswordFromDetail" Type="ButtonType.Default" Class="me-2">Đổi mật khẩu</Button>
+                </div>
         }
     </Modal>
 
@@ -74,60 +74,60 @@
     <Modal Title="Chỉnh sửa nhân viên" Visible="@showEditModal" OnCancel="HideEditModal" Footer="null" Width="800">
         @if (editingEmployee != null)
         {
-            <Form Model="@editingEmployee" OnFinish="HandleEditSubmit" Layout="@FormLayout.Vertical">
-                <div class="row">
-                    <div class="col-md-6">
-                        <FormItem Label="Họ và tên" Required>
-                            <Input @bind-Value="editingEmployee.Name" Placeholder="Nhập họ và tên" MaxLength="100" />
-                        </FormItem>
+                <Form Model="@editingEmployee" OnFinish="HandleEditSubmit" Layout="@FormLayout.Vertical">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <FormItem Label="Họ và tên" Required>
+                                <Input @bind-Value="editingEmployee.Name" Placeholder="Nhập họ và tên" MaxLength="100" />
+                            </FormItem>
+                        </div>
+                        <div class="col-md-6">
+                            <FormItem Label="Mã nhân viên">
+                                <Input @bind-Value="editingEmployee.Code" Placeholder="Mã nhân viên" Disabled />
+                            </FormItem>
+                        </div>
                     </div>
-                    <div class="col-md-6">
-                        <FormItem Label="Mã nhân viên">
-                            <Input @bind-Value="editingEmployee.Code" Placeholder="Mã nhân viên" Disabled />
-                        </FormItem>
-                    </div>
-                </div>
 
-                <div class="row">
-                    <div class="col-md-6">
-                        <FormItem Label="Số điện thoại" Required>
-                            <Input @bind-Value="editingEmployee.PhoneNumber" Placeholder="Nhập số điện thoại"
-                                MaxLength="12" />
-                        </FormItem>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <FormItem Label="Số điện thoại" Required>
+                                <Input @bind-Value="editingEmployee.PhoneNumber" Placeholder="Nhập số điện thoại"
+                                    MaxLength="12" />
+                            </FormItem>
+                        </div>
+                        <div class="col-md-6">
+                            <FormItem Label="Email" Required>
+                                <Input @bind-Value="editingEmployee.Email" Placeholder="Nhập email" />
+                            </FormItem>
+                        </div>
                     </div>
-                    <div class="col-md-6">
-                        <FormItem Label="Email" Required>
-                            <Input @bind-Value="editingEmployee.Email" Placeholder="Nhập email" />
-                        </FormItem>
-                    </div>
-                </div>
 
-                <div class="row">
-                    <div class="col-md-6">
-                        <FormItem Label="Ngày sinh">
-                            <DatePicker Style="width: 100%" @bind-Value="editingEmployee.DateOfBird"
-                                DisabledDate="date => date > DateTime.Today" />
-                        </FormItem>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <FormItem Label="Ngày sinh">
+                                <DatePicker Style="width: 100%" @bind-Value="editingEmployee.DateOfBird"
+                                    DisabledDate="date => date > DateTime.Today" />
+                            </FormItem>
+                        </div>
+                        <div class="col-md-6">
+                            <FormItem Label="Trạng thái" Required>
+                                <Select TItem="(EEmployeesStatus Value, string Name)" TItemValue="EEmployeesStatus"
+                                    @bind-Value="editingEmployee.StatusEnum" DataSource="employeesStatusList"
+                                    ItemValue="item => item.Value" ItemLabel="item => item.Name" Placeholder="Chọn trạng thái">
+                                </Select>
+                            </FormItem>
+                        </div>
                     </div>
-                    <div class="col-md-6">
-                        <FormItem Label="Trạng thái" Required>
-                            <Select TItem="(EEmployeesStatus Value, string Name)" TItemValue="EEmployeesStatus"
-                                @bind-Value="editingEmployee.StatusEnum" DataSource="employeesStatusList"
-                                ItemValue="item => item.Value" ItemLabel="item => item.Name" Placeholder="Chọn trạng thái">
-                            </Select>
-                        </FormItem>
+
+                    <FormItem Label="Địa chỉ" Required>
+                        <TextArea @bind-Value="editingEmployee.Address" Placeholder="Nhập địa chỉ" Rows="3" MaxLength="255" />
+                    </FormItem>
+
+                    <div class="text-end">
+                        <Button OnClick="HideEditModal" Type="ButtonType.Default" Class="me-2">Hủy</Button>
+                        <Button Type="ButtonType.Primary" HtmlType="submit" Loading="@isSaving">Lưu</Button>
                     </div>
-                </div>
-
-                <FormItem Label="Địa chỉ" Required>
-                    <TextArea @bind-Value="editingEmployee.Address" Placeholder="Nhập địa chỉ" Rows="3" MaxLength="255" />
-                </FormItem>
-
-                <div class="text-end">
-                    <Button OnClick="HideEditModal" Type="ButtonType.Default" Class="me-2">Hủy</Button>
-                    <Button Type="ButtonType.Primary" HtmlType="submit" Loading="@isSaving">Lưu</Button>
-                </div>
-            </Form>
+                </Form>
         }
     </Modal>
 </div>

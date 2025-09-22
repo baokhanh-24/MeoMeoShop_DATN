@@ -2,21 +2,22 @@ namespace MeoMeo.Shared.Utilities;
 
 public static class SkuGenerator
 {
-    public static string GenerateNextSku(string? latestSku, string prefix = "PRO", int totalLength = 10)
+    public static IEnumerable<string> GenerateRange(string? latestSku, int count, string prefix = "PRO")
     {
-        int numberLength = totalLength - prefix.Length;
-        int nextNumber = 1;
+        long startNumber = 0;
 
         if (!string.IsNullOrWhiteSpace(latestSku) && latestSku.StartsWith(prefix))
         {
             string numberPart = latestSku.Substring(prefix.Length);
-            if (int.TryParse(numberPart, out int parsed))
+            if (long.TryParse(numberPart, out long parsed))
             {
-                nextNumber = parsed + 1;
+                startNumber = parsed;
             }
         }
 
-        string paddedNumber = nextNumber.ToString().PadLeft(numberLength, '0');
-        return prefix + paddedNumber;
+        for (int i = 1; i <= count; i++)
+        {
+            yield return prefix + (startNumber + i);
+        }
     }
 }

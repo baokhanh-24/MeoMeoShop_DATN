@@ -39,6 +39,7 @@ namespace MeoMeo.Application.Services
         private readonly IEmailService _emailService;
         private readonly ISizeRepository _sizeRepository;
         private readonly IColourRepository _colourRepository;
+        private readonly IOrderReturnRepository _orderReturnRepository;
 
         public OrderService(IIventoryBatchReposiory inventoryRepository, IOrderRepository orderRepository,
             IMapper mapper, IOrderDetailRepository orderDetailRepository,
@@ -50,7 +51,8 @@ namespace MeoMeo.Application.Services
             IDeliveryAddressRepository deliveryAddressRepository, IEmployeeRepository employeeRepository,
             ICustomerRepository customerRepository, IProductRepository productRepository,
             IPromotionDetailRepository promotionDetailRepository, IVoucherRepository voucherRepository,
-            IEmailService emailService, ISizeRepository sizeRepository, IColourRepository colourRepository)
+            IEmailService emailService, ISizeRepository sizeRepository, IColourRepository colourRepository,
+            IOrderReturnRepository orderReturnRepository)
         {
             _inventoryRepository = inventoryRepository;
             _orderRepository = orderRepository;
@@ -74,6 +76,7 @@ namespace MeoMeo.Application.Services
             _emailService = emailService;
             _sizeRepository = sizeRepository;
             _colourRepository = colourRepository;
+            _orderReturnRepository = orderReturnRepository;
         }
 
 
@@ -164,36 +167,7 @@ namespace MeoMeo.Application.Services
                 var pagedOrders = await _orderRepository.GetPagedAsync(query, request.PageIndex, request.PageSize);
 
                 var dtoItems = _mapper.Map<List<OrderDTO>>(pagedOrders.Items);
-                var listOrderIds = dtoItems.Select(c => c.Id).ToList();
-
-                var listOrderDetails = await _orderDetailRepository.Query()
-                    .Include(c => c.ProductDetail)
-                        .ThenInclude(pd => pd.Size)
-                    .Include(c => c.ProductDetail)
-                        .ThenInclude(pd => pd.Colour)
-                    .Where(c => listOrderIds.Contains(c.OrderId))
-                    .ToListAsync();
-                var groupedOrderDetails = listOrderDetails
-                    .GroupBy(d => d.OrderId)
-                    .ToDictionary(g => g.Key, g => _mapper.Map<List<OrderDetailDTO>>(g.ToList()));
-                foreach (var order in dtoItems)
-                {
-                    if (groupedOrderDetails.TryGetValue(order.Id, out var details))
-                    {
-                        order.OrderDetails = details;
-                        foreach (var detail in order.OrderDetails)
-                        {
-                            var finalPrice = detail.Discount > 100
-                                ? detail.Price - detail.Discount
-                                : detail.Price * (1 - detail.Discount / 100);
-                            detail.GrandTotal = finalPrice * detail.Quantity;
-                        }
-                    }
-                    else
-                    {
-                        order.OrderDetails = new List<OrderDetailDTO>();
-                    }
-                }
+                await EnrichOrderDataAsync(dtoItems);
 
                 metaDataValue.ResponseStatus = BaseStatus.Success;
                 return new PagingExtensions.PagedResult<OrderDTO, GetListOrderResponseDTO>
@@ -309,36 +283,7 @@ namespace MeoMeo.Application.Services
                 var pagedOrders = await _orderRepository.GetPagedAsync(query, request.PageIndex, request.PageSize);
 
                 var dtoItems = _mapper.Map<List<OrderDTO>>(pagedOrders.Items);
-                var listOrderIds = dtoItems.Select(c => c.Id).ToList();
-
-                var listOrderDetails = await _orderDetailRepository.Query()
-                    .Include(c => c.ProductDetail)
-                        .ThenInclude(pd => pd.Size)
-                    .Include(c => c.ProductDetail)
-                        .ThenInclude(pd => pd.Colour)
-                    .Where(c => listOrderIds.Contains(c.OrderId))
-                    .ToListAsync();
-                var groupedOrderDetails = listOrderDetails
-                    .GroupBy(d => d.OrderId)
-                    .ToDictionary(g => g.Key, g => _mapper.Map<List<OrderDetailDTO>>(g.ToList()));
-                foreach (var order in dtoItems)
-                {
-                    if (groupedOrderDetails.TryGetValue(order.Id, out var details))
-                    {
-                        order.OrderDetails = details;
-                        foreach (var detail in order.OrderDetails)
-                        {
-                            var finalPrice = detail.Discount > 100
-                                ? detail.Price - detail.Discount
-                                : detail.Price * (1 - detail.Discount / 100);
-                            detail.GrandTotal = finalPrice * detail.Quantity;
-                        }
-                    }
-                    else
-                    {
-                        order.OrderDetails = new List<OrderDetailDTO>();
-                    }
-                }
+                await EnrichOrderDataAsync(dtoItems);
 
                 metaDataValue.ResponseStatus = BaseStatus.Success;
                 return new PagingExtensions.PagedResult<OrderDTO, GetListOrderResponseDTO>
@@ -1590,6 +1535,136 @@ namespace MeoMeo.Application.Services
                     ResponseStatus = BaseStatus.Error,
                     Message = $"Lỗi khi cập nhật đơn hàng: {ex.Message}"
                 };
+            }
+        }
+
+        private string GetOrderReturnStatusDisplayName(EOrderReturnStatus status)
+        {
+            return status switch
+            {
+                EOrderReturnStatus.Pending => "Chờ duyệt hoàn hàng",
+                EOrderReturnStatus.Approved => "Đã duyệt hoàn hàng",
+                EOrderReturnStatus.Rejected => "Từ chối hoàn hàng",
+                EOrderReturnStatus.Received => "Đã nhận hàng hoàn",
+                EOrderReturnStatus.Refunded => "Hoàn tiền xong",
+                _ => status.ToString()
+            };
+        }
+
+        private string GetRefundMethodDisplayName(ERefundMethod method)
+        {
+            return method switch
+            {
+                ERefundMethod.BankTransfer => "Chuyển khoản",
+                ERefundMethod.ViaShipper => "Nhận qua ship",
+                ERefundMethod.InStore => "Nhận tại cửa hàng",
+                _ => method.ToString()
+            };
+        }
+
+        private async Task EnrichOrderDataAsync(List<OrderDTO> orders)
+        {
+            var listOrderIds = orders.Select(c => c.Id).ToList();
+
+            // Get Order Details with Size and Colour information
+            var listOrderDetails = await _orderDetailRepository.Query()
+                .Include(c => c.ProductDetail)
+                    .ThenInclude(pd => pd.Size)
+                .Include(c => c.ProductDetail)
+                    .ThenInclude(pd => pd.Colour)
+                .Where(c => listOrderIds.Contains(c.OrderId))
+                .ToListAsync();
+            var groupedOrderDetails = listOrderDetails
+                .GroupBy(d => d.OrderId)
+                .ToDictionary(g => g.Key, g => _mapper.Map<List<OrderDetailDTO>>(g.ToList()));
+
+            // Get Order Return information
+            var orderReturns = await _orderReturnRepository.Query()
+                .Include(or => or.Files)
+                .Include(or => or.Items)
+                    .ThenInclude(item => item.OrderDetail)
+                        .ThenInclude(od => od.ProductDetail)
+                            .ThenInclude(pd => pd.Size)
+                .Include(or => or.Items)
+                    .ThenInclude(item => item.OrderDetail)
+                        .ThenInclude(od => od.ProductDetail)
+                            .ThenInclude(pd => pd.Colour)
+                .Include(or => or.Items)
+                    .ThenInclude(item => item.OrderDetail)
+                        .ThenInclude(od => od.ProductDetail)
+                            .ThenInclude(pd => pd.Product)
+                .Where(or => listOrderIds.Contains(or.OrderId))
+                .ToListAsync();
+            var groupedOrderReturns = orderReturns
+                .GroupBy(or => or.OrderId)
+                .ToDictionary(g => g.Key, g => g.FirstOrDefault());
+
+            foreach (var order in orders)
+            {
+                // Set Order Details
+                if (groupedOrderDetails.TryGetValue(order.Id, out var details))
+                {
+                    order.OrderDetails = details;
+                    foreach (var detail in order.OrderDetails)
+                    {
+                        var finalPrice = detail.Discount > 100
+                            ? detail.Price - detail.Discount
+                            : detail.Price * (1 - detail.Discount / 100);
+                        detail.GrandTotal = finalPrice * detail.Quantity;
+                    }
+                }
+                else
+                {
+                    order.OrderDetails = new List<OrderDetailDTO>();
+                }
+
+                // Set Order Return information
+                if (groupedOrderReturns.TryGetValue(order.Id, out var orderReturn) && orderReturn != null)
+                {
+                    order.OrderReturn = new OrderReturnSummaryDTO
+                    {
+                        Id = orderReturn.Id,
+                        Code = orderReturn.Code,
+                        Reason = orderReturn.Reason,
+                        Status = orderReturn.Status,
+                        RefundMethod = orderReturn.RefundMethod,
+                        PayBackAmount = orderReturn.PayBackAmount,
+                        PayBackDate = orderReturn.PayBackDate,
+                        CreationTime = orderReturn.CreationTime,
+                        LastModifiedTime = orderReturn.LastModifiedTime,
+                        TotalItemCount = orderReturn.Items?.Sum(i => i.Quantity) ?? 0,
+                        TotalRefundAmount = orderReturn.Items?.Sum(i => (decimal)(i.OrderDetail?.Price ?? 0f) * i.Quantity) ?? 0,
+                        Files = orderReturn.Files?.Select(f => new OrderReturnFileSummaryDTO
+                        {
+                            Id = f.Id,
+                            Name = f.Name,
+                            Url = f.Url,
+                            ContentType = f.ContentType
+                        }).ToList() ?? new List<OrderReturnFileSummaryDTO>(),
+                        Items = orderReturn.Items?.Select(item => new OrderReturnItemSummaryDTO
+                        {
+                            Id = item.Id,
+                            OrderDetailId = item.OrderDetailId,
+                            ProductName = item.OrderDetail?.ProductDetail?.Product?.Name ?? "N/A",
+                            SizeName = item.OrderDetail?.ProductDetail?.Size?.Value ?? "N/A",
+                            ColourName = item.OrderDetail?.ProductDetail?.Colour?.Name ?? "N/A",
+                            Sku = item.OrderDetail?.Sku ?? "N/A",
+                            Quantity = item.Quantity,
+                            UnitPrice = (decimal)(item.OrderDetail?.Price ?? 0f),
+                            TotalPrice = (decimal)(item.OrderDetail?.Price ?? 0f) * item.Quantity,
+                            ImageUrl = item.OrderDetail?.Image ?? string.Empty
+                        }).ToList() ?? new List<OrderReturnItemSummaryDTO>(),
+                        BankInfo = !string.IsNullOrEmpty(orderReturn.BankName) ? new OrderReturnBankInfoDTO
+                        {
+                            BankName = orderReturn.BankName,
+                            AccountNumber = orderReturn.BankAccountNumber ?? string.Empty,
+                            AccountHolderName = orderReturn.BankAccountName ?? string.Empty,
+                            BranchName = null // OrderReturn entity doesn't have BranchName
+                        } : null,
+                        StatusDisplayName = GetOrderReturnStatusDisplayName(orderReturn.Status),
+                        RefundMethodDisplayName = GetRefundMethodDisplayName(orderReturn.RefundMethod)
+                    };
+                }
             }
         }
 
