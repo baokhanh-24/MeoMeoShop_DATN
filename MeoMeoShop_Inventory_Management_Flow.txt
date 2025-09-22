@@ -1,0 +1,107 @@
+QUẢN LÝ KHO – LUỒNG CHI TIẾT VÀ TRẠNG THÁI
+
+1) Đối tượng dữ liệu chính (mapping với code)
+- ImportBatch (phiếu nhập): ghi nhận một lần nhập hàng.
+- InventoryBatch (lô tồn theo ProductDetail): lưu số lượng, giá vốn, trạng thái của lô hàng gắn với một ProductDetail.
+- InventoryTransaction (giao dịch tồn kho): ghi nhận biến động tăng/giảm tồn theo thời gian, liên kết tới một InventoryBatch.
+- OrderDetailInventoryBatch (phân bổ xuất kho): ánh xạ chi tiết đơn hàng sang từng lô để trừ tồn theo lô.
+
+2) Trạng thái và danh mục dùng trong kho
+- EInventoryBatchStatus (trạng thái của lô)
+  • Draft: Lô mới tạo, chưa tính vào tồn khả dụng.
+  • Approved: Lô đã duyệt, tham gia tính tồn khả dụng và sẵn sàng xuất.
+  • (Optional tuỳ triển khai tương lai) Locked/Frozen: Lô bị khoá tạm thời (kiểm kê, điều tra sai lệch…).
+  • (Optional) Cancelled: Lô bị huỷ (không xuất, không tính tồn) – cần quy tắc an toàn khi đã có giao dịch.
+
+- EInventoryTranctionType (kiểu giao dịch kho)
+  • Import: Tăng tồn (nhập hàng, trả hàng khách, điều chỉnh tăng…).
+  • Export: Giảm tồn (bán hàng, hủy đơn sau khi trừ tồn, điều chỉnh giảm…).
+
+- Trạng thái tồn theo sản phẩm (tính từ service)
+  • InStock: Tồn hiện tại > ngưỡng OutOfStock.
+  • LowStock: 0 < tồn hiện tại ≤ ngưỡng OutOfStock.
+  • OutOfStock: Tồn hiện tại ≤ 0.
+
+3) Công thức tính tồn hiện tại theo ProductDetail
+- Tồn hiện tại = Tổng Quantity của các InventoryBatch có Status = Approved và ProductDetailId tương ứng.
+- Lưu ý: Việc trừ tồn theo bán hàng được thể hiện bằng OrderDetailInventoryBatch (phân bổ) + các InventoryTransaction Type=Export tương ứng.
+
+4) Luồng nghiệp vụ chi tiết
+
+4.1) Nhập hàng (Create ImportBatch → Create InventoryBatch → Record Import)
+- Bước 1: Tạo ImportBatch với Code, ImportDate, Note.
+- Bước 2: Cho mỗi mặt hàng (ProductDetail) trong phiếu nhập:
+  • Tạo InventoryBatch (ImportBatchId, ProductDetailId, OriginalPrice, Quantity, Status=Draft).
+  • Ghi InventoryTransaction Type=Import gắn với InventoryBatch, Quantity nhập, CreationTime, CreateBy, Note.
+- Bước 3: Duyệt lô (xem 4.2) để lô tham gia tính tồn khả dụng.
+
+4.2) Duyệt lô InventoryBatch (Approve)
+- Điều kiện: InventoryBatch đang ở trạng thái Draft, hợp lệ về dữ liệu (Quantity > 0, ProductDetail còn bán…).
+- Hành động: Cập nhật Status từ Draft → Approved.
+- Ảnh hưởng: Lô bắt đầu được tính vào tồn khả dụng và có thể được phân bổ khi bán.
+
+4.3) Bán hàng / Xuất kho (Create Order → Allocate to Batches → Record Export)
+- Bước 1: Khi tạo OrderDetail cho một ProductDetail, hệ thống phân bổ số lượng cần xuất sang các InventoryBatch Approved.
+  • Quy tắc phân bổ khuyến nghị: FIFO (ưu tiên lô cũ hơn) hoặc FEFO (ưu tiên lô gần hết hạn nhất – nếu có hạn dùng).
+  • Kết quả phân bổ được lưu vào OrderDetailInventoryBatch (OrderDetailId, InventoryBatchId, Quantity).
+- Bước 2: Với mỗi phần phân bổ, ghi InventoryTransaction Type=Export gắn InventoryBatch tương ứng.
+- Lưu ý: Nếu sau này huỷ đơn/hoàn đơn, cần ghi nhận giao dịch hoàn/nhập lại (Import) để trả tồn.
+
+4.4) Trả hàng từ khách (Customer Return)
+- Bước 1: Xác định chiến lược nhập trả:
+  • Nhập về đúng InventoryBatch gốc đã xuất (nếu còn theo dõi), hoặc
+  • Nhập vào một InventoryBatch mới (giá vốn theo chính sách). 
+- Bước 2: Ghi InventoryTransaction Type=Import với số lượng trả, CreationTime, CreateBy, Note.
+- Bước 3: Tuỳ chính sách, cập nhật OrderDetail/Refund liên quan (ngoài phạm vi kho).
+
+4.5) Điều chỉnh tồn (Stock Adjustment)
+- Trường hợp: Kiểm kê lệch, thất thoát, hỏng, sai sót nhập liệu…
+- Hành động:
+  • Điều chỉnh tăng: InventoryTransaction Type=Import (ghi chú rõ nguyên nhân).
+  • Điều chỉnh giảm: InventoryTransaction Type=Export (ghi chú rõ nguyên nhân).
+- Nguyên tắc: Mọi thay đổi tồn đều đi qua InventoryTransaction để có lịch sử minh bạch.
+
+4.6) Huỷ đơn hàng (Order Cancellation)
+- Trường hợp A – Đơn đã phân bổ và đã ghi Export:
+  • Ghi giao dịch bù: InventoryTransaction Type=Import với số lượng bằng tổng đã xuất cho đơn đó (hoặc theo từng lô nếu cần chi tiết).
+  • Xoá/điều chỉnh các mapping OrderDetailInventoryBatch liên quan theo chính sách hệ thống.
+- Trường hợp B – Đơn mới đặt, chưa xuất:
+  • Chỉ cần huỷ phân bổ tạm (nếu có). Không cần ghi InventoryTransaction.
+
+4.7) Sửa phiếu nhập (Sửa ImportBatch/InventoryBatch)
+- Nếu sửa số lượng/giá vốn khi lô đang Draft: cập nhật trực tiếp.
+- Nếu lô đã Approved và đã có giao dịch:
+  • Khuyến nghị: không sửa trực tiếp Quantity lô; hãy dùng InventoryTransaction để tăng/giảm điều chỉnh để đảm bảo lịch sử.
+
+4.8) Kiểm kê định kỳ (Stocktake)
+- Bước 1: Khoá mềm các lô liên quan (nếu có trạng thái Locked/Frozen) để tránh phát sinh giao dịch khi kiểm kê.
+- Bước 2: So khớp tồn sổ (tính từ InventoryBatch Approved và lịch sử giao dịch) với tồn thực tế.
+- Bước 3: Ghi InventoryTransaction điều chỉnh tăng/giảm để đưa tồn sổ về đúng tồn thực tế, kèm Note rõ ràng.
+
+5) Tính toán, báo cáo, và hiển thị
+- Thống kê tồn theo sản phẩm: service tính tổng Quantity của các InventoryBatch Approved theo ProductDetailId.
+- Phân loại InStock/LowStock/OutOfStock dựa theo ngưỡng OutOfStock trong ProductDetail.
+- Lịch sử tồn sản phẩm:
+  • Lấy tất cả InventoryTransaction của các lô thuộc ProductDetail theo thời gian giảm dần.
+  • Tính số dư đầu kỳ của trang bằng tổng delta trước mốc thời gian cũ nhất trên trang (Import = +, Export = −).
+  • Cộng dồn theo thời gian (cũ → mới) để hiển thị StockAfter cho từng giao dịch.
+
+6) Ràng buộc và toàn vẹn dữ liệu (theo cấu hình EF hiện tại)
+- InventoryBatch → ProductDetail: OnDelete Restrict (không xoá lô khi xoá sản phẩm, tránh mất lịch sử).
+- InventoryBatch → ImportBatch: OnDelete Cascade (xoá phiếu nhập sẽ xoá lô – khuyến nghị cân nhắc rủi ro lịch sử).
+- InventoryTransaction → InventoryBatch: many-to-one (bắt buộc có InventoryBatchId).
+- OrderDetailInventoryBatch → OrderDetail: OnDelete Cascade.
+- OrderDetailInventoryBatch → InventoryBatch: OnDelete Restrict.
+
+7) Khuyến nghị kiểm soát
+- Chuẩn hoá quy tắc xuất kho (FIFO mặc định) và đóng gói trong service riêng để dễ unit test.
+- Cân nhắc không cho phép xoá ImportBatch/InventoryBatch đã Approved hoặc đã có giao dịch; thay vào đó dùng giao dịch điều chỉnh.
+- Ghi chú bắt buộc (Note) cho tất cả giao dịch điều chỉnh để audit.
+- Log CreateBy/CreationTime đầy đủ cho mọi InventoryTransaction.
+
+8) Từ khoá liên quan trong code
+- MeoMeoDomain/Entities: ImportBatch.cs, InventoryBatch.cs, InventoryTransaction.cs, OrderDetailInventoryBatch.cs
+- MeoMeo.EntityFrameworkCore/Configurations: InventoryBatchConfiguration.cs, InventoryTransactionConfiguration.cs, OrderDetailInventoryBatchConfiguration.cs
+- MeoMeoApplication/Services: InventoryStatisticsService.cs (tính tồn, lịch sử tồn)
+
+
