@@ -689,10 +689,10 @@ namespace MeoMeo.Application.Services
                         };
                     }
 
-                    // Check MaxTotalUse limit
+                    // Check MaxTotalUse limit - chỉ đếm các đơn hàng đã hoàn thành
                     if (validVoucher.MaxTotalUse.HasValue)
                     {
-                        var totalUsageCount = validVoucher.Orders?.Count ?? 0;
+                        var totalUsageCount = validVoucher.Orders?.Count(o => o.Status == EOrderStatus.Completed) ?? 0;
                         if (totalUsageCount >= validVoucher.MaxTotalUse.Value)
                         {
                             return new CreateOrderResultDTO
@@ -703,10 +703,10 @@ namespace MeoMeo.Application.Services
                         }
                     }
 
-                    // Check MaxTotalUsePerCustomer limit
+                    // Check MaxTotalUsePerCustomer limit - chỉ đếm các đơn hàng đã hoàn thành của khách hàng này
                     if (validVoucher.MaxTotalUsePerCustomer.HasValue)
                     {
-                        var customerUsageCount = validVoucher.Orders?.Count(o => o.CustomerId == customerId) ?? 0;
+                        var customerUsageCount = validVoucher.Orders?.Count(o => o.CustomerId == customerId && o.Status == EOrderStatus.Completed) ?? 0;
                         if (customerUsageCount >= validVoucher.MaxTotalUsePerCustomer.Value)
                         {
                             return new CreateOrderResultDTO
@@ -809,7 +809,7 @@ namespace MeoMeo.Application.Services
 
                 // Update order with discount information
                 order.DiscountPrice = voucherDiscountAmount > 0 ? voucherDiscountAmount : null;
-                order.TotalPrice = totalPrice - voucherDiscountAmount + (order.ShippingFee ?? 0);
+                order.TotalPrice = Math.Max(0, totalPrice - voucherDiscountAmount + (order.ShippingFee ?? 0));
                 await _orderRepository.UpdateAsync(order);
 
                 // 6) Xoá các dòng giỏ đã checkout và cập nhật lại tổng tiền giỏ còn lại
@@ -882,26 +882,32 @@ namespace MeoMeo.Application.Services
                         ResponseStatus = BaseStatus.Error
                     };
                 }
-                if (request.Status == EOrderStatus.Completed)
-                {
-                    var groupedByVariant = request.Items
-                        .GroupBy(x => x.ProductDetailId)
-                        .Select(g => new { ProductDetailId = g.Key, TotalQty = g.Sum(x => x.Quantity) })
-                        .ToList();
+                // Validate stock for both Completed and Pending orders
+                var groupedByVariant = request.Items
+                    .GroupBy(x => x.ProductDetailId)
+                    .Select(g => new { ProductDetailId = g.Key, TotalQty = g.Sum(x => x.Quantity) })
+                    .ToList();
 
-                    foreach (var g in groupedByVariant)
+                foreach (var g in groupedByVariant)
+                {
+                    var available = await _inventoryRepository.Query()
+                        .Where(x => x.ProductDetailId == g.ProductDetailId && x.Status == EInventoryBatchStatus.Approved)
+                        .SumAsync(x => (int?)x.Quantity) ?? 0;
+                    if (g.TotalQty > available)
                     {
-                        var available = await _inventoryRepository.Query()
-                            .Where(x => x.ProductDetailId == g.ProductDetailId && x.Status == EInventoryBatchStatus.Approved)
-                            .SumAsync(x => (int?)x.Quantity) ?? 0;
-                        if (g.TotalQty > available)
+                        // Get product name for better error message
+                        var productDetail = await _productsDetailRepository.Query()
+                            .Include(pd => pd.Product)
+                            .FirstOrDefaultAsync(pd => pd.Id == g.ProductDetailId);
+
+                        var productName = productDetail?.Product?.Name ?? "Sản phẩm";
+                        var sku = productDetail?.Sku ?? g.ProductDetailId.ToString();
+
+                        return new CreatePosOrderResultDTO
                         {
-                            return new CreatePosOrderResultDTO
-                            {
-                                Message = $"Không đủ tồn kho cho biến thể {g.ProductDetailId}. Cần {g.TotalQty}, còn {available}",
-                                ResponseStatus = BaseStatus.Error
-                            };
-                        }
+                            Message = $"Không đủ tồn kho cho sản phẩm '{productName}' (SKU: {sku}). Cần {g.TotalQty}, còn {available}",
+                            ResponseStatus = BaseStatus.Error
+                        };
                     }
                 }
                 var customer = await _customerRepository.Query().FirstOrDefaultAsync(c => c.Id == request.CustomerId);
@@ -925,10 +931,10 @@ namespace MeoMeo.Application.Services
                         };
                     }
 
-                    // Check MaxTotalUse limit
+                    // Check MaxTotalUse limit - chỉ đếm các đơn hàng đã hoàn thành
                     if (validVoucher.MaxTotalUse.HasValue)
                     {
-                        var totalUsageCount = validVoucher.Orders?.Count ?? 0;
+                        var totalUsageCount = validVoucher.Orders?.Count(o => o.Status == EOrderStatus.Completed) ?? 0;
                         if (totalUsageCount >= validVoucher.MaxTotalUse.Value)
                         {
                             return new CreatePosOrderResultDTO
@@ -939,10 +945,10 @@ namespace MeoMeo.Application.Services
                         }
                     }
 
-                    // Check MaxTotalUsePerCustomer limit
+                    // Check MaxTotalUsePerCustomer limit - chỉ đếm các đơn hàng đã hoàn thành của khách hàng này
                     if (validVoucher.MaxTotalUsePerCustomer.HasValue)
                     {
-                        var customerUsageCount = validVoucher.Orders?.Count(o => o.CustomerId == request.CustomerId) ?? 0;
+                        var customerUsageCount = validVoucher.Orders?.Count(o => o.CustomerId == request.CustomerId && o.Status == EOrderStatus.Completed) ?? 0;
                         if (customerUsageCount >= validVoucher.MaxTotalUsePerCustomer.Value)
                         {
                             return new CreatePosOrderResultDTO
@@ -1047,7 +1053,7 @@ namespace MeoMeo.Application.Services
 
                 // Update order with discount information
                 order.DiscountPrice = voucherDiscountAmount > 0 ? voucherDiscountAmount : null;
-                order.TotalPrice = totalPrice - voucherDiscountAmount + (order.ShippingFee ?? 0);
+                order.TotalPrice = Math.Max(0, totalPrice - voucherDiscountAmount + (order.ShippingFee ?? 0));
                 await _orderRepository.UpdateAsync(order);
 
                 // Only deduct inventory if order is completed (not draft/pending)
@@ -1370,27 +1376,32 @@ namespace MeoMeo.Application.Services
                     };
                 }
 
-                // Only validate inventory if order status changes to completed
-                if (request.Status == EOrderStatus.Completed && existingOrder.Status != EOrderStatus.Completed)
-                {
-                    var groupedByVariant = request.Items
-                        .GroupBy(x => x.ProductDetailId)
-                        .Select(g => new { ProductDetailId = g.Key, TotalQty = g.Sum(x => x.Quantity) })
-                        .ToList();
+                // Validate inventory for both Pending and Completed orders
+                var groupedByVariant = request.Items
+                    .GroupBy(x => x.ProductDetailId)
+                    .Select(g => new { ProductDetailId = g.Key, TotalQty = g.Sum(x => x.Quantity) })
+                    .ToList();
 
-                    foreach (var g in groupedByVariant)
+                foreach (var g in groupedByVariant)
+                {
+                    var available = await _inventoryRepository.Query()
+                        .Where(x => x.ProductDetailId == g.ProductDetailId && x.Status == EInventoryBatchStatus.Approved)
+                        .SumAsync(x => (int?)x.Quantity) ?? 0;
+                    if (g.TotalQty > available)
                     {
-                        var available = await _inventoryRepository.Query()
-                            .Where(x => x.ProductDetailId == g.ProductDetailId && x.Status == EInventoryBatchStatus.Approved)
-                            .SumAsync(x => (int?)x.Quantity) ?? 0;
-                        if (g.TotalQty > available)
+                        // Get product name for better error message
+                        var productDetail = await _productsDetailRepository.Query()
+                            .Include(pd => pd.Product)
+                            .FirstOrDefaultAsync(pd => pd.Id == g.ProductDetailId);
+
+                        var productName = productDetail?.Product?.Name ?? "Sản phẩm";
+                        var sku = productDetail?.Sku ?? g.ProductDetailId.ToString();
+
+                        return new CreatePosOrderResultDTO
                         {
-                            return new CreatePosOrderResultDTO
-                            {
-                                ResponseStatus = BaseStatus.Error,
-                                Message = $"Không đủ tồn kho cho biến thể {g.ProductDetailId}. Cần {g.TotalQty}, còn {available}"
-                            };
-                        }
+                            ResponseStatus = BaseStatus.Error,
+                            Message = $"Không đủ tồn kho cho sản phẩm '{productName}' (SKU: {sku}). Cần {g.TotalQty}, còn {available}"
+                        };
                     }
                 }
                 existingOrder.Type = EOrderType.Store;

@@ -34,276 +34,209 @@
         </Breadcrumb>
         <div>
             <Button Class="btn-reset w-100px" Icon="close" OnClick="HandleCancel">Hủy</Button>
-            <Button Class="btn-reset" Icon="photo_album" OnClick="() => HandleSave(true)">@(CurrentOrderId.HasValue ? "Cập nhật" : "Lưu tạm")</Button>
-            <Button Class="btn-save" Icon="check" OnClick="() => HandleSave(false)">@(CurrentOrderId.HasValue ? "Hoàn thành đơn hàng" : "Thanh toán đơn hàng")</Button>
+            <Button Class="btn-reset" Icon="photo_album"
+                    OnClick="() => HandleSave(true)">@(CurrentOrderId.HasValue ? "Cập nhật" : "Lưu tạm")</Button>
+            <Button Class="btn-save" Icon="check"
+                    OnClick="() => HandleSave(false)">@(CurrentOrderId.HasValue ? "Hoàn thành đơn hàng" : "Thanh toán đơn hàng")</Button>
 
             <Button Class="btn-save" Icon="printer" OnClick="HandlePaymentAndPrint"
-                Disabled="@(!Products.Any())">Thanh toán & In hóa đơn
+                    Disabled="@(!Products.Any())">Thanh toán & In hóa đơn
             </Button>
 
             <Button Class="btn-back" Icon="arrow-left" OnClick="HandleGoBack">Quay lại</Button>
         </div>
     </div>
-    
+
     <!-- Panel đơn hàng đang xử lý -->
     <div class="pending-orders-panel"
-        style="margin-bottom: 16px; padding: 16px; background: #f8f9fa; border-radius: 8px; border: 1px solid #e8e8e8;">
+         style="margin-bottom: 16px; padding: 16px; background: #f8f9fa; border-radius: 8px; border: 1px solid #e8e8e8;">
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
             <div style="display: flex; align-items: center; gap: 8px;">
-            <h6 style="margin: 0; color: #333; font-weight: 600;">
-                <Icon Type="clock-circle" Style="margin-right: 8px;" />
-                Đơn hàng đang xử lý (@PendingOrders.Count)
-            </h6>
+                <h6 style="margin: 0; color: #333; font-weight: 600;">
+                    <Icon Type="clock-circle" Style="margin-right: 8px;"/>
+                    Đơn hàng đang xử lý (@PendingOrders.Count)
+                </h6>
                 @if (PendingOrders.Count > 3)
                 {
-                                                    <div style="font-size: 12px; color: #666; display: flex; align-items: center; gap: 4px;">
-                                                        <Icon Type="swap" />
-                                                        Kéo ngang để xem thêm
-                                                    </div>
+                            <div style="font-size: 12px; color: #666; display: flex; align-items: center; gap: 4px;">
+                                <Icon Type="swap"/>
+                                Kéo ngang để xem thêm
+                            </div>
                 }
             </div>
             <Button Type="@AntDesign.ButtonType.Link" Icon="reload" OnClick="LoadPendingOrders"
-                Loading="@LoadingPendingOrders">
+                    Loading="@LoadingPendingOrders">
                 Làm mới
             </Button>
         </div>
-        
+
         @if (PendingOrders.Any())
         {
-                                            <div class="pending-orders-container">
-                                                <div class="pending-orders-scroll">
-                                                    @foreach (var order in PendingOrders)
-                                                    {
-                                                                                        <div class="pending-order-item">
-                                                                                            <div @onclick="() => ResumeOrder(order)" class="pending-order-content">
-                                                                                                <div class="pending-order-code">@order.Code</div>
-                                                                                                <div class="pending-order-customer">@order.CustomerName</div>
-                                                                                                <div class="pending-order-amount">@order.TotalAmount.ToString("N0") đ</div>
-                                                                                                <div class="pending-order-time">@order.CreationTime.ToString("HH:mm dd/MM")</div>
-                                                </div>
-                                                                                             <div class="pending-order-actions">
-                                                                                                 <Popconfirm Title="Hủy đơn hàng này?" OnConfirm="() => CancelPendingOrder(order)" OkText="Hủy đơn"
-                                                                                                     CancelText="Không">
-                                                                                                     <Icon Type="stop" class="cancel-icon" />
-                                                                                                 </Popconfirm>
-                                                </div>
+                    <div class="pending-orders-container">
+                        <div class="pending-orders-scroll">
+                            @foreach (var order in PendingOrders)
+                            {
+                                        <div class="pending-order-item">
+                                            <div @onclick="() => ResumeOrder(order)" class="pending-order-content">
+                                                <div class="pending-order-code">@order.Code</div>
+                                                <div class="pending-order-customer">@order.CustomerName</div>
+                                                <div class="pending-order-amount">@order.TotalAmount.ToString("N0") đ</div>
+                                                <div class="pending-order-time">@order.CreationTime.ToString("HH:mm dd/MM")</div>
                                             </div>
+                                            <div class="pending-order-actions">
+                                                <Popconfirm Title="Hủy đơn hàng này?" OnConfirm="() => CancelPendingOrder(order)"
+                                                            OkText="Hủy đơn"
+                                                            CancelText="Không">
+                                                    <Icon Type="stop" class="cancel-icon"/>
+                                                </Popconfirm>
+                                            </div>
+                                        </div>
                             }
-                                </div>
                         </div>
+                    </div>
         }
         else
         {
-                        <div style="text-align: center; color: #999; padding: 20px;">
-                            <Icon Type="inbox" Style="font-size: 24px; margin-bottom: 8px;" />
-                            <div>Chưa có đơn hàng nào đang xử lý</div>
-                        </div>
+                    <div style="text-align: center; color: #999; padding: 20px;">
+                        <Icon Type="inbox" Style="font-size: 24px; margin-bottom: 8px;"/>
+                        <div>Chưa có đơn hàng nào đang xử lý</div>
+                    </div>
         }
     </div>
-    
+
     <Form Model="OrderModel" Layout="@AntDesign.FormLayout.Vertical" RequiredMark="@AntDesign.FormRequiredMark.Required"
-        OnFinish="OnFinish" OnFinishFailed="OnFinishFailed">
+          OnFinish="OnFinish" OnFinishFailed="OnFinishFailed">
         <div class="order-section-general">
             <div class="order-section-general-header">
                 <div class="txt-18-n-600 order-section-general-title">Thông tin chung</div>
             </div>
             <Row Gutter="16">
-                <AntDesign.Col Lg="12">
-                    <FormItem Label="Loại" Required="true">
-                        <Select TItem="SelectOption" TItemValue="int" DataSource="@TypeOptions"
-                            @bind-Value="@OrderModel.Type" Placeholder="Chọn loại..." ItemValue="x => x.Value"
-                            ItemLabel="x => x.Label" OnSelectedItemChanged="HandleTypeChange" ShowSearch="true"
-                            AllowClear="true" />
-                    </FormItem>
-                </AntDesign.Col>
-                <AntDesign.Col Lg="12">
-                    <FormItem Label="Tên khách hàng" Required="@(OrderType == 2)">
+                <AntDesign.Col Lg="8">
+                    <FormItem Label="Tên khách hàng" Required="true">
                         <div style="display: flex; gap: 4px;">
                             <Select TItem="Customer" TItemValue="Guid ?" DataSource="@Customers"
-                                @bind-Value="@OrderModel.CustomerId" Placeholder="Chọn khách hàng..."
-                                ItemValue="x => x.Id" ItemLabel="x => x.Name" ShowSearch="true" FilterOption="false"
-                                OnSelectedItemChanged="@(e => OnCustomerChanged((Customer)e))" Loading="@CustomersLoading"
-                                Style="flex: 1" AllowClear="true">
+                                    @bind-Value="@OrderModel.CustomerId" Placeholder="Chọn khách hàng..."
+                                    ItemValue="x => x.Id" ItemLabel="x => x.Name" ShowSearch="true" FilterOption="false"
+                                    OnSelectedItemChanged="@(e => OnCustomerChanged((Customer)e))"
+                                    Loading="@CustomersLoading"
+                                    Style="flex: 1" AllowClear="true">
                                 <NotFoundContent>
                                     @if (CustomersLoading)
                                     {
-                                                    <Spin Size="@AntDesign.SpinSize.Default" />
+                                                <Spin Size="@AntDesign.SpinSize.Default"/>
                                     }
                                     else
                                     {
-                                                    <div style="text-align: center; padding: 8px 0;">Không có dữ liệu phù hợp</div>
+                                                <div style="text-align: center; padding: 8px 0;">Không có dữ liệu phù hợp</div>
                                     }
                                 </NotFoundContent>
                             </Select>
-                            <Icon Type="plus" OnClick="HandleAddNewCustomer" />
+                            <Icon Type="plus" OnClick="HandleAddNewCustomer"/>
+                        </div>
+                    </FormItem>
+                </AntDesign.Col>
+                <AntDesign.Col Lg="16">
+                    <FormItem Label="Tìm kiếm sản phẩm">
+                        <div class="search-controls">
+                            <Button Type="@AntDesign.ButtonType.Default" Icon="qr_code" OnClick="StartQRCodeScan"
+                                    class="qr-scan-btn" Disabled="@IsQRCodeScanning">
+                                <Icon Type="qr_code"/>
+                                Quét QR Code (F3)
+                            </Button>
+                            <div class="order-section-product-search-input">
+                                <Tooltip Title="Tìm kiếm sản phẩm (F1)">
+                                    <Search @bind-Value="@ProductSearchKeyword" Width="600"
+                                            Placeholder="Nhập barcode, mã sản phẩm, tên sản phẩm để tìm kiếm"
+                                            OnSearch="OnProductSearch" OnClear="OnSearchClear"
+                                            Loading="@SearchingProduct"
+                                            class="order-search-input" Id="product-search-input"/>
+                                </Tooltip>
+                                @if (SearchResults.Any() && SearchDropdownVisible)
+                                {
+                                            <div class="search-results-dropdown">
+                                                @foreach (var product in SearchResults.Take(5))
+                                                {
+                                                            <div class="search-result-item" @onclick="() => AddProductToOrder(product)">
+                                                                <Image Fallback="@(ApiBaseUrl + "/Images/fallback.jpeg")"
+                                                                       Src="@(ApiBaseUrl + "/" + product.Thumbnail)"
+                                                                       Class="search-result-image"/>
+                                                                <div class="search-result-info">
+                                                                    <div class="search-result-name">@product.ProductName</div>
+                                                                    <div class="search-result-sku">SKU: @product.SKU</div>
+                                                                    <div class="search-result-sku">Màu sắc: @product.ColourName - Size:
+                                                                        @product.SizeValue</div>
+                                                                    <div class="search-result-price">
+                                                                        @if (product.SalePrice.HasValue && product.SalePrice < product.Price)
+                                                                        {
+                                                                                    <span
+                                                                                        style="text-decoration: line-through; color: #999; margin-right: 8px;">@product.Price.ToString("N0")
+                                                                                        đ</span>
+                                                                                    <span
+                                                                                        style="color: #ff4d4f; font-weight: bold;">@product.SalePrice.Value.ToString("N0")
+                                                                                        đ</span>
+                                                                                    @if (product.MaxDiscount.HasValue)
+                                                                                    {
+                                                                                                <span
+                                                                                                    style="background: #ff4d4f; color: white; padding: 2px 4px; border-radius: 2px; font-size: 10px; margin-left: 4px;">-@product.MaxDiscount.Value.ToString("0")%</span>
+                                                                                    }
+                                                                        }
+                                                                        else
+                                                                        {
+                                                                                    @(product.Price.ToString("N0") + "đ")
+                                                                        }
+                                                                    </div>
+                                                                </div>
+                                                                <div class="search-result-stock">
+                                                                    <Tag Color="@(product.StockQuantity > 0 ? "green" : "red")">
+                                                                        @(product.StockQuantity > 0 ? $"Còn {product.StockQuantity}" : "Hết hàng")
+                                                                    </Tag>
+                                                                </div>
+                                                            </div>
+                                                }
+                                                @if (SearchResults.Count > 5)
+                                                {
+                                                            <div class="search-result-more">
+                                                                <Button Type="@AntDesign.ButtonType.Link"
+                                                                        OnClick="async () => await ShowAllSearchResults()">
+                                                                    Xem thêm @(SearchResults.Count - 5) sản phẩm...
+                                                                </Button>
+                                                            </div>
+                                                }
+                                            </div>
+                                }
+                            </div>
                         </div>
                     </FormItem>
                 </AntDesign.Col>
             </Row>
         </div>
 
-        @if (OrderType == 2)
-        {
-                        <div class="order-section-delivery">
-                            <div class="order-section-delivery-header">
-                                <div class="txt-18-n-600">Thông tin nhận hàng</div>
-                                <Checkbox @bind-Checked="@UseDefaultAddress" Disabled="@(SelectedCustomer == null)"
-                                    class="order-checkbox-default-address">
-                                    <span class="txt-16-n-400 order-checkbox-default-address-label"
-                                        style="color: @(SelectedCustomer?.Id == Guid.Empty ? "#999" : "#22313F")">
-                                        Giao đến địa chỉ mặc định
-                                    </span>
-                                </Checkbox>
-                            </div>
-                            <Row Gutter="16" class="order-section-delivery-row-margin">
-                                <AntDesign.Col Lg="8">
-                                    <FormItem Label="Tên người nhận" Required="true">
-                                        <Input @bind-Value="@OrderModel.Delivery.ConsigneeName" Placeholder="Nhập" MaxLength="255" />
-                                    </FormItem>
-                                </AntDesign.Col>
-                                <AntDesign.Col Lg="8">
-                                    <FormItem Label="Số điện thoại" Required="true">
-                                        <Input @bind-Value="@OrderModel.Delivery.ConsigneePhone" Placeholder="Nhập" />
-                                    </FormItem>
-                                </AntDesign.Col>
-                            </Row>
-                            <Row Gutter="16" class="order-section-delivery-row-margin">
-                                <AntDesign.Col Lg="8">
-                                    <FormItem Label="Tỉnh/Thành phố" Required="true">
-                                        <Select TItem="Province" TItemValue="int?" DataSource="@Provinces"
-                                            @bind-Value="@OrderModel.Delivery.ProvinceId" Placeholder="Chọn tỉnh/thành phố..."
-                                            ItemValue="x => x.Id" ItemLabel="x => x.Name" ShowSearch="true" FilterOption="false"
-                                            OnSelectedItemChanged="@(e => HandleProvinceChange(e))" Loading="@ProvincesLoading"
-                                            AllowClear="true" />
-                                    </FormItem>
-                                </AntDesign.Col>
-                                <AntDesign.Col Lg="8">
-                                    <FormItem Label="Quận/Huyện" Required="true">
-                                        <Select TItem="District" TItemValue="int?" DataSource="@Districts"
-                                            @bind-Value="@OrderModel.Delivery.DistrictId" Placeholder="Chọn quận/huyện..."
-                                            ItemValue="x => x.Id" ItemLabel="x => x.Name" Disabled="@(SelectedProvinceId == 0)"
-                                            ShowSearch="true" FilterOption="false"
-                                            OnSelectedItemChanged="@(e => HandleDistrictChange(e))" Loading="@DistrictsLoading"
-                                            AllowClear="true" />
-                                    </FormItem>
-                                </AntDesign.Col>
-                                <AntDesign.Col Lg="8">
-                                    <FormItem Label="Phường/Xã" Required="true">
-                                        <Select TItem="Commune" TItemValue="int?" DataSource="@Communes"
-                                            @bind-Value="@OrderModel.Delivery.CommuneId" Placeholder="Chọn phường/xã..."
-                                            ItemValue="x => x.Id" ItemLabel="x => x.Name"
-                                            Disabled="@(SelectedDistrictId == 0 || SelectedProvinceId == 0)" ShowSearch="true"
-                                            FilterOption="false" OnSelectedItemChanged="@(e => HandleCommuneChange(e))"
-                                            Loading="@CommunesLoading" AllowClear="true" />
-                                    </FormItem>
-                                </AntDesign.Col>
-                            </Row>
-                            <Row Gutter="16">
-                                <AntDesign.Col Lg="16">
-                                    <FormItem Label="Địa chỉ chi tiết" Required="true">
-                                        <Input @bind-Value="@OrderModel.Delivery.ConsigneeAddress" Placeholder="Nhập" MaxLength="200" />
-                                    </FormItem>
-                                </AntDesign.Col>
-                                <AntDesign.Col Lg="8">
-                                    <FormItem Label="Ghi chú">
-                                        <Input @bind-Value="@OrderModel.Delivery.ConsigneeNote" Placeholder="Nhập" MaxLength="500" />
-                                    </FormItem>
-                                </AntDesign.Col>
-                            </Row>
-                        </div>
-        }
-        <div class="order-section-product-search">
-            <div class="order-section-product-search-header">
-                <div class="order-section-product-search-header-left">
+        <div class="order-section-product-list">
+            <div class="order-section-product-list-header">
+                <div class="order-section-product-list-header-left">
                     @if (SelectedProducts.Any())
                     {
-                                    <Tooltip Title="Xóa sản phẩm đã chọn">
-                                        <Icon Type="delete" OnClick="HandleRemoveSelectedProducts" class="order-icon-delete-selected" />
-                                    </Tooltip>
+                                <Tooltip Title="Xóa sản phẩm đã chọn">
+                                    <Icon Type="delete" OnClick="HandleRemoveSelectedProducts"
+                                          class="order-icon-delete-selected"/>
+                                </Tooltip>
                     }
                     <span class="txt-18-n-500">Danh sách sản phẩm (@Products.Count)</span>
-                    <div class="search-controls">
-                        <Button Type="@AntDesign.ButtonType.Default" Icon="qr_code" OnClick="StartQRCodeScan"
-                            class="qr-scan-btn" Disabled="@IsQRCodeScanning">
-                            <Icon Type="qr_code" />
-                            Quét QR Code (F3)
-                        </Button>
-                        <div class="order-section-product-search-input">
-                            <Tooltip Title="Tìm kiếm sản phẩm (F1)">
-                                <Search @bind-Value="@ProductSearchKeyword" Width="600"
-                                    Placeholder="Nhập barcode, mã sản phẩm, tên sản phẩm để tìm kiếm"
-                                    OnSearch="OnProductSearch" OnClear="OnSearchClear" Loading="@SearchingProduct"
-                                    class="order-search-input" Id="product-search-input" />
-                            </Tooltip>
-                            @if (SearchResults.Any() && SearchDropdownVisible)
-                            {
-                                            <div class="search-results-dropdown">
-                                                @foreach (var product in SearchResults.Take(5))
-                                                {
-                                                                <div class="search-result-item" @onclick="() => AddProductToOrder(product)">
-                                                                    <Image Fallback="@(ApiBaseUrl + "/Images/fallback.jpeg")"
-                                                                        Src="@(ApiBaseUrl + "/" + product.Thumbnail)" Class="search-result-image" />
-                                                                    <div class="search-result-info">
-                                                                        <div class="search-result-name">@product.ProductName</div>
-                                                                        <div class="search-result-sku">SKU: @product.SKU</div>
-                                                                        <div class="search-result-sku">Màu sắc: @product.ColourName - Size:
-                                                                            @product.SizeValue</div>
-                                                                        <div class="search-result-price">
-                                                                            @if (product.SalePrice.HasValue && product.SalePrice < product.Price)
-                                                                            {
-                                                                                            <span
-                                                                                                style="text-decoration: line-through; color: #999; margin-right: 8px;">@product.Price.ToString("N0")
-                                                                                                đ</span>
-                                                                                            <span
-                                                                                                style="color: #ff4d4f; font-weight: bold;">@product.SalePrice.Value.ToString("N0")
-                                                                                                đ</span>
-                                                                                            @if (product.MaxDiscount.HasValue)
-                                                                                            {
-                                                                                                            <span
-                                                                                                                style="background: #ff4d4f; color: white; padding: 2px 4px; border-radius: 2px; font-size: 10px; margin-left: 4px;">-@product.MaxDiscount.Value.ToString("0")%</span>
-                                                                                            }
-                                                                            }
-                                                                            else
-                                                                            {
-                                                                                            @(product.Price.ToString("N0") + "đ")
-                                                                            }
-                                                                        </div>
-                                                                    </div>
-                                                                    <div class="search-result-stock">
-                                                                        <Tag Color="@(product.StockQuantity > 0 ? "green" : "red")">
-                                                                            @(product.StockQuantity > 0 ? $"Còn {product.StockQuantity}" : "Hết hàng")
-                                                                        </Tag>
-                                                                    </div>
-                                                                </div>
-                                                }
-                                                @if (SearchResults.Count > 5)
-                                                {
-                                                                <div class="search-result-more">
-                                                                                                            <Button Type="@AntDesign.ButtonType.Link" OnClick="async () => await ShowAllSearchResults()">
-                                                                        Xem thêm @(SearchResults.Count - 5) sản phẩm...
-                                                                    </Button>
-                                                                </div>
-                                                }
-                                            </div>
-                            }
-                        </div>
-                    </div>
                 </div>
             </div>
-            <div class="order-section-product-search-right"></div>
         </div>
         <div class="order-section-product-table-summary">
             <div class="product-list order-section-product-table">
                 <Table DataSource="@Products" @bind-SelectedRows="selectedRows" RowKey="x => x.ProductDetailId"
-                    Loading="@ProductsLoading" Size="@AntDesign.TableSize.Small">
+                       Loading="@ProductsLoading" Size="@AntDesign.TableSize.Small">
                     <ChildContent Context="product">
-                        <Selection Type="@AntDesign.SelectionType.Checkbox" />
+                        <Selection Type="@AntDesign.SelectionType.Checkbox"/>
                         <Column TData="string" Title="SKU" Width="136">
                             <div>@product.Sku</div>
                         </Column>
                         <Column TData="string" Title="Ảnh sản phẩm" Width="116">
                             <Image Width="80" Height="80" Fallback="@(ApiBaseUrl + "/Images/fallback.jpeg")"
-                                   Src="@(ApiBaseUrl + "/" + product.Image)" Class="search-result-image" />
+                                   Src="@(ApiBaseUrl + "/" + product.Image)" Class="search-result-image"/>
                         </Column>
                         <Column TData="string" Title="Tên sản phẩm">
                             <div>@product.ProductName</div>
@@ -317,42 +250,42 @@
                         <Column TData="decimal" Title="Đơn giá (đ)" Width="116" Align="@AntDesign.ColumnAlign.Right">
                             @if (product.Discount > 0)
                             {
-                                            <div>
-                                                <span
-                                                    style="text-decoration: line-through; color: #999; display: block; font-size: 11px;">@product.OriginalPrice.ToString("N0")
-                                                    đ</span>
-                                                                    <span style="color: #ff4d4f; font-weight: bold;">@product.Price.ToString("N0")
-                                                    đ</span>
-                                            </div>
+                                        <div>
+                                                        <span
+                                                            style="text-decoration: line-through; color: #999; display: block; font-size: 11px;">@product.OriginalPrice.ToString("N0")
+                                                            đ</span>
+                                            <span style="color: #ff4d4f; font-weight: bold;">@product.Price.ToString("N0")
+                                                đ</span>
+                                        </div>
                             }
                             else
                             {
-                                            @(product.Price.ToString("N0") + "đ")
+                                        @(product.Price.ToString("N0") + "đ")
                             }
                         </Column>
                         <Column TData="int" Title="Số lượng" Width="116" Align="@AntDesign.ColumnAlign.Center">
                             <AntDesign.InputNumber TValue="int" @bind-Value="product.Quantity" Min="1"
-                                OnChange="@(value => UpdateProductQuantity(product, value))" />
+                                                   OnChange="@(value => UpdateProductQuantity(product, value))"/>
                         </Column>
                         <Column TData="decimal" Title="Giảm giá (đ)" Width="116" Align="@AntDesign.ColumnAlign.Right">
                             @if (product.Discount > 0)
                             {
-                                                                <span style="color: #52c41a;">-@product.Discount.ToString("N0") đ</span>
+                                        <span style="color: #52c41a;">-@product.Discount.ToString("N0") đ</span>
                             }
                             else
                             {
-                                                                <span style="color: #999;">0 đ</span>
+                                        <span style="color: #999;">0 đ</span>
                             }
                         </Column>
                         <Column TData="decimal" Title="Giảm giá (%)" Width="116" Align="@AntDesign.ColumnAlign.Right">
                             @if (product.Discount > 0)
                             {
-                                                                var discountPercent = Math.Round((product.Discount / product.OriginalPrice) * 100, 1);
-                                                                <span style="color: #ff4d4f; font-weight: bold;">-@discountPercent%</span>
+                                        var discountPercent = Math.Round((product.Discount / product.OriginalPrice) * 100, 1);
+                                        <span style="color: #ff4d4f; font-weight: bold;">-@discountPercent%</span>
                             }
                             else
                             {
-                                                                <span style="color: #999;">0%</span>
+                                        <span style="color: #999;">0%</span>
                             }
                         </Column>
                         <Column TData="decimal" Title="Thành tiền (đ)" Width="116" Align="@AntDesign.ColumnAlign.Right">
@@ -360,7 +293,7 @@
                         </Column>
                         <ActionColumn Title="Thao tác" Width="80" Align="@AntDesign.ColumnAlign.Right">
                             <Icon Type="delete" OnClick="() => RemoveProduct(product)"
-                                Style="cursor: pointer; color: #ff4d4f;" />
+                                  Style="cursor: pointer; color: #ff4d4f;"/>
                         </ActionColumn>
                     </ChildContent>
                 </Table>
@@ -370,97 +303,89 @@
                     <div class="txt-14-n-400">Tổng tiền</div>
                     <div class="txt-14-n-500">@CalculateSubTotal().ToString("N0") đ</div>
                 </div>
-                <Divider class="order-summary-divider" />
+                <Divider class="order-summary-divider"/>
                 <div class="order-summary-row order-summary-row-shipping">
                     <div class="txt-14-n-400">Phí vận chuyển</div>
-                    @if (OrderType == 2)
-                    {
-                                    <AntDesign.InputNumber TValue="decimal" @bind-Value="@ShippingFee" Placeholder="Nhập..."
-                                        class="order-input-shipping-fee" />
-                    }
-                    else
-                    {
-                                    <div class="txt-14-n-500">@ShippingFee.ToString("N0") đ</div>
-                    }
+                    <div class="txt-14-n-500">0 đ</div>
                 </div>
-                <Divider class="order-summary-divider" />
+                <Divider class="order-summary-divider"/>
                 <div class="txt-14-n-500 order-summary-discount-label">Mã giảm giá/Voucher</div>
                 <div class="order-summary-discount-row">
-                    <Input @bind-Value="@SelectedVoucherCode" 
-                           Placeholder="Chọn voucher" 
+                    <Input @bind-Value="@SelectedVoucherCode"
+                           Placeholder="Chọn voucher"
                            ReadOnly="true"
-                           class="order-input-discount-code" 
-                           OnClick="ShowVoucherModal" />
+                           class="order-input-discount-code"
+                           OnClick="ShowVoucherModal"/>
                     <Button OnClick="ShowVoucherModal" Icon="gift">
                         Chọn
                     </Button>
                     @if (SelectedVoucherId.HasValue)
                     {
-                                                        <Button OnClick="RemoveVoucher" Icon="close" Type="@AntDesign.ButtonType.Text" />
+                                <Button OnClick="RemoveVoucher" Icon="close" Type="@AntDesign.ButtonType.Text"/>
                     }
                 </div>
                 @if (!string.IsNullOrEmpty(DiscountCodeError))
                 {
-                                <div class="txt-12-i-400 order-summary-discount-error">
-                                    @DiscountCodeError
-                                </div>
+                            <div class="txt-12-i-400 order-summary-discount-error">
+                                @DiscountCodeError
+                            </div>
                 }
                 @if (DiscountCodeAmount > 0)
                 {
-                                <div class="order-summary-row order-summary-row-discount">
-                                                        <div class="txt-14-n-400">Giảm giá voucher:</div>
-                                    <div class="txt-14-n-500 order-summary-discount-amount">-@DiscountCodeAmount.ToString("N0") đ
-                                    </div>
-                                    <Icon Type="close" @onclick="RemoveDiscountCode" class="remove-discount-icon" />
+                            <div class="order-summary-row order-summary-row-discount">
+                                <div class="txt-14-n-400">Giảm giá voucher:</div>
+                                <div class="txt-14-n-500 order-summary-discount-amount">-@DiscountCodeAmount.ToString("N0") đ
                                 </div>
-                                <Divider class="order-summary-divider" />
+                                <Icon Type="close" @onclick="RemoveDiscountCode" class="remove-discount-icon"/>
+                            </div>
+                            <Divider class="order-summary-divider"/>
                 }
 
                 <div class="order-summary-row order-summary-row-final">
                     <div class="order-summary-final-label">Thành tiền</div>
                     <div class="order-summary-final-amount">@CalculateTotal().ToString("N0") đ</div>
                 </div>
-                <Divider class="order-summary-divider" />
+                <Divider class="order-summary-divider"/>
                 <div class="order-summary-payment-method">
                     <div class="order-summary-payment-label">Hình thức thanh toán</div>
                     <div style="display: flex; gap: 8px;">
-                        <Button Type="@(PaymentType == 0 ? AntDesign.ButtonType.Primary : AntDesign.ButtonType.Default)" 
+                        <Button Type="@(PaymentType == 0 ? AntDesign.ButtonType.Primary : AntDesign.ButtonType.Default)"
                                 OnClick="SelectCashPayment"
                                 Style="flex: 1; height: 40px;">
-                            <Icon Type="wallet" Style="margin-right: 4px;" />
+                            <Icon Type="wallet" Style="margin-right: 4px;"/>
                             Tiền mặt
                         </Button>
-                        <Button Type="@(PaymentType == 1 ? AntDesign.ButtonType.Primary : AntDesign.ButtonType.Default)" 
+                        <Button Type="@(PaymentType == 1 ? AntDesign.ButtonType.Primary : AntDesign.ButtonType.Default)"
                                 OnClick="SelectTransferPayment"
                                 Style="flex: 1; height: 40px;">
-                            <Icon Type="bank" Style="margin-right: 4px;" />
+                            <Icon Type="bank" Style="margin-right: 4px;"/>
                             Chuyển khoản
                         </Button>
                     </div>
-                    
+
                 </div>
             </div>
         </div>
     </Form>
     <Modal Title="Thêm khách hàng mới" Visible="@AddCustomerModalVisible" OnCancel="HandleCloseAddCustomerModal"
-        Footer="null">
+           Footer="null">
         <div style="padding: 8px 0;">
             <Form TModel="MeoMeo.Contract.DTOs.CreateQuickCustomerDTO" Model="newCustomerModel"
-                Layout="@AntDesign.FormLayout.Vertical">
+                  Layout="@AntDesign.FormLayout.Vertical">
                 <FormItem Label="Họ và tên" Required="true">
-                    <Input @bind-Value="newCustomerModel.Name" Placeholder="Nhập họ và tên" MaxLength="255" />
+                    <Input @bind-Value="newCustomerModel.Name" Placeholder="Nhập họ và tên" MaxLength="255"/>
                 </FormItem>
                 <FormItem Label="Số điện thoại" Required="true">
-                    <Input @bind-Value="newCustomerModel.PhoneNumber" Placeholder="Nhập số điện thoại" MaxLength="20" />
+                    <Input @bind-Value="newCustomerModel.PhoneNumber" Placeholder="Nhập số điện thoại" MaxLength="20"/>
                 </FormItem>
                 <FormItem Label="Địa chỉ">
                     <Input @bind-Value="newCustomerModel.Address" Placeholder="Nhập địa chỉ (tùy chọn)"
-                        MaxLength="200" />
+                           MaxLength="200"/>
                 </FormItem>
                 <div class="d-flex" style="justify-content: flex-end; gap: 8px;">
                     <Button OnClick="HandleCloseAddCustomerModal">Hủy</Button>
                     <Button Type="AntDesign.ButtonType.Primary" Loading="@creatingCustomer"
-                        OnClick="CreateQuickCustomerAsync">Tạo nhanh
+                            OnClick="CreateQuickCustomerAsync">Tạo nhanh
                     </Button>
                 </div>
             </Form>
@@ -468,8 +393,8 @@
     </Modal>
 
     <!-- Voucher Selection Modal -->
-    <Modal Title="@($"Chọn Voucher ({AvailableVouchers?.Count ?? 0} voucher khả dụng)")" 
-           Visible="@VoucherModalVisible" 
+    <Modal Title="@($"Chọn Voucher ({AvailableVouchers?.Count ?? 0} voucher khả dụng)")"
+           Visible="@VoucherModalVisible"
            OnCancel="CloseVoucherModal"
            Width="900"
            Footer="null"
@@ -477,88 +402,92 @@
         <div style="max-height: 500px; overflow-y: auto;">
             @if (AvailableVouchers?.Any() == true)
             {
-                                                <div class="voucher-list">
-                                                    @foreach (var voucher in AvailableVouchers)
+                        <div class="voucher-list">
+                            @foreach (var voucher in AvailableVouchers)
+                            {
+                                        <div
+                                            class="voucher-item @(voucher.CanUse ? "voucher-usable" : "voucher-unusable") @(SelectedVoucherId == voucher.Id ? "voucher-selected" : "")"
+                                            @onclick="@(() => SelectVoucher(voucher))">
+                                            <div class="voucher-header">
+                                                <div class="voucher-code">@voucher.Code</div>
+                                                <div class="voucher-discount">
+                                                    @if (voucher.Type == MeoMeo.Domain.Commons.Enums.EVoucherType.byPercentage)
                                                     {
-                                                                                        <div class="voucher-item @(voucher.CanUse ? "voucher-usable" : "voucher-unusable") @(SelectedVoucherId == voucher.Id ? "voucher-selected" : "")"
-                                                                                             @onclick="@(() => SelectVoucher(voucher))">
-                                                                                            <div class="voucher-header">
-                                                                                                <div class="voucher-code">@voucher.Code</div>
-                                                                                                <div class="voucher-discount">
-                                                                                                    @if (voucher.Type == MeoMeo.Domain.Commons.Enums.EVoucherType.byPercentage)
-                                                                                                    {
-                                                                                                                                        <span class="discount-percentage">Giảm @voucher.Discount%</span>
-                                                                                                                                        @if (voucher.MaxDiscount > 0)
-                                                                                                                                        {
-                                                                                                                                                                            <span class="discount-max">(tối đa @voucher.MaxDiscount.ToString("N0") đ)</span>
-                                                                                                                                        }
-                                                                                                    }
-                                                                                                    else
-                                                                                                    {
-                                                                                                                                        <span class="discount-amount">Giảm @voucher.Discount.ToString("N0") đ</span>
-                                                                                                    }
-                                                                                                </div>
-                                                                                            </div>
-                                                                                            <div class="voucher-details">
-                                                                                                <div class="voucher-condition">
-                                                                                                    <Icon Type="shopping-cart" />
-                                                                                                    Đơn tối thiểu: @voucher.MinOrder.ToString("N0") đ
-                                                                                                </div>
-                                                                                                <div class="voucher-expiry">
-                                                                                                    <Icon Type="calendar" />
-                                                                                                    HSD: @voucher.EndDate.ToString("dd/MM/yyyy")
-                                                                                                </div>
-                                                                                                @if (voucher.MaxTotalUse.HasValue)
-                                                                                                {
-                                                                                                                                    <div class="voucher-limit">
-                                                                                                                                        <Icon Type="user" />
-                                                                                                                                        Giới hạn: @voucher.MaxTotalUse lượt
-                                                                                                                                    </div>
-                                                                                                }
-                                                                                                @if (voucher.MaxTotalUsePerCustomer.HasValue)
-                                                                                                {
-                                                                                                                                    <div class="voucher-limit-per-customer">
-                                                                                                                                        <Icon Type="team" />
-                                                                                                                                        Mỗi khách: @voucher.MaxTotalUsePerCustomer lượt
-                                                                                                                                    </div>
-                                                                                                }
-                                                                                            </div>
-                                                                                            @if (voucher.CanUse)
-                                                                                            {
-                                                                                                                                <div class="voucher-savings">
-                                                                                                                                    Tiết kiệm: @voucher.CalculatedDiscountAmount.ToString("N0") đ
-                                                                                                                                </div>
-                                                                                            }
-                                                                                            else if (!string.IsNullOrEmpty(voucher.Reason))
-                                                                                            {
-                                                                                                                                <div class="voucher-error">
-                                                                                                                                    <Icon Type="exclamation-circle" />
-                                                                                                                                    @voucher.Reason
-                                                                                                                                </div>
-                                                                                            }
-                                                                                        </div>
+                                                                <span class="discount-percentage">Giảm @voucher.Discount%</span>
+                                                                @if (voucher.MaxDiscount > 0)
+                                                                {
+                                                                            <span
+                                                                                class="discount-max">(tối đa @voucher.MaxDiscount.ToString("N0") đ)</span>
+                                                                }
+                                                    }
+                                                    else
+                                                    {
+                                                                <span class="discount-amount">Giảm @voucher.Discount.ToString("N0") đ</span>
                                                     }
                                                 </div>
+                                            </div>
+                                            <div class="voucher-details">
+                                                <div class="voucher-condition">
+                                                    <Icon Type="shopping-cart"/>
+                                                    Đơn tối thiểu: @voucher.MinOrder.ToString("N0") đ
+                                                </div>
+                                                <div class="voucher-expiry">
+                                                    <Icon Type="calendar"/>
+                                                    HSD: @voucher.EndDate.ToString("dd/MM/yyyy")
+                                                </div>
+                                                @if (voucher.MaxTotalUse.HasValue)
+                                                {
+                                                            <div class="voucher-limit">
+                                                                <Icon Type="user"/>
+                                                                Giới hạn: @voucher.MaxTotalUse lượt
+                                                            </div>
+                                                }
+                                                @if (voucher.MaxTotalUsePerCustomer.HasValue)
+                                                {
+                                                            <div class="voucher-limit-per-customer">
+                                                                <Icon Type="team"/>
+                                                                Mỗi khách: @voucher.MaxTotalUsePerCustomer lượt
+                                                            </div>
+                                                }
+                                            </div>
+                                            @if (voucher.CanUse)
+                                            {
+                                                        <div class="voucher-savings">
+                                                            Tiết kiệm: @voucher.CalculatedDiscountAmount.ToString("N0") đ
+                                                        </div>
+                                            }
+                                            else if (!string.IsNullOrEmpty(voucher.Reason))
+                                            {
+                                                        <div class="voucher-error">
+                                                            <Icon Type="exclamation-circle"/>
+                                                            @voucher.Reason
+                                                        </div>
+                                            }
+                                        </div>
+                            }
+                        </div>
             }
             else
             {
-                                                <div class="voucher-empty-state">
-                                                    <div class="empty-icon">🎁</div>
-                                                    <div class="empty-title">Không có voucher nào khả dụng</div>
-                                                    <div class="empty-description">Vui lòng chọn khách hàng và đảm bảo đơn hàng đủ điều kiện để xem voucher</div>
-                                                    <div class="empty-tips">
-                                                        <div class="tip-item">💡 Đơn hàng cần đạt giá trị tối thiểu</div>
-                                                        <div class="tip-item">👤 Voucher có thể giới hạn theo khách hàng</div>
-                                                        <div class="tip-item">⏰ Kiểm tra thời gian hiệu lực của voucher</div>
-                                                    </div>
-                                                </div>
+                        <div class="voucher-empty-state">
+                            <div class="empty-icon">🎁</div>
+                            <div class="empty-title">Không có voucher nào khả dụng</div>
+                            <div class="empty-description">Vui lòng chọn khách hàng và đảm bảo đơn hàng đủ điều kiện để xem
+                                voucher
+                            </div>
+                            <div class="empty-tips">
+                                <div class="tip-item">💡 Đơn hàng cần đạt giá trị tối thiểu</div>
+                                <div class="tip-item">👤 Voucher có thể giới hạn theo khách hàng</div>
+                                <div class="tip-item">⏰ Kiểm tra thời gian hiệu lực của voucher</div>
+                            </div>
+                        </div>
             }
         </div>
     </Modal>
 
     <!-- Cancel Order Modal -->
-    <Modal Title="Hủy đơn hàng" 
-           Visible="@CancelOrderModalVisible" 
+    <Modal Title="Hủy đơn hàng"
+           Visible="@CancelOrderModalVisible"
            OnOk="@(async () => await ConfirmCancelOrder())"
            OnCancel="CloseCancelOrderModal"
            Width="500">
@@ -576,18 +505,18 @@
                 <label style="display: block; margin-bottom: 8px; font-weight: 500;">
                     Lý do hủy đơn hàng <span style="color: red;">*</span>
                 </label>
-                <TextArea @bind-Value="@CancelReason" 
-                         Placeholder="Nhập lý do hủy đơn hàng..." 
-                         Rows="4" 
-                         MaxLength="500"
-                         ShowCount="true" />
+                <TextArea @bind-Value="@CancelReason"
+                          Placeholder="Nhập lý do hủy đơn hàng..."
+                          Rows="4"
+                          MaxLength="500"
+                          ShowCount="true"/>
             </div>
         </div>
     </Modal>
 
     <!-- Payment Info Modal -->
-    <Modal Title="Thông tin chuyển khoản" 
-           Visible="@PaymentInfoModalVisible" 
+    <Modal Title="Thông tin chuyển khoản"
+           Visible="@PaymentInfoModalVisible"
            OnCancel="ClosePaymentInfoModal"
            Width="600"
            Footer="null">
@@ -595,74 +524,82 @@
             <div style="display: flex; gap: 24px; align-items: flex-start;">
                 @if (!string.IsNullOrEmpty(QrBase64Image))
                 {
-                                <div style="text-align: center;">
-                                    <img src="@QrBase64Image" style="width: 200px; height: 200px; border: 1px solid #d9d9d9; border-radius: 8px;" />
-                                    <div style="margin-top: 12px; font-size: 14px; color: #666;">
-                                        Quét mã QR để chuyển khoản
-                                    </div>
+                            <div style="text-align: center;">
+                                <img src="@QrBase64Image"
+                                     style="width: 200px; height: 200px; border: 1px solid #d9d9d9; border-radius: 8px;"/>
+                                <div style="margin-top: 12px; font-size: 14px; color: #666;">
+                                    Quét mã QR để chuyển khoản
                                 </div>
+                            </div>
                 }
                 <div style="flex: 1;">
-                    <div style="background: #f8f9fa; padding: 20px; border-radius: 8px; border-left: 4px solid #1890ff;">
+                    <div
+                        style="background: #f8f9fa; padding: 20px; border-radius: 8px; border-left: 4px solid #1890ff;">
                         <div style="margin-bottom: 16px;">
                             <div style="font-size: 16px; font-weight: 600; color: #1890ff; margin-bottom: 8px;">
                                 Thông tin chuyển khoản
                             </div>
                         </div>
-                        
+
                         <div style="margin-bottom: 12px;">
                             <div style="display: flex; align-items: center; margin-bottom: 8px;">
-                                <Icon Type="credit-card" Style="margin-right: 8px; color: #1890ff;" />
+                                <Icon Type="credit-card" Style="margin-right: 8px; color: #1890ff;"/>
                                 <span style="font-weight: 500; color: #333;">Số tài khoản:</span>
                             </div>
-                            <div style="background: white; padding: 8px 12px; border-radius: 4px; border: 1px solid #d9d9d9;">
+                            <div
+                                style="background: white; padding: 8px 12px; border-radius: 4px; border: 1px solid #d9d9d9;">
                                 <span style="font-weight: bold; font-size: 16px; color: #1890ff;">@AccountNumber</span>
                             </div>
                         </div>
 
                         <div style="margin-bottom: 12px;">
                             <div style="display: flex; align-items: center; margin-bottom: 8px;">
-                                <Icon Type="bank" Style="margin-right: 8px; color: #1890ff;" />
+                                <Icon Type="bank" Style="margin-right: 8px; color: #1890ff;"/>
                                 <span style="font-weight: 500; color: #333;">Ngân hàng:</span>
                             </div>
-                            <div style="background: white; padding: 8px 12px; border-radius: 4px; border: 1px solid #d9d9d9;">
+                            <div
+                                style="background: white; padding: 8px 12px; border-radius: 4px; border: 1px solid #d9d9d9;">
                                 <span style="font-weight: bold; color: #333;">Vietcombank - VCB</span>
                             </div>
                         </div>
 
                         <div style="margin-bottom: 12px;">
                             <div style="display: flex; align-items: center; margin-bottom: 8px;">
-                                <Icon Type="user" Style="margin-right: 8px; color: #1890ff;" />
+                                <Icon Type="user" Style="margin-right: 8px; color: #1890ff;"/>
                                 <span style="font-weight: 500; color: #333;">Chủ tài khoản:</span>
                             </div>
-                            <div style="background: white; padding: 8px 12px; border-radius: 4px; border: 1px solid #d9d9d9;">
+                            <div
+                                style="background: white; padding: 8px 12px; border-radius: 4px; border: 1px solid #d9d9d9;">
                                 <span style="font-weight: bold; color: #333;">BACH HONG LIEN</span>
                             </div>
                         </div>
 
                         <div style="margin-bottom: 12px;">
                             <div style="display: flex; align-items: center; margin-bottom: 8px;">
-                                <Icon Type="file-text" Style="margin-right: 8px; color: #1890ff;" />
+                                <Icon Type="file-text" Style="margin-right: 8px; color: #1890ff;"/>
                                 <span style="font-weight: 500; color: #333;">Nội dung:</span>
                             </div>
-                            <div style="background: white; padding: 8px 12px; border-radius: 4px; border: 1px solid #d9d9d9;">
+                            <div
+                                style="background: white; padding: 8px 12px; border-radius: 4px; border: 1px solid #d9d9d9;">
                                 <span style="font-weight: bold; color: #333;">@AddInfo</span>
                             </div>
                         </div>
 
                         <div style="margin-bottom: 16px;">
                             <div style="display: flex; align-items: center; margin-bottom: 8px;">
-                                <Icon Type="dollar" Style="margin-right: 8px; color: #ff4d4f;" />
+                                <Icon Type="dollar" Style="margin-right: 8px; color: #ff4d4f;"/>
                                 <span style="font-weight: 500; color: #333;">Số tiền:</span>
                             </div>
-                            <div style="background: #fff2f0; padding: 12px; border-radius: 4px; border: 1px solid #ffccc7;">
-                                <span style="font-weight: bold; font-size: 18px; color: #ff4d4f;">@CalculateTotal().ToString("N0") đ</span>
+                            <div
+                                style="background: #fff2f0; padding: 12px; border-radius: 4px; border: 1px solid #ffccc7;">
+                                <span
+                                    style="font-weight: bold; font-size: 18px; color: #ff4d4f;">@CalculateTotal().ToString("N0") đ</span>
                             </div>
                         </div>
 
                         <div style="background: #e6f7ff; padding: 12px; border-radius: 4px; border: 1px solid #91d5ff;">
                             <div style="display: flex; align-items: center;">
-                                <Icon Type="info-circle" Style="margin-right: 8px; color: #1890ff;" />
+                                <Icon Type="info-circle" Style="margin-right: 8px; color: #1890ff;"/>
                                 <span style="font-size: 13px; color: #1890ff; font-style: italic;">
                                     Đơn hàng sẽ được xác nhận sau khi quản trị viên kiểm tra thanh toán.
                                 </span>
@@ -761,15 +698,12 @@
     private int SelectedDistrictId = 0;
 
     private List<SelectOption> TypeOptions = new()
-{
-new() { Label = "Giao trực tiếp", Value = 0 },
-new() { Label = "Giao hàng", Value = 2 }
-};
+    {
+        new() { Label = "Giao trực tiếp", Value = 0 },
+        new() { Label = "Giao hàng", Value = 2 }
+    };
 
     private List<Customer> Customers = new();
-    private List<Province> Provinces = new();
-    private List<District> Districts = new();
-    private List<Commune> Communes = new();
     private List<OrderDetailDTO> Products = new();
     private List<OrderDetailDTO> SelectedProducts = new();
     private List<ProductSearchResponseDTO> SearchResults = new();
@@ -795,15 +729,15 @@ new() { Label = "Giao hàng", Value = 2 }
     private List<AvailableVoucherDTO> AvailableVouchers = new();
     private bool LoadingVouchers = false;
     private bool VoucherModalVisible = false;
-    
+
     // Cancel Order Modal
     private bool CancelOrderModalVisible = false;
     private OrderDTO? OrderToCancel = null;
     private string CancelReason = "Khách hàng yêu cầu hủy";
-    
+
     // Payment Info Modal
     private bool PaymentInfoModalVisible = false;
-    
+
     private int PaymentType = 0;
     private string ApiBaseUrl = string.Empty;
     private bool IsBarcodeScanning = false;
@@ -812,7 +746,7 @@ new() { Label = "Giao hàng", Value = 2 }
     private string CurrentOrderCode = string.Empty; // Mã đơn hàng đã tạo thành công
     private List<PendingOrderItem> PendingOrders = new(); // Danh sách đơn hàng đang xử lý
     private bool LoadingPendingOrders = false;
-    
+
     // Transfer payment info
     private string? QrBase64Image { get; set; }
     public string? AccountNumber { get; set; } = "1014640175";
@@ -861,39 +795,33 @@ new() { Label = "Giao hàng", Value = 2 }
         SearchResults.Clear();
         SearchDropdownVisible = false;
         ProductSearchKeyword = string.Empty;
-        
+
         // Clear form data
         OrderModel = new();
-        OrderType = 0;
+        OrderType = 0; // Luôn mặc định là giao trực tiếp
         OrderModel.Type = 0;
-        
+
         // Clear customer data
         SelectedCustomer = null;
         OrderModel.CustomerId = null;
-        
-        // Clear delivery data
-        SelectedProvinceId = 0;
-        SelectedDistrictId = 0;
-        UseDefaultAddress = false;
-        
+
         // Clear payment & discount data
-        ShippingFee = 0;
         DiscountCode = string.Empty;
         DiscountCodeError = null;
         DiscountCodeAmount = 0;
         PaymentType = 0;
         QrBase64Image = null;
-        
+
         // Clear voucher data
         SelectedVoucher = null;
         SelectedVoucherId = null;
         SelectedVoucherCode = string.Empty;
         AvailableVouchers.Clear();
-        
+
         // Clear order data
         CurrentOrderId = null;
         CurrentOrderCode = string.Empty;
-        
+
         // Clear modal states
         AddCustomerModalVisible = false;
         VoucherModalVisible = false;
@@ -901,7 +829,7 @@ new() { Label = "Giao hàng", Value = 2 }
         PaymentInfoModalVisible = false;
         OrderToCancel = null;
         CancelReason = "Khách hàng yêu cầu hủy";
-        
+
         StateHasChanged();
     }
 
@@ -919,45 +847,18 @@ new() { Label = "Giao hàng", Value = 2 }
             return;
         }
 
-        if (OrderType == 2)
-        {
-            if (string.IsNullOrWhiteSpace(OrderModel.Delivery.ConsigneeName) ||
-            string.IsNullOrWhiteSpace(OrderModel.Delivery.ConsigneePhone) ||
-            !OrderModel.Delivery.ProvinceId.HasValue ||
-            !OrderModel.Delivery.DistrictId.HasValue ||
-            !OrderModel.Delivery.CommuneId.HasValue ||
-            string.IsNullOrWhiteSpace(OrderModel.Delivery.ConsigneeAddress))
-            {
-                MessageService.Warning("Vui lòng nhập đủ thông tin giao hàng");
-                return;
-            }
-        }
-
         try
         {
             var dto = new CreatePosOrderDTO
             {
-                Type = OrderType == 2 ? MeoMeo.Domain.Commons.Enums.EOrderType.Online : MeoMeo.Domain.Commons.Enums.EOrderType.Store,
-                PaymentMethod = PaymentType == 0 ? MeoMeo.Domain.Commons.Enums.EOrderPaymentMethod.Cash :
-            MeoMeo.Domain.Commons.Enums.EOrderPaymentMethod.Transfer,
-                Note = OrderModel.Delivery.ConsigneeNote,
-                ShippingFee = ShippingFee,
+                Type = MeoMeo.Domain.Commons.Enums.EOrderType.Store, // Luôn là giao trực tiếp
+                PaymentMethod = PaymentType == 0 ? MeoMeo.Domain.Commons.Enums.EOrderPaymentMethod.Cash : MeoMeo.Domain.Commons.Enums.EOrderPaymentMethod.Transfer,
+                Note = "", // Không có note cho giao trực tiếp
+                ShippingFee = 0, // Không có phí vận chuyển cho giao trực tiếp
                 Status = isDraft ? EOrderStatus.Pending : EOrderStatus.Completed,
                 DiscountCode = string.IsNullOrWhiteSpace(DiscountCode) ? null : DiscountCode,
                 CustomerId = SelectedCustomer?.Id ?? Guid.Empty,
-                Delivery = OrderType == 2
-            ? new MeoMeo.Contract.DTOs.Order.CreatePosDeliveryDTO
-            {
-                ConsigneeName = OrderModel.Delivery.ConsigneeName,
-                ConsigneePhone = OrderModel.Delivery.ConsigneePhone,
-                ProvinceId = OrderModel.Delivery.ProvinceId ?? 0,
-                DistrictId = OrderModel.Delivery.DistrictId ?? 0,
-                CommuneId = OrderModel.Delivery.CommuneId ?? 0,
-                ConsigneeAddress = OrderModel.Delivery.ConsigneeAddress,
-                ConsigneeNote = OrderModel.Delivery.ConsigneeNote
-                    
-            }
-            : null,
+                Delivery = null, // Không có delivery cho giao trực tiếp
                 Items = Products.Select(p => new MeoMeo.Contract.DTOs.Order.CreatePosOrderItemDTO
                 {
                     Id = p.Id, // OrderDetail Id
@@ -985,7 +886,7 @@ new() { Label = "Giao hàng", Value = 2 }
                 // Lưu thông tin đơn hàng đã tạo/cập nhật thành công
                 CurrentOrderId = resp.OrderId;
                 CurrentOrderCode = resp.Code ?? string.Empty;
-                
+
                 if (CurrentOrderId.HasValue && CurrentOrderId != Guid.Empty)
                 {
                     MessageService.Success($"Cập nhật đơn thành công: {resp.Code}");
@@ -994,20 +895,21 @@ new() { Label = "Giao hàng", Value = 2 }
                 {
                     MessageService.Success($"Tạo đơn thành công: {resp.Code}");
                 }
-                
+
                 if (isDraft)
                 {
                     MessageService.Info("Đơn hàng đã được lưu tạm. Bạn có thể tiếp tục chỉnh sửa hoặc thanh toán.");
+                    // Không clear dữ liệu khi lưu tạm, chỉ load lại danh sách pending orders
+                    await LoadPendingOrders();
                 }
                 else
                 {
                     MessageService.Info("Đơn hàng đã được hoàn thành thành công. Bạn có thể in hóa đơn hoặc tạo đơn mới.");
-                    
+
                     // Clear toàn bộ dữ liệu để chuẩn bị đơn hàng mới
                     ClearAllData();
+                    await LoadPendingOrders();
                 }
-                
-                await LoadPendingOrders();
             }
             else
             {
@@ -1034,46 +936,19 @@ new() { Label = "Giao hàng", Value = 2 }
             return;
         }
 
-        if (OrderType == 2)
-        {
-            if (string.IsNullOrWhiteSpace(OrderModel.Delivery.ConsigneeName) ||
-            string.IsNullOrWhiteSpace(OrderModel.Delivery.ConsigneePhone) ||
-            !OrderModel.Delivery.ProvinceId.HasValue ||
-            !OrderModel.Delivery.DistrictId.HasValue ||
-            !OrderModel.Delivery.CommuneId.HasValue ||
-            string.IsNullOrWhiteSpace(OrderModel.Delivery.ConsigneeAddress))
-            {
-                MessageService.Warning("Vui lòng nhập đủ thông tin giao hàng");
-                return;
-            }
-        }
-
         try
         {
             // 1. Thanh toán đơn hàng (tạo/cập nhật với status Completed)
             var dto = new CreatePosOrderDTO
             {
-                Type = OrderType == 2 ? MeoMeo.Domain.Commons.Enums.EOrderType.Online : MeoMeo.Domain.Commons.Enums.EOrderType.Store,
-                PaymentMethod = PaymentType == 0 ? MeoMeo.Domain.Commons.Enums.EOrderPaymentMethod.Cash :
-                MeoMeo.Domain.Commons.Enums.EOrderPaymentMethod.Transfer,
-                Note = OrderModel.Delivery.ConsigneeNote,
-                ShippingFee = ShippingFee,
+                Type = MeoMeo.Domain.Commons.Enums.EOrderType.Store, // Luôn là giao trực tiếp
+                PaymentMethod = PaymentType == 0 ? MeoMeo.Domain.Commons.Enums.EOrderPaymentMethod.Cash : MeoMeo.Domain.Commons.Enums.EOrderPaymentMethod.Transfer,
+                Note = "", // Không có note cho giao trực tiếp
+                ShippingFee = 0, // Không có phí vận chuyển cho giao trực tiếp
                 Status = EOrderStatus.Completed, // Luôn Completed khi thanh toán
                 DiscountCode = string.IsNullOrWhiteSpace(DiscountCode) ? null : DiscountCode,
                 CustomerId = SelectedCustomer?.Id ?? Guid.Empty,
-                Delivery = OrderType == 2
-            ? new MeoMeo.Contract.DTOs.Order.CreatePosDeliveryDTO
-            {
-                ConsigneeName = OrderModel.Delivery.ConsigneeName,
-                ConsigneePhone = OrderModel.Delivery.ConsigneePhone,
-                ProvinceId = OrderModel.Delivery.ProvinceId ?? 0,
-                DistrictId = OrderModel.Delivery.DistrictId ?? 0,
-                CommuneId = OrderModel.Delivery.CommuneId ?? 0,
-                ConsigneeAddress = OrderModel.Delivery.ConsigneeAddress,
-                ConsigneeNote = OrderModel.Delivery.ConsigneeNote
-                    
-            }
-            : null,
+                Delivery = null, // Không có delivery cho giao trực tiếp
                 Items = Products.Select(p => new MeoMeo.Contract.DTOs.Order.CreatePosOrderItemDTO
                 {
                     Id = p.Id,
@@ -1105,8 +980,8 @@ new() { Label = "Giao hàng", Value = 2 }
                 await PrintDetailedReceiptFromApi(resp);
 
                 MessageService.Success($"Thanh toán thành công: {resp.Code}");
-                
-                // Clear data sau khi thanh toán
+
+                // Clear data sau khi thanh toán thành công
                 ClearAllData();
                 await LoadPendingOrders();
             }
@@ -1132,27 +1007,19 @@ new() { Label = "Giao hàng", Value = 2 }
                 orderCode = orderData.Code,
                 orderId = orderData.OrderId,
                 orderDate = orderData.CreationTime.ToString("dd/MM/yyyy HH:mm"),
-                orderType = orderData.Type == MeoMeo.Domain.Commons.Enums.EOrderType.Online ? "Giao hàng" : "Giao trực tiếp",
+                orderType = "Giao trực tiếp", // Luôn là giao trực tiếp
                 status = "Đã thanh toán",
-                    
+
                 // Thông tin khách hàng
                 customerName = orderData.CustomerName ?? "Khách lẻ",
                 customerPhone = orderData.CustomerPhoneNumber ?? "",
                 customerEmail = orderData.CustomerEmail ?? "",
-                    
+
                 // Thông tin nhân viên
                 employeeName = orderData.EmployeeName ?? "",
                 employeePhone = orderData.EmployeePhoneNumber ?? "",
-                    
-                // Thông tin giao hàng (nếu có)
-                deliveryInfo = orderData.Type == MeoMeo.Domain.Commons.Enums.EOrderType.Online && orderData.Delivery != null ? new
-                {
-                    consigneeName = orderData.Delivery.ConsigneeName,
-                    consigneePhone = orderData.Delivery.ConsigneePhone,
-                    address = orderData.Delivery.ConsigneeAddress,
-                    note = orderData.Delivery.ConsigneeNote
-                } : null,
-                    
+
+
                 // Chi tiết sản phẩm
                 items = orderData.OrderDetails?.Select(p => new
                 {
@@ -1168,31 +1035,33 @@ new() { Label = "Giao hàng", Value = 2 }
                     total = p.Price * p.Quantity, // Price đã là giá sau giảm giá rồi
                     image = p.Image
                 }).ToList(),
-                    
+
                 // Tổng kết
                 subTotal = orderData.OrderDetails?.Sum(p => p.Price * p.Quantity) ?? 0,
-                shippingFee = orderData.ShippingFee,
+                shippingFee = 0, // Không có phí vận chuyển cho giao trực tiếp
                 discountAmount = orderData.OrderDetails?.Sum(p => p.Discount) ?? 0,
                 voucherDiscount = DiscountCodeAmount, // Tính từ voucher đã chọn
                 total = orderData.TotalPrice,
-                    
+
                 // Thông tin thanh toán
                 paymentMethod = orderData.PaymentMethod == MeoMeo.Domain.Commons.Enums.EOrderPaymentMethod.Cash ? "Tiền mặt" : "Chuyển khoản",
                 paymentStatus = "Đã thanh toán",
-                    
+
                 // QR Code (nếu chuyển khoản)
                 qrCode = orderData.PaymentMethod == MeoMeo.Domain.Commons.Enums.EOrderPaymentMethod.Transfer ? QrBase64Image : null,
-                bankInfo = orderData.PaymentMethod == MeoMeo.Domain.Commons.Enums.EOrderPaymentMethod.Transfer ? new
-                {
-                    accountNumber = AccountNumber,
-                    bankName = "Vietcombank - VCB",
-                    accountHolder = "BACH HONG LIEN",
-                    content = AddInfo
-                } : null,
-                    
+                bankInfo = orderData.PaymentMethod == MeoMeo.Domain.Commons.Enums.EOrderPaymentMethod.Transfer
+                    ? new
+                    {
+                        accountNumber = AccountNumber,
+                        bankName = "Vietcombank - VCB",
+                        accountHolder = "BACH HONG LIEN",
+                        content = AddInfo
+                    }
+                    : null,
+
                 // Ghi chú
                 note = orderData.Note ?? "",
-                    
+
                 // Thông tin cửa hàng
                 storeInfo = new
                 {
@@ -1213,7 +1082,6 @@ new() { Label = "Giao hàng", Value = 2 }
         }
     }
 
-    
 
     private async Task HandlePrintOrder()
     {
@@ -1247,11 +1115,11 @@ new() { Label = "Giao hàng", Value = 2 }
                     Total = p.GrandTotal
                 }),
                 SubTotal = CalculateSubTotal(),
-                ShippingFee = ShippingFee,
+                ShippingFee = 0, // Không có phí vận chuyển cho giao trực tiếp
                 DiscountAmount = DiscountCodeAmount,
                 Total = CalculateTotal(),
                 PaymentMethod = PaymentType == 0 ? "Tiền mặt" : "Chuyển khoản",
-                OrderType = OrderType == 0 ? "Giao trực tiếp" : "Giao hàng"
+                OrderType = "Giao trực tiếp" // Luôn là giao trực tiếp
             };
 
             // Gọi JavaScript để in hóa đơn
@@ -1269,17 +1137,11 @@ new() { Label = "Giao hàng", Value = 2 }
         Navigation.NavigateTo("/orders");
     }
 
-    private void HandleTypeChange(SelectOption selectedOption)
-    {
-        OrderType = selectedOption.Value;
-        StateHasChanged();
-    }
-
     private async Task FetchImageAsync()
     {
         if (string.IsNullOrEmpty(AccountNumber) || string.IsNullOrEmpty(BankBin))
             return;
-            
+
         var url = $"https://img.vietqr.io/image/{BankBin}-{AccountNumber}-qr_only.png?amount={(int)CalculateTotal()}&addInfo={AddInfo}";
         try
         {
@@ -1377,43 +1239,6 @@ new() { Label = "Giao hàng", Value = 2 }
         }
     }
 
-    private void OnProvinceSearch(string searchText)
-    {
-    }
-
-    private void HandleProvinceChange(Province province)
-    {
-        SelectedProvinceId = province?.Id ?? 0;
-        Districts.Clear();
-        Communes.Clear();
-        OrderModel.Delivery.DistrictId = null;
-        OrderModel.Delivery.CommuneId = null;
-        StateHasChanged();
-        _ = LoadDistrictsAsync(SelectedProvinceId);
-    }
-
-    private void OnDistrictSearch(string searchText)
-    {
-    }
-
-    private void HandleDistrictChange(District district)
-    {
-        SelectedDistrictId = district?.Id ?? 0;
-        Communes.Clear();
-        OrderModel.Delivery.CommuneId = null;
-        StateHasChanged();
-        _ = LoadCommunesAsync(SelectedDistrictId);
-    }
-
-    private void OnCommuneSearch(string searchText)
-    {
-    }
-
-    private void HandleCommuneChange(Commune commune)
-    {
-        OrderModel.Delivery.CommuneId = commune?.Id;
-        StateHasChanged();
-    }
 
     private void OnSearchClick()
     {
@@ -1681,7 +1506,7 @@ new() { Label = "Giao hàng", Value = 2 }
             var request = new GetAvailableVouchersRequestDTO
             {
                 CustomerId = SelectedCustomer.Id,
-                OrderAmount = CalculateSubTotal()
+                OrderAmount = CalculateSubTotal() // Không có phí vận chuyển cho giao trực tiếp
             };
 
             AvailableVouchers = await VoucherClientService.GetAvailableVouchersAsync(request);
@@ -1705,7 +1530,7 @@ new() { Label = "Giao hàng", Value = 2 }
             MessageService.Warning("Vui lòng chọn khách hàng trước");
             return;
         }
-        
+
         VoucherModalVisible = true;
         _ = LoadAvailableVouchers();
     }
@@ -1737,7 +1562,7 @@ new() { Label = "Giao hàng", Value = 2 }
             ExpiryDate = voucher.EndDate
         };
         DiscountCodeError = null;
-        
+
         VoucherModalVisible = false;
         MessageService.Success($"Áp dụng voucher thành công: -{DiscountCodeAmount.ToString("N0")} đ");
         StateHasChanged();
@@ -1801,7 +1626,7 @@ new() { Label = "Giao hàng", Value = 2 }
     {
         Products.Remove(product);
         SelectedProducts.Remove(product);
-        
+
         ReloadVouchersIfNeeded();
         StateHasChanged();
         return Task.CompletedTask;
@@ -1824,7 +1649,7 @@ new() { Label = "Giao hàng", Value = 2 }
     private decimal CalculateTotal()
     {
         var subTotal = CalculateSubTotal();
-        var total = subTotal + ShippingFee - DiscountCodeAmount;
+        var total = subTotal - DiscountCodeAmount; // Không có phí vận chuyển cho giao trực tiếp
         return Math.Max(0, total);
     }
 
@@ -1833,7 +1658,6 @@ new() { Label = "Giao hàng", Value = 2 }
         try
         {
             CustomersLoading = true;
-            ProvincesLoading = true;
 
             var custReq = new MeoMeo.Contract.DTOs.GetListCustomerRequestDTO
             {
@@ -1842,19 +1666,13 @@ new() { Label = "Giao hàng", Value = 2 }
             };
             var custResp = await CustomerClientService.GetAllCustomersAsync(custReq);
             Customers = (custResp.Items ?? new List<MeoMeo.Contract.DTOs.CustomerDTO>())
-            .Select(c => new Customer
-            {
-                Id = c.Id,
-                Name = c.Name,
-                Phone = c.PhoneNumber,
-            })
-            .ToList();
-
-            // Load provinces via GHN
-            var ghnProvinces = await GhnService.GetProvincesAsync();
-            Provinces = (ghnProvinces ?? new List<MeoMeo.Shared.DTOs.GhnLocationItem>())
-            .Select(p => new Province { Id = p.Id, Name = p.Name })
-            .ToList();
+                .Select(c => new Customer
+                {
+                    Id = c.Id,
+                    Name = c.Name,
+                    Phone = c.PhoneNumber,
+                })
+                .ToList();
         }
         catch
         {
@@ -1863,7 +1681,6 @@ new() { Label = "Giao hàng", Value = 2 }
         finally
         {
             CustomersLoading = false;
-            ProvincesLoading = false;
             StateHasChanged();
         }
     }
@@ -1876,55 +1693,13 @@ new() { Label = "Giao hàng", Value = 2 }
     {
     }
 
-    private async Task LoadDistrictsAsync(int provinceId)
-    {
-        try
-        {
-            DistrictsLoading = true;
-            var ghnDistricts = await GhnService.GetDistrictsAsync(provinceId);
-            Districts = (ghnDistricts ?? new List<MeoMeo.Shared.DTOs.GhnLocationItem>())
-            .Select(d => new District { Id = d.Id, Name = d.Name })
-            .ToList();
-        }
-        catch
-        {
-            MessageService.Error("Không thể tải danh sách quận/huyện");
-        }
-        finally
-        {
-            DistrictsLoading = false;
-            StateHasChanged();
-        }
-    }
-
-    private async Task LoadCommunesAsync(int districtId)
-    {
-        try
-        {
-            CommunesLoading = true;
-            var ghnWards = await GhnService.GetWardsAsync(districtId);
-            Communes = (ghnWards ?? new List<MeoMeo.Shared.DTOs.GhnLocationItem>())
-            .Select(w => new Commune { Id = w.Id, Name = w.Name })
-            .ToList();
-        }
-        catch
-        {
-            MessageService.Error("Không thể tải danh sách phường/xã");
-        }
-        finally
-        {
-            CommunesLoading = false;
-            StateHasChanged();
-        }
-    }
-
     // Method để load đơn hàng đang xử lý
     private async Task LoadPendingOrders()
     {
         try
         {
             LoadingPendingOrders = true;
-            
+
             var request = new GetPendingOrdersRequestDTO
             {
                 PageIndex = 1,
@@ -1968,21 +1743,18 @@ new() { Label = "Giao hàng", Value = 2 }
     {
         try
         {
-            
             var orderDetail = await OrderClientService.GetOrderByIdAsync(order.Id);
             if (orderDetail == null)
             {
                 MessageService.Error("Không thể tải chi tiết đơn hàng");
                 return;
             }
+
             Products.Clear();
             SelectedProducts.Clear();
             SearchResults.Clear();
             SearchDropdownVisible = false;
             SelectedCustomer = null;
-            SelectedProvinceId = 0;
-            SelectedDistrictId = 0;
-            ShippingFee = 0;
             DiscountCode = string.Empty;
             DiscountCodeError = null;
             DiscountCodeAmount = 0;
@@ -1991,17 +1763,16 @@ new() { Label = "Giao hàng", Value = 2 }
             ProductSearchKeyword = string.Empty;
             CurrentOrderId = orderDetail.Id;
             CurrentOrderCode = orderDetail.Code;
-            OrderType = (int)orderDetail.Type;
+            OrderType = 0; // Luôn là giao trực tiếp
             OrderModel.Type = OrderType;
             PaymentType = (int)orderDetail.PaymentMethod;
-            ShippingFee = orderDetail.ShippingFee ?? 0;
-            OrderModel.Delivery.ConsigneeNote = orderDetail.Note ?? string.Empty;
-            
+
             // Load QR code if payment method is transfer
             if (PaymentType == 1)
             {
                 await FetchImageAsync();
             }
+
             if (orderDetail.CustomerId != Guid.Empty)
             {
                 var customer = Customers.FirstOrDefault(c => c.Id == orderDetail.CustomerId);
@@ -2016,11 +1787,12 @@ new() { Label = "Giao hàng", Value = 2 }
                     };
                     Customers.Insert(0, customer);
                 }
+
                 SelectedCustomer = customer;
                 OrderModel.CustomerId = customer.Id;
             }
 
-           
+
             // Load danh sách sản phẩm trực tiếp từ OrderDetailDTO
             Products.Clear();
             if (orderDetail.OrderDetails?.Any() == true)
@@ -2030,6 +1802,7 @@ new() { Label = "Giao hàng", Value = 2 }
                     Products.Add(detail);
                 }
             }
+
             StateHasChanged();
         }
         catch (Exception ex)
@@ -2064,23 +1837,23 @@ new() { Label = "Giao hàng", Value = 2 }
         PaymentInfoModalVisible = false;
     }
 
-    private string GetProvinceName()
-    {
-        return Provinces.FirstOrDefault(p => p.Id == OrderModel.Delivery.ProvinceId)?.Name ?? "";
-    }
-
-    private string GetDistrictName()
-    {
-        return Districts.FirstOrDefault(d => d.Id == OrderModel.Delivery.DistrictId)?.Name ?? "";
-    }
-
-    private string GetCommuneName()
-    {
-        return Communes.FirstOrDefault(c => c.Id == OrderModel.Delivery.CommuneId)?.Name ?? "";
-    }
 
     private void SelectCashPayment()
     {
+        // Check if there are products in the order
+        if (!Products.Any())
+        {
+            MessageService.Warning("Vui lòng thêm sản phẩm vào đơn hàng trước");
+            return;
+        }
+
+        // Check if customer is selected
+        if (SelectedCustomer == null || SelectedCustomer.Id == Guid.Empty)
+        {
+            MessageService.Warning("Vui lòng chọn khách hàng trước");
+            return;
+        }
+
         PaymentType = 0;
         PaymentInfoModalVisible = false;
         StateHasChanged();
@@ -2088,6 +1861,20 @@ new() { Label = "Giao hàng", Value = 2 }
 
     private async Task SelectTransferPayment()
     {
+        // Check if there are products in the order
+        if (!Products.Any())
+        {
+            MessageService.Warning("Vui lòng thêm sản phẩm vào đơn hàng trước");
+            return;
+        }
+
+        // Check if customer is selected
+        if (SelectedCustomer == null || SelectedCustomer.Id == Guid.Empty)
+        {
+            MessageService.Warning("Vui lòng chọn khách hàng trước");
+            return;
+        }
+
         PaymentType = 1;
         await FetchImageAsync();
         PaymentInfoModalVisible = true;
@@ -2105,13 +1892,13 @@ new() { Label = "Giao hàng", Value = 2 }
         try
         {
             var result = await OrderClientService.CancelOrderWithReasonAsync(OrderToCancel.Id, CancelReason);
-            
+
             if (result != null && result.ResponseStatus == MeoMeo.Contract.Commons.BaseStatus.Success)
             {
                 MessageService.Success($"Đã hủy đơn hàng {OrderToCancel.Code}");
-                
+
                 await LoadPendingOrders();
-                
+
                 CloseCancelOrderModal();
             }
             else

@@ -263,7 +263,8 @@
                                             </Button>
                                         </div>
                                         <div class="voucher-discount">Giảm @SelectedVoucher.Discount% (tối đa
-                                            @FormatCurrency(SelectedVoucher.MaxDiscount))</div>
+                                            @FormatCurrency(SelectedVoucher.MaxDiscount))
+                                        </div>
                                     </div>
                                 }
                             </div>
@@ -277,7 +278,8 @@
                             <div class="d-flex justify-content-between mb-3">
                                 <div class="text-left">Giảm giá voucher:
                                 </div>
-                                <div class="text-right text-end text-success">-@FormatCurrency(VoucherDiscountAmount)</div>
+                                <div class="text-right text-end text-success">
+                                    -@FormatCurrency(VoucherDiscountAmount)</div>
                             </div>
                             <Divider />
                             <div class="d-flex justify-content-between mb-3">
@@ -325,8 +327,9 @@
                                     <div class="address-content">
                                         <div class="address-info ">
                                             <div class="d-flex gap-1 justify-items-center">
-                                                <div class="address-name"> <i class="fas fa-user"></i> @address.Name</div>
-                                                <div class=""> | </div>
+                                                <div class="address-name"><i class="fas fa-user"></i> @address.Name
+                                                </div>
+                                                <div class=""> |</div>
                                                 <div class="address-phone"><i class="fas fa-phone"></i> @address.PhoneNumber
                                                 </div>
                                             </div>
@@ -415,7 +418,8 @@
                         <div class="d-flex justify-content-between align-items-center">
                             <div class="voucher-info">
                                 <div class="voucher-code">@voucher.Code</div>
-                                <div class="voucher-desc">Giảm @voucher.Discount% (tối đa @FormatCurrency(voucher.MaxDiscount))
+                                <div class="voucher-desc">Giảm @voucher.Discount% (tối
+                                    đa @FormatCurrency(voucher.MaxDiscount))
                                 </div>
                                 <div class="voucher-conditions">
                                     Đơn hàng tối thiểu: @FormatCurrency(voucher.MinOrder) |
@@ -462,9 +466,11 @@
         <h5>Các bước tính toán</h5>
         <ul>
             <li>Trọng lượng: Lấy trọng lượng của từng sản phẩm trong giỏ hàng, cộng lại. Nếu giỏ hàng trống, sử dụng
-                trọng lượng mặc định.</li>
+                trọng lượng mặc định.
+            </li>
             <li>Thể tích: Tính thể tích của từng sản phẩm trong giỏ hàng, cộng lại. Nếu giỏ hàng trống, sử dụng thể tích
-                mặc định.</li>
+                mặc định.
+            </li>
             <li>Kích thước: Lấy kích thước lớn nhất từ các sản phẩm để tính thể tích.</li>
             <li>Phí vận chuyển: Gọi API GHN để lấy phí vận chuyển dựa trên kích thước và trọng lượng.</li>
         </ul>
@@ -474,27 +480,36 @@
             lượng lớn hơn mặc định, phí vận chuyển sẽ được tính lại.</p>
     </Modal>
 </div>
+
 @code {
     string style = "height:30px;line-height:30px";
     private CartWithDetailsResponseDTO? cart;
+
     IEnumerable
     <CartDetailItemDTO>
     selectedRows = new List
     <CartDetailItemDTO>
     ();
+
     private string backendUrl = "";
     private string? QrBase64Image { get; set; }
     public string? AccountNumber { get; set; } = "1014640175";
     public string? AddInfo { get; set; } = "Thanh Toan Don Hang";
+
     public string? BankBin { get; set; } = "970436";
+
     // Voucher related
     private bool OpenVoucherModal = false;
     private VoucherDTO? SelectedVoucher;
+
     private List
     <VoucherDTO>
     AvailableVouchers = new();
+
     private string VoucherSearchCode = "";
+
     private decimal VoucherDiscountAmount = 0;
+
     // Delivery address related
     private bool OpenDeliveryModal = false;
     private bool OpenCreateOrUpdateAddressModal = false;
@@ -524,11 +539,15 @@
     private int SelectedPaymentMethod = 0;
     private decimal FinalTotalAmount = 0;
     private decimal ShippingFee = 0;
+
     private string GhnToken = "";
+
     //Id shop lấy từ trang https://khachhang.ghn.vn/account
     private int GhnShopId = 197393;
+
     // Fix cứng id quận Nam từ liêm là địa chỉ của shop
     private int GhnFromDistrictId = 3440;
+
     //13009 là mã code của phường trung văn
     private string GhnFromWardCode = "13009";
     private int DefaultItemWeightGram = 500;
@@ -560,6 +579,7 @@
         await LoadDefaultDeliveryAddress();
         await LoadLocationData();
     }
+
     private async Task LoadCart()
     {
         cart = await CartClient.GetCurrentCartAsync();
@@ -574,37 +594,75 @@
         {
             CartStateService.UpdateCartCount(0);
         }
+
         await CalculateFinalTotalAsync();
     }
+
     private async Task OnPaymentMethodChanged(int value)
     {
-
-
         if (value == 1)
         {
             await FetchImageAsync();
         }
     }
+
     private async Task LoadAvailableVouchers()
     {
         try
         {
-            var request = new GetListVoucherRequestDTO
+            // Tính tổng tiền đơn hàng hiện tại
+            var orderAmount = CalculateOrderTotal();
+
+            var request = new GetMyAvailableVouchersRequestDTO
             {
-                Status = EVoucherStatus.Active,
-                PageIndex = 1,
-                PageSize = 100
+                OrderAmount = orderAmount
             };
-            var result = await VoucherClient.GetAllVoucherAsync(request);
-            AvailableVouchers = result?.Items?.ToList() ?? new List
-            <VoucherDTO>
-            ();
+
+            var availableVouchers = await VoucherClient.GetAvailableVouchersAsync(new GetAvailableVouchersRequestDTO
+            {
+                OrderAmount = orderAmount
+            });
+
+            // Convert AvailableVoucherDTO sang VoucherDTO để tương thích với UI hiện tại
+            AvailableVouchers = availableVouchers
+            .Where(v => v.CanUse) // Chỉ lấy voucher có thể sử dụng
+            .Select(v => new VoucherDTO
+            {
+                Id = v.Id,
+                Code = v.Code,
+                Discount = v.Discount,
+                MinOrder = v.MinOrder,
+                MaxDiscount = v.MaxDiscount,
+                Type = v.Type,
+                StartDate = v.StartDate,
+                EndDate = v.EndDate,
+                MaxTotalUse = v.MaxTotalUse,
+                MaxTotalUsePerCustomer = v.MaxTotalUsePerCustomer
+            })
+            .ToList();
         }
         catch (Exception ex)
         {
             MessageModalService.Error($"Không thể tải danh sách voucher: {ex.Message}");
+            AvailableVouchers = new List<VoucherDTO>();
         }
     }
+
+    private decimal CalculateOrderTotal()
+    {
+        if (cart?.Items == null || !cart.Items.Any())
+            return 0;
+
+        return cart.Items.Sum(item =>
+        {
+            var discount = item.Discount;
+            var priceAfterDiscount = discount > 100
+    ? item.Price - discount
+    : item.Price * (1 - discount / 100f);
+            return (decimal)(priceAfterDiscount * item.Quantity);
+        });
+    }
+
     private async Task FetchImageAsync()
     {
         if (string.IsNullOrEmpty(AccountNumber) || string.IsNullOrEmpty(BankBin))
@@ -621,6 +679,7 @@
             Console.WriteLine($"Error fetching QR code: {ex.Message}");
         }
     }
+
     private async Task LoadDefaultDeliveryAddress()
     {
         try
@@ -641,10 +700,12 @@
             MessageModalService.Error($"Không thể tải địa chỉ giao hàng: {ex.Message}");
         }
     }
+
     private async Task Increment(CartDetailItemDTO item)
     {
         await UpdateQuantity(item, item.Quantity + 1);
     }
+
     private async Task Decrement(CartDetailItemDTO item)
     {
         if (item.Quantity <= 1)
@@ -656,6 +717,7 @@
             await UpdateQuantity(item, item.Quantity - 1);
         }
     }
+
     private async Task OnQuantityChange(CartDetailItemDTO item, int? newQuantity)
     {
         if (newQuantity.HasValue && newQuantity.Value >= 1 && newQuantity.Value <= 999)
@@ -663,6 +725,7 @@
             await UpdateQuantity(item, newQuantity.Value);
         }
     }
+
     private async Task UpdateQuantity(CartDetailItemDTO item, int newQuantity)
     {
         var dto = new UpdateCartQuantityDTO { CartDetailId = item.Id, Quantity = newQuantity };
@@ -679,6 +742,7 @@
             MessageModalService.Error(result?.Message ?? "Cập nhật số lượng thất bại");
         }
     }
+
     private async Task RemoveItem(Guid id)
     {
         var result = await CartClient.RemoveItemAsync(id);
@@ -694,6 +758,7 @@
             MessageModalService.Error(result?.Message ?? "Xoá sản phẩm thất bại");
         }
     }
+
     private async Task CalculateFinalTotalAsync()
     {
         decimal subtotal = 0;
@@ -701,14 +766,16 @@
         {
             subtotal = selectedRows.Sum(i => (decimal)(CalcPriceAfterDiscount(i.Price, i.Discount) * i.Quantity));
         }
+
         VoucherDiscountAmount = 0;
         if (SelectedVoucher != null && subtotal >= SelectedVoucher.MinOrder)
         {
             var discountPercent = (decimal)SelectedVoucher.Discount / 100m;
             VoucherDiscountAmount = Math.Min(subtotal * discountPercent, (decimal)SelectedVoucher.MaxDiscount);
         }
+
         await CalculateShippingFeeAsync();
-        FinalTotalAmount = subtotal - VoucherDiscountAmount + ShippingFee;
+        FinalTotalAmount = Math.Max(0, subtotal - VoucherDiscountAmount + ShippingFee);
         if (SelectedPaymentMethod == 1)
         {
             await FetchImageAsync();
@@ -752,6 +819,7 @@
                 var cubeRoot = Math.Pow(totalVolume, 1.0 / 3.0);
                 maxLength = maxWidth = maxHeight = Math.Max(DefaultLengthCm, (int)Math.Ceiling(cubeRoot));
             }
+
             // Get available services using GHN service
             var services = await GhnService.GetAvailableServicesAsync(GhnFromDistrictId, DefaultDeliveryAddress.DistrictId);
             if (!services.Any())
@@ -780,9 +848,9 @@
             ShippingFee = 0;
         }
     }
+
     private async Task Checkout()
     {
-
         var voucherTxt = SelectedVoucher != null ? $" | Voucher:{SelectedVoucher.Code}" : string.Empty;
         var noteTxt = !string.IsNullOrWhiteSpace(TxtNoteContent) ? $" | Note:{TxtNoteContent}" : string.Empty;
         AddInfo = $"Đơn hàng:{"aaaa"}{voucherTxt}{noteTxt}";
@@ -793,6 +861,7 @@
             MessageModalService.Warning("Vui lòng chọn sản phẩm để mua");
             return;
         }
+
         if (SelectedAddressId == Guid.Empty)
         {
             MessageModalService.Warning("Vui lòng chọn địa chỉ giao hàng");
@@ -827,6 +896,7 @@
                     return;
                 }
             }
+
             Navigation.NavigateTo("/orders");
         }
         else
@@ -840,15 +910,18 @@
     {
         OpenVoucherModal = true;
     }
+
     private async Task HandleOkVoucher()
     {
         OpenVoucherModal = false;
         await CalculateFinalTotalAsync();
     }
+
     private void HandleCancelVoucher()
     {
         OpenVoucherModal = false;
     }
+
     private async Task SelectVoucher(VoucherDTO voucher)
     {
         if (voucher.Status == EVoucherStatus.Active)
@@ -863,39 +936,77 @@
             MessageModalService.Warning("Voucher này không thể sử dụng");
         }
     }
+
     private async Task RemoveVoucher()
     {
         SelectedVoucher = null;
         await CalculateFinalTotalAsync();
         MessageModalService.Success("Đã xóa voucher");
     }
+
     private async Task SearchVoucher()
     {
-        if (!string.IsNullOrWhiteSpace(VoucherSearchCode))
+        try
         {
-            var request = new GetListVoucherRequestDTO
+            // Tính tổng tiền đơn hàng hiện tại
+            var orderAmount = CalculateOrderTotal();
+
+            if (!string.IsNullOrWhiteSpace(VoucherSearchCode))
             {
-                CodeFilter = VoucherSearchCode,
-                Status = EVoucherStatus.Active,
-                PageIndex = 1,
-                PageSize = 10
-            };
-            var result = await VoucherClient.GetAllVoucherAsync(request);
-            AvailableVouchers = result?.Items?.ToList() ?? new List
-            <VoucherDTO>
-            ();
+                // Tìm kiếm voucher theo code cụ thể
+                var checkRequest = new CheckVoucherRequestDTO
+                {
+                    Code = VoucherSearchCode,
+                    OrderAmount = orderAmount,
+                    CustomerId = null // Backend sẽ lấy từ JWT token
+                };
+
+                var checkResult = await VoucherClient.CheckVoucherAsync(checkRequest);
+
+                if (checkResult.ResponseStatus == BaseStatus.Success)
+                {
+                    // Convert CheckVoucherResponseDTO sang VoucherDTO
+                    AvailableVouchers = new List<VoucherDTO>
+{
+new VoucherDTO
+{
+Id = checkResult.Id,
+Code = checkResult.Code,
+Discount = checkResult.Discount,
+MinOrder = checkResult.MinOrder,
+MaxDiscount = checkResult.MaxDiscount,
+Type = checkResult.DiscountPercent > 0 ? EVoucherType.byPercentage : EVoucherType.byFixedAmount,
+StartDate = DateTime.Now, // Không có trong response
+EndDate = checkResult.ExpiryDate
+}
+};
+                }
+                else
+                {
+                    MessageModalService.Warning(checkResult.Message ?? "Voucher không hợp lệ");
+                    AvailableVouchers = new List<VoucherDTO>();
+                }
+            }
+            else
+            {
+                // Nếu không có code tìm kiếm, load tất cả voucher khả dụng
+                await LoadAvailableVouchers();
+            }
         }
-        else
+        catch (Exception ex)
         {
-            await LoadAvailableVouchers();
+            MessageModalService.Error($"Lỗi khi tìm kiếm voucher: {ex.Message}");
+            AvailableVouchers = new List<VoucherDTO>();
         }
     }
+
     // Delivery address methods
     private async Task ShowModalDelivery()
     {
         OpenDeliveryModal = true;
         await LoadMyAddresses();
     }
+
     private async Task LoadMyAddresses()
     {
         try
@@ -907,6 +1018,7 @@
             MessageModalService.Error($"Không thể tải danh sách địa chỉ: {ex.Message}");
         }
     }
+
     private void HandleOkDelivery()
     {
         if (SelectedAddressId != Guid.Empty)
@@ -919,18 +1031,22 @@
                 _ = CalculateFinalTotalAsync();
             }
         }
+
         OpenDeliveryModal = false;
     }
+
     private void HandleCancelDelivery()
     {
         OpenDeliveryModal = false;
     }
+
     private void ShowCreateAddressModal()
     {
         EditingAddress = new CreateOrUpdateDeliveryAddressDTO();
         OpenCreateOrUpdateAddressModal = true;
         OpenDeliveryModal = false;
     }
+
     private async Task EditAddress(DeliveryAddressDTO address)
     {
         EditingAddress = new CreateOrUpdateDeliveryAddressDTO
@@ -952,9 +1068,11 @@
                 await LoadGhnCommunes(address.DistrictId);
             }
         }
+
         OpenCreateOrUpdateAddressModal = true;
         OpenDeliveryModal = false;
     }
+
     private async Task DeleteAddress(DeliveryAddressDTO address)
     {
         try
@@ -967,6 +1085,7 @@
                 {
                     DefaultDeliveryAddress = LstDeliveryAddress.FirstOrDefault();
                 }
+
                 MessageModalService.Success("Đã xóa địa chỉ");
             }
         }
@@ -975,6 +1094,7 @@
             MessageModalService.Error($"Không thể xóa địa chỉ: {ex.Message}");
         }
     }
+
     private async Task HandleOkAddress()
     {
         try
@@ -990,31 +1110,37 @@
                 MessageModalService.Warning("Vui lòng nhập họ tên");
                 return;
             }
+
             if (EditingAddress.Name!.Length < 2)
             {
                 MessageModalService.Warning("Họ tên quá ngắn");
                 return;
             }
+
             if (string.IsNullOrWhiteSpace(EditingAddress.PhoneNumber))
             {
                 MessageModalService.Warning("Vui lòng nhập số điện thoại");
                 return;
             }
+
             if (!IsValidVietnamPhone(EditingAddress.PhoneNumber!))
             {
                 MessageModalService.Warning("Số điện thoại không hợp lệ (10-11 số, bắt đầu bằng 0)");
                 return;
             }
+
             if (!SelectedProvinceId.HasValue || !SelectedDistrictId.HasValue || !SelectedCommuneId.HasValue)
             {
                 MessageModalService.Warning("Vui lòng chọn đủ Tỉnh/Thành, Quận/Huyện, Phường/Xã");
                 return;
             }
+
             if (string.IsNullOrWhiteSpace(EditingAddress.Address))
             {
                 MessageModalService.Warning("Vui lòng nhập địa chỉ chi tiết (số nhà, đường...)");
                 return;
             }
+
             EditingAddress.CommuneId = SelectedCommuneId;
             EditingAddress.ProvinceId = SelectedProvinceId;
             EditingAddress.DistrictId = SelectedDistrictId;
@@ -1034,11 +1160,13 @@
             MessageModalService.Error($"Không thể lưu địa chỉ: {ex.Message}");
         }
     }
+
     private void HandleCancelAddress()
     {
         OpenCreateOrUpdateAddressModal = false;
         OpenDeliveryModal = true;
     }
+
     // Location data methods - using GHN master-data API
     private async Task LoadLocationData()
     {
@@ -1219,11 +1347,15 @@
         if (!digits.StartsWith("0")) return false;
         return digits.Length == 10 || digits.Length == 11;
     }
+
     private void HandleRedirectToHomepage() => Navigation.NavigateTo("/");
+
     private static string FormatCurrency(decimal amount) =>
     string.Format(System.Globalization.CultureInfo.GetCultureInfo("vi-VN"), "{0:C0}", amount);
+
     private static string FormatCurrency(float amount) =>
     string.Format(System.Globalization.CultureInfo.GetCultureInfo("vi-VN"), "{0:C0}", amount);
+
     private static float CalcPriceAfterDiscount(float price, float discount) =>
     discount > 100 ? price - discount : price * (1 - discount / 100f);
 
@@ -1231,10 +1363,12 @@
     {
         OpenShippingFeeModal = true;
     }
+
     private void HandleOkShippingFee()
     {
         OpenShippingFeeModal = false;
     }
+
     private void HandleCancelShippingFee()
     {
         OpenShippingFeeModal = false;
@@ -1242,7 +1376,6 @@
 
     private GhnCreateOrderRequestDTO CreateGhnOrderRequest(CreateOrderResultDTO order)
     {
-
         // cho thử hàng
         var ghnRequest = new GhnCreateOrderRequestDTO
         {
@@ -1297,4 +1430,7 @@
 
         return ghnRequest;
     }
+
+}
+
 }

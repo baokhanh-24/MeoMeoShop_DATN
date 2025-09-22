@@ -4,6 +4,7 @@ using MeoMeo.Contract.DTOs;
 using MeoMeo.Domain.Commons;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using MeoMeo.API.Extensions;
 
 namespace MeoMeo.API.Controllers
 {
@@ -58,6 +59,27 @@ namespace MeoMeo.API.Controllers
         public async Task<List<AvailableVoucherDTO>> GetAvailableVouchersAsync([FromBody] GetAvailableVouchersRequestDTO request)
         {
             var result = await _voucherServices.GetAvailableVouchersAsync(request);
+            return result;
+        }
+
+        [HttpPost("get-my-available-vouchers-async")]
+        public async Task<List<AvailableVoucherDTO>> GetMyAvailableVouchersAsync([FromBody] GetMyAvailableVouchersRequestDTO request)
+        {
+            // Lấy CustomerId từ JWT token
+            var customerId = HttpContext.GetCurrentCustomerId();
+            if (customerId == Guid.Empty)
+            {
+                return new List<AvailableVoucherDTO>();
+            }
+
+            // Tạo request cho GetAvailableVouchersAsync
+            var availableVouchersRequest = new GetAvailableVouchersRequestDTO
+            {
+                CustomerId = customerId,
+                OrderAmount = request.OrderAmount
+            };
+
+            var result = await _voucherServices.GetAvailableVouchersAsync(availableVouchersRequest);
             return result;
         }
     }

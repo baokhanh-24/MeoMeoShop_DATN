@@ -7,6 +7,7 @@ using MeoMeo.Domain.Commons.Enums;
 using MeoMeo.Domain.Entities;
 using MeoMeo.Domain.IRepositories;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.AspNetCore.Http;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -20,12 +21,14 @@ namespace MeoMeo.Application.Services
         private readonly IVoucherRepository _repository;
         private readonly IMapper _mapper;
         private readonly IUnitOfWork _unitOfWork;
+        private readonly IHttpContextAccessor _httpContextAccessor;
 
-        public VoucherServices(IVoucherRepository repository, IMapper mapper, IUnitOfWork unitOfWork)
+        public VoucherServices(IVoucherRepository repository, IMapper mapper, IUnitOfWork unitOfWork, IHttpContextAccessor httpContextAccessor)
         {
             _repository = repository;
             _mapper = mapper;
             _unitOfWork = unitOfWork;
+            _httpContextAccessor = httpContextAccessor;
         }
 
         public async Task<CreateOrUpdateVoucherResponseDTO> CreateVoucherAsync(CreateOrUpdateVoucherDTO voucher)
@@ -217,16 +220,30 @@ namespace MeoMeo.Application.Services
                     };
                 }
 
-                // Check MaxTotalUse limit
+                // Check MaxTotalUse limit - chỉ đếm các đơn hàng đã hoàn thành
                 if (voucher.MaxTotalUse.HasValue)
                 {
-                    var totalUsageCount = voucher.Orders?.Count ?? 0;
+                    var totalUsageCount = voucher.Orders?.Count(o => o.Status == EOrderStatus.Completed) ?? 0;
                     if (totalUsageCount >= voucher.MaxTotalUse.Value)
                     {
                         return new CheckVoucherResponseDTO
                         {
                             ResponseStatus = BaseStatus.Error,
                             Message = "Voucher này đã hết lượt sử dụng"
+                        };
+                    }
+                }
+
+                // Check MaxTotalUsePerCustomer limit - chỉ đếm các đơn hàng đã hoàn thành của khách hàng này
+                if (request.CustomerId.HasValue && voucher.MaxTotalUsePerCustomer.HasValue)
+                {
+                    var customerUsageCount = voucher.Orders?.Count(o => o.CustomerId == request.CustomerId.Value && o.Status == EOrderStatus.Completed) ?? 0;
+                    if (customerUsageCount >= voucher.MaxTotalUsePerCustomer.Value)
+                    {
+                        return new CheckVoucherResponseDTO
+                        {
+                            ResponseStatus = BaseStatus.Error,
+                            Message = "Bạn đã sử dụng hết lượt áp dụng voucher này"
                         };
                     }
                 }
@@ -248,6 +265,12 @@ namespace MeoMeo.Application.Services
                     {
                         discountAmount = request.OrderAmount;
                     }
+                }
+
+                // Ensure final discount doesn't make total negative
+                if (discountAmount > request.OrderAmount)
+                {
+                    discountAmount = request.OrderAmount;
                 }
 
                 return new CheckVoucherResponseDTO
@@ -299,10 +322,10 @@ namespace MeoMeo.Application.Services
                         reason = $"Đơn hàng cần tối thiểu {voucher.MinOrder:N0} đ";
                     }
 
-                    // Check MaxTotalUse limit
+                    // Check MaxTotalUse limit - chỉ đếm các đơn hàng đã hoàn thành
                     if (canUse && voucher.MaxTotalUse.HasValue)
                     {
-                        var totalUsageCount = voucher.Orders?.Count ?? 0;
+                        var totalUsageCount = voucher.Orders?.Count(o => o.Status == EOrderStatus.Completed) ?? 0;
                         if (totalUsageCount >= voucher.MaxTotalUse.Value)
                         {
                             canUse = false;
@@ -310,10 +333,10 @@ namespace MeoMeo.Application.Services
                         }
                     }
 
-                    // Check MaxTotalUsePerCustomer limit
+                    // Check MaxTotalUsePerCustomer limit - chỉ đếm các đơn hàng đã hoàn thành của khách hàng này
                     if (canUse && voucher.MaxTotalUsePerCustomer.HasValue)
                     {
-                        var customerUsageCount = voucher.Orders?.Count(o => o.CustomerId == request.CustomerId) ?? 0;
+                        var customerUsageCount = voucher.Orders?.Count(o => o.CustomerId == request.CustomerId && o.Status == EOrderStatus.Completed) ?? 0;
                         if (customerUsageCount >= voucher.MaxTotalUsePerCustomer.Value)
                         {
                             canUse = false;
@@ -340,6 +363,12 @@ namespace MeoMeo.Application.Services
                             {
                                 calculatedDiscountAmount = request.OrderAmount;
                             }
+                        }
+
+                        // Ensure final discount doesn't make total negative
+                        if (calculatedDiscountAmount > request.OrderAmount)
+                        {
+                            calculatedDiscountAmount = request.OrderAmount;
                         }
                     }
 
@@ -370,5 +399,6 @@ namespace MeoMeo.Application.Services
                 return new List<AvailableVoucherDTO>();
             }
         }
+
     }
 }
