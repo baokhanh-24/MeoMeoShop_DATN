@@ -266,6 +266,7 @@ namespace MeoMeo.Application.Services
                             ProductName = p.Name,
                             SizeValue = x.pd.Size.Value,
                             ColourName = x.pd.Colour.Name,
+                            Sku = x.pd.Sku,
                             StockQuantity = x.TotalQuantity,
                             LowStockThreshold = lowStockThreshold
                         })
@@ -278,7 +279,7 @@ namespace MeoMeo.Application.Services
                     ProductName = x.ProductName,
                     SizeValue = x.SizeValue,
                     ColourName = x.ColourName,
-                    ProductVariant = $"{x.ProductName} - Size: {x.SizeValue} - Màu sắc: {x.ColourName}",
+                    ProductVariant = x.Sku,
                     StockQuantity = x.StockQuantity,
                     LowStockThreshold = x.LowStockThreshold
                 }).ToList();
@@ -375,12 +376,13 @@ namespace MeoMeo.Application.Services
                     x => x.pd.ProductId,
                     p => p.Id,
                     (x, p) => new { x.od, x.pd, p })
-                .GroupBy(x => new { ProductName = x.p.Name, SizeValue = x.pd.Size.Value, ColourName = x.pd.Colour.Name })
+                .GroupBy(x => new { ProductName = x.p.Name, SizeValue = x.pd.Size.Value, ColourName = x.pd.Colour.Name, Sku = x.pd.Sku })
                 .Select(g => new
                 {
                     ProductName = g.Key.ProductName,
                     SizeValue = g.Key.SizeValue,
                     ColourName = g.Key.ColourName,
+                    Sku = g.Key.Sku,
                     QuantitySold = g.Sum(x => x.od.Quantity),
                     Revenue = g.Sum(x => (decimal)x.od.Price * x.od.Quantity)
                 })
@@ -393,7 +395,7 @@ namespace MeoMeo.Application.Services
                 ProductName = x.ProductName,
                 SizeValue = x.SizeValue,
                 ColourName = x.ColourName,
-                ProductVariant = $"{x.ProductName} - Size: {x.SizeValue} - Màu sắc: {x.ColourName}",
+                ProductVariant = x.Sku,
                 QuantitySold = x.QuantitySold,
                 Revenue = x.Revenue
             }).ToList();
@@ -478,12 +480,13 @@ namespace MeoMeo.Application.Services
                     x => x.pd.ProductId,
                     p => p.Id,
                     (x, p) => new { x.od, x.pd, p })
-                .GroupBy(x => new { ProductName = x.p.Name, SizeValue = x.pd.Size.Value, ColourName = x.pd.Colour.Name })
+                .GroupBy(x => new { ProductName = x.p.Name, SizeValue = x.pd.Size.Value, ColourName = x.pd.Colour.Name, Sku = x.pd.Sku })
                 .Select(g => new
                 {
                     ProductName = g.Key.ProductName,
                     SizeValue = g.Key.SizeValue,
                     ColourName = g.Key.ColourName,
+                    Sku = g.Key.Sku,
                     QuantitySold = g.Sum(x => x.od.Quantity),
                     Revenue = g.Sum(x => (decimal)x.od.Price * x.od.Quantity)
                 })
@@ -496,7 +499,7 @@ namespace MeoMeo.Application.Services
                 ProductName = x.ProductName,
                 SizeValue = x.SizeValue,
                 ColourName = x.ColourName,
-                ProductVariant = $"{x.ProductName} - Size: {x.SizeValue} - Màu sắc: {x.ColourName}",
+                ProductVariant = x.Sku,
                 QuantitySold = x.QuantitySold,
                 Revenue = x.Revenue
             }).ToList();

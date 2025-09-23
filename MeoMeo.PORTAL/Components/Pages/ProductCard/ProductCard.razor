@@ -26,16 +26,16 @@
                 <Card Bordered="true" Hoverable=" true">
                     <div class="product-card position-relative">
                         <div class="image-holder">
-                            <Image Width="100%" OnClick="@(() => { visible = true; })" PreviewVisible="false"
+                            <Image Width="100%" OnClick="@(() => { SetPreviewVisible(index, true); })" PreviewVisible="false"
                                 Class="product-img" Fallback="@(backendUrl + "/Images/fallback.jpeg")"
                                 Src="@(backendUrl + "/" + product.Thumbnail)" />
                             <div style="display:none;">
-                                <ImagePreviewGroup @bind-PreviewVisible="visible">
+                                <ImagePreviewGroup PreviewVisible="@GetPreviewVisible(index)" >
                                     @if (product.Media.Any() && product.Media.Count() > 0)
                                     {
                                         foreach (var img in product.Media)
                                         {
-                                            <Image Fallback="@(backendUrl + "/Images/fallback.jpeg")"
+                                            <Image
                                                 Src="@(backendUrl + "/" + img.ImageUrl)" />
                                         }
                                     }
@@ -160,7 +160,18 @@
 
 @code {
     private string backendUrl = "";
-    bool visible;
+    private Dictionary<int, bool> previewVisibleStates = new Dictionary<int, bool>();
+
+    private bool GetPreviewVisible(int index)
+    {
+        return previewVisibleStates.TryGetValue(index, out bool value) ? value : false;
+    }
+
+    private void SetPreviewVisible(int index, bool value)
+    {
+        previewVisibleStates[index] = value;
+        StateHasChanged();
+    }
     [Parameter] public List<ProductResponseDTO> LstProduct { get; set; } = new();
     [Parameter] public bool IsGridSelected { get; set; } = true;
     [Parameter] public EventCallback<bool> OnEvent { get; set; }

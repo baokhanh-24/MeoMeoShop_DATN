@@ -17,6 +17,8 @@ namespace MeoMeo.Shared.IServices
         Task<List<OrderReturnItemDetailDTO>?> GetAvailableItemsForReturnAsync(Guid orderId);
         Task<bool> CanOrderBeReturnedAsync(Guid orderId);
         Task<List<OrderReturnListDTO>?> GetByOrderIdAsync(Guid orderId);
+        Task<(bool CanReturn, string Message, List<string> ReturnableProducts, List<string> NonReturnableProducts)?> GetOrderReturnInfoAsync(Guid orderId);
+        Task<BaseResponse> UpdateOrderReturnStatusAsync(Guid orderReturnId, UpdateOrderReturnStatusRequestDTO request);
     }
 
     public class ReturnFileUpload

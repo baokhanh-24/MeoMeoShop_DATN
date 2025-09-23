@@ -787,11 +787,22 @@
             CheckingReturnOrderId = order.Id;
             StateHasChanged();
 
-            // Check if order can be returned
-            var canReturn = await OrderReturnClient.CanOrderBeReturnedAsync(order.Id);
-            if (!canReturn)
+            // Get detailed return information
+            var returnInfo = await OrderReturnClient.GetOrderReturnInfoAsync(order.Id);
+            if (returnInfo == null)
             {
-                MessageModalService.Warning("Đơn hàng này không thể hoàn trả hoặc đã hết thời hạn hoàn trả (7 ngày).");
+                MessageModalService.Error("Không thể tải thông tin hoàn trả. Vui lòng thử lại sau.");
+                return;
+            }
+
+            if (!returnInfo.Value.CanReturn)
+            {
+                var message = returnInfo.Value.Message;
+                if (returnInfo.Value.NonReturnableProducts.Any())
+                {
+                    message += "\n\nSản phẩm không thể hoàn trả:\n• " + string.Join("\n• ", returnInfo.Value.NonReturnableProducts);
+                }
+                MessageModalService.Warning(message);
                 return;
             }
 
@@ -800,9 +811,17 @@
             
             if (AvailableReturnItems?.Any() != true)
             {
-                MessageModalService.Warning("Không có sản phẩm nào có thể hoàn trả trong đơn hàng này. Có thể do sản phẩm không cho phép hoàn trả hoặc đã hết thời hạn.");
+                MessageModalService.Warning("Không có sản phẩm nào có thể hoàn trả trong đơn hàng này.");
                 return;
             }
+
+            // Show success message with returnable products info
+            var successMessage = returnInfo.Value.Message;
+            if (returnInfo.Value.ReturnableProducts.Any())
+            {
+                successMessage += ":\n• " + string.Join("\n• ", returnInfo.Value.ReturnableProducts);
+            }
+            MessageModalService.Success(successMessage);
 
             // Reset form
             ReturnReason = string.Empty;

@@ -1,0 +1,753 @@
+@page "/profile/reviews/completed"
+@using MeoMeo.Shared.IServices
+@using MeoMeo.Shared.Utilities
+@using MeoMeo.Contract.Commons
+@using MeoMeo.Contract.DTOs.Product
+@using MeoMeo.Contract.DTOs.ProductReview
+@using Microsoft.AspNetCore.Http
+@using ButtonType = AntDesign.ButtonType
+@inject IProductReviewClientService ProductReviewService
+@inject NavigationManager NavigationManager
+@inject MeoMeo.Shared.Utilities.MessageModalService MessageModalService
+@inject IConfiguration Configuration
+@layout ProfileLayout
+
+<div class="page-header">
+    <Title Level="2">
+        <Icon Type="star" />
+        Đánh giá đã hoàn thành
+    </Title>
+    <p class="page-subtitle">Xem và quản lý đánh giá sản phẩm của bạn</p>
+</div>
+
+<div class="product-reviews-container">
+    <div class="completed-reviews-section">
+        @if (userReviews.Any())
+        {
+            <div class="text-danger fst-italic mb-3 text-end">
+                Lưu ý: mỗi đánh giá chỉ được phép chỉnh sửa 1 lần duy nhất!
+            </div>
+            <div class="reviews-list">
+                @for (int i = 0; i < userReviews.Count; i++)
+                {
+                    var review = userReviews[i];
+                    <div Class="review-card" Style="margin-bottom: 16px;">
+                        <div class="review-header">
+                            <div class="product-info">
+                                <div class="product-image">
+                                    <Image Width="100%" 
+                                           Class="product-img"
+                                           Fallback="@(backendUrl + "/Images/fallback.jpeg")"
+                                           Src="@GetProductImageUrl(review.ProductThumbnail)"
+                                           Style="object-fit: cover; border-radius: 8px;"/>
+                                </div>
+                                <div class="product-details">
+                                    <Title Level="5">@review.ProductName</Title>
+                                    <p class="product-variant">Màu sắc: @review.ColourName -
+                                        Size: @review.SizeName</p>
+                                    <div class="d-flex gap-2">
+                                    <p class="review-date">Ngày đánh giá: @review.CreationTime.ToString("dd/MM/yyyy HH:mm")</p>
+                                    @if (review.LastModificationTime.HasValue)
+                                    {
+                                        <span> | </span>
+                                        <p class="review-date">Ngày chỉnh sửa: @review.LastModificationTime.Value.ToString("dd/MM/yyyy HH:mm")</p>
+                                    }
+                                    </div>
+
+                                </div>
+                            </div>
+                            <div class="review-rating">
+                                <Rate Value="@review.Rating" Disabled="true"/>
+                            </div>
+                        </div>
+
+                        <Divider/>
+
+                        <div class="review-content">
+                            <p>@review.Content</p>
+                            @if (review.ProductReviewFiles?.Any() == true)
+                            {
+                                <div class="review-images">
+                                    <ImagePreviewGroup>
+                                        @foreach (var image in review.ProductReviewFiles)
+                                        {
+                                            if (image.FileType == 0)
+                                            {
+                                                <Image Width="80" Height="80"
+                                                       Style="width: 80px; height: 80px; object-fit: cover; border-radius: 8px; border: 1px solid #eee;"
+                                                       Src="@GetProductImageUrl(image.FileUrl)"/>
+                                            }
+                                            else
+                                            {
+                                                <video controls class="image-preview"
+                                                       style="width: 80px; height: 80px; object-fit: cover; border-radius: 8px; border: 1px solid #eee;">
+                                                    <source src="@GetProductImageUrl(image.FileUrl)"
+                                                            type="video/mp4"/>
+                                                </video>
+                                            }
+                                        }
+
+                                    </ImagePreviewGroup>
+                                </div>
+                            }
+                        </div>
+
+                        <div class="review-actions">
+                            <Space>
+                                @if (!review.LastModificationTime.HasValue)
+                                {
+                                    <Button Type="@ButtonType.Link" Icon="edit" @onclick="() => EditReview(review)">
+                                        Chỉnh sửa
+                                    </Button>
+                                }
+                                <Popconfirm Title="Bạn có chắc chắn muốn xóa đánh giá này?"
+                                            OnConfirm="() => DeleteReview(review.Id)">
+                                    <Button Type="@ButtonType.Link" Icon="delete" Danger="true">Xóa</Button>
+                                </Popconfirm>
+                            </Space>
+                        </div>
+                    </div>
+                    @if (i < userReviews.Count - 1)
+                    {
+                        <hr/>
+                    }
+                }
+                @if (totalComment - requestMyViewed.PageSize > 0)
+                {
+                    <div class="text-center">
+                        <i class="fas fa-chevron-down" @onclick="HandleViewMore"></i>
+                        <span class="view-more" @onclick="HandleViewMore">
+                            @(totalComment - requestMyViewed.PageSize > 0 ? $"Xem thêm {totalComment - requestMyViewed.PageSize} đánh giá" : "Thu gọn")
+                        </span>
+                    </div>
+                }
+            </div>
+        }
+        else
+        {
+            <div class="empty-state">
+                <Empty>
+                    <Button Type="@ButtonType.Primary" Icon="star" @onclick="GoToPendingReviews">
+                        Xem sản phẩm cần đánh giá
+                    </Button>
+                </Empty>
+            </div>
+        }
+    </div>
+</div>
+
+<!-- Edit Review Modal -->
+<Modal Title="@GetModalTitle()"
+       @bind-Visible="showReviewModal"
+       Width="800"
+       OnCancel="CancelReview"
+       Footer="null">
+
+    @if (editingReview != null)
+    {
+        <GridRow Gutter="(16, 16)" Align="RowAlign.Middle">
+            <GridCol Span="4">
+                <Image Width="100%"
+                       Class="product-img" 
+                       Fallback="@(backendUrl + "/Images/fallback.jpeg")"
+                       Src="@GetProductImageUrl(editingReview.ProductThumbnail)"
+                       Style="object-fit: cover; border-radius: 8px;"/>
+            </GridCol>
+            <GridCol Span="20">
+                <div>
+                    <div class="d-flex justify-content-between align-items-center">
+                        <label>Thông tin sản phẩm:</label>
+                        <div class="mt-2 text-muted" style="font-size:12px;">
+                            <Icon Type="@IconType.Outline.InfoCircle" style="margin-right: 4px;"/>
+                            Chỉnh sửa đánh giá sản phẩm.
+                        </div>
+                    </div>
+
+                    <!-- Thông tin sản phẩm -->
+                    <div
+                        style="margin-top: 12px; padding: 12px; background: #f0f8ff; border-radius: 6px; border-left: 4px solid #1890ff;">
+                        <div style="font-size: 13px; color: #666;">
+                            <div style="font-weight: 500; color: #1890ff; margin-bottom: 4px;">
+                                @editingReview.ProductName
+                            </div>
+                            <div style="color: #666;">
+                                Phân loại: @editingReview.ColourName - @editingReview.SizeName
+                            </div>
+                            <div style="color: #666;">
+                                Ngày đánh giá: @editingReview.CreationTime.ToString("dd/MM/yyyy HH:mm")
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </GridCol>
+        </GridRow>
+
+        <Divider/>
+
+        <div style="text-align: center; margin: 16px 0;">
+            <div style="margin-bottom: 8px; font-weight: 500;">Đánh giá của bạn:</div>
+            <Rate @bind-Value="reviewModel.Rating" Style="font-size: 48px;"/>
+            @if (reviewModel.Rating > 0)
+            {
+                <div class="rating-text" style="margin-top: 8px; color: #666;">
+                    @GetRatingText((int)reviewModel.Rating)
+                </div>
+            }
+        </div>
+
+        <!-- File upload section -->
+        <GridRow Gutter="16">
+            <GridCol Span="24">
+                <div class="image-upload-container" style="position: relative;">
+                    <div class="image-upload-area @(isProcessingReview ? "processing" : "")"
+                         style="cursor: pointer; border: 2px dashed #d9d9d9; padding: 20px; text-align: center; border-radius: 8px;">
+                        @if (isProcessingReview)
+                        {
+                            <div style="display: flex; flex-direction: column; align-items: center;">
+                                <Spin Size="SpinSize.Large"/>
+                                <div style="margin-top: 8px; color: #666;">Đang xử lý file...</div>
+                            </div>
+                        }
+                        else
+                        {
+                            <Icon Type="@IconType.Outline.Upload" Style="font-size: 24px; color: #999;"/>
+                            <div style="margin-top: 8px; color: #666;">Tải ảnh và video (Tối đa 4 ảnh + 1 video)</div>
+                            <div style="font-size: 12px; color: #999;">Click để chọn file</div>
+                        }
+                    </div>
+
+                    <InputFile @ref="fileInputReview" OnChange="OnFileSelectedReview" multiple accept="image/*,video/*"
+                               disabled="@isProcessingReview" style="
+                               position: absolute;
+                               top: 0;
+                               left: 0;
+                               width: 100%;
+                               height: 100%;
+                               opacity: 0;
+                               cursor: pointer;
+                           "/>
+                </div>
+
+                @if (reviewUploads != null && reviewUploads.Any())
+                {
+                    <div class="image-preview-container" style="margin-top: 8px;">
+                        @for (int i = 0; i < reviewUploads.Count; i++)
+                        {
+                            var index = i;
+                            var media = reviewUploads[i];
+                            <div class="image-preview-item"
+                                 style="display:inline-block; position: relative; margin: 4px;">
+                                @if ((media.ContentType ?? "").StartsWith("video/"))
+                                {
+                                    <video controls class="image-preview"
+                                           style="width: 140px; height: 140px; object-fit: cover; border-radius: 8px; border: 1px solid #eee;">
+                                        <source src="@GetReviewPreviewUrl(media)" type="video/mp4"/>
+                                    </video>
+                                }
+                                else
+                                {
+                                    <Image Src="@GetReviewPreviewUrl(media)"
+                                           Style="width: 140px; height: 140px; object-fit: cover; border-radius: 8px; border: 1px solid #eee;"/>
+                                }
+                                <div class="image-actions" style="position: absolute; top: 4px; right: 4px;">
+                                    <Button Type="@AntDesign.ButtonType.Dashed" Color="Color.Red6"
+                                            Size="@AntDesign.ButtonSize.Small"
+                                            Icon="@IconType.Outline.Delete"
+                                            @onclick="() => RemoveReviewFile(index)"></Button>
+                                </div>
+                            </div>
+                        }
+                    </div>
+                }
+            </GridCol>
+        </GridRow>
+
+        <!-- Comment section -->
+        <div class="comment-lbl" style="margin-top: 16px;">
+            <strong>Nhận xét:</strong> <span style="color: #666; font-size: 12px;">(Ý kiến của bạn sẽ giúp chúng tôi nâng cao chất lượng sản phẩm và dịch vụ)</span>
+        </div>
+        <TextArea @bind-Value="reviewModel.Content"
+                  MaxLength="500"
+                  Rows="5"
+                  Placeholder="Hãy chia sẻ nhận xét của bạn về sản phẩm này nhé!"
+                  Style="margin-top: 12px;"></TextArea>
+
+        <!-- Quick tags -->
+        <div style="margin-top: 16px;">
+            <div style="margin-bottom: 8px; font-weight: 500;">Chọn nhanh:</div>
+            <GridRow Gutter="(8, 8)">
+                @for (int i = 0; i < tags.Count; i++)
+                {
+                    var index = i;
+                    var tag = tags[i];
+                    <GridCol>
+                        <div @onclick="() => HandleChooseQuickTag(index, tag)"
+                             Class="@(selectedTag.Contains(index) ? "selected tag-comment" : "tag-comment")">
+                            <span>@tag</span>
+                        </div>
+                    </GridCol>
+                }
+            </GridRow>
+        </div>
+
+        <div class="shout-out" style="text-align: center; margin: 16px 0; color: #1890ff; font-weight: 500;">
+            MeoMeo Shop xin chân thành cảm ơn!
+        </div>
+    }
+
+    <!-- Action buttons -->
+    <div style="margin-top: 16px; text-align: right; border-top: 1px solid #f0f0f0; padding-top: 16px;">
+        <Button Class="btn-cancel" OnClick="CancelReview" Icon="@IconType.Outline.Close">Hủy</Button>
+        <Button Class="btn-save"
+                OnClick="SubmitReview"
+                Loading="@disabledButtonComment"
+                Icon="@IconType.Outline.Edit"
+                Type="@ButtonType.Primary"
+                Disabled="@(reviewModel.Rating <= 0)"
+                Style="margin-left: 8px;">
+            Cập nhật đánh giá
+        </Button>
+    </div>
+</Modal>
+
+@code {
+    private bool isLoading = true;
+    private int totalComment = 0;
+    private bool showReviewModal = false;
+    private List<ProductReviewDTO> userReviews = new();
+    private ProductReviewCreateOrUpdateDTO reviewModel = new();
+    private string backendUrl = string.Empty;
+
+    private List<ProductMediaUpload> reviewUploads = new();
+
+    // Properties for review modal
+    private InputFile? fileInputReview;
+    private bool isProcessingReview = false;
+    private List<string> tags = new() { "Đóng gói đẹp", "Giao nhanh", "Chất lượng tốt", "Đáng tiền" };
+    private HashSet<int> selectedTag = new();
+    private bool disabledButtonComment = false;
+    private bool isEditMode = true; // Always true for this page
+    private ProductReviewDTO? editingReview = null;
+
+    private GetListMyReviewedDTO requestMyViewed = new GetListMyReviewedDTO()
+    {
+        PageIndex = 1,
+        PageSize = 10
+    };
+
+    protected override async Task OnInitializedAsync()
+    {
+        backendUrl = (Configuration["ApiSettings:BaseUrl"] ?? string.Empty).TrimEnd('/');
+        await LoadUserReviews();
+    }
+
+    private async Task HandleViewMore()
+    {
+        requestMyViewed.PageSize += 10;
+        await LoadUserReviews();
+    }
+
+    private string GetModalTitle()
+    {
+        return $"Chỉnh sửa đánh giá - {editingReview?.ProductName ?? ""}";
+    }
+
+    private async Task LoadUserReviews()
+    {
+        try
+        {
+            var response = await ProductReviewService.GetMyReviewsAsync(requestMyViewed);
+            userReviews = response.Items;
+            totalComment = response.TotalRecords;
+            StateHasChanged();
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error loading user reviews: {ex.Message}");
+        }
+    }
+
+    private async Task EditReview(ProductReviewDTO review)
+    {
+        try
+        {
+            // Set edit mode
+            isEditMode = true;
+            editingReview = review;
+
+            // Prepare the review model with existing data
+            reviewModel = new ProductReviewCreateOrUpdateDTO
+            {
+                Id = review.Id,
+                ProductDetailId = review.ProductDetailId,
+                OrderId = review.OrderId, // Nếu cần thiết
+                Rating = review.Rating,
+                Content = review.Content
+            };
+
+            // Load existing images/videos if any
+            reviewUploads.Clear();
+            if (review.ProductReviewFiles?.Any() == true)
+            {
+                foreach (var file in review.ProductReviewFiles)
+                {
+                    var mediaUpload = new ProductMediaUpload
+                    {
+                        Id= review.Id,
+                        FileName = file.FileName ?? "existing_file",
+                        ContentType = file.FileType == 0 ? "image/jpeg" : "video/mp4",
+                        ImageUrl = file.FileUrl,
+                        Base64Data = null // Existing files don't need base64
+                    };
+                    reviewUploads.Add(mediaUpload);
+                }
+            }
+
+            // Parse tags from existing content
+            ParseExistingTags(review.Content);
+
+            disabledButtonComment = false;
+            isProcessingReview = false;
+            showReviewModal = true;
+        }
+        catch (Exception ex)
+        {
+            MessageModalService.Error("Có lỗi xảy ra khi tải thông tin đánh giá!");
+            Console.WriteLine($"Error loading review for edit: {ex.Message}");
+        }
+    }
+
+    private void ParseExistingTags(string content)
+    {
+        selectedTag.Clear();
+        if (string.IsNullOrEmpty(content)) return;
+
+        for (int i = 0; i < tags.Count; i++)
+        {
+            if (content.Contains(tags[i]))
+            {
+                selectedTag.Add(i);
+            }
+        }
+    }
+
+    private async Task DeleteReview(Guid reviewId)
+    {
+        try
+        {
+            var result = await ProductReviewService.DeleteAsync(reviewId);
+            if (result.ResponseStatus == BaseStatus.Success)
+            {
+                MessageModalService.Success("Xóa đánh giá thành công!");
+                await LoadUserReviews(); // Reload data
+            }
+            else
+            {
+                MessageModalService.Error(result.Message ?? "Có lỗi xảy ra khi xóa đánh giá!");
+            }
+        }
+        catch (Exception ex)
+        {
+            MessageModalService.Error("Có lỗi xảy ra khi xóa đánh giá!");
+            Console.WriteLine($"Error deleting review: {ex.Message}");
+        }
+    }
+
+    private void CancelReview()
+    {
+        showReviewModal = false;
+        reviewModel = new ProductReviewCreateOrUpdateDTO();
+        selectedTag.Clear();
+        disabledButtonComment = false;
+        isProcessingReview = false;
+        editingReview = null;
+        StateHasChanged();
+    }
+
+    private async Task SubmitReview()
+    {
+        try
+        {
+            if (reviewModel.Rating <= 0)
+            {
+                MessageModalService.Error("Vui lòng chọn đánh giá!");
+                return;
+            }
+
+            if (string.IsNullOrWhiteSpace(reviewModel.Content))
+            {
+                MessageModalService.Error("Vui lòng nhập nội dung đánh giá!");
+                return;
+            }
+
+            disabledButtonComment = true;
+            StateHasChanged();
+
+            // Xây dựng MediaUploads cho cả file cũ và file mới
+            var mediaUploads = new List<ProductReviewFileUpload>();
+
+            if (reviewUploads.Any())
+            {
+                foreach (var upload in reviewUploads)
+                {
+                    if (upload.Id.HasValue)
+                    {
+                        // File cũ muốn giữ lại - chỉ gửi Id
+                        mediaUploads.Add(new ProductReviewFileUpload 
+                        { 
+                            Id = upload.Id.Value,
+                            UploadFile = null // Không cần UploadFile cho file cũ
+                        });
+                    }
+                    else if (!string.IsNullOrEmpty(upload.Base64Data))
+                    {
+                        // File mới - convert base64 to IFormFile
+                        var formFile = await ConvertBase64ToFormFile(
+                            upload.Base64Data!, 
+                            upload.FileName ?? "upload", 
+                            upload.ContentType ?? "image/jpeg"
+                        );
+                        mediaUploads.Add(new ProductReviewFileUpload 
+                        { 
+                            Id = null, // File mới không có Id
+                            UploadFile = formFile 
+                        });
+                    }
+                }
+            }
+
+            reviewModel.MediaUploads = mediaUploads;
+
+            // Cập nhật đánh giá hiện có
+            var result = await ProductReviewService.UpdateAsync(reviewModel);
+            if (result.ResponseStatus == BaseStatus.Success)
+            {
+                MessageModalService.Success("Cập nhật đánh giá thành công!");
+                showReviewModal = false;
+                await LoadUserReviews(); // Reload data
+            }
+            else
+            {
+                MessageModalService.Error(result.Message ?? "Có lỗi xảy ra khi cập nhật đánh giá!");
+            }
+        }
+        catch (Exception ex)
+        {
+            MessageModalService.Error("Có lỗi xảy ra khi cập nhật đánh giá!");
+            Console.WriteLine($"Error submitting review: {ex.Message}");
+        }
+        finally
+        {
+            disabledButtonComment = false;
+            StateHasChanged();
+        }
+    }
+
+    // File handling methods (same as PendingReviews)
+    private async Task OnFileSelectedReview(InputFileChangeEventArgs e)
+    {
+        try
+        {
+            isProcessingReview = true;
+            await InvokeAsync(StateHasChanged);
+
+            var files = e.GetMultipleFiles(5);
+            var processedFiles = new List<ProductMediaUpload>();
+
+            // Đếm file hiện tại
+            var currentImageCount = reviewUploads.Count(x => !x.ContentType?.StartsWith("video/") == true);
+            var currentVideoCount = reviewUploads.Count(x => x.ContentType?.StartsWith("video/") == true);
+
+            // Đếm file mới sẽ được thêm
+            var newImageCount = 0;
+            var newVideoCount = 0;
+
+            foreach (var file in files)
+            {
+                try
+                {
+                    var maxSize = file.ContentType.StartsWith("video/") ? 10 * 1024 * 1024 : 10 * 1024 * 1024;
+                    if (file.Size > maxSize)
+                    {
+                        await InvokeAsync(() => MessageModalService.Error($"File {file.Name} quá lớn. Kích thước tối đa: {maxSize / (1024 * 1024)}MB"));
+                        continue;
+                    }
+
+                    // Check giới hạn cho từng file
+                    if (file.ContentType.StartsWith("video/"))
+                    {
+                        if (currentVideoCount + newVideoCount >= 1)
+                        {
+                            await InvokeAsync(() => MessageModalService.Error("Chỉ được tải tối đa 1 video"));
+                            continue;
+                        }
+                        newVideoCount++;
+                    }
+                    else
+                    {
+                        if (currentImageCount + newImageCount >= 4)
+                        {
+                            await InvokeAsync(() => MessageModalService.Error("Chỉ được tải tối đa 4 ảnh"));
+                            continue;
+                        }
+                        newImageCount++;
+                    }
+
+                    var base64 = await ConvertToBase64(file);
+                    var mediaUpload = new ProductMediaUpload
+                    {
+                        FileName = file.Name,
+                        ContentType = file.ContentType,
+                        Base64Data = base64,
+                        ImageUrl = $"temp/{Guid.NewGuid()}_{file.Name}"
+                    };
+
+                    processedFiles.Add(mediaUpload);
+                }
+                catch (Exception fileEx)
+                {
+                    await InvokeAsync(() => MessageModalService.Error($"Lỗi xử lý file {file.Name}: {fileEx.Message}"));
+                }
+            }
+
+            // Hiển thị thông báo tổng kết nếu có file bị từ chối
+            var totalFilesSelected = files.Count();
+            var totalFilesProcessed = processedFiles.Count;
+            var rejectedFiles = totalFilesSelected - totalFilesProcessed;
+
+            if (rejectedFiles > 0)
+            {
+                await InvokeAsync(() => MessageModalService.Warning($"Đã bỏ qua {rejectedFiles} file do vượt quá giới hạn hoặc có lỗi"));
+            }
+
+            // Add processed files và update UI
+            if (processedFiles.Any())
+            {
+                reviewUploads.AddRange(processedFiles);
+                await InvokeAsync(() => MessageModalService.Success($"Đã tải lên {processedFiles.Count} file thành công"));
+            }
+
+            await InvokeAsync(StateHasChanged);
+        }
+        catch (Exception ex)
+        {
+            await InvokeAsync(() => MessageModalService.Error($"Lỗi khi xử lý file: {ex.Message}"));
+        }
+        finally
+        {
+            isProcessingReview = false;
+            await InvokeAsync(StateHasChanged);
+        }
+    }
+
+    private string GetReviewPreviewUrl(ProductMediaUpload image)
+    {
+        // Nếu là file mới (có base64)
+        if (!string.IsNullOrEmpty(image.Base64Data))
+        {
+            return $"data:{image.ContentType};base64,{image.Base64Data}";
+        }
+
+        // Nếu là file đã có sẵn
+        if (!string.IsNullOrEmpty(image.ImageUrl))
+        {
+            // Nếu ImageUrl đã là URL đầy đủ
+            if (image.ImageUrl.StartsWith("http"))
+            {
+                return image.ImageUrl;
+            }
+
+            // Nếu là đường dẫn tương đối
+            return $"{backendUrl}/{image.ImageUrl}";
+        }
+
+        // Fallback
+        return $"{backendUrl}/Images/fallback.jpeg";
+    }
+
+    private void RemoveReviewFile(int index)
+    {
+        if (index >= 0 && index < reviewUploads.Count)
+        {
+            var removedFile = reviewUploads[index];
+
+            // Nếu đang ở edit mode và file này là file đã có (không có base64)
+            if (isEditMode && string.IsNullOrEmpty(removedFile.Base64Data))
+            {
+                // Bạn có thể cần thêm logic để track các file đã bị xóa
+                // để gửi thông tin này lên server khi update
+                // Ví dụ: deletedFileIds.Add(removedFile.Id);
+            }
+
+            reviewUploads.RemoveAt(index);
+            StateHasChanged();
+        }
+    }
+
+    private async Task<string> ConvertToBase64(IBrowserFile file)
+    {
+        var maxSize = file.ContentType.StartsWith("video/") ? 10 * 1024 * 1024 : 10 * 1024 * 1024;
+        using var stream = file.OpenReadStream(maxAllowedSize: maxSize);
+        using var memoryStream = new MemoryStream();
+        await stream.CopyToAsync(memoryStream);
+        var bytes = memoryStream.ToArray();
+        return Convert.ToBase64String(bytes);
+    }
+
+    private async Task<IFormFile> ConvertBase64ToFormFile(string base64Data, string fileName, string contentType)
+    {
+        var bytes = Convert.FromBase64String(base64Data);
+        var stream = new MemoryStream(bytes);
+        return new FormFile(stream, 0, bytes.Length, fileName, fileName)
+        {
+            Headers = new HeaderDictionary(),
+            ContentType = contentType
+        };
+    }
+
+    private void HandleChooseQuickTag(int index, string tag)
+    {
+        if (selectedTag.Contains(index))
+        {
+            selectedTag.Remove(index);
+        }
+        else
+        {
+            selectedTag.Add(index);
+        }
+
+        var chosenTags = selectedTag
+            .Select(i => tags[i])
+            .ToList();
+
+        reviewModel.Content = string.Join(", ", chosenTags);
+        StateHasChanged();
+    }
+
+    private string GetRatingText(int rating)
+    {
+        return rating switch
+        {
+            1 => "Rất không hài lòng",
+            2 => "Không hài lòng",
+            3 => "Bình thường",
+            4 => "Hài lòng",
+            5 => "Rất hài lòng",
+            _ => ""
+        };
+    }
+
+    private void GoToPendingReviews()
+    {
+        NavigationManager.NavigateTo("/profile/reviews/pending");
+    }
+
+    // Helper methods
+    private string GetProductImageUrl(string? imagePath)
+    {
+        if (string.IsNullOrEmpty(imagePath))
+            return $"{backendUrl}/Images/fallback.jpeg";
+
+        return $"{backendUrl}/{imagePath}";
+    }
+}

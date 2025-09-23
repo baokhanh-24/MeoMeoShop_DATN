@@ -213,6 +213,32 @@ namespace MeoMeo.Shared.Services
             }
         }
 
+        public async Task<(bool CanReturn, string Message, List<string> ReturnableProducts, List<string> NonReturnableProducts)?> GetOrderReturnInfoAsync(Guid orderId)
+        {
+            try
+            {
+                var url = $"api/OrderReturn/order/{orderId}/return-info";
+                var result = await _apiCaller.GetAsync<dynamic>(url);
+
+                if (result != null)
+                {
+                    return (
+                        (bool)result.canReturn,
+                        (string)result.message,
+                        ((IEnumerable<object>)result.returnableProducts).Cast<string>().ToList(),
+                        ((IEnumerable<object>)result.nonReturnableProducts).Cast<string>().ToList()
+                    );
+                }
+
+                return null;
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error getting order return info: {ex.Message}");
+                return null;
+            }
+        }
+
         private string BuildQueryString(GetOrderReturnRequestDTO request)
         {
             var queryParams = new List<string>();
@@ -239,6 +265,32 @@ namespace MeoMeo.Shared.Services
             queryParams.Add($"PageSize={request.PageSize}");
 
             return queryParams.Count > 0 ? "?" + string.Join("&", queryParams) : string.Empty;
+        }
+
+        public async Task<BaseResponse> UpdateOrderReturnStatusAsync(Guid orderReturnId, UpdateOrderReturnStatusRequestDTO request)
+        {
+            try
+            {
+                // Set OrderReturnId in request body
+                request.OrderReturnId = orderReturnId;
+
+                var url = "api/OrderReturn/update-status";
+                var result = await _apiCaller.PutAsync<UpdateOrderReturnStatusRequestDTO, BaseResponse>(url, request);
+                return result ?? new BaseResponse
+                {
+                    ResponseStatus = BaseStatus.Error,
+                    Message = "Không thể cập nhật trạng thái hoàn hàng"
+                };
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error updating order return status: {ex.Message}");
+                return new BaseResponse
+                {
+                    ResponseStatus = BaseStatus.Error,
+                    Message = ex.Message
+                };
+            }
         }
     }
 }
