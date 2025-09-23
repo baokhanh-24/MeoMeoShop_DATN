@@ -64,9 +64,14 @@
                                     <MenuItem Key="wishlist" Icon="heart">
                                     <a href="/profile/wishlist">Sản phẩm yêu thích</a>
                                     </MenuItem>
-                                    <MenuItem Key="reviews" Icon="star">
-                                    <a href="/profile/reviews">Đánh giá sản phẩm</a>
-                                    </MenuItem>
+                                    <SubMenu Key="reviews" Title="Đánh giá sản phẩm">
+                                        <MenuItem Key="pending-reviews">
+                                        <a href="/profile/reviews/pending">Chờ đánh giá</a>
+                                        </MenuItem>
+                                        <MenuItem Key="completed-reviews">
+                                        <a href="/profile/reviews/completed">Đã đánh giá</a>
+                                        </MenuItem>
+                                    </SubMenu>
                                 </Menu>
                             </Card>
                         </GridCol>
@@ -176,7 +181,8 @@
             "orders" => new[] { "orders" },
             "profile/addresses" => new[] { "addresses" },
             "profile/wishlist" => new[] { "wishlist" },
-            "profile/reviews" => new[] { "reviews" },
+            "profile/reviews/pending" => new[] { "reviews", "pending-reviews" },
+            "profile/reviews/completed" => new[] { "reviews", "completed-reviews" },
             _ => new[] { "profile" }
         };
     }
@@ -190,7 +196,8 @@
             "orders" => "Đơn hàng của tôi",
             "profile/addresses" => "Sổ địa chỉ",
             "profile/wishlist" => "Sản phẩm yêu thích",
-            "profile/reviews" => "Đánh giá sản phẩm",
+            "profile/reviews/pending" => "Sản phẩm chờ đánh giá",
+            "profile/reviews/completed" => "Đánh giá đã hoàn thành",
             _ => "Thông tin cá nhân"
         };
     }

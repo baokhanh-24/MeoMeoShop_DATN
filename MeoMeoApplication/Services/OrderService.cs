@@ -828,6 +828,20 @@ namespace MeoMeo.Application.Services
                     await _cartRepository.Update(cartEntity);
                 }
 
+                // Add order history for order creation
+                var orderHistory = new OrderHistory
+                {
+                    Id = Guid.NewGuid(),
+                    OrderId = order.Id,
+                    Type = EHistoryType.Create,
+                    CreationTime = DateTime.Now,
+                    CreatedBy = Guid.Empty, // System generated
+                    Content = $"""
+                        <p><strong>Tạo đơn hàng:</strong> Khách hàng đã tạo đơn hàng online</p>
+                        """
+                };
+                await _orderHistoryRepository.AddAsync(orderHistory);
+
                 await _unitOfWork.CommitAsync();
 
                 // Gửi email xác nhận đơn hàng
@@ -1083,6 +1097,20 @@ namespace MeoMeo.Application.Services
                         }
                     }
                 }
+
+                // Add order history for POS order creation
+                var orderHistory = new OrderHistory
+                {
+                    Id = Guid.NewGuid(),
+                    OrderId = order.Id,
+                    Type = EHistoryType.Create,
+                    CreationTime = DateTime.Now,
+                    CreatedBy = Guid.Empty,
+                    Content = $"""
+                        <p><strong>Tạo đơn hàng:</strong> Nhân viên đã tạo đơn hàng tại quầy</p>
+                        """
+                };
+                await _orderHistoryRepository.AddAsync(orderHistory);
 
                 await _unitOfWork.CommitAsync();
 
@@ -1470,6 +1498,21 @@ namespace MeoMeo.Application.Services
                     }
                 }
 
+                // Add order history for POS order update
+                var oldStatus = existingOrder.Status;
+                var orderHistory = new OrderHistory
+                {
+                    Id = Guid.NewGuid(),
+                    OrderId = existingOrder.Id,
+                    Type = EHistoryType.Update,
+                    CreationTime = DateTime.Now,
+                    CreatedBy = Guid.Empty, // System generated
+                    Content = $"""
+                        <p><strong>Cập nhật đơn hàng:</strong> Nhân viên đã cập nhật đơn hàng tại quầy</p>
+                        """
+                };
+                await _orderHistoryRepository.AddAsync(orderHistory);
+
                 // Update order
                 await _orderRepository.UpdateAsync(existingOrder);
                 await _unitOfWork.SaveChangesAsync();
@@ -1570,6 +1613,32 @@ namespace MeoMeo.Application.Services
                 ERefundMethod.ViaShipper => "Nhận qua ship",
                 ERefundMethod.InStore => "Nhận tại cửa hàng",
                 _ => method.ToString()
+            };
+        }
+
+        private string GetPaymentMethodDisplayName(EOrderPaymentMethod method)
+        {
+            return method switch
+            {
+                EOrderPaymentMethod.Cash => "Tiền mặt",
+                EOrderPaymentMethod.Transfer => "Chuyển khoản",
+                _ => method.ToString()
+            };
+        }
+
+        private string GetOrderStatusDisplayName(EOrderStatus status)
+        {
+            return status switch
+            {
+                EOrderStatus.Pending => "Chờ xác nhận",
+                EOrderStatus.Confirmed => "Đã xác nhận",
+                EOrderStatus.InTransit => "Đang giao",
+                EOrderStatus.Canceled => "Đã hủy",
+                EOrderStatus.Completed => "Hoàn thành",
+                EOrderStatus.PendingReturn => "Chờ xác nhận hoàn hàng",
+                EOrderStatus.Returned => "Đã hoàn hàng",
+                EOrderStatus.RejectReturned => "Từ chối cho phép hoàn hàng",
+                _ => status.ToString()
             };
         }
 

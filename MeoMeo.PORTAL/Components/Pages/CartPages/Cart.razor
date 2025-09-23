@@ -283,12 +283,9 @@
                             </div>
                             <Divider />
                             <div class="d-flex justify-content-between mb-3">
-                                <div class="text-left">Phí vận chuyển (GHN):</div>
+                                <div class="text-left">Phí vận chuyển:</div>
                                 <div class="text-right text-end">
                                     @FormatCurrency(ShippingFee)
-                                    <Button Type="@ButtonType.Text" OnClick="ShowShippingFeeModal" Class="p-0 ml-1">
-                                        <Icon Type="info-circle" />
-                                    </Button>
                                 </div>
                             </div>
                             <Divider />
@@ -452,33 +449,6 @@
             </div>
         }
     </Modal>
-    <!-- Modal phí vận chuyển -->
-    <Modal Title="Chi tiết phí vận chuyển" Visible="@OpenShippingFeeModal" OnOk="HandleOkShippingFee"
-        OnCancel="HandleCancelShippingFee" Width="800">
-        <div class="mb-3">
-            <h5>Thông tin phí vận chuyển</h5>
-            <p>Tổng trọng lượng: @totalWeight g</p>
-            <p>Tổng thể tích: @totalVolume cm³</p>
-            <p>Kích thước lớn nhất: @maxLength cm x @maxWidth cm x @maxHeight cm</p>
-            <p>Phí vận chuyển: @FormatCurrency(ShippingFee)</p>
-        </div>
-        <Divider />
-        <h5>Các bước tính toán</h5>
-        <ul>
-            <li>Trọng lượng: Lấy trọng lượng của từng sản phẩm trong giỏ hàng, cộng lại. Nếu giỏ hàng trống, sử dụng
-                trọng lượng mặc định.
-            </li>
-            <li>Thể tích: Tính thể tích của từng sản phẩm trong giỏ hàng, cộng lại. Nếu giỏ hàng trống, sử dụng thể tích
-                mặc định.
-            </li>
-            <li>Kích thước: Lấy kích thước lớn nhất từ các sản phẩm để tính thể tích.</li>
-            <li>Phí vận chuyển: Gọi API GHN để lấy phí vận chuyển dựa trên kích thước và trọng lượng.</li>
-        </ul>
-        <Divider />
-        <h5>Lưu ý</h5>
-        <p>Phí vận chuyển được tính dựa trên kích thước và trọng lượng thực tế của đơn hàng. Nếu kích thước hoặc trọng
-            lượng lớn hơn mặc định, phí vận chuyển sẽ được tính lại.</p>
-    </Modal>
 </div>
 
 @code {
@@ -554,14 +524,6 @@
     private int DefaultLengthCm = 15;
     private int DefaultWidthCm = 15;
     private int DefaultHeightCm = 15;
-    private bool OpenShippingFeeModal = false;
-
-    // Shipping fee calculation details for display
-    private int totalWeight = 0;
-    private int totalVolume = 0;
-    private int maxLength = 0;
-    private int maxWidth = 0;
-    private int maxHeight = 0;
 
     protected override async Task OnInitializedAsync()
     {
@@ -786,66 +748,33 @@
     {
         try
         {
-            ShippingFee = 0;
-            if (DefaultDeliveryAddress == null || DefaultDeliveryAddress.ProvinceId < 1 ||
-            DefaultDeliveryAddress.CommuneId < 1 || DefaultDeliveryAddress.DistrictId < 1 || string.IsNullOrWhiteSpace(GhnToken))
-            {
-                return;
-            }
-
-            // Compute parcel dimensions and weight
-            totalWeight = Math.Max(DefaultItemWeightGram, 100);
-            maxLength = DefaultLengthCm;
-            maxWidth = DefaultWidthCm;
-            maxHeight = DefaultHeightCm;
-
+            // Fixed shipping fee: 30k - 50k based on order value
             if (selectedRows != null && selectedRows.Any())
             {
-                // Tính tổng trọng lượng từ các sản phẩm thực tế
-                totalWeight = Math.Max(200, selectedRows.Sum(x => Math.Max(x.Weight, 200)));
+                var orderTotal = selectedRows.Sum(i => (decimal)(CalcPriceAfterDiscount(i.Price, i.Discount) * i.Quantity));
 
-                // Lấy kích thước lớn nhất từ các sản phẩm để tính thể tích
-                // Sử dụng thông tin thực tế từ ProductDetail
-                totalVolume = selectedRows.Sum(x =>
+                // Simple logic: higher order value = higher shipping fee
+                if (orderTotal >= 1000000) // >= 1M VND
                 {
-                    // Sử dụng thông tin kích thước từ ProductDetail
-                    var itemLength = x.Length > 0 ? x.Length : DefaultLengthCm;
-                    var itemWidth = x.Width > 0 ? x.Width : DefaultWidthCm;
-                    var itemHeight = x.Height > 0 ? x.Height : DefaultHeightCm;
-                    return itemLength * itemWidth * itemHeight;
-                });
-
-                // Tính kích thước tối đa dựa trên thể tích tổng
-                var cubeRoot = Math.Pow(totalVolume, 1.0 / 3.0);
-                maxLength = maxWidth = maxHeight = Math.Max(DefaultLengthCm, (int)Math.Ceiling(cubeRoot));
+                    ShippingFee = 50000; // 50k
+                }
+                else if (orderTotal >= 500000) // >= 500k VND
+                {
+                    ShippingFee = 40000; // 40k
+                }
+                else
+                {
+                    ShippingFee = 30000; // 30k
+                }
             }
-
-            // Get available services using GHN service
-            var services = await GhnService.GetAvailableServicesAsync(GhnFromDistrictId, DefaultDeliveryAddress.DistrictId);
-            if (!services.Any())
+            else
             {
-                return;
+                ShippingFee = 30000; // Default 30k
             }
-
-            var availableServiceId = services.First().ServiceId;
-            var insuranceValue = (decimal)Math.Max(0, Math.Round((double)(cart?.TotalPrice ?? 0)));
-
-            // Calculate shipping fee using GHN service
-            ShippingFee = await GhnService.CalculateShippingFeeAsync(
-            GhnFromDistrictId,
-            DefaultDeliveryAddress.DistrictId,
-            DefaultDeliveryAddress.CommuneId.ToString(),
-            totalWeight,
-            maxLength,
-            maxWidth,
-            maxHeight,
-            availableServiceId,
-            insuranceValue
-            );
         }
         catch
         {
-            ShippingFee = 0;
+            ShippingFee = 30000; // Fallback to 30k
         }
     }
 
@@ -1359,20 +1288,6 @@ EndDate = checkResult.ExpiryDate
     private static float CalcPriceAfterDiscount(float price, float discount) =>
     discount > 100 ? price - discount : price * (1 - discount / 100f);
 
-    private void ShowShippingFeeModal()
-    {
-        OpenShippingFeeModal = true;
-    }
-
-    private void HandleOkShippingFee()
-    {
-        OpenShippingFeeModal = false;
-    }
-
-    private void HandleCancelShippingFee()
-    {
-        OpenShippingFeeModal = false;
-    }
 
     private GhnCreateOrderRequestDTO CreateGhnOrderRequest(CreateOrderResultDTO order)
     {
@@ -1396,10 +1311,10 @@ EndDate = checkResult.ExpiryDate
             ToDistrictId = DefaultDeliveryAddress?.DistrictId ?? 0,
             CodAmount = SelectedPaymentMethod == 0 ? (int)FinalTotalAmount : 0,
             Content = $"Đơn hàng {order.Code}",
-            Weight = totalWeight,
-            Length = maxLength,
-            Width = maxWidth,
-            Height = maxHeight,
+            Weight = DefaultItemWeightGram,
+            Length = DefaultLengthCm,
+            Width = DefaultWidthCm,
+            Height = DefaultHeightCm,
             InsuranceValue = (int)Math.Max(0, Math.Round((double)(cart?.TotalPrice ?? 0))),
             ServiceTypeId = 2, // E-commerce Delivery
             Items = new List<GhnOrderItemDTO>()

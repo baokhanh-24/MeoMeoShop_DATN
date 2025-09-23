@@ -1,3 +1,4 @@
+
 .product-reviews-container {
     padding: 0;
 }
@@ -93,7 +94,7 @@
     padding: 12px;
     border-radius: 8px;
     background: aliceblue;
-    
+
 }
 
 .review-header {
@@ -110,8 +111,6 @@
 }
 
 .product-image {
-    width: 60px;
-    height: 60px;
     border-radius: 6px;
     overflow: hidden;
 }

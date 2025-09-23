@@ -19,5 +19,6 @@ namespace MeoMeo.Application.IServices
         Task<BaseResponse> CancelOrderReturnAsync(Guid customerId, Guid orderReturnId);
         Task<List<OrderReturnItemDetailDTO>> GetAvailableItemsForReturnAsync(Guid orderId);
         Task<bool> CanOrderBeReturnedAsync(Guid orderId);
+        Task<(bool CanReturn, string Message, List<string> ReturnableProducts, List<string> NonReturnableProducts)> GetOrderReturnInfoAsync(Guid orderId);
     }
 }

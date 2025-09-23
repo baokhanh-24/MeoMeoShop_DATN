@@ -13,25 +13,25 @@
         <RadzenRow Gap="1rem">
             <RadzenColumn Size="3">
                 <RadzenCard class="rz-p-4">
-                    <RadzenText TextStyle="TextStyle.H6" class="rz-color-primary">💰 Doanh thu hôm nay</RadzenText>
+                    <RadzenText TextStyle="TextStyle.H6" class="rz-color-primary">Doanh thu hôm nay</RadzenText>
                     <RadzenText TextStyle="TextStyle.H4">@FormatAsVNĐ(dashboardData.Revenue.TodayRevenue)</RadzenText>
                 </RadzenCard>
             </RadzenColumn>
             <RadzenColumn Size="3">
                 <RadzenCard class="rz-p-4">
-                    <RadzenText TextStyle="TextStyle.H6" class="rz-color-success">📦 Đơn hàng hôm nay</RadzenText>
+                    <RadzenText TextStyle="TextStyle.H6" class="rz-color-success">Đơn hàng hôm nay</RadzenText>
                     <RadzenText TextStyle="TextStyle.H4">@dashboardData.Orders.TodayOrders</RadzenText>
                 </RadzenCard>
             </RadzenColumn>
             <RadzenColumn Size="3">
                 <RadzenCard class="rz-p-4">
-                    <RadzenText TextStyle="TextStyle.H6" class="rz-color-info">👥 Khách hàng mới</RadzenText>
+                    <RadzenText TextStyle="TextStyle.H6" class="rz-color-info">Khách hàng mới</RadzenText>
                     <RadzenText TextStyle="TextStyle.H4">@dashboardData.Customers.NewCustomersToday</RadzenText>
                 </RadzenCard>
             </RadzenColumn>
             <RadzenColumn Size="3">
                 <RadzenCard class="rz-p-4">
-                    <RadzenText TextStyle="TextStyle.H6" class="rz-color-warning">⏳ Chờ xác nhận</RadzenText>
+                    <RadzenText TextStyle="TextStyle.H6" class="rz-color-warning">Chờ xác nhận</RadzenText>
                     <RadzenText TextStyle="TextStyle.H4">@dashboardData.Orders.PendingOrders</RadzenText>
                 </RadzenCard>
             </RadzenColumn>
@@ -39,7 +39,7 @@
 
         <!-- Doanh thu theo thời gian -->
         <RadzenCard class="rz-p-4">
-            <RadzenText TextStyle="TextStyle.H5" class="rz-mb-4">📈 Doanh thu theo thời gian</RadzenText>
+            <RadzenText TextStyle="TextStyle.H5" class="rz-mb-4">Doanh thu theo thời gian</RadzenText>
             <RadzenChart>
                 <RadzenLineSeries Smooth="true" Data="@dashboardData.RevenueByPeriod" CategoryProperty="Period"
                     ValueProperty="Revenue" Title="Doanh thu">
@@ -54,7 +54,7 @@
 
         <!-- Top sản phẩm bán chạy -->
         <RadzenCard class="rz-p-4">
-            <RadzenText TextStyle="TextStyle.H5" class="rz-mb-4">🏆 Top sản phẩm bán chạy</RadzenText>
+            <RadzenText TextStyle="TextStyle.H5" class="rz-mb-4">Top sản phẩm bán chạy</RadzenText>
             <RadzenTabs>
                 <Tabs>
                     <RadzenTabsItem Text="Hôm nay">
@@ -95,26 +95,26 @@
         <RadzenRow Gap="1rem">
             <RadzenColumn Size="6">
                 <RadzenCard class="rz-p-4">
-                    <RadzenText TextStyle="TextStyle.H5" class="rz-mb-4">📊 Thống kê đơn hàng</RadzenText>
+                    <RadzenText TextStyle="TextStyle.H5" class="rz-mb-4">Thống kê đơn hàng</RadzenText>
                     <RadzenStack Gap="1rem">
                         <RadzenRow>
-                            <RadzenColumn Size="6">🛒 Tại quầy: @dashboardData.Orders.PosOrders</RadzenColumn>
-                            <RadzenColumn Size="6">🌐 Online: @dashboardData.Orders.OnlineOrders</RadzenColumn>
+                            <RadzenColumn Size="6">Tại quầy: @dashboardData.Orders.PosOrders</RadzenColumn>
+                            <RadzenColumn Size="6">Online: @dashboardData.Orders.OnlineOrders</RadzenColumn>
                         </RadzenRow>
                         <RadzenRow>
-                            <RadzenColumn Size="6">✅ Hoàn thành: @dashboardData.Orders.CompletedOrders</RadzenColumn>
-                            <RadzenColumn Size="6">❌ Đã hủy: @dashboardData.Orders.CancelledOrders</RadzenColumn>
+                            <RadzenColumn Size="6">Hoàn thành: @dashboardData.Orders.CompletedOrders</RadzenColumn>
+                            <RadzenColumn Size="6"> Đã hủy: @dashboardData.Orders.CancelledOrders</RadzenColumn>
                         </RadzenRow>
                         <RadzenRow>
-                            <RadzenColumn Size="6">🚚 Đang giao: @dashboardData.Orders.InTransitOrders</RadzenColumn>
-                            <RadzenColumn Size="6">✔️ Đã xác nhận: @dashboardData.Orders.ConfirmedOrders</RadzenColumn>
+                            <RadzenColumn Size="6">Đang giao: @dashboardData.Orders.InTransitOrders</RadzenColumn>
+                            <RadzenColumn Size="6">Đã xác nhận: @dashboardData.Orders.ConfirmedOrders</RadzenColumn>
                         </RadzenRow>
                     </RadzenStack>
                 </RadzenCard>
             </RadzenColumn>
             <RadzenColumn Size="6">
                 <RadzenCard class="rz-p-4">
-                    <RadzenText TextStyle="TextStyle.H5" class="rz-mb-4">📦 Thống kê tồn kho</RadzenText>
+                    <RadzenText TextStyle="TextStyle.H5" class="rz-mb-4">Thống kê tồn kho</RadzenText>
                     <RadzenStack Gap="1rem">
                         <div>Tổng sản phẩm: @dashboardData.Inventory.TotalProducts</div>
                         <div>Sắp hết hàng: @dashboardData.Inventory.LowStockProducts</div>
@@ -126,7 +126,7 @@
 
         <!-- Tồn kho theo sản phẩm -->
         <RadzenCard class="rz-p-4">
-            <RadzenText TextStyle="TextStyle.H5" class="rz-mb-4">📦 Tồn kho theo sản phẩm</RadzenText>
+            <RadzenText TextStyle="TextStyle.H5" class="rz-mb-4">Tồn kho theo sản phẩm</RadzenText>
             <RadzenChart>
                 <RadzenPieSeries Data="@dashboardData.Inventory.StockByProduct" CategoryProperty="ProductVariant"
                     ValueProperty="StockQuantity" Title="Tồn kho">
@@ -137,7 +137,7 @@
 
         <!-- Đơn hàng theo giờ -->
         <RadzenCard class="rz-p-4">
-            <RadzenText TextStyle="TextStyle.H5" class="rz-mb-4">⏰ Đơn hàng theo giờ trong ngày</RadzenText>
+            <RadzenText TextStyle="TextStyle.H5" class="rz-mb-4">Đơn hàng theo giờ trong ngày</RadzenText>
             <RadzenChart>
                 <RadzenLineSeries Data="@dashboardData.OrdersByHour" CategoryProperty="Hour" ValueProperty="OrderCount"
                     LineType="LineType.Dashed" Title="Số đơn hàng">

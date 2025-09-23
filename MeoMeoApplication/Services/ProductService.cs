@@ -461,14 +461,14 @@ namespace MeoMeo.Application.Services
         public async Task<List<Image>> GetOldImagesAsync(Guid productId)
         {
             var currentThumbnail = "";
-            var currentProduct= await _repository.Query().FirstOrDefaultAsync(c=>c.Id==productId);
+            var currentProduct = await _repository.Query().FirstOrDefaultAsync(c => c.Id == productId);
             if (currentProduct != null)
             {
-                currentThumbnail= currentProduct.Thumbnail;
+                currentThumbnail = currentProduct.Thumbnail;
             }
             //tránh xóa thumbnail để phần orderdetail có lưu Trường Image không bị lỗi
             return await _imageRepository.Query()
-                .Where(i => i.ProductId == productId && i.Name !=currentThumbnail)
+                .Where(i => i.ProductId == productId && i.Name != currentThumbnail)
                 .ToListAsync();
         }
 
@@ -935,17 +935,22 @@ namespace MeoMeo.Application.Services
                     productQuery = productQuery.Where(p => p.BrandId == request.BrandFilter.Value);
                 }
 
-                // Step 2: Get products with selling variants (CRITICAL FILTER)
-                var productsWithSellingVariants = await _productDetailRepository.Query()
+                // Step 2: Get products with selling variants that have inventory > 0
+                var productsWithAvailableInventory = await _productDetailRepository.Query()
                     .Where(pd => pd.Status == EProductStatus.Selling)
-                    .Select(pd => pd.ProductId)
+                    .Join(_inventoryBatchRepository.Query()
+                        .Where(ib => ib.Status == EInventoryBatchStatus.Approved && ib.Quantity > 0),
+                        pd => pd.Id,
+                        ib => ib.ProductDetailId,
+                        (pd, ib) => new { pd.ProductId, pd.Id })
+                    .Select(x => x.ProductId)
                     .Distinct()
                     .ToListAsync();
 
-                productQuery = productQuery.Where(p => productsWithSellingVariants.Contains(p.Id));
+                productQuery = productQuery.Where(p => productsWithAvailableInventory.Contains(p.Id));
 
                 // Step 3: Apply complex filters (Category, Material, Season, Size, Color, Price)
-                var filteredProductIds = await ApplyComplexFiltersAsync(request, productsWithSellingVariants);
+                var filteredProductIds = await ApplyComplexFiltersAsync(request, productsWithAvailableInventory);
 
                 if (filteredProductIds.Any())
                 {
@@ -1152,6 +1157,18 @@ namespace MeoMeo.Application.Services
                 .Include(pd => pd.Size)
                 .Include(pd => pd.Colour)
                 .ToListAsync();
+
+            // Filter out variants with no inventory
+            var variantIds = allProductDetails.Select(pd => pd.Id).ToList();
+            var variantsWithInventory = await _inventoryBatchRepository.Query()
+                .Where(ib => variantIds.Contains(ib.ProductDetailId) &&
+                           ib.Status == EInventoryBatchStatus.Approved &&
+                           ib.Quantity > 0)
+                .Select(ib => ib.ProductDetailId)
+                .Distinct()
+                .ToListAsync();
+
+            allProductDetails = allProductDetails.Where(pd => variantsWithInventory.Contains(pd.Id)).ToList();
 
             // Apply variant-level filters
             if (!string.IsNullOrEmpty(request.SKUFilter))

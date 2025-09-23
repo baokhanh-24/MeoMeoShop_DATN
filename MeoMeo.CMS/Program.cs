@@ -108,6 +108,7 @@ builder.Services.AddScoped<IColourClientService, ColourClientService>();
 builder.Services.AddScoped<ICategoryClientService, CategoryClientService>();
 builder.Services.AddScoped<IEmployeesClientService, EmployeesClientService>();
 builder.Services.AddScoped<IOrderClientService, OrderClientService>();
+builder.Services.AddScoped<IOrderReturnClientService, OrderReturnClientService>();
 builder.Services.AddScoped<IPromotionClientService, PromotionClientService>();
 builder.Services.AddScoped<IPromotionDetailClientService, PromotionDetailClientService>();
 builder.Services.AddScoped<ISystemConfigClientService, SystenConfigClientService>();
@@ -137,7 +138,7 @@ app.UseStaticFiles();
 app.UseRouting();
 app.UseAuthentication();
 app.UseAuthorization();
-app.UseAntiforgery(); 
+app.UseAntiforgery();
 
 app.MapControllers();
 app.MapRazorComponents<App>()

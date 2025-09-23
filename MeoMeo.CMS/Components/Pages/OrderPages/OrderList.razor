@@ -6,6 +6,7 @@
 @using AntDesign.TableModels
 @using MeoMeo.Contract.DTOs.Order
 @using MeoMeo.Contract.DTOs.OrderDetail
+@using MeoMeo.Contract.DTOs.Order.Return
 @using MeoMeo.Domain.Commons.Enums
 @using MeoMeo.Shared.IServices;
 @using MeoMeo.Contract.Commons
@@ -13,6 +14,7 @@
 @using MeoMeo.Shared.Utilities
 @using Microsoft.AspNetCore.Authorization
 @inject IOrderClientService OrderClientService
+@inject IOrderReturnClientService OrderReturnClientService
 @inject MeoMeo.Shared.Utilities.MessageModalService MessageModalService
 @inject NavigationManager Navigation
 @using ButtonSize = AntDesign.ButtonSize
@@ -227,11 +229,11 @@
         }
         else if (context.Status == EOrderStatus.Returned)
         {
-                            <Tooltip Title="Hoàn tất hoàn trả">
-                                <Button Size="ButtonSize.Small" Shape="ButtonShape.Circle" OnClick="@(() => OnClickConfirm(EOrderStatus.Completed, context))">
-                                    <i class="fa-solid fa-check-double text-success"></i>
-                                </Button>
-                            </Tooltip>
+    <Tooltip Title="Xem chi tiết phiếu hoàn trả">
+                                    <Button Size="ButtonSize.Small" Shape="ButtonShape.Circle" OnClick="@(() => ShowOrderReturnDialog(context.OrderReturn))">
+                                        <i class="fas fa-info-circle"></i>
+                                    </Button>
+                                </Tooltip>
         }
         
         <Tooltip Title="Lịch sử">
@@ -884,26 +886,21 @@
         isProcessingOrderReturn = true;
         try
         {
-            // TODO: Implement OrderReturn status update API call
-            // var result = await OrderReturnClientService.UpdateOrderReturnStatusAsync(selectedOrderReturn.Id, new UpdateOrderReturnStatusRequestDTO
-            // {
-            //     Status = newStatus
-            // });
+            var result = await OrderReturnClientService.UpdateOrderReturnStatusAsync(selectedOrderReturn.Id, new UpdateOrderReturnStatusRequestDTO
+            {
+                Status = newStatus
+            });
 
-            // if (result.ResponseStatus == BaseStatus.Success)
-            // {
-            //     await MessageModalService.Success($"Cập nhật trạng thái hoàn hàng thành công!");
-            //     orderReturnDialogVisible = false;
-            //     await LoadOrdersAsync(); // Reload to get updated data
-            // }
-            // else
-            // {
-            //     await MessageModalService.Error($"Lỗi: {result.Message}");
-            // }
-
-            // Temporary success message
-            await MessageModalService.Success($"Đã {(newStatus == EOrderReturnStatus.Approved ? "chấp nhận" : "từ chối")} đơn hoàn hàng!");
-            orderReturnDialogVisible = false;
+            if (result.ResponseStatus == BaseStatus.Success)
+            {
+                await MessageModalService.Success($"Cập nhật trạng thái hoàn hàng thành công!");
+                orderReturnDialogVisible = false;
+                await LoadOrdersAsync(); // Reload to get updated data
+            }
+            else
+            {
+                await MessageModalService.Error($"Lỗi: {result.Message}");
+            }
         }
         catch (Exception ex)
         {

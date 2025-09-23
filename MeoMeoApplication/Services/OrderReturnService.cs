@@ -21,6 +21,9 @@ namespace MeoMeo.Application.Services
         private readonly IOrderReturnFileRepository _orderReturnFileRepository;
         private readonly IOrderRepository _orderRepository;
         private readonly IOrderDetailRepository _orderDetailRepository;
+        private readonly IOrderHistoryRepository _orderHistoryRepository;
+        private readonly IIventoryBatchReposiory _inventoryBatchRepository;
+        private readonly IInventoryTranSactionRepository _inventoryTransactionRepository;
         private readonly IMapper _mapper;
         private readonly IUnitOfWork _unitOfWork;
 
@@ -30,6 +33,9 @@ namespace MeoMeo.Application.Services
             IOrderReturnFileRepository orderReturnFileRepository,
             IOrderRepository orderRepository,
             IOrderDetailRepository orderDetailRepository,
+            IOrderHistoryRepository orderHistoryRepository,
+            IIventoryBatchReposiory inventoryBatchRepository,
+            IInventoryTranSactionRepository inventoryTransactionRepository,
             IMapper mapper,
             IUnitOfWork unitOfWork)
         {
@@ -38,6 +44,9 @@ namespace MeoMeo.Application.Services
             _orderReturnFileRepository = orderReturnFileRepository;
             _orderRepository = orderRepository;
             _orderDetailRepository = orderDetailRepository;
+            _orderHistoryRepository = orderHistoryRepository;
+            _inventoryBatchRepository = inventoryBatchRepository;
+            _inventoryTransactionRepository = inventoryTransactionRepository;
             _mapper = mapper;
             _unitOfWork = unitOfWork;
         }
@@ -128,6 +137,14 @@ namespace MeoMeo.Application.Services
                 order.Status = EOrderStatus.PendingReturn;
                 order.LastModifiedTime = DateTime.Now;
                 await _orderRepository.UpdateAsync(order);
+
+                // Add order history
+                var productNames = string.Join(", ", request.Items.Select(item =>
+                    order.OrderDetails.FirstOrDefault(od => od.Id == item.OrderDetailId)?.ProductName ?? "Unknown"));
+                var historyContent = $"""
+                    <p><strong>Yêu cầu hoàn trả:</strong> Khách hàng đã tạo yêu cầu hoàn trả</p>
+                    """;
+                await AddOrderHistoryAsync(request.OrderId, historyContent);
 
                 await _unitOfWork.CommitAsync();
 
@@ -426,6 +443,7 @@ namespace MeoMeo.Application.Services
                     };
                 }
 
+                var oldStatus = orderReturn.Status;
                 orderReturn.Status = request.Status;
                 orderReturn.LastModifiedTime = DateTime.Now;
 
@@ -434,6 +452,9 @@ namespace MeoMeo.Application.Services
                 {
                     orderReturn.Order.Status = EOrderStatus.Returned;
                     orderReturn.Order.LastModifiedTime = DateTime.Now;
+
+                    // Back inventory when return is approved
+                    await BackInventoryForReturnAsync(orderReturn.Id);
                 }
                 else if (request.Status == EOrderReturnStatus.Rejected)
                 {
@@ -444,6 +465,16 @@ namespace MeoMeo.Application.Services
 
                 await _orderReturnRepository.UpdateAsync(orderReturn);
                 await _orderRepository.UpdateAsync(orderReturn.Order);
+
+                // Add order history
+                var historyContent = $"""
+                    <p><strong>Cập nhật trạng thái hoàn trả:</strong> Từ 
+                    <span class="status-old">{GetOrderReturnStatusDisplayName(oldStatus)}</span> 
+                    => 
+                    <span class="status-new">{GetOrderReturnStatusDisplayName(request.Status)}</span></p>
+                    """;
+                await AddOrderHistoryAsync(orderReturn.OrderId, historyContent);
+
                 await _unitOfWork.SaveChangesAsync();
 
                 return new BaseResponse
@@ -501,6 +532,13 @@ namespace MeoMeo.Application.Services
 
                 await _orderReturnRepository.UpdateAsync(orderReturn);
                 await _orderRepository.UpdateAsync(orderReturn.Order);
+
+                // Add order history
+                var historyContent = $"""
+                    <p><strong>Hoàn tiền thành công:</strong> Đã hoàn trả số tiền cho khách hàng</p>
+                    """;
+                await AddOrderHistoryAsync(orderReturn.OrderId, historyContent);
+
                 await _unitOfWork.SaveChangesAsync();
 
                 return new BaseResponse
@@ -554,6 +592,13 @@ namespace MeoMeo.Application.Services
 
                 await _orderReturnRepository.UpdateAsync(orderReturn);
                 await _orderRepository.UpdateAsync(orderReturn.Order);
+
+                // Add order history
+                var historyContent = $"""
+                    <p><strong>Hủy yêu cầu hoàn trả:</strong> Khách hàng đã hủy yêu cầu hoàn trả</p>
+                    """;
+                await AddOrderHistoryAsync(orderReturn.OrderId, historyContent);
+
                 await _unitOfWork.SaveChangesAsync();
 
                 return new BaseResponse
@@ -576,6 +621,9 @@ namespace MeoMeo.Application.Services
         {
             var orderDetails = await _orderDetailRepository.Query()
                 .Include(od => od.ProductDetail)
+                    .ThenInclude(pd => pd.Size)
+                .Include(od => od.ProductDetail)
+                    .ThenInclude(pd => pd.Colour)
                 .Where(od => od.OrderId == orderId)
                 .ToListAsync();
 
@@ -602,10 +650,14 @@ namespace MeoMeo.Application.Services
 
                 if (availableQty > 0)
                 {
+                    var size = orderDetail.ProductDetail?.Size?.Value ?? "N/A";
+                    var color = orderDetail.ProductDetail?.Colour?.Name ?? "N/A";
+                    var detailedProductName = $"{orderDetail.ProductName} - Size: {size}, Màu: {color}";
+
                     result.Add(new OrderReturnItemDetailDTO
                     {
                         OrderDetailId = orderDetail.Id,
-                        ProductName = orderDetail.ProductName,
+                        ProductName = detailedProductName,
                         Sku = orderDetail.Sku,
                         Image = orderDetail.Image,
                         UnitPrice = orderDetail.Price,
@@ -635,25 +687,81 @@ namespace MeoMeo.Application.Services
             if (order.Status != EOrderStatus.Completed)
                 return false;
 
-            // Check if within return period (e.g., 7 days)
-            var returnPeriodDays = 7;
-            if (order.ReceiveDate.HasValue)
-            {
-                var daysSinceReceived = (DateTime.Now - order.ReceiveDate.Value).Days;
-                if (daysSinceReceived > returnPeriodDays)
-                    return false;
-            }
-            else
-            {
-                // If no receive date, check creation time
-                var daysSinceCreated = (DateTime.Now - order.CreationTime).Days;
-                if (daysSinceCreated > returnPeriodDays)
-                    return false;
-            }
-
             // Check if at least one product in the order allows return
             var hasReturnableProduct = order.OrderDetails.Any(od => od.ProductDetail?.AllowReturn == true);
             return hasReturnableProduct;
+        }
+
+        public async Task<(bool CanReturn, string Message, List<string> ReturnableProducts, List<string> NonReturnableProducts)> GetOrderReturnInfoAsync(Guid orderId)
+        {
+            var order = await _orderRepository.Query()
+                .Include(o => o.OrderDetails)
+                    .ThenInclude(od => od.ProductDetail)
+                        .ThenInclude(pd => pd.Size)
+                .Include(o => o.OrderDetails)
+                    .ThenInclude(od => od.ProductDetail)
+                        .ThenInclude(pd => pd.Colour)
+                .FirstOrDefaultAsync(o => o.Id == orderId);
+
+            var returnableProducts = new List<string>();
+            var nonReturnableProducts = new List<string>();
+
+            if (order == null)
+            {
+                return (false, "Không tìm thấy đơn hàng", returnableProducts, nonReturnableProducts);
+            }
+
+            // Check order status
+            if (order.Status != EOrderStatus.Completed)
+            {
+                return (false, "Chỉ có thể hoàn trả đơn hàng đã hoàn thành", returnableProducts, nonReturnableProducts);
+            }
+
+            // Get already returned quantities
+            var returnedQuantities = await _orderReturnItemRepository.Query()
+                .Where(ri => ri.OrderReturn.OrderId == orderId &&
+                           ri.OrderReturn.Status != EOrderReturnStatus.Rejected)
+                .GroupBy(ri => ri.OrderDetailId)
+                .Select(g => new { OrderDetailId = g.Key, ReturnedQty = g.Sum(x => x.Quantity) })
+                .ToListAsync();
+
+            foreach (var orderDetail in order.OrderDetails)
+            {
+                var productName = orderDetail.ProductName;
+                var size = orderDetail.ProductDetail?.Size?.Value ?? "N/A";
+                var color = orderDetail.ProductDetail?.Colour?.Name ?? "N/A";
+                var sku = orderDetail.Sku;
+
+                // Create detailed product description
+                var productDescription = $"{productName} - Size: {size}, Màu: {color} (SKU: {sku})";
+
+                if (orderDetail.ProductDetail?.AllowReturn == true)
+                {
+                    var returnedQty = returnedQuantities
+                        .FirstOrDefault(r => r.OrderDetailId == orderDetail.Id)?.ReturnedQty ?? 0;
+                    var availableQty = orderDetail.Quantity - returnedQty;
+
+                    if (availableQty > 0)
+                    {
+                        returnableProducts.Add($"{productDescription} - Còn lại: {availableQty} sản phẩm");
+                    }
+                    else
+                    {
+                        nonReturnableProducts.Add($"{productDescription} - Đã hoàn trả hết");
+                    }
+                }
+                else
+                {
+                    nonReturnableProducts.Add($"{productDescription} - Không cho phép hoàn trả");
+                }
+            }
+
+            var canReturn = returnableProducts.Any();
+            var message = canReturn
+                ? $"Có {returnableProducts.Count} sản phẩm có thể hoàn trả"
+                : "Không có sản phẩm nào có thể hoàn trả";
+
+            return (canReturn, message, returnableProducts, nonReturnableProducts);
         }
 
         private async Task<(bool IsValid, string ErrorMessage)> ValidateReturnItemsAsync(
@@ -748,6 +856,70 @@ namespace MeoMeo.Application.Services
                 ERefundMethod.InStore => "Nhận tại cửa hàng",
                 _ => method.ToString()
             };
+        }
+
+        private string GetOrderReturnStatusDisplayName(EOrderReturnStatus status)
+        {
+            return status switch
+            {
+                EOrderReturnStatus.Pending => "Chờ duyệt hoàn hàng",
+                EOrderReturnStatus.Approved => "Đã duyệt hoàn hàng",
+                EOrderReturnStatus.Rejected => "Từ chối hoàn hàng",
+                EOrderReturnStatus.Received => "Đã nhận hàng hoàn",
+                EOrderReturnStatus.Refunded => "Hoàn tiền xong",
+                _ => status.ToString()
+            };
+        }
+
+        private async Task AddOrderHistoryAsync(Guid orderId, string content, EHistoryType type = EHistoryType.Update)
+        {
+            var orderHistory = new OrderHistory
+            {
+                Id = Guid.NewGuid(),
+                OrderId = orderId,
+                Content = content,
+                Type = type,
+                CreationTime = DateTime.Now,
+                CreatedBy = Guid.Empty // System generated
+            };
+
+            await _orderHistoryRepository.AddAsync(orderHistory);
+        }
+
+        private async Task BackInventoryForReturnAsync(Guid orderReturnId)
+        {
+            // Get return items
+            var returnItems = await _orderReturnItemRepository.Query()
+                .Where(ri => ri.OrderReturnId == orderReturnId)
+                .Include(ri => ri.OrderDetail)
+                .ToListAsync();
+
+            foreach (var returnItem in returnItems)
+            {
+                // Find the first available batch for this product detail
+                var availableBatch = await _inventoryBatchRepository.Query()
+                    .Where(ib => ib.ProductDetailId == returnItem.OrderDetail.ProductDetailId &&
+                                 ib.Status == EInventoryBatchStatus.Approved)
+                    .OrderBy(ib => ib.CreationTime)
+                    .FirstOrDefaultAsync();
+
+                if (availableBatch != null)
+                {
+                    // Add quantity back to inventory
+                    availableBatch.Quantity += returnItem.Quantity;
+                    await _inventoryBatchRepository.UpdateAsync(availableBatch);
+
+                    // Create inventory transaction
+                    await _inventoryTransactionRepository.AddAsync(new InventoryTransaction
+                    {
+                        Id = Guid.NewGuid(),
+                        InventoryBatchId = availableBatch.Id,
+                        Quantity = returnItem.Quantity,
+                        CreationTime = DateTime.Now,
+                        Type = EInventoryTranctionType.Import
+                    });
+                }
+            }
         }
     }
 }

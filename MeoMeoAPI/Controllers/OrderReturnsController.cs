@@ -30,12 +30,12 @@ namespace MeoMeo.API.Controllers
         }
 
         [HttpPost("create-partial-return")]
-        [RequestSizeLimit(200 * 1024 * 1024)] 
+        [RequestSizeLimit(200 * 1024 * 1024)]
         public async Task<ActionResult<BaseResponse>> CreatePartialOrderReturn([FromForm] CreatePartialOrderReturnDTO request)
         {
             try
             {
-                var customerId= _httpContextAccessor.HttpContext.GetCurrentCustomerId();
+                var customerId = _httpContextAccessor.HttpContext.GetCurrentCustomerId();
                 if (customerId == Guid.Empty)
                 {
                     return BadRequest();
@@ -52,12 +52,12 @@ namespace MeoMeo.API.Controllers
                         filesToUpload,
                         "OrderReturns",
                         returnId,
-                        acceptedExtensions: new List<string> 
-                        { 
+                        acceptedExtensions: new List<string>
+                        {
                             "jpg", "jpeg", "png", "gif", "bmp", "tiff", "webp", "svg", "heic", "heif",
                             "mp4", "avi", "mov", "wmv"
                         },
-                        maxFileSizeInBytes: 200*1024 * 1024 
+                        maxFileSizeInBytes: 200 * 1024 * 1024
                     );
                 }
 
@@ -128,12 +128,12 @@ namespace MeoMeo.API.Controllers
             }
         }
 
-        [HttpPut("{id}/status")]
-        public async Task<ActionResult<BaseResponse>> UpdateOrderReturnStatus(Guid id, [FromBody] UpdateOrderReturnStatusRequestDTO request)
+        [HttpPut("update-status")]
+        public async Task<ActionResult<BaseResponse>> UpdateOrderReturnStatus([FromBody] UpdateOrderReturnStatusRequestDTO request)
         {
             try
             {
-                var result = await _orderReturnService.UpdateOrderReturnStatusAsync(id, request);
+                var result = await _orderReturnService.UpdateOrderReturnStatusAsync(request.OrderReturnId, request);
                 return Ok(result);
             }
             catch (Exception ex)
@@ -204,6 +204,26 @@ namespace MeoMeo.API.Controllers
             {
                 var result = await _orderReturnService.CanOrderBeReturnedAsync(orderId);
                 return Ok(result);
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new { message = ex.Message });
+            }
+        }
+
+        [HttpGet("order/{orderId}/return-info")]
+        public async Task<ActionResult<object>> GetOrderReturnInfo(Guid orderId)
+        {
+            try
+            {
+                var result = await _orderReturnService.GetOrderReturnInfoAsync(orderId);
+                return Ok(new
+                {
+                    canReturn = result.CanReturn,
+                    message = result.Message,
+                    returnableProducts = result.ReturnableProducts,
+                    nonReturnableProducts = result.NonReturnableProducts
+                });
             }
             catch (Exception ex)
             {
