@@ -19,34 +19,78 @@ namespace MeoMeo.Application.Services
     public class PromotionServices : IPromotionServices
     {
         private readonly IPromotionRepository _repository;
+        private readonly IPromotionDetailRepository _promotionDetailRepository;
         private readonly IMapper _mapper;
+        private readonly IUnitOfWork _unitOfWork;
 
-        public PromotionServices(IPromotionRepository repository, IMapper mapper)
+        public PromotionServices(IPromotionRepository repository, IPromotionDetailRepository promotionDetailRepository, IMapper mapper, IUnitOfWork unitOfWork)
         {
             _repository = repository;
+            _promotionDetailRepository = promotionDetailRepository;
             _mapper = mapper;
+            _unitOfWork = unitOfWork;
         }
 
-        public async Task<Promotion> CreatePromotionAsync(CreateOrUpdatePromotionDTO promotion)
+        public async Task<CreateOrUpdatePromotionResponseDTO> CreatePromotionAsync(CreateOrUpdatePromotionDTO promotion)
         {
-            var mappedPromotion = _mapper.Map<Promotion>(promotion);
-            //mappedPromotion.Id = Guid.NewGuid();
-            return await _repository.CreatePromotionAsync(mappedPromotion);
+            try
+            {
+                var mappedPromotion = _mapper.Map<Promotion>(promotion);
+                mappedPromotion.Id = Guid.NewGuid();
+                mappedPromotion.CreationTime = DateTime.Now;
+
+                var createdPromotion = await _repository.CreatePromotionAsync(mappedPromotion);
+
+                return new CreateOrUpdatePromotionResponseDTO
+                {
+                    Id = createdPromotion.Id,
+                    Title = createdPromotion.Title,
+                    StartDate = createdPromotion.StartDate,
+                    EndDate = createdPromotion.EndDate,
+                    Description = createdPromotion.Description,
+                    CreationTime = createdPromotion.CreationTime,
+                    LastModificationTime = createdPromotion.LastModificationTime,
+                    CreatedBy = createdPromotion.CreatedBy,
+                    UpdatedBy = createdPromotion.UpdatedBy,
+                    ResponseStatus = BaseStatus.Success,
+                    Message = "Tạo promotion thành công"
+                };
+            }
+            catch (Exception ex)
+            {
+                return new CreateOrUpdatePromotionResponseDTO
+                {
+                    ResponseStatus = BaseStatus.Error,
+                    Message = $"Lỗi khi tạo promotion: {ex.Message}"
+                };
+            }
         }
 
         public async Task<bool> DeletePromotionAsync(Guid id)
         {
-
-            var promotionToDelete = await _repository.GetPromotionByIdAsync(id);
+            var promotionToDelete = await _repository.Query()
+                .Include(p => p.PromotionDetails)
+                .ThenInclude(pd => pd.OrderDetails)
+                .ThenInclude(od => od.Order)
+                .FirstOrDefaultAsync(p => p.Id == id);
 
             if (promotionToDelete == null)
             {
                 return false;
             }
 
+            // Check if promotion has been used in any completed orders
+            var hasBeenUsed = promotionToDelete.PromotionDetails?
+                .SelectMany(pd => pd.OrderDetails)
+                .Any(od => od.Order.Status == EOrderStatus.Completed) ?? false;
+
+            if (hasBeenUsed)
+            {
+                return false; // Cannot delete promotion that has been used
+            }
+
             await _repository.DeletePromotionAsync(promotionToDelete.Id);
             return true;
-
         }
 
         public async Task<PagingExtensions.PagedResult<CreateOrUpdatePromotionDTO, GetListPromotionResponseDTO>> GetAllPromotionAsync(GetListPromotionRequestDTO request)
@@ -214,15 +258,150 @@ namespace MeoMeo.Application.Services
 
         public async Task<CreateOrUpdatePromotionResponseDTO> UpdatePromotionAsync(CreateOrUpdatePromotionDTO promotion)
         {
-            var itemPromotion = await _repository.GetPromotionByIdAsync(Guid.Parse(promotion.Id.ToString()));
+            var itemPromotion = await _repository.Query()
+                .Include(p => p.PromotionDetails)
+                .ThenInclude(pd => pd.OrderDetails)
+                .ThenInclude(od => od.Order)
+                .FirstOrDefaultAsync(p => p.Id == Guid.Parse(promotion.Id.ToString()));
+
             if (itemPromotion == null)
             {
                 return new CreateOrUpdatePromotionResponseDTO { ResponseStatus = BaseStatus.Error, Message = "Không tìm thấy promotion" };
             }
+
+            // Check if promotion has been used in any completed orders
+            var hasBeenUsed = itemPromotion.PromotionDetails?
+                .SelectMany(pd => pd.OrderDetails)
+                .Any(od => od.Order.Status == EOrderStatus.Completed) ?? false;
+
+            if (hasBeenUsed)
+            {
+                return new CreateOrUpdatePromotionResponseDTO
+                {
+                    ResponseStatus = BaseStatus.Error,
+                    Message = "Không thể sửa promotion đã được sử dụng trong đơn hàng"
+                };
+            }
+
             _mapper.Map(promotion, itemPromotion);
 
             await _repository.UpdatePromotionAsync(itemPromotion);
             return new CreateOrUpdatePromotionResponseDTO { ResponseStatus = BaseStatus.Success, Message = "Cập nhật thành công" };
+        }
+
+        public async Task<CreateOrUpdatePromotionResponseDTO> CreatePromotionWithDetailsAsync(UpdatePromotionWithDetailsDTO request)
+        {
+            try
+            {
+                await _unitOfWork.BeginTransactionAsync();
+
+                // Create new promotion
+                var mappedPromotion = _mapper.Map<Promotion>(request.Promotion);
+                mappedPromotion.Id = request.PromotionId;
+                mappedPromotion.CreationTime = DateTime.Now;
+
+                await _repository.CreatePromotionAsync(mappedPromotion);
+
+                // Create promotion details
+                foreach (var detailDto in request.PromotionDetails)
+                {
+                    var newDetail = new PromotionDetail
+                    {
+                        Id = Guid.NewGuid(),
+                        PromotionId = request.PromotionId,
+                        ProductDetailId = detailDto.ProductDetailId.Value,
+                        Discount = detailDto.Discount,
+                        Note = detailDto.Note,
+                        CreationTime = DateTime.Now,
+                        LastModificationTime = DateTime.Now
+                    };
+
+                    await _promotionDetailRepository.CreatePromotionDetailAsync(newDetail);
+                }
+
+                await _unitOfWork.SaveChangesAsync();
+                await _unitOfWork.CommitAsync();
+                return new CreateOrUpdatePromotionResponseDTO { ResponseStatus = BaseStatus.Success, Message = "Tạo promotion và chi tiết thành công" };
+            }
+            catch (Exception ex)
+            {
+                await _unitOfWork.RollbackAsync();
+                return new CreateOrUpdatePromotionResponseDTO { ResponseStatus = BaseStatus.Error, Message = $"Lỗi khi tạo: {ex.Message}" };
+            }
+        }
+
+        public async Task<CreateOrUpdatePromotionResponseDTO> UpdatePromotionWithDetailsAsync(UpdatePromotionWithDetailsDTO request)
+        {
+            try
+            {
+                await _unitOfWork.BeginTransactionAsync();
+
+                var itemPromotion = await _repository.Query()
+                    .Include(p => p.PromotionDetails)
+                    .ThenInclude(pd => pd.OrderDetails)
+                    .ThenInclude(od => od.Order)
+                    .FirstOrDefaultAsync(p => p.Id == request.PromotionId);
+
+                if (itemPromotion == null)
+                {
+                    await _unitOfWork.RollbackAsync();
+                    return new CreateOrUpdatePromotionResponseDTO { ResponseStatus = BaseStatus.Error, Message = "Không tìm thấy promotion" };
+                }
+
+                // Check if promotion has been used in any completed orders
+                var hasBeenUsed = itemPromotion.PromotionDetails?
+                    .SelectMany(pd => pd.OrderDetails)
+                    .Any(od => od.Order.Status == EOrderStatus.Completed) ?? false;
+
+                if (hasBeenUsed)
+                {
+                    await _unitOfWork.RollbackAsync();
+                    return new CreateOrUpdatePromotionResponseDTO
+                    {
+                        ResponseStatus = BaseStatus.Error,
+                        Message = "Không thể sửa promotion đã được sử dụng trong đơn hàng"
+                    };
+                }
+
+                // Update promotion basic info
+                _mapper.Map(request.Promotion, itemPromotion);
+                await _repository.UpdatePromotionAsync(itemPromotion);
+
+                // Delete existing promotion details
+                if (itemPromotion.PromotionDetails != null && itemPromotion.PromotionDetails.Any())
+                {
+                    foreach (var detail in itemPromotion.PromotionDetails.ToList())
+                    {
+                        await _promotionDetailRepository.DeletePromotionDetailAsync(detail.Id);
+                    }
+                }
+
+                // Create new promotion details
+                foreach (var detailDto in request.PromotionDetails)
+                {
+                    var newDetail = new PromotionDetail
+                    {
+                        Id = Guid.NewGuid(),
+                        PromotionId = request.PromotionId,
+                        ProductDetailId = detailDto.ProductDetailId.Value,
+                        Discount = detailDto.Discount,
+                        Note = detailDto.Note,
+                        CreationTime = DateTime.Now,
+                        LastModificationTime = DateTime.Now
+                    };
+
+                    await _promotionDetailRepository.CreatePromotionDetailAsync(newDetail);
+                }
+
+                await _unitOfWork.SaveChangesAsync();
+                await _unitOfWork.CommitAsync();
+                return new CreateOrUpdatePromotionResponseDTO { ResponseStatus = BaseStatus.Success, Message = "Cập nhật promotion và chi tiết thành công" };
+            }
+            catch (Exception ex)
+            {
+                await _unitOfWork.RollbackAsync();
+                return new CreateOrUpdatePromotionResponseDTO { ResponseStatus = BaseStatus.Error, Message = $"Lỗi khi cập nhật: {ex.Message}" };
+            }
         }
     }
 }

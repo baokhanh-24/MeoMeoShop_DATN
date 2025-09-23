@@ -79,14 +79,25 @@
                 </Button>
             </Tooltip>
 
-            <Popconfirm Title=@($"Bạn có chắc muốn xóa lô nhập '{data.Code}'?")
-                OnConfirm="() => DeleteImportBatch(data.Id)" OkText="Đồng ý" CancelText="Hủy">
-                <Tooltip Title="Xóa">
-                    <Button Size="ButtonSize.Small" Type="ButtonType.Default" Shape="ButtonShape.Circle">
-                        <i class="fas fa-minus"></i>
+            @if (data.HasApprovedInventoryBatch)
+            {
+                <Tooltip Title="Không thể xóa lô nhập có sản phẩm đã được duyệt">
+                    <Button Size="ButtonSize.Small" Type="ButtonType.Default" Shape="ButtonShape.Circle" Disabled>
+                        <i class="fas fa-ban"></i>
                     </Button>
                 </Tooltip>
-            </Popconfirm>
+            }
+            else
+            {
+                <Popconfirm Title=@($"Bạn có chắc muốn xóa lô nhập '{data.Code}'?")
+                    OnConfirm="() => DeleteImportBatch(data.Id)" OkText="Đồng ý" CancelText="Hủy">
+                    <Tooltip Title="Xóa">
+                        <Button Size="ButtonSize.Small" Type="ButtonType.Default" Shape="ButtonShape.Circle">
+                            <i class="fas fa-minus"></i>
+                        </Button>
+                    </Tooltip>
+                </Popconfirm>
+            }
         </ActionColumn>
     </ChildContent>
     <ExpandTemplate Context="data">
@@ -356,7 +367,7 @@
         }
         else
         {
-            await MessageModalService.Error("Xoá lô nhập thất bại!");
+            await MessageModalService.Error("Không thể xóa lô nhập có sản phẩm đã được duyệt!");
         }
     }
 

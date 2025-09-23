@@ -455,3 +455,6 @@
     width: 200px !important;
     height: 200px !important;
 }
+::deep .payment-container {
+    flex: 1 !important;
+}

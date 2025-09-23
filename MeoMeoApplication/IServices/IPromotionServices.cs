@@ -14,8 +14,10 @@ namespace MeoMeo.Application.IServices
         Task<PagingExtensions.PagedResult<CreateOrUpdatePromotionDTO, GetListPromotionResponseDTO>> GetAllPromotionAsync(GetListPromotionRequestDTO request);
         Task<CreateOrUpdatePromotionResponseDTO> GetPromotionByIdAsync(Guid id);
         Task<GetPromotionDetailResponseDTO> GetPromotionDetailAsync(Guid id);
-        Task<Promotion> CreatePromotionAsync(CreateOrUpdatePromotionDTO promotion);
+        Task<CreateOrUpdatePromotionResponseDTO> CreatePromotionAsync(CreateOrUpdatePromotionDTO promotion);
+        Task<CreateOrUpdatePromotionResponseDTO> CreatePromotionWithDetailsAsync(UpdatePromotionWithDetailsDTO request);
         Task<CreateOrUpdatePromotionResponseDTO> UpdatePromotionAsync(CreateOrUpdatePromotionDTO promotion);
+        Task<CreateOrUpdatePromotionResponseDTO> UpdatePromotionWithDetailsAsync(UpdatePromotionWithDetailsDTO request);
         Task<bool> DeletePromotionAsync(Guid id);
     }
 }

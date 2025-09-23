@@ -47,6 +47,13 @@ namespace MeoMeo.API.Controllers
             return Ok(result);
         }
 
+        [HttpPost("create-promotion-with-details-async")]
+        public async Task<IActionResult> CreatePromotionWithDetailsAsync([FromBody] UpdatePromotionWithDetailsDTO request)
+        {
+            var result = await _promotionServices.CreatePromotionWithDetailsAsync(request);
+            return Ok(result);
+        }
+
         [HttpDelete("delete-promotion-async/{id}")]
         public async Task<IActionResult> DeletePromotionAsync(Guid id)
         {
@@ -58,6 +65,13 @@ namespace MeoMeo.API.Controllers
         public async Task<IActionResult> UpdatePromotionAsync(Guid id, [FromBody] CreateOrUpdatePromotionDTO promotion)
         {
             var result = await _promotionServices.UpdatePromotionAsync(promotion);
+            return Ok(result);
+        }
+
+        [HttpPut("update-promotion-with-details-async")]
+        public async Task<IActionResult> UpdatePromotionWithDetailsAsync([FromBody] UpdatePromotionWithDetailsDTO request)
+        {
+            var result = await _promotionServices.UpdatePromotionWithDetailsAsync(request);
             return Ok(result);
         }
     }

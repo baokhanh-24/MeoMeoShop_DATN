@@ -17,8 +17,8 @@ namespace MeoMeo.Contract.DTOs
         public float MaxDiscount { get; set; }
         public int? MaxTotalUse { get; set; }
         public int? MaxTotalUsePerCustomer { get; set; }
-        public virtual ICollection<Domain.Entities.Order> Orders { get; set; }
-        
+        public int UsedCount { get; set; } = 0; // Số lần đã sử dụng
+
         public EVoucherStatus Status
         {
             get

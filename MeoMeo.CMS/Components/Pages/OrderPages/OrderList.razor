@@ -494,7 +494,7 @@
                     }
 
                     <!-- Bank Information -->
-                    @if (selectedOrderReturn.BankInfo != null && selectedOrderReturn.RefundMethod == ERefundMethod.ViaShipper)
+                    @if (selectedOrderReturn.BankInfo != null && selectedOrderReturn.RefundMethod == ERefundMethod.BankTransfer)
                     {
                                 <div class="mb-3">
                                     <h6>Thông tin ngân hàng</h6>
@@ -519,15 +519,29 @@
                                                 <span class="value">@selectedOrderReturn.BankInfo.AccountHolderName</span>
                                             </div>
                                         </div>
-                                        @if (!string.IsNullOrEmpty(selectedOrderReturn.BankInfo.BranchName))
-                                        {
-                                                    <div class="col-md-6">
-                                                        <div class="info-item">
-                                                            <label>Chi nhánh:</label>
-                                                            <span class="value">@selectedOrderReturn.BankInfo.BranchName</span>
-                                                        </div>
-                                                    </div>
-                                        }
+                                    </div>
+                                </div>
+                    }
+
+                    <!-- Contact Information for ViaShipper and InStore -->
+                    @if ((selectedOrderReturn.RefundMethod == ERefundMethod.ViaShipper || selectedOrderReturn.RefundMethod == ERefundMethod.InStore) && 
+                         (!string.IsNullOrEmpty(selectedOrderReturn.ContactName) || !string.IsNullOrEmpty(selectedOrderReturn.ContactPhone)))
+                    {
+                                <div class="mb-3">
+                                    <h6>Thông tin liên hệ</h6>
+                                    <div class="row">
+                                        <div class="col-md-6">
+                                            <div class="info-item">
+                                                <label>Họ tên:</label>
+                                                <span class="value">@selectedOrderReturn.ContactName</span>
+                                            </div>
+                                        </div>
+                                        <div class="col-md-6">
+                                            <div class="info-item">
+                                                <label>Số điện thoại:</label>
+                                                <span class="value fw-bold">@selectedOrderReturn.ContactPhone</span>
+                                            </div>
+                                        </div>
                                     </div>
                                 </div>
                     }
@@ -574,12 +588,12 @@
                                 <div class="d-flex justify-content-end gap-2 mt-4">
                                     <Button Type="ButtonType.Default" 
                                             Danger="true"
-                                            OnClick="@(() => HandleOrderReturnAction(EOrderReturnStatus.Rejected))"
+                                            OnClick="@(() => ShowOrderReturnConfirmModal(EOrderReturnStatus.Rejected))"
                                             Loading="@isProcessingOrderReturn">
                                         <i class="fas fa-times"></i> Từ chối
                                     </Button>
                                     <Button Type="ButtonType.Primary" 
-                                            OnClick="@(() => HandleOrderReturnAction(EOrderReturnStatus.Approved))"
+                                            OnClick="@(() => ShowOrderReturnConfirmModal(EOrderReturnStatus.Approved))"
                                             Loading="@isProcessingOrderReturn">
                                         <i class="fas fa-check"></i> Chấp nhận
                                     </Button>
@@ -589,7 +603,14 @@
     }
 </Modal>
 
-
+<!-- Order Return Confirmation Modal -->
+<Modal Title="Xác nhận cập nhật trạng thái hoàn hàng"
+       Visible="@orderReturnConfirmVisible"
+       OnOk="@ConfirmOrderReturnAction"
+       OnCancel="@CancelOrderReturnConfirm"
+       ConfirmLoading="@isProcessingOrderReturn">
+    <p>@orderReturnConfirmMessage</p>
+</Modal>
 
 @code {
     ITable? orderTable;
@@ -631,6 +652,11 @@
     private OrderReturnSummaryDTO? selectedOrderReturn = null;
     private bool isProcessingOrderReturn = false;
     private string backendUrl = "";
+    
+    // Order Return Confirmation Modal
+    private bool orderReturnConfirmVisible = false;
+    private EOrderReturnStatus? pendingOrderReturnStatus = null;
+    private string orderReturnConfirmMessage = "";
     protected override async Task OnInitializedAsync()
     {
         backendUrl = Configuration["ApiSettings:BaseUrl"] ?? "";
@@ -879,22 +905,31 @@
         orderReturnDialogVisible = true;
     }
 
-    private async Task HandleOrderReturnAction(EOrderReturnStatus newStatus)
+    private void ShowOrderReturnConfirmModal(EOrderReturnStatus newStatus)
     {
-        if (selectedOrderReturn == null) return;
+        pendingOrderReturnStatus = newStatus;
+        string actionText = newStatus == EOrderReturnStatus.Approved ? "chấp nhận" : "từ chối";
+        orderReturnConfirmMessage = $"Bạn có chắc chắn muốn {actionText} đơn hoàn hàng {selectedOrderReturn?.Code}?";
+        orderReturnConfirmVisible = true;
+    }
+
+    private async Task ConfirmOrderReturnAction()
+    {
+        if (selectedOrderReturn == null || pendingOrderReturnStatus == null) return;
 
         isProcessingOrderReturn = true;
         try
         {
             var result = await OrderReturnClientService.UpdateOrderReturnStatusAsync(selectedOrderReturn.Id, new UpdateOrderReturnStatusRequestDTO
             {
-                Status = newStatus
+                Status = pendingOrderReturnStatus.Value
             });
 
             if (result.ResponseStatus == BaseStatus.Success)
             {
                 await MessageModalService.Success($"Cập nhật trạng thái hoàn hàng thành công!");
                 orderReturnDialogVisible = false;
+                orderReturnConfirmVisible = false;
                 await LoadOrdersAsync(); // Reload to get updated data
             }
             else
@@ -910,6 +945,13 @@
         {
             isProcessingOrderReturn = false;
         }
+    }
+
+    private void CancelOrderReturnConfirm()
+    {
+        orderReturnConfirmVisible = false;
+        pendingOrderReturnStatus = null;
+        orderReturnConfirmMessage = "";
     }
 
 }

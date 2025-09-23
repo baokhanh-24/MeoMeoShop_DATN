@@ -213,29 +213,25 @@ namespace MeoMeo.Shared.Services
             }
         }
 
-        public async Task<(bool CanReturn, string Message, List<string> ReturnableProducts, List<string> NonReturnableProducts)?> GetOrderReturnInfoAsync(Guid orderId)
+        public async Task<OrderReturnInfoResponseDTO> GetOrderReturnInfoAsync(Guid orderId)
         {
             try
             {
                 var url = $"api/OrderReturn/order/{orderId}/return-info";
-                var result = await _apiCaller.GetAsync<dynamic>(url);
-
-                if (result != null)
+                var result = await _apiCaller.GetAsync<OrderReturnInfoResponseDTO>(url);
+                return result ?? new OrderReturnInfoResponseDTO
                 {
-                    return (
-                        (bool)result.canReturn,
-                        (string)result.message,
-                        ((IEnumerable<object>)result.returnableProducts).Cast<string>().ToList(),
-                        ((IEnumerable<object>)result.nonReturnableProducts).Cast<string>().ToList()
-                    );
-                }
-
-                return null;
+                    ResponseStatus = BaseStatus.Error,
+                    Message = "Không thể lấy thông tin hoàn trả đơn hàng"
+                };
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Error getting order return info: {ex.Message}");
-                return null;
+                return new OrderReturnInfoResponseDTO
+                {
+                    ResponseStatus = BaseStatus.Error,
+                    Message = $"Lỗi khi lấy thông tin hoàn trả: {ex.Message}"
+                };
             }
         }
 

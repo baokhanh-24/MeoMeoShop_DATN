@@ -82,5 +82,12 @@ namespace MeoMeo.API.Controllers
             var result = await _voucherServices.GetAvailableVouchersAsync(availableVouchersRequest);
             return result;
         }
+
+        [HttpGet("generate-unique-voucher-code-async")]
+        public async Task<string> GenerateUniqueVoucherCodeAsync()
+        {
+            var result = await _voucherServices.GenerateUniqueVoucherCodeAsync();
+            return result;
+        }
     }
 }

@@ -27,7 +27,7 @@
             <Breadcrumb Class="mb-3">
                 <BreadcrumbItem>
                     <a @onclick="HandleRedirectToHomepage" class="current">
-                        <Icon Type="left" />
+                        <Icon Type="left"/>
                         Tiếp tục mua sắm
                     </a>
                 </BreadcrumbItem>
@@ -37,12 +37,12 @@
                 <div class="row">
                     <div class="col-12">
                         <div class="space-coverage text-center">
-                            <img class="empty-cart" src="/images/Cart.svg" alt="" />
+                            <img class="empty-cart" src="/images/Cart.svg" alt=""/>
                             <div class="empty-text mt-4">Giỏ hàng của bạn đang trống.</div>
                             <div class="empty-text mt-1">Hãy chọn thêm sản phẩm để mua sắm nhé</div>
                             <div class="d-flex justify-content-center">
                                 <Button Type="@ButtonType.Primary" Class="shopping-now mt-1"
-                                    OnClick="@(() => Navigation.NavigateTo("/"))">
+                                        OnClick="@(() => Navigation.NavigateTo("/"))">
                                     Mua sắm ngay
                                 </Button>
                             </div>
@@ -56,9 +56,9 @@
                     <div class="col-12 col-lg-9">
                         <div class="space-coverage">
                             <Table DataSource="@cart.Items" TItem="CartDetailItemDTO" HidePagination="true"
-                                RowKey="x => x.Id" @bind-SelectedRows="selectedRows">
+                                   RowKey="x => x.Id" @bind-SelectedRows="selectedRows">
                                 <ChildContent Context="item">
-                                    <Selection Type="SelectionType.Checkbox" />
+                                    <Selection Type="SelectionType.Checkbox"/>
                                     <Column TData="string" Title="Sản phẩm">
                                         <div class="d-flex align-items-center justify-content-between">
                                             <div class="d-flex align-items-center gap-3">
@@ -74,26 +74,28 @@
                                     </Column>
                                     <Column TData="string" Title="Ảnh" Width="15%" Align="ColumnAlign.Center">
                                         <Image Width="100%" Height="80px" PreviewVisible="false" Class="product-img"
-                                            Fallback="@(backendUrl + "/Images/fallback.jpeg")"
-                                            Src="@(backendUrl + "/" + item.Thumbnail)" />
+                                               Fallback="@(backendUrl + "/Images/fallback.jpeg")"
+                                               Src="@(backendUrl + "/" + item.Thumbnail)"/>
                                     </Column>
                                     <Column TData="int" Title="Số lượng" Align="ColumnAlign.Center" Width="20%">
                                         <div class="btn-change-quantity d-flex gap-2 align-items-center">
                                             <Button Type="@ButtonType.Text" OnClick="@(() => Decrement(item))">-
                                             </Button>
-                                            <AntDesign.InputNumber TValue="int" @bind-Value="item.Quantity" Min="1" Max="10"
-                                                OnChange="@((value) => OnQuantityChange(item, value))"
-                                                Style="width: 80px; text-align: center;" />
+                                            <AntDesign.InputNumber TValue="int" @bind-Value="item.Quantity" Min="1"
+                                                                   Max="@GetMaxPurchasableQuantity(item)"
+                                                                   OnChange="@((value) => OnQuantityChange(item, value))"
+                                                                   Style="width: 80px; text-align: center;"/>
                                             <Button Type="@ButtonType.Text" OnClick="@(() => Increment(item))">+
                                             </Button>
                                         </div>
                                     </Column>
                                     <Column TData="float" Title="Đơn giá" Align="ColumnAlign.Center" Width="15%">
                                         <div class="text-center d-flex flex-column align-items-center">
-                                            <div class="discount-price">@FormatCurrency(CalcPriceAfterDiscount(item.Price,
-                                                item.Discount))
-                                        </div>
-                                        @if (item.Discount > 0)
+                                            <div
+                                                class="discount-price">@FormatCurrency(CalcPriceAfterDiscount(item.Price,
+                                                    item.Discount))
+                                            </div>
+                                            @if (item.Discount > 0)
                                             {
                                                 <div class="price">@FormatCurrency(item.Price)</div>
                                             }
@@ -113,8 +115,9 @@
                                         @FormatCurrency(item.Quantity * CalcPriceAfterDiscount(item.Price, item.Discount))
                                     </Column>
                                     <Column TData="string" Title="Thao tác" Width="15%" Align="ColumnAlign.Right">
-                                        <Button Type="@ButtonType.Text" Icon="delete" OnClick="@(() => RemoveItem(item.Id))"
-                                            Class="delete-action" />
+                                        <Button Type="@ButtonType.Text" Icon="delete"
+                                                OnClick="@(() => RemoveItem(item.Id))"
+                                                Class="delete-action"/>
                                     </Column>
                                 </ChildContent>
                             </Table>
@@ -123,21 +126,21 @@
                             <div class="title">Chọn hình thức thanh toán</div>
                             <div class="d-flex justify-content-between gap-3">
                                 <RadioGroup @bind-Value="SelectedPaymentMethod" TValue="int"
-                                    OnChange="OnPaymentMethodChanged">
+                                            OnChange="OnPaymentMethodChanged">
                                     <Radio Value="0" Style="@style">
                                         <div class="d-flex gap-1 justify-content-center align-items-center">
                                             <i class="fas fa-receipt"></i>
                                             <span> Thanh toán khi nhận hàng</span>
                                         </div>
                                     </Radio>
-                                    <br />
+                                    <br/>
                                     <Radio Value="1" Style="@style">
                                         <div class="d-flex gap-1 justify-content-center align-items-center">
                                             <i class="fas fa-qrcode"></i>
                                             <span>Qr Code</span>
                                         </div>
                                     </Radio>
-                                    <br />
+                                    <br/>
                                     <Radio Value="2" Style="@style">
                                         <div class="d-flex gap-1 justify-content-center align-items-center">
                                             <i class="fab fa-amazon-pay"></i>
@@ -145,12 +148,49 @@
                                         </div>
                                     </Radio>
                                 </RadioGroup>
-                                <div class="flex-1">
+                                <div class="flex-1 payment-container">
                                     @if (SelectedPaymentMethod == 1)
                                     {
                                         <div class="d-flex gap-3">
-                                            <img src=@QrBase64Image class='qr-image' />
+                                            @if (IsGeneratingQr)
+                                            {
+                                                <div class="qr-loading d-flex align-items-center justify-content-center" style="width: 200px; height: 200px; border: 1px solid #d9d9d9; border-radius: 8px;">
+                                                    <Spin Size="SpinSize.Large" />
+                                                </div>
+                                            }
+                                            else if (!string.IsNullOrEmpty(QrBase64Image))
+                                            {
+                                                <img src=@QrBase64Image class='qr-image'/>
+                                            }
+                                            else if (!string.IsNullOrEmpty(QrErrorMessage))
+                                            {
+                                                <div class="qr-error d-flex align-items-center justify-content-center" style="width: 200px; height: 200px; border: 1px solid #ff4d4f; border-radius: 8px; background-color: #fff2f0;">
+                                                    <div class="text-center">
+                                                        <Icon Type="exclamation-circle" Style="color: #ff4d4f; font-size: 24px;" />
+                                                        <div style="color: #ff4d4f; font-size: 12px; margin-top: 8px;">@QrErrorMessage</div>
+                                                    </div>
+                                                </div>
+                                            }
+                                            else
+                                            {
+                                                <div class="qr-placeholder d-flex align-items-center justify-content-center" style="width: 200px; height: 200px; border: 1px solid #d9d9d9; border-radius: 8px; background-color: #fafafa;">
+                                                    <div class="text-center">
+                                                        <Icon Type="qrcode" Style="color: #d9d9d9; font-size: 24px;" />
+                                                        <div style="color: #999; font-size: 12px; margin-top: 8px;">Chưa tạo QR</div>
+                                                    </div>
+                                                </div>
+                                            }
                                             <div class="flex-1">
+                                                <div class="d-flex justify-content-between align-items-center mb-3">
+                                                    <div class="text-primary" style="font-weight: 500;">Thông tin chuyển khoản</div>
+                                                    @if (SelectedPaymentMethod == 1)
+                                                    {
+                                                        <Button Type="@ButtonType.Text" Size="@ButtonSize.Small" OnClick="FetchImageAsync" 
+                                                                Loading="@IsGeneratingQr" Class="text-primary">
+                                                            <Icon Type="reload" /> Tạo lại QR
+                                                        </Button>
+                                                    }
+                                                </div>
                                                 <div class="info-bank row mb-3">
                                                     <div class="col-5">
                                                         <span class="left-qr-info">Số tài khoản:</span>
@@ -241,7 +281,7 @@
                                 </div>
                                 <div>
                                     <TextArea @bind-Value="TxtNoteContent" MaxLength="500" Rows="3"
-                                        Placeholder="Ghi chú..." />
+                                              Placeholder="Ghi chú..."/>
                                 </div>
                             </div>
                         </div>
@@ -258,12 +298,20 @@
                                     <div class="voucher-applied">
                                         <div class="d-flex justify-content-between">
                                             <span class="voucher-code">@SelectedVoucher.Code</span>
-                                            <Button Type="@ButtonType.Text" OnClick="RemoveVoucher" Class="text-danger p-0">
-                                                <Icon Type="close" />
+                                            <Button Type="@ButtonType.Text" OnClick="RemoveVoucher"
+                                                    Class="text-danger p-0">
+                                                <Icon Type="close"/>
                                             </Button>
                                         </div>
-                                        <div class="voucher-discount">Giảm @SelectedVoucher.Discount% (tối đa
-                                            @FormatCurrency(SelectedVoucher.MaxDiscount))
+                                        <div class="voucher-discount">
+                                            @if (SelectedVoucher.Type == EVoucherType.byPercentage)
+                                            {
+                                                <span>Giảm @SelectedVoucher.Discount% (tối đa @FormatCurrency(SelectedVoucher.MaxDiscount))</span>
+                                            }
+                                            else
+                                            {
+                                                <span>Giảm @FormatCurrency(SelectedVoucher.Discount) (tối đa @FormatCurrency(SelectedVoucher.MaxDiscount))</span>
+                                            }
                                         </div>
                                     </div>
                                 }
@@ -272,30 +320,31 @@
                         <div class="space-coverage mt-3">
                             <div class="d-flex justify-content-between mb-3 mt-3">
                                 <div class="text-left">Tổng tiền:</div>
-                                <div class="text-right text-end text-original-price">@FormatCurrency(cart.TotalPrice)</div>
+                                <div
+                                    class="text-right text-end text-original-price">@FormatCurrency(cart.TotalPrice)</div>
                             </div>
-                            <Divider />
+                            <Divider/>
                             <div class="d-flex justify-content-between mb-3">
                                 <div class="text-left">Giảm giá voucher:
                                 </div>
                                 <div class="text-right text-end text-success">
                                     -@FormatCurrency(VoucherDiscountAmount)</div>
                             </div>
-                            <Divider />
+                            <Divider/>
                             <div class="d-flex justify-content-between mb-3">
                                 <div class="text-left">Phí vận chuyển:</div>
                                 <div class="text-right text-end">
                                     @FormatCurrency(ShippingFee)
                                 </div>
                             </div>
-                            <Divider />
+                            <Divider/>
                             <div class="d-flex justify-content-between mb-3 mt-3">
                                 <div class="text-left">Thành tiền:</div>
                                 <div class="text-grand-total">@FormatCurrency(FinalTotalAmount)</div>
                             </div>
-                            <Divider />
+                            <Divider/>
                             <Button Type="@ButtonType.Primary" Block="true" Size="@ButtonSize.Large" OnClick="Checkout"
-                                Class="btn-order" Disabled="@(selectedRows == null || !selectedRows.Any())">
+                                    Class="btn-order" Disabled="@(selectedRows == null || !selectedRows.Any())">
                                 <i class="fas fa-money-bill"></i> Thanh toán
                             </Button>
                         </div>
@@ -305,10 +354,10 @@
         </GridCol>
     </GridRow>
     <Modal Title="Chọn địa chỉ giao hàng" Visible="@OpenDeliveryModal" OnOk="HandleOkDelivery"
-        OnCancel="HandleCancelDelivery" Width="800">
+           OnCancel="HandleCancelDelivery" Width="800">
         <div class="mb-3">
             <Button Type="@ButtonType.Primary" OnClick="ShowCreateAddressModal">
-                <Icon Type="plus" />
+                <Icon Type="plus"/>
                 Thêm địa chỉ mới
             </Button>
         </div>
@@ -327,7 +376,8 @@
                                                 <div class="address-name"><i class="fas fa-user"></i> @address.Name
                                                 </div>
                                                 <div class=""> |</div>
-                                                <div class="address-phone"><i class="fas fa-phone"></i> @address.PhoneNumber
+                                                <div class="address-phone"><i
+                                                        class="fas fa-phone"></i> @address.PhoneNumber
                                                 </div>
                                             </div>
                                             <div class="d-flex gap-1 justify-items-center">
@@ -338,12 +388,13 @@
                                         </div>
                                     </div>
                                     <div class="address-actions">
-                                        <Button Type="@ButtonType.Text" OnClick="@(() => EditAddress(address))" Class="p-0">
-                                            <Icon Type="edit" />
+                                        <Button Type="@ButtonType.Text" OnClick="@(() => EditAddress(address))"
+                                                Class="p-0">
+                                            <Icon Type="edit"/>
                                         </Button>
                                         <Button Type="@ButtonType.Text" OnClick="@(() => DeleteAddress(address))"
-                                            Class="p-0 text-danger">
-                                            <Icon Type="delete" />
+                                                Class="p-0 text-danger">
+                                            <Icon Type="delete"/>
                                         </Button>
                                     </div>
                                 </div>
@@ -363,46 +414,46 @@
     </Modal>
     <!-- Modal thêm/sửa địa chỉ -->
     <Modal Title="@(EditingAddress.Id == Guid.Empty ? "Thêm địa chỉ mới" : "Sửa địa chỉ")"
-        Visible="@OpenCreateOrUpdateAddressModal" OnOk="HandleOkAddress" OnCancel="HandleCancelAddress">
+           Visible="@OpenCreateOrUpdateAddressModal" OnOk="HandleOkAddress" OnCancel="HandleCancelAddress">
         <Form Model="@EditingAddress" LabelAlign="AntLabelAlignType.Left" LabelColSpan="6" WrapperColSpan="18">
             <FormItem Label="Họ tên" Required>
-                <Input @bind-Value="EditingAddress.Name" MaxLength="255" Placeholder="Nhập họ tên..." />
+                <Input @bind-Value="EditingAddress.Name" MaxLength="255" Placeholder="Nhập họ tên..."/>
             </FormItem>
             <FormItem Label="Điện thoại" Required>
                 <Input @bind-Value="EditingAddress.PhoneNumber" MaxLength="11" Placeholder="SĐT..." inputmode="numeric"
-                    pattern="[0-9]*" onkeypress="return event.charCode>=48 && event.charCode<=57" />
+                       pattern="[0-9]*" onkeypress="return event.charCode>=48 && event.charCode<=57"/>
             </FormItem>
             <FormItem Label="Tỉnh/Thành phố" Required>
                 <Select TItem="GhnLocationItem" TItemValue="int?" @bind-Value="SelectedProvinceId"
-                    Placeholder="Chọn tỉnh/thành phố..." OnSelectedItemChanged="OnProvinceChange"
-                    DataSource="LstGhnProvinces" ValueName="Id" LabelName="Name">
+                        Placeholder="Chọn tỉnh/thành phố..." OnSelectedItemChanged="OnProvinceChange"
+                        DataSource="LstGhnProvinces" ValueName="Id" LabelName="Name">
                 </Select>
             </FormItem>
             <FormItem Label="Quận/Huyện" Required>
                 <Select TItem="GhnLocationItem" TItemValue="int?" @bind-Value="SelectedDistrictId"
-                    Placeholder="Chọn quận/huyện..." OnSelectedItemChanged="OnDistrictChange"
-                    Disabled="@(!SelectedProvinceId.HasValue)" DataSource="LstGhnDistricts" ValueName="Id"
-                    LabelName="Name">
+                        Placeholder="Chọn quận/huyện..." OnSelectedItemChanged="OnDistrictChange"
+                        Disabled="@(!SelectedProvinceId.HasValue)" DataSource="LstGhnDistricts" ValueName="Id"
+                        LabelName="Name">
                 </Select>
             </FormItem>
             <FormItem Label="Phường/Xã" Required>
                 <Select TItem="GhnLocationItem" TItemValue="int?" @bind-Value="SelectedCommuneId"
-                    Placeholder="Chọn phường/xã..." OnSelectedItemChanged="OnCommuneChange"
-                    Disabled="@(!SelectedProvinceId.HasValue)" DataSource="LstGhnCommunes" ValueName="Id"
-                    LabelName="Name">
+                        Placeholder="Chọn phường/xã..." OnSelectedItemChanged="OnCommuneChange"
+                        Disabled="@(!SelectedProvinceId.HasValue)" DataSource="LstGhnCommunes" ValueName="Id"
+                        LabelName="Name">
                 </Select>
             </FormItem>
             <FormItem Label="Địa chỉ chi tiết" Required>
-                <Input @bind-Value="EditingAddress.Address" MaxLength="255" Placeholder="Số nhà, đường..." />
+                <Input @bind-Value="EditingAddress.Address" MaxLength="255" Placeholder="Số nhà, đường..."/>
             </FormItem>
         </Form>
     </Modal>
     <!-- Modal chọn mã giảm giá -->
     <Modal Title="Chọn mã giảm giá" Visible="@OpenVoucherModal" OnOk="HandleOkVoucher" OnCancel="HandleCancelVoucher"
-        Width="800">
+           Width="800">
         <div class="mb-3 d-flex justify-content-between gap-2">
             <Input @bind-Value="VoucherSearchCode" Placeholder="Nhập mã voucher..." OnPressEnter="SearchVoucher"
-                AllowClear="true" />
+                   AllowClear="true"/>
             <Button Type="@ButtonType.Primary" OnClick="SearchVoucher" Class="">Tìm kiếm</Button>
         </div>
         @if (AvailableVouchers.Any())
@@ -411,12 +462,19 @@
                 @foreach (var voucher in AvailableVouchers)
                 {
                     <div class="voucher-item mt-2 mb-2 @(SelectedVoucher?.Id == voucher.Id ? "selected" : "")"
-                        @onclick="() => SelectVoucher(voucher)">
+                         @onclick="() => SelectVoucher(voucher)">
                         <div class="d-flex justify-content-between align-items-center">
                             <div class="voucher-info">
                                 <div class="voucher-code">@voucher.Code</div>
-                                <div class="voucher-desc">Giảm @voucher.Discount% (tối
-                                    đa @FormatCurrency(voucher.MaxDiscount))
+                                <div class="voucher-desc">
+                                    @if (voucher.Type == EVoucherType.byPercentage)
+                                    {
+                                        <span>Giảm @voucher.Discount% (tối đa @FormatCurrency(voucher.MaxDiscount))</span>
+                                    }
+                                    else
+                                    {
+                                        <span>Giảm @FormatCurrency(voucher.Discount) (tối đa @FormatCurrency(voucher.MaxDiscount))</span>
+                                    }
                                 </div>
                                 <div class="voucher-conditions">
                                     Đơn hàng tối thiểu: @FormatCurrency(voucher.MinOrder) |
@@ -456,13 +514,15 @@
     private CartWithDetailsResponseDTO? cart;
 
     IEnumerable
-    <CartDetailItemDTO>
-    selectedRows = new List
-    <CartDetailItemDTO>
-    ();
+        <CartDetailItemDTO>
+        selectedRows = new List
+            <CartDetailItemDTO>
+            ();
 
     private string backendUrl = "";
     private string? QrBase64Image { get; set; }
+    private bool IsGeneratingQr = false;
+    private string? QrErrorMessage = null;
     public string? AccountNumber { get; set; } = "1014640175";
     public string? AddInfo { get; set; } = "Thanh Toan Don Hang";
 
@@ -473,8 +533,8 @@
     private VoucherDTO? SelectedVoucher;
 
     private List
-    <VoucherDTO>
-    AvailableVouchers = new();
+        <VoucherDTO>
+        AvailableVouchers = new();
 
     private string VoucherSearchCode = "";
 
@@ -547,6 +607,7 @@
         cart = await CartClient.GetCurrentCartAsync();
         if (cart?.Items != null)
         {
+            
             selectedRows = cart.Items.ToList();
             // Update cart state with current item count (number of different products)
             var itemCount = cart.Items.Count;
@@ -565,6 +626,13 @@
         if (value == 1)
         {
             await FetchImageAsync();
+        }
+        else
+        {
+            // Reset QR state when switching to other payment methods
+            QrBase64Image = null;
+            QrErrorMessage = null;
+            IsGeneratingQr = false;
         }
     }
 
@@ -587,21 +655,21 @@
 
             // Convert AvailableVoucherDTO sang VoucherDTO để tương thích với UI hiện tại
             AvailableVouchers = availableVouchers
-            .Where(v => v.CanUse) // Chỉ lấy voucher có thể sử dụng
-            .Select(v => new VoucherDTO
-            {
-                Id = v.Id,
-                Code = v.Code,
-                Discount = v.Discount,
-                MinOrder = v.MinOrder,
-                MaxDiscount = v.MaxDiscount,
-                Type = v.Type,
-                StartDate = v.StartDate,
-                EndDate = v.EndDate,
-                MaxTotalUse = v.MaxTotalUse,
-                MaxTotalUsePerCustomer = v.MaxTotalUsePerCustomer
-            })
-            .ToList();
+                .Where(v => v.CanUse) // Chỉ lấy voucher có thể sử dụng
+                .Select(v => new VoucherDTO
+                {
+                    Id = v.Id,
+                    Code = v.Code,
+                    Discount = v.Discount,
+                    MinOrder = v.MinOrder,
+                    MaxDiscount = v.MaxDiscount,
+                    Type = v.Type,
+                    StartDate = v.StartDate,
+                    EndDate = v.EndDate,
+                    MaxTotalUse = v.MaxTotalUse,
+                    MaxTotalUsePerCustomer = v.MaxTotalUsePerCustomer
+                })
+                .ToList();
         }
         catch (Exception ex)
         {
@@ -619,8 +687,8 @@
         {
             var discount = item.Discount;
             var priceAfterDiscount = discount > 100
-    ? item.Price - discount
-    : item.Price * (1 - discount / 100f);
+                ? item.Price - discount
+                : item.Price * (1 - discount / 100f);
             return (decimal)(priceAfterDiscount * item.Quantity);
         });
     }
@@ -628,17 +696,39 @@
     private async Task FetchImageAsync()
     {
         if (string.IsNullOrEmpty(AccountNumber) || string.IsNullOrEmpty(BankBin))
+        {
+            QrErrorMessage = "Thiếu thông tin tài khoản ngân hàng";
             return;
-        var url =
-        $"https://img.vietqr.io/image/{BankBin}-{AccountNumber}-qr_only.png?amount={(int)FinalTotalAmount}&addInfo=${AddInfo}";
+        }
+
+        IsGeneratingQr = true;
+        QrErrorMessage = null;
+        QrBase64Image = null;
+        
         try
         {
+            var url = $"https://img.vietqr.io/image/{BankBin}-{AccountNumber}-qr_only.png?amount={(int)FinalTotalAmount}&addInfo={AddInfo}";
+            
             var imageBytes = await ApiCaller.GetByteArrayAsync(url);
-            QrBase64Image = $"data:image/png;base64,{Convert.ToBase64String(imageBytes)}";
+            
+            if (imageBytes != null && imageBytes.Length > 0)
+            {
+                QrBase64Image = $"data:image/png;base64,{Convert.ToBase64String(imageBytes)}";
+                QrErrorMessage = null;
+            }
+            else
+            {
+                QrErrorMessage = "Không thể tạo mã QR";
+            }
         }
         catch (Exception ex)
         {
+            QrErrorMessage = $"Lỗi tạo mã QR: {ex.Message}";
             Console.WriteLine($"Error fetching QR code: {ex.Message}");
+        }
+        finally
+        {
+            IsGeneratingQr = false;
         }
     }
 
@@ -665,7 +755,31 @@
 
     private async Task Increment(CartDetailItemDTO item)
     {
-        await UpdateQuantity(item, item.Quantity + 1);
+        var maxQuantity = GetMaxPurchasableQuantity(item);
+        if (item.Quantity < maxQuantity)
+        {
+            await UpdateQuantity(item, item.Quantity + 1);
+        }
+        else
+        {
+            // Nếu đã đạt giới hạn, tự động reset về số lượng tối đa
+            if (item.Quantity > maxQuantity)
+            {
+                await UpdateQuantity(item, maxQuantity);
+            }
+            
+            var inventoryLimit = item.InventoryQuantity ?? 0;
+            var maxBuyLimit = item.MaxBuyPerOrder ?? int.MaxValue;
+            
+            if (maxBuyLimit != int.MaxValue && maxBuyLimit > 0 && inventoryLimit > maxBuyLimit)
+            {
+                MessageModalService.Warning($"Đã đạt giới hạn mua hàng: {maxBuyLimit} sản phẩm.");
+            }
+            else
+            {
+                MessageModalService.Warning($"Đã đạt giới hạn: {maxQuantity} sản phẩm (còn {inventoryLimit} sản phẩm trong kho).");
+            }
+        }
     }
 
     private async Task Decrement(CartDetailItemDTO item)
@@ -682,9 +796,30 @@
 
     private async Task OnQuantityChange(CartDetailItemDTO item, int? newQuantity)
     {
-        if (newQuantity.HasValue && newQuantity.Value >= 1 && newQuantity.Value <= 999)
+        if (newQuantity.HasValue && newQuantity.Value >= 1)
         {
-            await UpdateQuantity(item, newQuantity.Value);
+            var maxQuantity = GetMaxPurchasableQuantity(item);
+            if (newQuantity.Value <= maxQuantity)
+            {
+                await UpdateQuantity(item, newQuantity.Value);
+            }
+            else
+            {
+                
+                var inventoryLimit = item.InventoryQuantity ?? 0;
+                var maxBuyLimit = item.MaxBuyPerOrder ?? int.MaxValue;
+                
+                if (maxBuyLimit != int.MaxValue && maxBuyLimit > 0 && inventoryLimit > maxBuyLimit)
+                {
+                    MessageModalService.Warning($"Đã tự động điều chỉnh về {maxQuantity} sản phẩm (giới hạn mua hàng: {maxBuyLimit}).");
+                }
+                else
+                {
+                    MessageModalService.Warning($"Đã tự động điều chỉnh về {maxQuantity} sản phẩm (còn {inventoryLimit} sản phẩm trong kho).");
+                }
+                // Tự động reset về số lượng tối đa có thể mua
+                await UpdateQuantity(item, maxQuantity);
+            }
         }
     }
 
@@ -737,7 +872,7 @@
         }
 
         await CalculateShippingFeeAsync();
-        FinalTotalAmount = Math.Max(0, subtotal - VoucherDiscountAmount + ShippingFee);
+        FinalTotalAmount = Math.Max(0, subtotal - VoucherDiscountAmount);
         if (SelectedPaymentMethod == 1)
         {
             await FetchImageAsync();
@@ -803,6 +938,7 @@
             DeliveryAddressId = SelectedAddressId,
             PaymentMethod = (EOrderPaymentMethod)SelectedPaymentMethod,
             Note = TxtNoteContent,
+            ShippingFee = ShippingFee,
             CartItems = selectedIds
         };
         var resp = await CartClient.CheckoutAsync(newOrder);
@@ -810,7 +946,7 @@
         {
             MessageModalService.Success(resp.Message);
             await LoadCart();
-            if (SelectedPaymentMethod == 2)
+            @* if (SelectedPaymentMethod == 2)
             {
                 var createPayment = new CreatePaymentUrlDTO
                 {
@@ -824,7 +960,7 @@
                     Navigation.NavigateTo(payUrl, forceLoad: true);
                     return;
                 }
-            }
+            } *@
 
             Navigation.NavigateTo("/orders");
         }
@@ -896,19 +1032,19 @@
                 {
                     // Convert CheckVoucherResponseDTO sang VoucherDTO
                     AvailableVouchers = new List<VoucherDTO>
-{
-new VoucherDTO
-{
-Id = checkResult.Id,
-Code = checkResult.Code,
-Discount = checkResult.Discount,
-MinOrder = checkResult.MinOrder,
-MaxDiscount = checkResult.MaxDiscount,
-Type = checkResult.DiscountPercent > 0 ? EVoucherType.byPercentage : EVoucherType.byFixedAmount,
-StartDate = DateTime.Now, // Không có trong response
-EndDate = checkResult.ExpiryDate
-}
-};
+                    {
+                        new VoucherDTO
+                        {
+                            Id = checkResult.Id,
+                            Code = checkResult.Code,
+                            Discount = checkResult.Discount,
+                            MinOrder = checkResult.MinOrder,
+                            MaxDiscount = checkResult.MaxDiscount,
+                            Type = checkResult.DiscountPercent > 0 ? EVoucherType.byPercentage : EVoucherType.byFixedAmount,
+                            StartDate = DateTime.Now, // Không có trong response
+                            EndDate = checkResult.ExpiryDate
+                        }
+                    };
                 }
                 else
                 {
@@ -1253,13 +1389,13 @@ EndDate = checkResult.ExpiryDate
     private string BuildFullAddress(string detail)
     {
         var wardName = LstGhnCommunes.FirstOrDefault(x => x.Id == (SelectedCommuneId ?? -1))?.Name
-        ?? DefaultDeliveryAddress?.CommuneName
-        ?? string.Empty;
+                       ?? DefaultDeliveryAddress?.CommuneName
+                       ?? string.Empty;
         var districtName = LstGhnDistricts.FirstOrDefault(x => x.Id == (SelectedDistrictId ?? -1))?.Name
-        ?? DefaultDeliveryAddress?.DistrictName
-        ?? string.Empty;
+                           ?? DefaultDeliveryAddress?.DistrictName
+                           ?? string.Empty;
         var provinceName = LstGhnProvinces.FirstOrDefault(x => x.Id == (SelectedProvinceId ?? -1))?.Name
-        ?? string.Empty;
+                           ?? string.Empty;
 
         var parts = new List<string>();
         if (!string.IsNullOrWhiteSpace(detail)) parts.Add(detail.Trim());
@@ -1280,13 +1416,22 @@ EndDate = checkResult.ExpiryDate
     private void HandleRedirectToHomepage() => Navigation.NavigateTo("/");
 
     private static string FormatCurrency(decimal amount) =>
-    string.Format(System.Globalization.CultureInfo.GetCultureInfo("vi-VN"), "{0:C0}", amount);
+        string.Format(System.Globalization.CultureInfo.GetCultureInfo("vi-VN"), "{0:C0}", amount);
 
     private static string FormatCurrency(float amount) =>
-    string.Format(System.Globalization.CultureInfo.GetCultureInfo("vi-VN"), "{0:C0}", amount);
+        string.Format(System.Globalization.CultureInfo.GetCultureInfo("vi-VN"), "{0:C0}", amount);
 
     private static float CalcPriceAfterDiscount(float price, float discount) =>
-    discount > 100 ? price - discount : price * (1 - discount / 100f);
+        discount > 100 ? price - discount : price * (1 - discount / 100f);
+
+    private int GetMaxPurchasableQuantity(CartDetailItemDTO item)
+    {
+        // Lấy số lượng tối đa có thể mua = min(InventoryQuantity, MaxBuyPerOrder)
+        var inventoryLimit = item.InventoryQuantity ?? 0;
+        var maxBuyLimit = item.MaxBuyPerOrder ?? int.MaxValue; // Nếu null thì không giới hạn
+        
+        return Math.Min(inventoryLimit, maxBuyLimit);
+    }
 
 
     private GhnCreateOrderRequestDTO CreateGhnOrderRequest(CreateOrderResultDTO order)

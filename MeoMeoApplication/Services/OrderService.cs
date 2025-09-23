@@ -473,6 +473,24 @@ namespace MeoMeo.Application.Services
                         }
                     }
                 }
+                else if (request.Status == EOrderStatus.Completed)
+                {
+                    // Cập nhật SellNumber khi đơn hàng hoàn thành
+                    var productDetailGroups = listOrderDetails
+                        .GroupBy(od => od.ProductDetailId)
+                        .Select(g => new { ProductDetailId = g.Key, TotalQuantity = g.Sum(od => od.Quantity) })
+                        .ToList();
+
+                    foreach (var group in productDetailGroups)
+                    {
+                        var productDetail = await _productsDetailRepository.GetByIdAsync(group.ProductDetailId);
+                        if (productDetail != null)
+                        {
+                            productDetail.SellNumber = (productDetail.SellNumber ?? 0) + group.TotalQuantity;
+                            await _productsDetailRepository.UpdateAsync(productDetail);
+                        }
+                    }
+                }
                 else if ((currentStatus == EOrderStatus.Confirmed || currentStatus == EOrderStatus.InTransit ||
                           currentStatus == EOrderStatus.Completed) && request.Status == EOrderStatus.Canceled)
                 {
@@ -493,6 +511,25 @@ namespace MeoMeo.Application.Services
                             CreationTime = DateTime.Now,
                             Type = EInventoryTranctionType.Import,
                         });
+                    }
+
+                    // Giảm SellNumber khi hủy đơn hàng (nếu đơn hàng đã hoàn thành trước đó)
+                    if (currentStatus == EOrderStatus.Completed)
+                    {
+                        var productDetailGroups = listOrderDetails
+                            .GroupBy(od => od.ProductDetailId)
+                            .Select(g => new { ProductDetailId = g.Key, TotalQuantity = g.Sum(od => od.Quantity) })
+                            .ToList();
+
+                        foreach (var group in productDetailGroups)
+                        {
+                            var productDetail = await _productsDetailRepository.GetByIdAsync(group.ProductDetailId);
+                            if (productDetail != null)
+                            {
+                                productDetail.SellNumber = Math.Max(0, (productDetail.SellNumber ?? 0) - group.TotalQuantity);
+                                await _productsDetailRepository.UpdateAsync(productDetail);
+                            }
+                        }
                     }
                 }
 
@@ -733,6 +770,7 @@ namespace MeoMeo.Application.Services
                     PaymentMethod = request.PaymentMethod,
                     Type = EOrderType.Online,
                     Status = EOrderStatus.Pending,
+                    ShippingFee = request.ShippingFee,
                     CreationTime = DateTime.Now
                 };
                 await _orderRepository.AddAsync(order);
@@ -809,7 +847,7 @@ namespace MeoMeo.Application.Services
 
                 // Update order with discount information
                 order.DiscountPrice = voucherDiscountAmount > 0 ? voucherDiscountAmount : null;
-                order.TotalPrice = Math.Max(0, totalPrice - voucherDiscountAmount + (order.ShippingFee ?? 0));
+                order.TotalPrice = Math.Max(0, totalPrice - voucherDiscountAmount);
                 await _orderRepository.UpdateAsync(order);
 
                 // 6) Xoá các dòng giỏ đã checkout và cập nhật lại tổng tiền giỏ còn lại
@@ -1067,7 +1105,7 @@ namespace MeoMeo.Application.Services
 
                 // Update order with discount information
                 order.DiscountPrice = voucherDiscountAmount > 0 ? voucherDiscountAmount : null;
-                order.TotalPrice = Math.Max(0, totalPrice - voucherDiscountAmount + (order.ShippingFee ?? 0));
+                order.TotalPrice = Math.Max(0, totalPrice - voucherDiscountAmount);
                 await _orderRepository.UpdateAsync(order);
 
                 // Only deduct inventory if order is completed (not draft/pending)
@@ -1094,6 +1132,22 @@ namespace MeoMeo.Application.Services
                                 CreationTime = DateTime.Now,
                                 Type = EInventoryTranctionType.Export,
                             });
+                        }
+                    }
+
+                    // Cập nhật SellNumber cho đơn POS hoàn thành
+                    var productDetailGroups = request.Items
+                        .GroupBy(item => item.ProductDetailId)
+                        .Select(g => new { ProductDetailId = g.Key, TotalQuantity = g.Sum(item => item.Quantity) })
+                        .ToList();
+
+                    foreach (var group in productDetailGroups)
+                    {
+                        var productDetail = await _productsDetailRepository.GetByIdAsync(group.ProductDetailId);
+                        if (productDetail != null)
+                        {
+                            productDetail.SellNumber = (productDetail.SellNumber ?? 0) + group.TotalQuantity;
+                            await _productsDetailRepository.UpdateAsync(productDetail);
                         }
                     }
                 }
@@ -1496,6 +1550,22 @@ namespace MeoMeo.Application.Services
                             });
                         }
                     }
+
+                    // Cập nhật SellNumber khi đơn POS chuyển sang hoàn thành
+                    var productDetailGroups = request.Items
+                        .GroupBy(item => item.ProductDetailId)
+                        .Select(g => new { ProductDetailId = g.Key, TotalQuantity = g.Sum(item => item.Quantity) })
+                        .ToList();
+
+                    foreach (var group in productDetailGroups)
+                    {
+                        var productDetail = await _productsDetailRepository.GetByIdAsync(group.ProductDetailId);
+                        if (productDetail != null)
+                        {
+                            productDetail.SellNumber = (productDetail.SellNumber ?? 0) + group.TotalQuantity;
+                            await _productsDetailRepository.UpdateAsync(productDetail);
+                        }
+                    }
                 }
 
                 // Add order history for POS order update
@@ -1739,8 +1809,9 @@ namespace MeoMeo.Application.Services
                             BankName = orderReturn.BankName,
                             AccountNumber = orderReturn.BankAccountNumber ?? string.Empty,
                             AccountHolderName = orderReturn.BankAccountName ?? string.Empty,
-                            BranchName = null // OrderReturn entity doesn't have BranchName
                         } : null,
+                        ContactName = orderReturn.ContactName,
+                        ContactPhone = orderReturn.ContactPhone,
                         StatusDisplayName = GetOrderReturnStatusDisplayName(orderReturn.Status),
                         RefundMethodDisplayName = GetRefundMethodDisplayName(orderReturn.RefundMethod)
                     };

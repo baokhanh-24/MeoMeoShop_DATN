@@ -61,11 +61,24 @@ namespace MeoMeo.Application.Services
 
         public async Task<bool> DeleteAsync(Guid id)
         {
-            var importBatch = await _importBatchRepository.GetByIdAsync(id);
+            var importBatch = await _importBatchRepository.Query()
+                .Include(ib => ib.InventoryBatches)
+                .FirstOrDefaultAsync(ib => ib.Id == id);
+
             if (importBatch == null)
             {
                 return false;
             }
+
+            // Check if any inventory batch in this import batch is approved
+            var hasApprovedInventoryBatch = importBatch.InventoryBatches?
+                .Any(ib => ib.Status == EInventoryBatchStatus.Approved) ?? false;
+
+            if (hasApprovedInventoryBatch)
+            {
+                return false; // Cannot delete import batch that has approved inventory batches
+            }
+
             await _importBatchRepository.DeleteAsync(id);
             return true;
         }
@@ -99,7 +112,28 @@ namespace MeoMeo.Application.Services
                 }
 
                 var filteredImportBatches = await _importBatchRepository.GetPagedAsync(query, request.PageIndex, request.PageSize);
+
+                // Get import batch IDs for the current page
+                var importBatchIds = filteredImportBatches.Items.Select(ib => ib.Id).ToList();
+
+                // Load import batches with inventory batches to check approved status
+                var importBatchesWithInventoryBatches = await _importBatchRepository.Query()
+                    .Include(ib => ib.InventoryBatches)
+                    .Where(ib => importBatchIds.Contains(ib.Id))
+                    .ToListAsync();
+
                 var dtoItems = _mapper.Map<List<ImportBatchDTO>>(filteredImportBatches.Items);
+
+                // Calculate HasApprovedInventoryBatch for each import batch
+                foreach (var dto in dtoItems)
+                {
+                    var importBatch = importBatchesWithInventoryBatches.FirstOrDefault(ib => ib.Id == dto.Id);
+                    if (importBatch?.InventoryBatches != null)
+                    {
+                        dto.HasApprovedInventoryBatch = importBatch.InventoryBatches.Any(ib => ib.Status == EInventoryBatchStatus.Approved);
+                    }
+                }
+
                 return new PagingExtensions.PagedResult<ImportBatchDTO, GetListImportBatchResponseDTO>
                 {
                     TotalRecords = filteredImportBatches.TotalRecords,

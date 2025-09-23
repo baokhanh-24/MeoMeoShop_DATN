@@ -25,11 +25,27 @@ namespace MeoMeo.Shared.Services
             var response = await _httpClient.GetAsync<PagingExtensions.PagedResult<CreateOrUpdatePromotionDTO, GetListPromotionResponseDTO>>(url);
             return response ?? new PagingExtensions.PagedResult<CreateOrUpdatePromotionDTO, GetListPromotionResponseDTO>();
         }
-        public async Task<CreateOrUpdatePromotionDTO> GetPromotionByIdAsync(Guid id)
+        public async Task<CreateOrUpdatePromotionResponseDTO> GetPromotionByIdAsync(Guid id)
         {
-            var url = $"/api/Promotions/find-promotion-by-id-async/{id}";
-            var response = await _httpClient.GetAsync<CreateOrUpdatePromotionDTO>(url);
-            return response;
+            try
+            {
+                var url = $"/api/Promotions/find-promotion-by-id-async/{id}";
+                var response = await _httpClient.GetAsync<CreateOrUpdatePromotionResponseDTO>(url);
+                return response ?? new CreateOrUpdatePromotionResponseDTO
+                {
+                    ResponseStatus = BaseStatus.Error,
+                    Message = "Không có dữ liệu trả về"
+                };
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Lỗi khi lấy promotion {Id}: {Message}", id, ex.Message);
+                return new CreateOrUpdatePromotionResponseDTO
+                {
+                    ResponseStatus = BaseStatus.Error,
+                    Message = ex.Message
+                };
+            }
         }
 
         public async Task<GetPromotionDetailResponseDTO> GetPromotionDetailAsync(Guid id)
@@ -98,6 +114,52 @@ namespace MeoMeo.Shared.Services
                 };
             }
         }
+        public async Task<CreateOrUpdatePromotionResponseDTO> CreatePromotionWithDetailsAsync(UpdatePromotionWithDetailsDTO request)
+        {
+            try
+            {
+                var url = "/api/Promotions/create-promotion-with-details-async";
+                var result = await _httpClient.PostAsync<UpdatePromotionWithDetailsDTO, CreateOrUpdatePromotionResponseDTO>(url, request);
+                return result ?? new CreateOrUpdatePromotionResponseDTO
+                {
+                    ResponseStatus = BaseStatus.Error,
+                    Message = "Không có dữ liệu trả về"
+                };
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Có lỗi xảy ra khi tạo Promotion với Details: {Message}", ex.Message);
+                return new CreateOrUpdatePromotionResponseDTO
+                {
+                    ResponseStatus = BaseStatus.Error,
+                    Message = ex.Message
+                };
+            }
+        }
+
+        public async Task<CreateOrUpdatePromotionResponseDTO> UpdatePromotionWithDetailsAsync(UpdatePromotionWithDetailsDTO request)
+        {
+            try
+            {
+                var url = "/api/Promotions/update-promotion-with-details-async";
+                var result = await _httpClient.PutAsync<UpdatePromotionWithDetailsDTO, CreateOrUpdatePromotionResponseDTO>(url, request);
+                return result ?? new CreateOrUpdatePromotionResponseDTO
+                {
+                    ResponseStatus = BaseStatus.Error,
+                    Message = "Không có dữ liệu trả về"
+                };
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Có lỗi xảy ra khi cập nhật Promotion với Details: {Message}", ex.Message);
+                return new CreateOrUpdatePromotionResponseDTO
+                {
+                    ResponseStatus = BaseStatus.Error,
+                    Message = ex.Message
+                };
+            }
+        }
+
         public async Task<bool> DeletePromotionAsync(Guid id)
         {
             try

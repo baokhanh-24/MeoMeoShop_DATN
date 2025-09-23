@@ -40,7 +40,7 @@ namespace MeoMeo.API.Controllers
             }
             request.CustomerId = customerId;
             var reviewId = Guid.NewGuid();
-            var lstMediaToUpload = request.MediaUploads.Where(c => c.UploadFile != null).Select(c => c.UploadFile!).ToList();
+            var lstMediaToUpload = request.MediaUploads?.Where(c => c.UploadFile != null).Select(c => c.UploadFile!).ToList() ?? new List<IFormFile>();
             var listFileUploaded = await FileUploadHelper.UploadFilesAsync(_env, lstMediaToUpload, "Reviews", reviewId);
             var result = await _service.CreateProductReviewAsync(request, listFileUploaded);
             if (result.ResponseStatus == BaseStatus.Error)

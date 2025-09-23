@@ -13,7 +13,7 @@ namespace MeoMeo.Contract.DTOs
         public Guid CustomersId { get; set; }
         public decimal TotalPrice { get; set; }
     }
-    
+
     public class CartWithDetailsResponseDTO : BaseResponse
     {
         public decimal TotalPrice { get; set; }
@@ -33,14 +33,15 @@ namespace MeoMeo.Contract.DTOs
         public string SizeName { get; set; }
         public string ColourName { get; set; }
         public string Thumbnail { get; set; }
-        
+
         // Thông tin vận chuyển - cần thiết cho GHN
         public int Weight { get; set; } = 500; // Trọng lượng (gram)
         public int Length { get; set; } = 15;  // Chiều dài (cm)
         public int Width { get; set; } = 15;   // Chiều rộng (cm)
         public int Height { get; set; } = 15;  // Chiều cao (cm)
-        
+
         // Giới hạn mua hàng
         public int? MaxBuyPerOrder { get; set; } // Số lượng được mua tối đa trên 1 đơn hàng
+        public int? InventoryQuantity { get; set; } // Số lượng tồn kho hiện tại
     }
 }

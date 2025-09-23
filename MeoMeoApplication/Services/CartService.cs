@@ -4,6 +4,7 @@ using MeoMeo.Contract.Commons;
 using MeoMeo.Contract.DTOs;
 using MeoMeo.Domain.Entities;
 using MeoMeo.Domain.IRepositories;
+using MeoMeo.Domain.Commons.Enums;
 using MeoMeo.EntityFrameworkCore.Repositories;
 using Microsoft.EntityFrameworkCore;
 using System;
@@ -270,34 +271,52 @@ namespace MeoMeo.Application.Services
             }
 
             // 2) Lấy danh sách các dòng cart detail của giỏ hàng
-            var items = await _cartDetaillRepository.Query()
+            var cartDetails = await _cartDetaillRepository.Query()
                 .Where(cd => cd.CartId == cartProjection.Id)
-                .Select(cd => new CartDetailItemDTO
-                {
-                    Id = cd.Id,   // Id dòng giỏ
-                    ProductName = cd.ProductDetail.Product.Name,
-                    Sku = cd.ProductDetail.Sku,
-                    SizeName = cd.ProductDetail.Size.Value,
-                    ColourName = cd.ProductDetail.Colour.Name,
-                    Thumbnail = cd.ProductDetail.Product.Thumbnail,
-                    ProductDetailId = cd.ProductDetailId, // Biến thể
-                    PromotionDetailId = cd.PromotionDetailId.HasValue ? Guid.Parse(cd.PromotionDetailId.ToString()) : Guid.Empty, // Mã KM nếu có
-                    Quantity = cd.Quantity,              // Số lượng
-                    Price = cd.Price,                    // Đơn giá
-                    Discount = cd.Discount,              // % giảm
-
-                    // Thông tin vận chuyển từ ProductDetail
-                    Weight = cd.ProductDetail.Weight,
-                    Length = cd.ProductDetail.Length,
-                    Width = cd.ProductDetail.Width,
-                    Height = cd.ProductDetail.Height,
-
-                    // Giới hạn mua hàng
-                    MaxBuyPerOrder = cd.ProductDetail.MaxBuyPerOrder
-                })
+                .Include(cd => cd.ProductDetail)
+                .ThenInclude(pd => pd.Product)
+                .Include(cd => cd.ProductDetail)
+                .ThenInclude(pd => pd.Size)
+                .Include(cd => cd.ProductDetail)
+                .ThenInclude(pd => pd.Colour)
                 .ToListAsync();
 
-            // 3) Trả về tổng tiền + danh sách chi tiết
+            // 3) Lấy danh sách ProductDetailId để tính inventory
+            var productDetailIds = cartDetails.Select(cd => cd.ProductDetailId).Distinct().ToList();
+
+            // 4) Tính inventory quantity cho từng product detail
+            var inventoryQuantities = await _inventoryBatchRepository.Query()
+                .Where(ib => productDetailIds.Contains(ib.ProductDetailId) && ib.Status == EInventoryBatchStatus.Approved)
+                .GroupBy(ib => ib.ProductDetailId)
+                .ToDictionaryAsync(g => g.Key, g => g.Sum(x => x.Quantity));
+
+            // 5) Map sang DTO
+            var items = cartDetails.Select(cd => new CartDetailItemDTO
+            {
+                Id = cd.Id,   // Id dòng giỏ
+                ProductName = cd.ProductDetail.Product.Name,
+                Sku = cd.ProductDetail.Sku,
+                SizeName = cd.ProductDetail.Size.Value,
+                ColourName = cd.ProductDetail.Colour.Name,
+                Thumbnail = cd.ProductDetail.Product.Thumbnail,
+                ProductDetailId = cd.ProductDetailId, // Biến thể
+                PromotionDetailId = cd.PromotionDetailId ?? Guid.Empty, // Mã KM nếu có
+                Quantity = cd.Quantity,              // Số lượng
+                Price = cd.Price,                    // Đơn giá
+                Discount = cd.Discount,              // % giảm
+
+                // Thông tin vận chuyển từ ProductDetail
+                Weight = cd.ProductDetail.Weight,
+                Length = cd.ProductDetail.Length,
+                Width = cd.ProductDetail.Width,
+                Height = cd.ProductDetail.Height,
+
+                // Giới hạn mua hàng
+                MaxBuyPerOrder = cd.ProductDetail.MaxBuyPerOrder,
+                InventoryQuantity = inventoryQuantities.TryGetValue(cd.ProductDetailId, out var qty) ? qty : 0
+            }).ToList();
+
+            // 6) Trả về tổng tiền + danh sách chi tiết
             return new CartWithDetailsResponseDTO
             {
                 TotalPrice = cartProjection.TotalPrice,

@@ -24,6 +24,7 @@ namespace MeoMeo.Application.Services
         private readonly IOrderHistoryRepository _orderHistoryRepository;
         private readonly IIventoryBatchReposiory _inventoryBatchRepository;
         private readonly IInventoryTranSactionRepository _inventoryTransactionRepository;
+        private readonly IProductsDetailRepository _productsDetailRepository;
         private readonly IMapper _mapper;
         private readonly IUnitOfWork _unitOfWork;
 
@@ -36,6 +37,7 @@ namespace MeoMeo.Application.Services
             IOrderHistoryRepository orderHistoryRepository,
             IIventoryBatchReposiory inventoryBatchRepository,
             IInventoryTranSactionRepository inventoryTransactionRepository,
+            IProductsDetailRepository productsDetailRepository,
             IMapper mapper,
             IUnitOfWork unitOfWork)
         {
@@ -47,6 +49,7 @@ namespace MeoMeo.Application.Services
             _orderHistoryRepository = orderHistoryRepository;
             _inventoryBatchRepository = inventoryBatchRepository;
             _inventoryTransactionRepository = inventoryTransactionRepository;
+            _productsDetailRepository = productsDetailRepository;
             _mapper = mapper;
             _unitOfWork = unitOfWork;
         }
@@ -455,11 +458,14 @@ namespace MeoMeo.Application.Services
 
                     // Back inventory when return is approved
                     await BackInventoryForReturnAsync(orderReturn.Id);
+
+                    // Giảm SellNumber khi hoàn hàng được duyệt
+                    await DecreaseSellNumberForReturnAsync(orderReturn.Id);
                 }
                 else if (request.Status == EOrderReturnStatus.Rejected)
                 {
-                    // Revert order status back to its previous state (e.g., Completed)
-                    orderReturn.Order.Status = EOrderStatus.Completed;
+                    // Set order status to RejectReturned when return is rejected
+                    orderReturn.Order.Status = EOrderStatus.RejectReturned;
                     orderReturn.Order.LastModifiedTime = DateTime.Now;
                 }
 
@@ -586,8 +592,8 @@ namespace MeoMeo.Application.Services
                 orderReturn.Status = EOrderReturnStatus.Rejected;
                 orderReturn.LastModifiedTime = DateTime.Now;
 
-                // Revert order status back to Completed when return is cancelled
-                orderReturn.Order.Status = EOrderStatus.Completed;
+                // Set order status to RejectReturned when return is cancelled
+                orderReturn.Order.Status = EOrderStatus.RejectReturned;
                 orderReturn.Order.LastModifiedTime = DateTime.Now;
 
                 await _orderReturnRepository.UpdateAsync(orderReturn);
@@ -918,6 +924,31 @@ namespace MeoMeo.Application.Services
                         CreationTime = DateTime.Now,
                         Type = EInventoryTranctionType.Import
                     });
+                }
+            }
+        }
+
+        private async Task DecreaseSellNumberForReturnAsync(Guid orderReturnId)
+        {
+            // Get return items
+            var returnItems = await _orderReturnItemRepository.Query()
+                .Where(ri => ri.OrderReturnId == orderReturnId)
+                .Include(ri => ri.OrderDetail)
+                .ToListAsync();
+
+            // Group by ProductDetailId to get total quantity per product
+            var productDetailGroups = returnItems
+                .GroupBy(ri => ri.OrderDetail.ProductDetailId)
+                .Select(g => new { ProductDetailId = g.Key, TotalQuantity = g.Sum(ri => ri.Quantity) })
+                .ToList();
+
+            foreach (var group in productDetailGroups)
+            {
+                var productDetail = await _productsDetailRepository.GetByIdAsync(group.ProductDetailId);
+                if (productDetail != null)
+                {
+                    productDetail.SellNumber = Math.Max(0, (productDetail.SellNumber ?? 0) - group.TotalQuantity);
+                    await _productsDetailRepository.UpdateAsync(productDetail);
                 }
             }
         }

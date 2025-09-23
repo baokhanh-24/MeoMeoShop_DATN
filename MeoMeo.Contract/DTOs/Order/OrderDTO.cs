@@ -57,6 +57,11 @@ public class OrderReturnSummaryDTO
     public List<OrderReturnFileSummaryDTO> Files { get; set; } = new();
     public List<OrderReturnItemSummaryDTO> Items { get; set; } = new();
     public OrderReturnBankInfoDTO? BankInfo { get; set; }
+
+    // Contact info for ViaShipper and InStore methods
+    public string? ContactName { get; set; }
+    public string? ContactPhone { get; set; }
+
     public string StatusDisplayName { get; set; } = string.Empty;
     public string RefundMethodDisplayName { get; set; } = string.Empty;
 }

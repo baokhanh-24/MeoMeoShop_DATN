@@ -119,6 +119,7 @@
             @{
                     var status = GetVoucherStatus(data);
                     var isLocked = status == VoucherStatus.Ongoing || status == VoucherStatus.Expired;
+                    var isUsed = data.UsedCount > 0; // Assuming UsedCount property exists in VoucherDTO
             }
 
             <Tooltip Title="Xem chi tiết">
@@ -127,7 +128,7 @@
                 </Button>
             </Tooltip>
 
-            @if (!isLocked)
+            @if (!isLocked && !isUsed)
             {
                     <Tooltip Title="Sửa">
                         <Button Size="ButtonSize.Small" @onclick="() => EditVoucher(data)" Shape="ButtonShape.Circle">
@@ -144,11 +145,22 @@
             }
             else
             {
-                    <Tooltip Title="Không thể sửa voucher đang diễn ra hoặc đã kết thúc">
-                        <Button Size="ButtonSize.Small" Disabled Shape="ButtonShape.Circle">
-                            <i class="fas fa-lock"></i>
-                        </Button>
-                    </Tooltip>
+                    @if (isUsed)
+                    {
+                        <Tooltip Title="Không thể sửa/xóa voucher đã được sử dụng">
+                            <Button Size="ButtonSize.Small" Disabled Shape="ButtonShape.Circle">
+                                <i class="fas fa-ban"></i>
+                            </Button>
+                        </Tooltip>
+                    }
+                    else
+                    {
+                        <Tooltip Title="Không thể sửa voucher đang diễn ra hoặc đã kết thúc">
+                            <Button Size="ButtonSize.Small" Disabled Shape="ButtonShape.Circle">
+                                <i class="fas fa-lock"></i>
+                            </Button>
+                        </Tooltip>
+                    }
             }
 
             <Tooltip Title="Nhân bản">
@@ -191,7 +203,7 @@
             </GridCol>
             <GridCol Span="12">
                 <FormItem Label="Giá trị đơn hàng tối thiểu">
-                    <AntDesign.InputNumber TValue="decimal" @bind-Value="voucherForm.MinOrder" 
+                    <AntDesign.InputNumber TValue="decimal" Style="width: 100%" @bind-Value="voucherForm.MinOrder" 
                                 Min="0" Step="1000" 
                                 Placeholder="Giá trị đơn hàng tối thiểu" />
                 </FormItem>
@@ -210,7 +222,7 @@
             </GridCol>
             <GridCol Span="12">
                 <FormItem Label="Giá trị giảm" Required>
-                    <AntDesign.InputNumber TValue="float" @bind-Value="voucherForm.Discount" 
+                    <AntDesign.InputNumber Style="width: 100%" TValue="float" @bind-Value="voucherForm.Discount" 
                                 Min="0" Step="1000" 
                                 Placeholder="Nhập giá trị giảm" />
                 </FormItem>
@@ -232,14 +244,14 @@
 
         <GridRow Gutter="16">
             <GridCol Span="12">
-                <FormItem Label="Giới hạn sử dụng">
-                    <AntDesign.InputNumber TValue="int?" @bind-Value="voucherForm.MaxTotalUse" 
+                <FormItem Label="Giới hạn sử dụng" >
+                    <AntDesign.InputNumber Style="width: 100%" TValue="int?" @bind-Value="voucherForm.MaxTotalUse" 
                                 Min="0" Placeholder="0 = không giới hạn" />
                 </FormItem>
             </GridCol>
             <GridCol Span="12">
                 <FormItem Label="Giới hạn sử dụng/khách">
-                    <AntDesign.InputNumber TValue="int?" @bind-Value="voucherForm.MaxTotalUsePerCustomer" 
+                    <AntDesign.InputNumber Style="width: 100%" TValue="int?" @bind-Value="voucherForm.MaxTotalUsePerCustomer" 
                                 Min="0" Placeholder="0 = không giới hạn" />
                 </FormItem>
             </GridCol>
@@ -248,7 +260,7 @@
         <GridRow Gutter="16">
             <GridCol Span="12">
                 <FormItem Label="Giảm giá tối đa">
-                    <AntDesign.InputNumber TValue="float" @bind-Value="voucherForm.MaxDiscount" 
+                    <AntDesign.InputNumber Style="width: 100%" TValue="float" @bind-Value="voucherForm.MaxDiscount" 
                                 Min="0" Step="1000" 
                                 Placeholder="Giảm giá tối đa" />
                 </FormItem>
@@ -375,12 +387,13 @@
     }
 
     // Voucher CRUD Operations
-    void AddNewVoucher()
+    async void AddNewVoucher()
     {
         isEditMode = false;
+        var uniqueCode = await VoucherClientService.GenerateUniqueVoucherCodeAsync();
         voucherForm = new CreateOrUpdateVoucherDTO
         {
-            Code = $"VOUCHER-{DateTime.Now:yyyyMMdd}-{Guid.NewGuid().ToString("N")[..8].ToUpper()}",
+            Code = uniqueCode,
             Type = EVoucherType.byFixedAmount,
             Discount = 0,
             StartDate = DateTime.Now,
@@ -490,12 +503,13 @@
         }
     }
 
-    void CloneVoucher(VoucherDTO original)
+    async void CloneVoucher(VoucherDTO original)
     {
         isEditMode = false;
+        var uniqueCode = await VoucherClientService.GenerateUniqueVoucherCodeAsync();
         voucherForm = new CreateOrUpdateVoucherDTO
         {
-            Code = $"{original.Code}_COPY_{DateTime.Now:yyyyMMdd}",
+            Code = uniqueCode,
             Type = original.Type,
             Discount = original.Discount,
             StartDate = DateTime.Now,

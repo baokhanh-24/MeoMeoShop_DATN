@@ -323,18 +323,7 @@
             await OnVariantSelected.InvokeAsync(result);
         }
     }
-
-    private string GetSizeName(Guid sizeId)
-    {
-        // Tạm thời trả về ID, có thể cải tiến để lấy tên thực từ service
-        return $"Size {sizeId.ToString().Substring(0, 8)}";
-    }
-
-    private string GetColorName(Guid colorId)
-    {
-        // Tạm thời trả về ID, có thể cải tiến để lấy tên thực từ service
-        return $"Màu {colorId.ToString().Substring(0, 8)}";
-    }
+    
 
     public class VariantSelectionResult
     {

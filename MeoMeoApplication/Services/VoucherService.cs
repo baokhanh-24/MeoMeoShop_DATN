@@ -13,6 +13,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Linq.Expressions;
 using System.Threading.Tasks;
+using System.Security.Cryptography;
 
 namespace MeoMeo.Application.Services
 {
@@ -37,6 +38,19 @@ namespace MeoMeo.Application.Services
             {
                 await _unitOfWork.BeginTransactionAsync();
 
+                // Check if voucher code already exists
+                var existingVoucher = await _repository.Query()
+                    .FirstOrDefaultAsync(v => v.Code == voucher.Code);
+
+                if (existingVoucher != null)
+                {
+                    return new CreateOrUpdateVoucherResponseDTO
+                    {
+                        Message = "Mã voucher đã tồn tại. Vui lòng chọn mã khác.",
+                        ResponseStatus = BaseStatus.Error
+                    };
+                }
+
                 var entity = _mapper.Map<Voucher>(voucher);
                 entity.Id = Guid.NewGuid();
                 entity.CreationTime = DateTime.Now;
@@ -60,50 +74,60 @@ namespace MeoMeo.Application.Services
 
         public async Task<bool> DeleteVoucherAsync(Guid id)
         {
-            var voucher = await _repository.GetVoucherByIdAsync(id);
+            var voucher = await _repository.Query()
+                .Include(v => v.Orders)
+                .FirstOrDefaultAsync(v => v.Id == id);
+
             if (voucher == null)
             {
                 return false;
             }
-            await _repository.DeleteAsync(id);
 
+            // Check if voucher has been used in any completed orders
+            var hasBeenUsed = voucher.Orders?.Any(o => o.Status == EOrderStatus.Completed) ?? false;
+            if (hasBeenUsed)
+            {
+                return false; // Cannot delete voucher that has been used
+            }
+
+            await _repository.DeleteAsync(id);
             return true;
         }
 
         public async Task<PagingExtensions.PagedResult<VoucherDTO>> GetAllVoucherAsync(GetListVoucherRequestDTO request)
         {
-            var query = _repository.Query();
+            var baseQuery = _repository.Query();
 
             // Filter theo Code
             if (!string.IsNullOrEmpty(request.CodeFilter))
             {
-                query = query.Where(v => EF.Functions.Like(v.Code, $"%{request.CodeFilter}%"));
+                baseQuery = baseQuery.Where(v => EF.Functions.Like(v.Code, $"%{request.CodeFilter}%"));
             }
 
             // Filter theo Type
             if (request.TypeFilter != null)
             {
-                query = query.Where(v => v.Type == request.TypeFilter);
+                baseQuery = baseQuery.Where(v => v.Type == request.TypeFilter);
             }
 
             // Filter theo khoảng thời gian bắt đầu
             if (request.StartDateFromFilter != null)
             {
-                query = query.Where(v => v.StartDate >= request.StartDateFromFilter);
+                baseQuery = baseQuery.Where(v => v.StartDate >= request.StartDateFromFilter);
             }
             if (request.StartDateToFilter != null)
             {
-                query = query.Where(v => v.StartDate <= request.StartDateToFilter);
+                baseQuery = baseQuery.Where(v => v.StartDate <= request.StartDateToFilter);
             }
 
             // Filter theo khoảng thời gian kết thúc
             if (request.EndDateFromFilter != null)
             {
-                query = query.Where(v => v.EndDate >= request.EndDateFromFilter);
+                baseQuery = baseQuery.Where(v => v.EndDate >= request.EndDateFromFilter);
             }
             if (request.EndDateToFilter != null)
             {
-                query = query.Where(v => v.EndDate <= request.EndDateToFilter);
+                baseQuery = baseQuery.Where(v => v.EndDate <= request.EndDateToFilter);
             }
 
             // Filter theo trạng thái (Status)
@@ -113,13 +137,13 @@ namespace MeoMeo.Application.Services
                 switch (request.Status)
                 {
                     case EVoucherStatus.Upcoming:
-                        query = query.Where(v => v.StartDate > now);
+                        baseQuery = baseQuery.Where(v => v.StartDate > now);
                         break;
                     case EVoucherStatus.Active:
-                        query = query.Where(v => v.StartDate <= now && v.EndDate >= now);
+                        baseQuery = baseQuery.Where(v => v.StartDate <= now && v.EndDate >= now);
                         break;
                     case EVoucherStatus.Expired:
-                        query = query.Where(v => v.EndDate < now);
+                        baseQuery = baseQuery.Where(v => v.EndDate < now);
                         break;
                     case EVoucherStatus.All:
                     default:
@@ -129,11 +153,30 @@ namespace MeoMeo.Application.Services
             }
 
             // Sắp xếp giảm dần theo thời gian tạo
-            query = query.OrderByDescending(v => v.CreationTime);
+            baseQuery = baseQuery.OrderByDescending(v => v.CreationTime);
 
-            var pagedResult = await _repository.GetPagedAsync(query, request.PageIndex, request.PageSize);
+            var pagedResult = await _repository.GetPagedAsync(baseQuery, request.PageIndex, request.PageSize);
+
+            // Get voucher IDs for the current page
+            var voucherIds = pagedResult.Items.Select(v => v.Id).ToList();
+
+            // Load vouchers with orders for UsedCount calculation
+            var vouchersWithOrders = await _repository.Query()
+                .Include(v => v.Orders)
+                .Where(v => voucherIds.Contains(v.Id))
+                .ToListAsync();
 
             var dtoList = _mapper.Map<List<VoucherDTO>>(pagedResult.Items);
+
+            // Calculate UsedCount for each voucher
+            foreach (var dto in dtoList)
+            {
+                var voucher = vouchersWithOrders.FirstOrDefault(v => v.Id == dto.Id);
+                if (voucher?.Orders != null)
+                {
+                    dto.UsedCount = voucher.Orders.Count(o => o.Status == EOrderStatus.Completed);
+                }
+            }
 
             return new PagingExtensions.PagedResult<VoucherDTO>
             {
@@ -156,7 +199,10 @@ namespace MeoMeo.Application.Services
 
         public async Task<CreateOrUpdateVoucherResponseDTO> UpdateVoucherAsync(CreateOrUpdateVoucherDTO voucher)
         {
-            var existing = await _repository.GetByIdAsync(voucher.Id.Value);
+            var existing = await _repository.Query()
+                .Include(v => v.Orders)
+                .FirstOrDefaultAsync(v => v.Id == voucher.Id!.Value);
+
             if (existing == null)
             {
                 return new CreateOrUpdateVoucherResponseDTO
@@ -166,6 +212,33 @@ namespace MeoMeo.Application.Services
                 };
             }
 
+            // Check if voucher has been used in any completed orders
+            var hasBeenUsed = existing.Orders?.Any(o => o.Status == EOrderStatus.Completed) ?? false;
+            if (hasBeenUsed)
+            {
+                return new CreateOrUpdateVoucherResponseDTO
+                {
+                    Message = "Không thể sửa voucher đã được sử dụng trong đơn hàng",
+                    ResponseStatus = BaseStatus.Error
+                };
+            }
+
+            // Check if voucher code already exists (excluding current voucher)
+            if (existing.Code != voucher.Code)
+            {
+                var duplicateVoucher = await _repository.Query()
+                    .FirstOrDefaultAsync(v => v.Code == voucher.Code && v.Id != voucher.Id);
+
+                if (duplicateVoucher != null)
+                {
+                    return new CreateOrUpdateVoucherResponseDTO
+                    {
+                        Message = "Mã voucher đã tồn tại. Vui lòng chọn mã khác.",
+                        ResponseStatus = BaseStatus.Error
+                    };
+                }
+            }
+
             _mapper.Map(voucher, existing);
             existing.LastModificationTime = DateTime.Now;
 
@@ -173,6 +246,45 @@ namespace MeoMeo.Application.Services
             await _unitOfWork.SaveChangesAsync();
 
             return _mapper.Map<CreateOrUpdateVoucherResponseDTO>(updated);
+        }
+
+        public async Task<string> GenerateUniqueVoucherCodeAsync()
+        {
+            // Format: VOUCHER-yyyymmdd-XXXXXX (Base36 uppercase), max length 25
+            // Ensure uniqueness by checking existing codes; retry a few times to avoid rare collisions
+            for (int attempt = 0; attempt < 5; attempt++)
+            {
+                var candidate = GenerateVoucherCode();
+                var exists = await _repository.Query().AnyAsync(v => v.Code == candidate);
+                if (!exists)
+                {
+                    return candidate;
+                }
+            }
+
+            // Fallback with extra random chars if repeated collisions (extremely unlikely)
+            return GenerateVoucherCode(8);
+        }
+
+        private static string GenerateVoucherCode(int randomChars = 6)
+        {
+            var date = DateTime.Now.ToString("yyyyMMdd");
+            using var rng = RandomNumberGenerator.Create();
+            Span<byte> bytes = stackalloc byte[6];
+            rng.GetBytes(bytes);
+            ulong num = BitConverter.ToUInt64(
+                new byte[] { bytes[0], bytes[1], bytes[2], bytes[3], bytes[4], bytes[5], 0, 0 }, 0);
+            const string alphabet = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+            var chars = new char[randomChars];
+            for (int i = 0; i < randomChars; i++)
+            {
+                chars[i] = alphabet[(int)(num % 36)];
+                num /= 36;
+            }
+
+            Array.Reverse(chars);
+            var code = $"VOUCHER-{date}-{new string(chars)}";
+            return code.Length > 25 ? code.Substring(0, 25) : code; // respect max length
         }
 
         public async Task<CheckVoucherResponseDTO> CheckVoucherAsync(CheckVoucherRequestDTO request)
@@ -394,7 +506,7 @@ namespace MeoMeo.Application.Services
                 // Sort by discount amount descending (highest discount first)
                 return availableVouchers.OrderByDescending(v => v.CalculatedDiscountAmount).ToList();
             }
-            catch (Exception ex)
+            catch (Exception)
             {
                 return new List<AvailableVoucherDTO>();
             }

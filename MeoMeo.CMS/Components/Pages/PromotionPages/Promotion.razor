@@ -50,12 +50,12 @@
     <ChildContent Context="data">
         <Column TData="int" Title="STT">
             @{
-                    var index = listOfData.IndexOf(data);
-                    @((filter.PageIndex - 1) * filter.PageSize + index + 1)
+                var index = listOfData.IndexOf(data);
+                @((filter.PageIndex - 1) * filter.PageSize + index + 1)
             }
         </Column>
         <Column TData="string" Title="Tên chương trình">
-            <a class="text-primary" style="cursor:pointer" @onclick="() => ViewPromotionDetail(data.Id)">
+            <a class="text-primary" style="cursor:pointer" @onclick="() => ViewPromotionDetail(data.Id.Value)">
                 @data.Title
             </a>
         </Column>
@@ -70,19 +70,20 @@
         </Column>
         <Column TData="string" Title="Trạng thái">
             @{
-                    var status = CalculatePromotionStatus(data.StartDate, data.EndDate);
-                    var statusInfo = GetStatusInfo(status);
+                var status = CalculatePromotionStatus(data.StartDate, data.EndDate);
+                var statusInfo = GetStatusInfo(status);
             }
             <Tag Color="@statusInfo.Color">@statusInfo.Name</Tag>
         </Column>
         <ActionColumn Title="Thao tác" Class="text-end gap-2">
             <Tooltip Title="Sửa">
-                <Button Size="ButtonSize.Small" @onclick="() => EditPromotion(data.Id)" Shape="ButtonShape.Circle">
+                <Button Size="ButtonSize.Small" @onclick="() => EditPromotion(data.Id.Value)"
+                    Shape="ButtonShape.Circle">
                     <i class="fas fa-pen"></i>
                 </Button>
             </Tooltip>
 
-            <Popconfirm Title=@($"Bạn có chắc muốn xóa {data.Title}?") OnConfirm="() => DeletePromotion(data.Id)"
+            <Popconfirm Title=@($"Bạn có chắc muốn xóa {data.Title}?") OnConfirm="() => DeletePromotion(data.Id.Value)"
                 OkText="Đồng ý" CancelText="Hủy">
                 <Tooltip Title="Xóa">
                     <Button Size="ButtonSize.Small" Danger Shape="ButtonShape.Circle">
@@ -95,43 +96,44 @@
     <ExpandTemplate Context="data">
         <div>
             <h4>Sản phẩm trong chương trình khuyến mãi</h4>
-            @if (expandedPromotionProducts.ContainsKey(data.Data.Id) && expandedPromotionProducts[data.Data.Id].Any())
+            @if (expandedPromotionProducts.ContainsKey(data.Data.Id.Value) &&
+                        expandedPromotionProducts[data.Data.Id.Value].Any())
             {
-                    <Table DataSource="expandedPromotionProducts[data.Data.Id]" TItem="PromotionDetailWithProductInfoDTO"
-                        Size="TableSize.Small">
-                        <Column TData="string" Title="Ảnh" Width="80">
-                            <Image Width="60" Height="60" Fallback="@(ApiBaseUrl + "/Images/fallback.jpeg")"
-                                Src="@GetProductImageUrl(context.Thumbnail)" Class="search-result-image" />
-                        </Column>
-                        <Column TData="string" Title="Sản phẩm" Width="200">
-                            <div>
-                                <div><Text Strong>@context.ProductName</Text></div>
-                                <div style="color: #666; font-size: 12px;">
-                                    <Tag>@context.ColourName</Tag>
-                                    <Tag>Size: @context.SizeName</Tag>
-                                </div>
+                <Table DataSource="expandedPromotionProducts[data.Data.Id.Value]" TItem="PromotionDetailWithProductInfoDTO"
+                    Size="TableSize.Small">
+                    <Column TData="string" Title="Ảnh" Width="80">
+                        <Image Width="60" Height="60" Fallback="@(ApiBaseUrl + "/Images/fallback.jpeg")"
+                            Src="@GetProductImageUrl(context.Thumbnail)" Class="search-result-image" />
+                    </Column>
+                    <Column TData="string" Title="Sản phẩm" Width="200">
+                        <div>
+                            <div><Text Strong>@context.ProductName</Text></div>
+                            <div style="color: #666; font-size: 12px;">
+                                <Tag>@context.ColourName</Tag>
+                                <Tag>Size: @context.SizeName</Tag>
                             </div>
-                        </Column>
-                        <Column TData="decimal" Title="Giá gốc" Width="120" Align="@ColumnAlign.Right">
-                            @($"{context.OriginalPrice:N0} ₫")
-                        </Column>
-                        <Column TData="decimal" Title="Giá khuyến mãi" Width="120" Align="@ColumnAlign.Right">
-                            <Text Strong Style="color: #ff4d4f;">@($"{context.DiscountPrice:N0} ₫")</Text>
-                        </Column>
-                        <Column TData="decimal" Title="Giảm giá" Width="100" Align="@ColumnAlign.Center">
-                            @{
-                                    var discountPercent = context.OriginalPrice > 0 ? ((context.OriginalPrice - context.DiscountPrice) /
-                                    context.OriginalPrice * 100) : 0;
-                            }
-                            <Tag>@discountPercent.ToString("F0")%</Tag>
-                        </Column>
-                    </Table>
+                        </div>
+                    </Column>
+                    <Column TData="decimal" Title="Giá gốc" Width="120" Align="@ColumnAlign.Right">
+                        @($"{context.OriginalPrice:N0} ₫")
+                    </Column>
+                    <Column TData="decimal" Title="Giá khuyến mãi" Width="120" Align="@ColumnAlign.Right">
+                        <Text Strong Style="color: #ff4d4f;">@($"{context.DiscountPrice:N0} ₫")</Text>
+                    </Column>
+                    <Column TData="decimal" Title="Giảm giá" Width="100" Align="@ColumnAlign.Center">
+                        @{
+                            var discountPercent = context.OriginalPrice > 0 ? ((context.OriginalPrice - context.DiscountPrice) /
+                            context.OriginalPrice * 100) : 0;
+                        }
+                        <Tag>@discountPercent.ToString("F0")%</Tag>
+                    </Column>
+                </Table>
             }
             else
             {
-                    <div class="text-center p-3">
-                        <p>Chưa có sản phẩm nào trong chương trình khuyến mãi này</p>
-                    </div>
+                <div class="text-center p-3">
+                    <p>Chưa có sản phẩm nào trong chương trình khuyến mãi này</p>
+                </div>
             }
         </div>
     </ExpandTemplate>
@@ -258,7 +260,7 @@
     {
         if (args.Expanded)
         {
-            await LoadPromotionProducts(args.Data.Id);
+            await LoadPromotionProducts(args.Data.Id.Value);
         }
     }
 
@@ -266,6 +268,8 @@
     {
         try
         {
+            Console.WriteLine($"Loading products for promotion: {promotionId}");
+
             if (!expandedPromotionProducts.ContainsKey(promotionId))
             {
                 var request = new GetPromotionDetailWithProductInfoRequestDTO
@@ -275,17 +279,33 @@
                     PageSize = 1000 // Load all products for this promotion
                 };
 
+                Console.WriteLine($"Calling GetPromotionDetailWithProductInfoAsync for promotion: {promotionId}");
                 var response = await PromotionDetailService.GetPromotionDetailWithProductInfoAsync(request);
-                if (response.Items.Any())
+
+                Console.WriteLine($"Response received. Items count: {response?.Items?.Count ?? 0}");
+
+                if (response?.Items != null && response.Items.Any())
                 {
                     expandedPromotionProducts[promotionId] = response.Items.ToList();
+                    Console.WriteLine($"Added {response.Items.Count} products to expanded list");
                     StateHasChanged();
                 }
+                else
+                {
+                    Console.WriteLine("No products found or response is null");
+                    // Initialize empty list to prevent repeated calls
+                    expandedPromotionProducts[promotionId] = new List<PromotionDetailWithProductInfoDTO>();
+                }
+            }
+            else
+            {
+                Console.WriteLine($"Products already loaded for promotion: {promotionId}");
             }
         }
         catch (Exception ex)
         {
             Console.WriteLine("Lỗi khi lấy danh sách sản phẩm trong promotion: " + ex.Message);
+            Console.WriteLine($"Stack trace: {ex.StackTrace}");
         }
     }
 
