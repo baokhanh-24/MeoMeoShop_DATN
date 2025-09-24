@@ -1,6 +1,7 @@
 using MeoMeo.Application.IServices;
 using MeoMeo.Application.Services;
 using MeoMeo.Contract.DTOs.Auth;
+using MeoMeo.Contract.Commons;
 using MeoMeo.Domain.IRepositories;
 using Microsoft.AspNetCore.Mvc;
 
@@ -8,7 +9,7 @@ namespace MeoMeo.API.Controllers;
 
 [Route("api/[controller]")]
 [ApiController]
-public class AuthsController: ControllerBase
+public class AuthsController : ControllerBase
 {
     private readonly IAuthService _authService;
 
@@ -24,5 +25,7 @@ public class AuthsController: ControllerBase
 
     [HttpPost("refresh-token")]
     public Task<AuthenResponse> RefreshTokenAsync(RefreshTokenRequest input) => _authService.RefreshTokenAsync(input);
-    
+
+    [HttpPost("forgot-password")]
+    public Task<BaseResponse> ForgotPasswordAsync(ForgotPasswordRequest input) => _authService.ForgotPasswordAsync(input);
 }

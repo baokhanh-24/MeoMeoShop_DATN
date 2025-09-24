@@ -443,7 +443,7 @@ namespace MeoMeo.Application.Services
                         FileType = f.FileType
                     }).ToList(),
                     CustomerName = r.Customer.Name,
-                    CustomerPhone = MaskPhone(r.Customer.PhoneNumber),
+                    CustomerPhone = r.Customer.PhoneNumber,
                     CustomerAvatar = r.Customer.User?.Avatar
                 }).ToList();
 

@@ -10,9 +10,11 @@ using MeoMeo.Domain.Entities;
 using MeoMeo.Domain.IRepositories;
 using MeoMeo.Shared.Constants;
 using MeoMeo.Shared.Utilities;
+using MeoMeo.Shared.IServices;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Logging;
 using Microsoft.IdentityModel.Tokens;
 
 namespace MeoMeo.Application.Services;
@@ -28,8 +30,10 @@ public class AuthService : IAuthService
     private IEmployeeRepository _employeeRepository { get; }
     private IMapper _mapper { get; }
     private IConfiguration _configuration { get; }
+    private IEmailService _emailService { get; }
+    private ILogger<AuthService> _logger { get; }
 
-    public AuthService(IRefreshTokenRepository refreshTokenRepository, IRoleRepository roleRepository, IUserRoleRepository userRoleRepository,  IUserTokenRepository userTokenRepository, IUserRepository userRepository, IMapper mapper, ICustomerRepository customerRepository, IEmployeeRepository employeeRepository, IConfiguration configuration)
+    public AuthService(IRefreshTokenRepository refreshTokenRepository, IRoleRepository roleRepository, IUserRoleRepository userRoleRepository, IUserTokenRepository userTokenRepository, IUserRepository userRepository, IMapper mapper, ICustomerRepository customerRepository, IEmployeeRepository employeeRepository, IConfiguration configuration, IEmailService emailService, ILogger<AuthService> logger)
     {
         _refreshTokenRepository = refreshTokenRepository;
         _roleRepository = roleRepository;
@@ -40,6 +44,8 @@ public class AuthService : IAuthService
         _customerRepository = customerRepository;
         _employeeRepository = employeeRepository;
         _configuration = configuration;
+        _emailService = emailService;
+        _logger = logger;
     }
 
 
@@ -278,6 +284,83 @@ public class AuthService : IAuthService
             };
         }
     }
+
+    public async Task<BaseResponse> ForgotPasswordAsync(ForgotPasswordRequest input)
+    {
+        try
+        {
+            // Tìm user theo UserName và Email
+            var user = await _userRepository.Query()
+                .FirstOrDefaultAsync(u => u.UserName == input.UserName && u.Email == input.Email);
+
+            if (user == null)
+            {
+                return new BaseResponse
+                {
+                    ResponseStatus = BaseStatus.Error,
+                    Message = "Không tìm thấy tài khoản với thông tin đã cung cấp. Vui lòng kiểm tra lại tên đăng nhập và email."
+                };
+            }
+
+            if (user.IsLocked)
+            {
+                return new BaseResponse
+                {
+                    ResponseStatus = BaseStatus.Error,
+                    Message = "Tài khoản đang bị khóa. Vui lòng liên hệ với quản trị viên."
+                };
+            }
+
+            // Tạo mật khẩu random mới
+            var newPassword = GenerateRandomPassword();
+            var hashedPassword = FunctionHelper.ComputerSha256Hash(newPassword);
+
+            // Cập nhật mật khẩu mới vào database
+            user.PasswordHash = hashedPassword;
+            await _userRepository.UpdateAsync(user);
+
+            // Gửi email với mật khẩu mới
+            var emailSent = await _emailService.SendNewPasswordEmailAsync(
+                user.Email,
+                newPassword,
+                user.UserName ?? "User");
+
+            if (emailSent)
+            {
+                return new BaseResponse
+                {
+                    ResponseStatus = BaseStatus.Success,
+                    Message = "Mật khẩu mới đã được gửi về email của bạn. Vui lòng kiểm tra hộp thư và đăng nhập lại."
+                };
+            }
+            else
+            {
+                return new BaseResponse
+                {
+                    ResponseStatus = BaseStatus.Error,
+                    Message = "Không thể gửi email. Vui lòng thử lại sau."
+                };
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error in ForgotPasswordAsync");
+            return new BaseResponse
+            {
+                ResponseStatus = BaseStatus.Error,
+                Message = "Có lỗi xảy ra trong quá trình xử lý. Vui lòng thử lại."
+            };
+        }
+    }
+
+    private string GenerateRandomPassword()
+    {
+        const string chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
+        var random = new Random();
+        return new string(Enumerable.Repeat(chars, 8)
+            .Select(s => s[random.Next(s.Length)]).ToArray());
+    }
+
     private static string RandomString(int length)
     {
         var random = new Random();
@@ -305,8 +388,6 @@ public class AuthService : IAuthService
 
         return GenerateTokenByClaim(claims);
     }
-
-    
 
     private string GenerateTokenByClaim(IEnumerable<Claim> claims)
     {
