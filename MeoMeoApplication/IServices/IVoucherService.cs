@@ -18,5 +18,6 @@ namespace MeoMeo.Application.IServices
         Task<bool> DeleteVoucherAsync(Guid id);
         Task<CheckVoucherResponseDTO> CheckVoucherAsync(CheckVoucherRequestDTO request);
         Task<List<AvailableVoucherDTO>> GetAvailableVouchersAsync(GetAvailableVouchersRequestDTO request);
+        Task<string> GenerateUniqueVoucherCodeAsync();
     }
 }

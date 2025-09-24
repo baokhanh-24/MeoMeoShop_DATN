@@ -159,6 +159,57 @@ new FormValidationRule { Required = true, Message = "Vui lòng xác nhận mật
             return;
         }
 
+        // Kiểm tra các trường bắt buộc
+        if (string.IsNullOrWhiteSpace(registerModel.FullName))
+        {
+            MessageModalService.Error("Vui lòng nhập họ và tên!");
+            return;
+        }
+
+        if (string.IsNullOrWhiteSpace(registerModel.UserName))
+        {
+            MessageModalService.Error("Vui lòng nhập tên đăng nhập!");
+            return;
+        }
+
+        if (string.IsNullOrWhiteSpace(registerModel.Email))
+        {
+            MessageModalService.Error("Vui lòng nhập email!");
+            return;
+        }
+
+        if (string.IsNullOrWhiteSpace(registerModel.PhoneNumber))
+        {
+            MessageModalService.Error("Vui lòng nhập số điện thoại!");
+            return;
+        }
+
+        if (string.IsNullOrWhiteSpace(registerModel.Password))
+        {
+            MessageModalService.Error("Vui lòng nhập mật khẩu!");
+            return;
+        }
+
+        if (string.IsNullOrWhiteSpace(registerModel.ConfirmPassword))
+        {
+            MessageModalService.Error("Vui lòng xác nhận mật khẩu!");
+            return;
+        }
+
+        // Kiểm tra định dạng email
+        if (!IsValidEmail(registerModel.Email))
+        {
+            MessageModalService.Error("Email không hợp lệ!");
+            return;
+        }
+
+        // Kiểm tra định dạng số điện thoại
+        if (!IsValidPhoneNumber(registerModel.PhoneNumber))
+        {
+            MessageModalService.Error("Số điện thoại không hợp lệ!");
+            return;
+        }
+
         // Kiểm tra password confirmation
         if (registerModel.Password != registerModel.ConfirmPassword)
         {
@@ -207,6 +258,31 @@ new FormValidationRule { Required = true, Message = "Vui lòng xác nhận mật
             isLoading = false;
             StateHasChanged();
         }
+    }
+
+    private bool IsValidEmail(string email)
+    {
+        try
+        {
+            var addr = new System.Net.Mail.MailAddress(email);
+            return addr.Address == email;
+        }
+        catch
+        {
+            return false;
+        }
+    }
+
+    private bool IsValidPhoneNumber(string phoneNumber)
+    {
+        if (string.IsNullOrWhiteSpace(phoneNumber))
+            return false;
+
+        // Loại bỏ khoảng trắng và ký tự đặc biệt
+        var cleanPhone = new string(phoneNumber.Where(char.IsDigit).ToArray());
+
+        // Kiểm tra số điện thoại Việt Nam: 10-11 số, bắt đầu bằng 0
+        return cleanPhone.Length >= 10 && cleanPhone.Length <= 11 && cleanPhone.StartsWith("0");
     }
 
     public class RegisterModel

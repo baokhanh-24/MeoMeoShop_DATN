@@ -789,18 +789,18 @@
 
             // Get detailed return information
             var returnInfo = await OrderReturnClient.GetOrderReturnInfoAsync(order.Id);
-            if (returnInfo == null)
+            if (returnInfo?.ResponseStatus != BaseStatus.Success)
             {
-                MessageModalService.Error("Không thể tải thông tin hoàn trả. Vui lòng thử lại sau.");
+                MessageModalService.Error(returnInfo?.Message ?? "Không thể tải thông tin hoàn trả. Vui lòng thử lại sau.");
                 return;
             }
 
-            if (!returnInfo.Value.CanReturn)
+            if (!returnInfo.CanReturn)
             {
-                var message = returnInfo.Value.Message;
-                if (returnInfo.Value.NonReturnableProducts.Any())
+                var message = returnInfo.Message;
+                if (returnInfo.NonReturnableProducts.Any())
                 {
-                    message += "\n\nSản phẩm không thể hoàn trả:\n• " + string.Join("\n• ", returnInfo.Value.NonReturnableProducts);
+                    message += "\n\nSản phẩm không thể hoàn trả:\n• " + string.Join("\n• ", returnInfo.NonReturnableProducts);
                 }
                 MessageModalService.Warning(message);
                 return;
@@ -816,10 +816,10 @@
             }
 
             // Show success message with returnable products info
-            var successMessage = returnInfo.Value.Message;
-            if (returnInfo.Value.ReturnableProducts.Any())
+            var successMessage = returnInfo.Message;
+            if (returnInfo.ReturnableProducts.Any())
             {
-                successMessage += ":\n• " + string.Join("\n• ", returnInfo.Value.ReturnableProducts);
+                successMessage += ":\n• " + string.Join("\n• ", returnInfo.ReturnableProducts);
             }
             MessageModalService.Success(successMessage);
 

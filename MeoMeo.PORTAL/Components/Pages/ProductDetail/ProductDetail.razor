@@ -697,15 +697,88 @@
         </GridRow> 
 
     </div>
-    <!-- Related Products Section -->
-    @if (relatedProducts.Any())
+    <!-- Best Sellers -->
+    @if (bestSellingProducts.Any())
     {
-        <div class="related-products-section">
-            <div class="section-title">
-                <h3>Sản phẩm liên quan</h3>
-            </div>
-             <ProductCard LstProduct="relatedProducts.Take(4).ToList()"/>
-        </div>
+        <GridRow Gutter="16" Class="mb-3">
+            <GridCol Span="24" Offset="1">
+                <div class="position-relative">
+                    <Title Level="2" Class="text-uppercase text-dark mb-3 mt-3">Sản phẩm bán chạy trong tuần</Title>
+                     <Carousel Dots="false">
+                    @foreach (var group in ChunkBestSellers(bestSellingProducts, 4))
+                    {
+                        <CarouselSlick>
+                            <GridRow Gutter="16">
+                                @foreach (var item in group)
+                                {
+                                    <GridCol Span="6" Md="6" Sm="12">
+                                        <Card Class="h-100 best-seller-card" Hoverable="true">
+                                            <div class="product-image-container">
+                                                <Image Width="100%" Fallback="@(backendUrl + "/Images/fallback.jpeg")"
+                                                    Src="@(backendUrl + "/" + item.Thumbnail)" Class="best-seller-image" />
+                                                @if (item.Discount.HasValue && item.Discount.Value > 0)
+                                                {
+                                                    <div class="discount-badge">
+                                                        <span class="discount-text">-@((int)((item.Discount.Value / item.Price.Value) * 100))%</span>
+                                                    </div>
+                                                }
+                                                <div class="cart-concern position-absolute">
+                                                    <div class="cart-button d-flex">
+                                                        <div class="btn btn-medium btn-black" @onclick="() => AddToCartDirectly(item)">
+                                                            <span class="btn-add-to-cart">Thêm vào giỏ hàng</span>
+                                                            <Icon Type="shopping-cart" Class="cart-outline" />
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <div class="product-info">
+                                                <div class="product-name fw-bold mb-2">@item.Name</div>
+                                                <div class="product-variants">
+                                                    @if (!string.IsNullOrEmpty(item.SizeValue))
+                                                    {
+                                                        <Tag Class="me-1">Size: @item.SizeValue</Tag>
+                                                    }
+                                                    @if (!string.IsNullOrEmpty(item.ColourName))
+                                                    {
+                                                        <Tag Class="me-1">Màu: @item.ColourName</Tag>
+                                                    }
+                                                </div>
+                                                <div class="product-sold-info">
+                                                    <span class="sold-count">Đã bán: @item.TotalSold</span>
+                                                </div>
+                                                <div class="product-price">
+                                                    @if (item.Price.HasValue)
+                                                    {
+                                                        @if (item.Discount.HasValue && item.Discount.Value > 0)
+                                                        {
+                                                            <div class="price-container">
+                                                                <span class="original-price">
+                                                                    @(((decimal)item.Price.Value).ToString("C0", new System.Globalization.CultureInfo("vi-VN")))
+                                                                </span>
+                                                                <span class="discounted-price">
+                                                                    @(((decimal)(item.Price.Value - item.Discount.Value)).ToString("C0", new System.Globalization.CultureInfo("vi-VN")))
+                                                                </span>
+                                                            </div>
+                                                        }
+                                                        else
+                                                        {
+                                                            <span class="price-text">
+                                                                @(((decimal)item.Price.Value).ToString("C0", new System.Globalization.CultureInfo("vi-VN")))
+                                                            </span>
+                                                        }
+                                                    }
+                                                </div>
+                                            </div>
+                                        </Card>
+                                    </GridCol>
+                                }
+                            </GridRow>
+                        </CarouselSlick>
+                    }
+                </Carousel>
+                </div>
+            </GridCol>
+        </GridRow>
     }
         </GridCol>
         </GridRow>
@@ -975,8 +1048,8 @@
     private Dictionary<Guid, List<EligibleVariantFromOrder>> eligibleVariantsFromOrders = new();
     private EligibleVariantFromOrder? selectedOrderForReview = null;
 
-    // Related products
-    private List<ProductResponseDTO> relatedProducts = new(); 
+    // Best selling products
+    private List<BestSellerItemDTO> bestSellingProducts = new(); 
     
 
     // Comments state (basic placeholders)
@@ -1029,7 +1102,16 @@
         if (selectedOrderForReview == null) return "";
         return $"Đơn hàng: {selectedOrderForReview.OrderCode} - Ngày: {selectedOrderForReview.OrderDate:dd/MM/yyyy}";
     }
+    private static List<List<BestSellerItemDTO>> ChunkBestSellers(List<BestSellerItemDTO> list, int size)
+    {
+        var result = new List<List<BestSellerItemDTO>>();
+        for (int i = 0; i < list.Count; i += size)
+        {
+            result.Add(list.GetRange(i, Math.Min(size, list.Count - i)));
+        }
 
+        return result;
+    }
     
     private void SelectVariantForReview(Guid? variantId)
     {
@@ -1071,7 +1153,7 @@
             await LoadProductAsync(); 
             await LoadReviewsAsync(); 
             await CheckWishlistStatus();
-            await LoadRelatedProducts();
+            await LoadBestSellingProducts();
             
             // Add product to recent viewed list for comparison
             await JS.InvokeVoidAsync("addToRecentProducts", ProductId.ToString());
@@ -1691,23 +1773,54 @@
         StateHasChanged();
     }
     
-    private async Task LoadRelatedProducts()
+    private async Task LoadBestSellingProducts()
     {
         try
         {
-            // Sử dụng endpoint mới để lấy sản phẩm liên quan
-            relatedProducts = await ProductClientService.GetRelatedProductsAsync(ProductId, 4);
+            // Lấy sản phẩm bán chạy từ API
+            bestSellingProducts = await ProductClientService.GetWeeklyBestSellersAsync(4);
         }
         catch
         {
             // Handle error silently
-            relatedProducts = new List<ProductResponseDTO>();
+            bestSellingProducts = new List<BestSellerItemDTO>();
         }
     }
 
     private void NavigateToProduct(Guid productId)
     {
         NavigationManager.NavigateTo($"/san-pham/{productId}");
+    }
+    
+    // Method để thêm sản phẩm bán chạy trực tiếp vào giỏ hàng
+    private async Task AddToCartDirectly(BestSellerItemDTO item)
+    {
+        try
+        {
+            // Tạo AddToCartDTO với thông tin từ BestSellerItemDTO
+            var newItem = new AddToCartDTO()
+            {
+                ProductDetailId = item.ProductDetailId,
+                Quantity = 1
+            };
+
+            var result = await CartClientService.AddToCartAsync(newItem);
+
+            if (result?.ResponseStatus == BaseStatus.Success)
+            {
+                MessageModalService.Success($"Đã thêm sản phẩm vào giỏ hàng thành công!");
+                CartStateService.IncrementCartCount(1);
+            }
+            else
+            {
+                var errorMessage = result?.Message ?? "Có lỗi xảy ra khi thêm vào giỏ hàng";
+                MessageModalService.Error(errorMessage);
+            }
+        }
+        catch (Exception ex)
+        {
+            MessageModalService.Error($"Lỗi: {ex.Message}");
+        }
     }
 
     RenderFragment GetAvatarWhenNull(string name) => builder => 

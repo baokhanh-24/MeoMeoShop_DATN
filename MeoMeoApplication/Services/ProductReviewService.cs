@@ -228,10 +228,10 @@ namespace MeoMeo.Application.Services
                             .ThenInclude(pd => pd.Colour)
                     .ToListAsync();
 
-                // Lấy tất cả ProductDetailId đã được review bởi customer này
-                var reviewedProductDetailIds = await _reviewRepo.Query()
+                // Lấy tất cả cặp (OrderId, ProductDetailId) đã được review bởi customer này (mỗi lần mua có thể đánh giá 1 lần)
+                var reviewedPairs = await _reviewRepo.Query()
                     .Where(r => r.CustomerId == customerId)
-                    .Select(r => r.ProductDetailId)
+                    .Select(r => new { r.OrderId, r.ProductDetailId })
                     .ToListAsync();
 
                 var unreviewedItems = new List<OrderItemForReviewDTO>();
@@ -240,8 +240,10 @@ namespace MeoMeo.Application.Services
                 {
                     foreach (var orderDetail in order.OrderDetails)
                     {
-                        // Chỉ lấy những sản phẩm chưa được review
-                        if (!reviewedProductDetailIds.Contains(orderDetail.ProductDetailId))
+                        // Chỉ loại bỏ nếu đã có review cho đúng cặp (OrderId, ProductDetailId)
+                        // Và chỉ lấy sản phẩm đang bán
+                        if (!reviewedPairs.Any(p => p.OrderId == order.Id && p.ProductDetailId == orderDetail.ProductDetailId) &&
+                            orderDetail.ProductDetail?.Status == EProductStatus.Selling)
                         {
                             unreviewedItems.Add(new OrderItemForReviewDTO
                             {
@@ -255,7 +257,7 @@ namespace MeoMeo.Application.Services
                                 ColorName = orderDetail.ProductDetail?.Colour?.Name ?? "N/A",
                                 Quantity = orderDetail.Quantity,
                                 Price = (decimal)orderDetail.Price,
-                                Discount = (decimal)orderDetail.Discount
+                                Discount = (decimal)(orderDetail.Discount ?? 0)
                             });
                         }
                     }

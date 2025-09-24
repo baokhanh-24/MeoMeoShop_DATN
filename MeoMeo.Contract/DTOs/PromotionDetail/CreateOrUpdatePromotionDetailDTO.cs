@@ -9,12 +9,11 @@ namespace MeoMeo.Contract.DTOs.PromotionDetail
 {
     public class CreateOrUpdatePromotionDetailDTO
     {
-        public Guid PromotionId { get; set; }
-        public Guid ProductDetailId { get; set; }
-        public Guid Id { get; set; }
+        public Guid? PromotionId { get; set; }
+        public Guid? ProductDetailId { get; set; }
+        public Guid? Id { get; set; }
         public float Discount { get; set; }
-        public string Note { get; set; }
-        public DateTime CreationTime { get; set; }
-        public DateTime LastModificationTime { get; set; }
+        public string? Note { get; set; }
+
     }
 }

@@ -10,7 +10,7 @@ namespace MeoMeo.EntityFrameworkCore.Configurations
         {
             builder.ToTable("PromotionDetails");
             builder.HasKey(x => x.Id);
-            builder.Property(x => x.Note).HasMaxLength(1000).HasColumnType("nvarchar(1000)");
+            builder.Property(x => x.Note).HasMaxLength(1000).HasColumnType("nvarchar(1000)").IsRequired(false);
             builder.HasOne(x => x.Promotion).WithMany(x => x.PromotionDetails).HasForeignKey(x => x.PromotionId);
             builder.HasOne(x => x.ProductDetail).WithMany(x => x.PromotionDetails).HasForeignKey(x => x.ProductDetailId).OnDelete(DeleteBehavior.NoAction);
         }

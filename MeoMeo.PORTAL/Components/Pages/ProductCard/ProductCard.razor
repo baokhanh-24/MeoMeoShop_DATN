@@ -252,6 +252,8 @@
                 await MessageModalService.Success($"Đã thêm sản phẩm vào giỏ hàng thành công!");
                 // Reload cart to get accurate item count
                 await ReloadCartCount();
+                variantModalVisible = false;
+                selectedProductForModal = null;
             }
             else
             {
@@ -350,10 +352,7 @@
         if (result != null && result.IsSuccess)
         {
             await AddToCartWithVariant(result.Product, result.SelectedVariant, result.Quantity);
-            // Modal sẽ tự động đóng sau khi thêm vào giỏ hàng thành công
-            variantModalVisible = false;
-            selectedProductForModal = null;
-
+            // Modal sẽ tự động đóng sau khi thêm vào giỏ hàng thành côn
         }
     }
 

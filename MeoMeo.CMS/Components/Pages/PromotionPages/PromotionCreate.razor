@@ -283,11 +283,18 @@
                 return;
             }
 
-            // Load promotion details - GetPromotionByIdAsync returns CreateOrUpdatePromotionDTO directly
+            // Load promotion details - GetPromotionByIdAsync returns CreateOrUpdatePromotionResponseDTO
             var promotionResult = await PromotionService.GetPromotionByIdAsync(Id.Value);
-            if (promotionResult != null)
+            if (promotionResult?.ResponseStatus == BaseStatus.Success)
             {
-                promotion = promotionResult;
+                promotion = new CreateOrUpdatePromotionDTO
+                {
+                    Id = promotionResult.Id,
+                    Title = promotionResult.Title,
+                    StartDate = promotionResult.StartDate,
+                    EndDate = promotionResult.EndDate,
+                    Description = promotionResult.Description
+                };
             }
             else
             {
@@ -328,7 +335,7 @@
                             {
                                 selectedProducts.Add(new PromotionProductViewModel
                                 {
-                                    ProductDetailId = detail.ProductDetailId,
+                                    ProductDetailId = detail.ProductDetailId.Value,
                                     ProductCode = sku,
                                     ProductName = productName,
                                     OriginalPrice = (float)price,
@@ -447,35 +454,28 @@
     {
         // 1. Tạo Promotion
         promotion.Id = Guid.NewGuid();
-        promotion.CreationTime = DateTime.Now;
-
-        var promotionResult = await PromotionService.CreatePromotionAsync(promotion);
-        if (promotionResult?.ResponseStatus == BaseStatus.Success)
+        // Prepare promotion details
+        var promotionDetails = selectedProducts.Select(item => new CreateOrUpdatePromotionDetailDTO
         {
-            // 2. Tạo các PromotionDetail
-            foreach (var item in selectedProducts)
-            {
-                var detail = new CreateOrUpdatePromotionDetailDTO
-                {
-                    Id = Guid.NewGuid(),
-                    PromotionId = promotion.Id,
-                    ProductDetailId = item.ProductDetailId,
-                    Discount = item.Discount,
-                    Note = item.Note,
-                    CreationTime = DateTime.UtcNow,
-                    LastModificationTime = DateTime.UtcNow
-                };
+            Id = Guid.NewGuid(),
+            PromotionId = promotion.Id,
+            ProductDetailId = item.ProductDetailId,
+            Discount = item.Discount,
+            Note = item.Note
+        }).ToList();
 
-                var result = await PromotionDetailService.CreateAsync(detail);
-                if (result?.ResponseStatus != BaseStatus.Success)
-                {
-                    throw new Exception($"Lỗi khi thêm PromotionDetail: {result?.Message}");
-                }
-            }
-        }
-        else
+        // Create request for backend to handle everything in one transaction
+        var request = new UpdatePromotionWithDetailsDTO
         {
-            throw new Exception($"Lỗi khi tạo Promotion: {promotionResult?.Message}");
+            PromotionId = promotion.Id.Value,
+            Promotion = promotion,
+            PromotionDetails = promotionDetails
+        };
+
+        var result = await PromotionService.CreatePromotionWithDetailsAsync(request);
+        if (result?.ResponseStatus != BaseStatus.Success)
+        {
+            throw new Exception($"Lỗi khi tạo Promotion: {result?.Message ?? "Không có phản hồi từ server"}");
         }
     }
 
@@ -486,56 +486,28 @@
             throw new Exception("Không tìm thấy ID chương trình khuyến mãi để cập nhật");
         }
 
-        // 1. Cập nhật Promotion
-        promotion.Id = Id.Value; // Ensure ID is set
-        promotion.LastModificationTime = DateTime.Now;
-
-        var promotionResult = await PromotionService.UpdatePromotionAsync(promotion);
-        if (promotionResult?.ResponseStatus != BaseStatus.Success)
+        // Prepare promotion details
+        var promotionDetails = selectedProducts.Select(item => new CreateOrUpdatePromotionDetailDTO
         {
-            throw new Exception($"Lỗi khi cập nhật Promotion: {promotionResult?.Message ?? "Không có phản hồi từ server"}");
-        }
+            Id = Guid.NewGuid(),
+            PromotionId = Id.Value,
+            ProductDetailId = item.ProductDetailId,
+            Discount = item.Discount,
+            Note = item.Note
+        }).ToList();
 
-        // 2. Xóa các PromotionDetail cũ
-        var existingDetailsRequest = new GetListPromotionDetailRequestDTO
+        // Create request for backend to handle everything in one transaction
+        var request = new UpdatePromotionWithDetailsDTO
         {
-            PromotionIdFilter = Id.Value,
-            PageSize = int.MaxValue,
-            PageIndex = 1
+            PromotionId = Id.Value,
+            Promotion = promotion,
+            PromotionDetails = promotionDetails
         };
-        
-        var existingDetails = await PromotionDetailService.GetAllPromotionDetailAsync(existingDetailsRequest);
-        if (existingDetails?.Items != null && existingDetails.Items.Any())
-        {
-            foreach (var detail in existingDetails.Items)
-            {
-                var deleteResult = await PromotionDetailService.DeleteAsync(detail.Id);
-                if (!deleteResult)
-                {
-                    Console.WriteLine($"Warning: Could not delete promotion detail {detail.Id}");
-                }
-            }
-        }
 
-        // 3. Tạo lại các PromotionDetail
-        foreach (var item in selectedProducts)
+        var result = await PromotionService.UpdatePromotionWithDetailsAsync(request);
+        if (result?.ResponseStatus != BaseStatus.Success)
         {
-            var detail = new CreateOrUpdatePromotionDetailDTO
-            {
-                Id = Guid.NewGuid(),
-                PromotionId = Id.Value,
-                ProductDetailId = item.ProductDetailId,
-                Discount = item.Discount,
-                Note = item.Note,
-                CreationTime = DateTime.UtcNow,
-                LastModificationTime = DateTime.UtcNow
-            };
-
-            var result = await PromotionDetailService.CreateAsync(detail);
-            if (result?.ResponseStatus != BaseStatus.Success)
-            {
-                throw new Exception($"Lỗi khi thêm PromotionDetail cho sản phẩm {item.ProductCode}: {result?.Message ?? "Không có phản hồi từ server"}");
-            }
+            throw new Exception($"Lỗi khi cập nhật Promotion: {result?.Message ?? "Không có phản hồi từ server"}");
         }
     }
 

@@ -72,12 +72,17 @@ namespace MeoMeo.Shared.Services
             {
                 var query = BuildQuery.ToQueryString(request);
                 var url = $"/api/Vouchers/get-all-voucher-async?{query}";
+                Console.WriteLine($"Calling Voucher API: {url}");
+
                 var response = await _httpClient.GetAsync<PagingExtensions.PagedResult<VoucherDTO>>(url);
+                Console.WriteLine($"Voucher API response: {response?.Items?.Count ?? 0} items");
+
                 return response ?? new PagingExtensions.PagedResult<VoucherDTO>();
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Có lỗi xảy ra khi lấy danh sách voucher: {Message}", ex.Message);
+                Console.WriteLine($"Voucher API Error: {ex.Message}");
                 return new PagingExtensions.PagedResult<VoucherDTO>();
             }
         }
@@ -159,6 +164,21 @@ namespace MeoMeo.Shared.Services
             {
                 _logger.LogError(ex, "Có lỗi xảy ra khi lấy danh sách voucher khả dụng: {Message}", ex.Message);
                 return new List<AvailableVoucherDTO>();
+            }
+        }
+
+        public async Task<string> GenerateUniqueVoucherCodeAsync()
+        {
+            try
+            {
+                var url = "/api/Vouchers/generate-unique-voucher-code-async";
+                var result = await _httpClient.GetAsync<string>(url);
+                return result ?? $"VOUCHER-{DateTime.Now:yyyyMMdd}-{Guid.NewGuid().ToString("N")[..8].ToUpper()}";
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Có lỗi xảy ra khi tạo mã voucher duy nhất: {Message}", ex.Message);
+                return $"VOUCHER-{DateTime.Now:yyyyMMdd}-{Guid.NewGuid().ToString("N")[..8].ToUpper()}";
             }
         }
     }

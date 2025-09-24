@@ -8,14 +8,10 @@ namespace MeoMeo.Contract.DTOs.Promotion
 {
     public class CreateOrUpdatePromotionDTO
     {
-        public Guid Id { get; set; }
+        public Guid? Id { get; set; }
         public string Title { get; set; }
         public DateTime? StartDate { get; set; }
         public DateTime? EndDate { get; set; }
-        public string Description { get; set; }
-        public DateTime CreationTime { get; set; } = DateTime.Now;
-        public DateTime? LastModificationTime { get; set; }
-        public Guid CreatedBy { get; set; }
-        public Guid? UpdatedBy { get; set; }
+        public string? Description { get; set; }
     }
 }
