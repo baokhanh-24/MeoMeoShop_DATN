@@ -12,7 +12,6 @@ using MeoMeo.Contract.DTOs.ProductReview;
 using MeoMeo.Contract.DTOs.Promotion;
 using MeoMeo.Contract.DTOs.PromotionDetail;
 using MeoMeo.Contract.DTOs.Size;
-using MeoMeo.Contract.DTOs.SystemConfig;
 using MeoMeo.Contract.DTOs.Payment;
 using MeoMeo.Contract.Extensions;
 using MeoMeo.Domain.Entities;
@@ -106,16 +105,6 @@ namespace MeoMeo.Contract
             CreateMap<OrderDetail, OrderDetailDTO>()
                 .ForMember(dest => dest.SizeName, opt => opt.MapFrom(src => src.ProductDetail.Size.Value))
                 .ForMember(dest => dest.ColourName, opt => opt.MapFrom(src => src.ProductDetail.Colour.Name));
-            CreateMap<SystemConfig, SystemConfigDTO>();
-            CreateMap<CreateOrUpdateSystemConfigDTO, SystemConfig>();
-            CreateMap<CreateOrUpdateSystemConfigResponseDTO, SystemConfig>();
-            CreateMap<CreateOrUpdateSystemConfigResponseDTO, SystemConfigDTO>();
-            CreateMap<CreateOrUpdateSystemConfigDTO, SystemConfigDTO>();
-            CreateMap<SystemConfig, CreateOrUpdateSystemConfigResponseDTO>();
-            CreateMap<SystemConfig, CreateOrUpdateSystemConfigDTO>();
-            CreateMap<SystemConfigDTO, CreateOrUpdateSystemConfigResponseDTO>();
-            CreateMap<SystemConfigDTO, CreateOrUpdateSystemConfigDTO>();
-            CreateMap<SystemConfigDTO, SystemConfig>();
             CreateMap<User, UserDTO>()
                 .ForMember(dest => dest.FullName, opt => opt.MapFrom(src => src.Employee != null ? src.Employee.Name : src.UserName));
             CreateMap<ProductDetail, ProductDetailGrid>().IgnoreAllNonExisting();

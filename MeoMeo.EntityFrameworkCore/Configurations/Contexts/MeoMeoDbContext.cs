@@ -8,7 +8,7 @@ namespace MeoMeo.EntityFrameworkCore.Configurations.Contexts
         public MeoMeoDbContext(DbContextOptions options) : base(options)
         {
         }
-        
+
         public DbSet<Brand> brands { get; set; }
         public DbSet<Cart> carts { get; set; }
         public DbSet<CartDetail> cartDetails { get; set; }
@@ -31,7 +31,6 @@ namespace MeoMeo.EntityFrameworkCore.Configurations.Contexts
         public DbSet<PromotionDetail> promotionDetails { get; set; }
         public DbSet<Season> seasons { get; set; }
         public DbSet<Size> sizes { get; set; }
-        public DbSet<SystemConfig> systemConfigs { get; set; }
         public DbSet<User> users { get; set; }
         public DbSet<Voucher> vouchers { get; set; }
         public DbSet<OrderDetailInventoryBatch> orderDetailInventoryBatches { get; set; }
@@ -77,7 +76,6 @@ namespace MeoMeo.EntityFrameworkCore.Configurations.Contexts
             modelBuilder.ApplyConfiguration(new PromotionDetailConfiguration());
             modelBuilder.ApplyConfiguration(new SeasonConfiguration());
             modelBuilder.ApplyConfiguration(new SizeConfiguration());
-            modelBuilder.ApplyConfiguration(new SystemConfigConfiguration());
             modelBuilder.ApplyConfiguration(new UserConfiguration());
             modelBuilder.ApplyConfiguration(new VoucherConfiguration());
             modelBuilder.ApplyConfiguration(new OrderDetailInventoryBatchConfiguration());
