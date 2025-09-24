@@ -858,7 +858,6 @@ namespace MeoMeo.Application.Services
             return method switch
             {
                 ERefundMethod.BankTransfer => "Chuyển khoản",
-                ERefundMethod.ViaShipper => "Nhận qua ship",
                 ERefundMethod.InStore => "Nhận tại cửa hàng",
                 _ => method.ToString()
             };

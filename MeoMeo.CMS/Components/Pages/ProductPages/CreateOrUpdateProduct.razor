@@ -113,7 +113,7 @@
                                     else
                                     {
                                                         <Icon Type="@IconType.Outline.Upload" Style="font-size: 24px; color: #999;"/>
-                                                        <div style="margin-top: 8px; color: #666;">Tải ảnh và video (Tối đa 8 ảnh + 2
+                                                        <div style="margin-top: 8px; color: #666;">Tải ảnh và video (Tối đa 18 ảnh + 2
                                                             video)
                                                         </div>
                                                         <div style="font-size: 12px; color: #999;">Click để chọn file</div>
@@ -771,7 +771,7 @@
                 isProcessingImages = true;
                 StateHasChanged();
 
-                foreach (var file in e.GetMultipleFiles(10))
+                foreach (var file in e.GetMultipleFiles(20))
                 {
                     if (!file.ContentType.StartsWith("image/") && !file.ContentType.StartsWith("video/"))
                     {
@@ -785,9 +785,9 @@
 
                     if (file.ContentType.StartsWith("image/"))
                     {
-                        if (currentImages >= 8)
+                        if (currentImages >= 18)
                         {
-                            await MessageModalService.Warning("Bạn chỉ có thể tải tối đa 8 ảnh!");
+                            await MessageModalService.Warning("Bạn chỉ có thể tải tối đa 18 ảnh!");
                             continue;
                         }
 
@@ -795,9 +795,9 @@
                             .Where(x => x.ContentType.StartsWith("image/"))
                             .Sum(x => x.Base64Data != null ? Convert.FromBase64String(x.Base64Data).Length : 0) ?? 0;
 
-                        if (totalImageSize + file.Size > 10 * 1024 * 1024)
+                        if (totalImageSize + file.Size > 50 * 1024 * 1024)
                         {
-                            await MessageModalService.Error($"Tổng dung lượng 8 ảnh không được vượt quá 10MB!");
+                            await MessageModalService.Error($"Tổng dung lượng 18 ảnh không được vượt quá 50MB!");
                             continue;
                         }
                     }
@@ -849,7 +849,7 @@
 
     private async Task<string> ConvertToBase64(IBrowserFile file)
     {
-        var maxSize = file.ContentType.StartsWith("video/") ? 10 * 1024 * 1024 : 10 * 1024 * 1024;
+        var maxSize = file.ContentType.StartsWith("video/") ? 10 * 1024 * 1024 : 50 * 1024 * 1024;
         using var stream = file.OpenReadStream(maxAllowedSize: maxSize);
         using var memoryStream = new MemoryStream();
         await stream.CopyToAsync(memoryStream);
@@ -902,7 +902,7 @@
 
         var imageSizeMB = Math.Round(totalImageSize / (1024.0 * 1024.0), 2);
 
-        return $"Đã chọn: {imageCount}/8 ảnh ({imageSizeMB}MB/10MB), {videoCount}/2 video";
+        return $"Đã chọn: {imageCount}/18 ảnh ({imageSizeMB}MB/50MB), {videoCount}/2 video";
     }
 
     public class SelectOption

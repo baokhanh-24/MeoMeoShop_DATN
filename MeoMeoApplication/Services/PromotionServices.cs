@@ -126,6 +126,9 @@ namespace MeoMeo.Application.Services
                     query = query.Where(c => EF.Functions.Like(c.Description, $"%{request.DescriptionFilter}%"));
                 }
 
+                // Sort by CreationTime descending (newest first)
+                query = query.OrderByDescending(c => c.CreationTime);
+
                 var filteredPromotion = await _repository.GetPagedAsync(query, request.PageIndex, request.PageSize);
                 var dtoItems = _mapper.Map<List<CreateOrUpdatePromotionDTO>>(filteredPromotion.Items);
                 metaDataValue.ResponseStatus = BaseStatus.Success;

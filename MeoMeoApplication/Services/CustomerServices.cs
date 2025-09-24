@@ -288,21 +288,26 @@ namespace MeoMeo.Application.Services
                 };
             }
 
-            // Chuyển email về lowercase để check
-            var normalizedEmail = customer.Email.ToLowerInvariant();
-
-            // Kiểm tra email đã tồn tại chưa (trừ customer hiện tại)
-            if (customerToUpdate.UserId.HasValue)
+            var normalizedEmail = "";
+            if (!string.IsNullOrEmpty(customer.Email))
             {
-                var isExistedEmail = await _userRepository.AnyAsync(u => u.Id != customerToUpdate.UserId.Value && u.Email.ToLower() == normalizedEmail);
-                if (isExistedEmail)
+                // Chuyển email về lowercase để check
+                normalizedEmail = customer.Email.ToLowerInvariant();
+
+                // Kiểm tra email đã tồn tại chưa (trừ customer hiện tại)
+                if (customerToUpdate.UserId.HasValue)
                 {
-                    return new CreateOrUpdateCustomerResponse()
+                    var isExistedEmail = await _userRepository.AnyAsync(u => u.Id != customerToUpdate.UserId.Value && u.Email.ToLower() == normalizedEmail);
+                    if (isExistedEmail)
                     {
-                        Message = $"Email {customer.Email} đã được sử dụng",
-                        ResponseStatus = BaseStatus.Error
-                    };
+                        return new CreateOrUpdateCustomerResponse()
+                        {
+                            Message = $"Email {customer.Email} đã được sử dụng",
+                            ResponseStatus = BaseStatus.Error
+                        };
+                    }
                 }
+
             }
 
             // Kiểm tra số điện thoại đã tồn tại chưa (trừ customer hiện tại)
@@ -322,8 +327,21 @@ namespace MeoMeo.Application.Services
                 var userToUpdate = await _userRepository.Query().FirstOrDefaultAsync(u => u.Id == customerToUpdate.UserId.Value);
                 if (userToUpdate != null)
                 {
-                    userToUpdate.Email = normalizedEmail;
-                    userToUpdate.UserName = !string.IsNullOrEmpty(customer.UserName) ? customer.UserName : normalizedEmail;
+                    if (!String.IsNullOrEmpty(normalizedEmail))
+                    {
+                        userToUpdate.Email = normalizedEmail;
+                    }
+
+                    if (!String.IsNullOrEmpty(customer.UserName))
+                    {
+                        userToUpdate.UserName = !string.IsNullOrEmpty(customer.UserName) ? customer.UserName : normalizedEmail;
+                    }
+
+                    // Đồng bộ trạng thái giữa Customer và User
+                    // Map Customer status to User status
+                    userToUpdate.Status = customer.Status == ECustomerStatus.Enabled ? 1 : 0;
+                    userToUpdate.IsLocked = customer.Status == ECustomerStatus.Disabled;
+
                     await _userRepository.UpdateAsync(userToUpdate);
                 }
             }

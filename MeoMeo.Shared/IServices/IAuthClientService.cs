@@ -1,4 +1,5 @@
 using MeoMeo.Contract.DTOs.Auth;
+using MeoMeo.Contract.Commons;
 
 namespace MeoMeo.Shared.IServices;
 
@@ -13,4 +14,5 @@ public interface IAuthClientService
     Task SetTokensAsync(string accessToken, string refreshToken);
     Task ClearTokensAsync();
     Task<bool> IsTokenExpiredAsync();
-} 
+    Task<BaseResponse?> ForgotPasswordAsync(ForgotPasswordRequest request);
+}
