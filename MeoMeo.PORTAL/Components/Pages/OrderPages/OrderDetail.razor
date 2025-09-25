@@ -208,7 +208,6 @@
             <FormItem Label="Phương thức nhận tiền" Required>
                 <RadioGroup @bind-Value="@ReturnRequest.RefundMethod">
                     <Radio Value="@ERefundMethod.BankTransfer">Chuyển khoản</Radio>
-                    <Radio Value="@ERefundMethod.ViaShipper">Nhận qua shipper</Radio>
                     <Radio Value="@ERefundMethod.InStore">Nhận tại cửa hàng</Radio>
                 </RadioGroup>
             </FormItem>
@@ -596,7 +595,6 @@
     private string GetRefundMethodName(ERefundMethod method) => method switch
     {
         ERefundMethod.BankTransfer => "Chuyển khoản",
-        ERefundMethod.ViaShipper => "Nhận qua shipper",
         ERefundMethod.InStore => "Nhận tại cửa hàng",
         _ => method.ToString()
     };

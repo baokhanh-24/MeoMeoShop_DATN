@@ -458,6 +458,12 @@ namespace MeoMeo.Application.Services
                         {
                             user.Email = employee.Email;
                         }
+
+                        // Đồng bộ trạng thái giữa Employee và User
+                        // Map Employee status to User status
+                        user.Status = employee.Status == 1 ? 1 : 0;
+                        user.IsLocked = employee.Status == 0;
+
                         await _userRepository.UpdateAsync(user);
                     }
                 }

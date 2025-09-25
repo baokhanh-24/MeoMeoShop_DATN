@@ -524,7 +524,7 @@
                     }
 
                     <!-- Contact Information for ViaShipper and InStore -->
-                    @if ((selectedOrderReturn.RefundMethod == ERefundMethod.ViaShipper || selectedOrderReturn.RefundMethod == ERefundMethod.InStore) && 
+                    @if ((selectedOrderReturn.RefundMethod == ERefundMethod.InStore) && 
                          (!string.IsNullOrEmpty(selectedOrderReturn.ContactName) || !string.IsNullOrEmpty(selectedOrderReturn.ContactPhone)))
                     {
                                 <div class="mb-3">

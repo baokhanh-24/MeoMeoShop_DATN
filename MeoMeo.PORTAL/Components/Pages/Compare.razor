@@ -30,7 +30,7 @@
     <!-- Radzen Splitter Layout -->
     <RadzenSplitter Orientation="Orientation.Horizontal" Style="height: 80vh;">
         <!-- Left Pane: Product Selection -->
-        <RadzenSplitterPane Size="30" Min="300" Collapsible="true">
+        <RadzenSplitterPane Size="20" Min="300" Collapsible="true">
             <div class="product-selection-pane">
                 <h4 class="mb-3">
                     <Icon Type="search" Class="me-2" />
@@ -154,7 +154,7 @@
         </RadzenSplitterPane>
 
         <!-- Right Pane: Comparison Table -->
-        <RadzenSplitterPane Size="70" Min="400">
+        <RadzenSplitterPane Size="80" Min="400">
             <div class="comparison-pane">
                 @if (compared.Any())
                 {
@@ -221,14 +221,7 @@
                                     }
                                 </tr>
                             
-                                <tr>
-                                    <td class="feature-name">Mô tả</td>
-                                    @foreach (var product in compared)
-                                    {
-                                        <td class="feature-value">@(string.IsNullOrEmpty(product.Description) ? "Không có mô tả" : (product.Description.Length > 100 ? product.Description.Substring(0, 100) + "..." : product.Description))</td>
-                                    }
-                                </tr>
-
+                            
                                 <!-- Pricing -->
                                 <tr class="section-header">
                                     <td colspan="@(compared.Count + 1)">Giá cả & Khuyến mãi</td>
@@ -416,58 +409,8 @@
                                     }
                                 </tr>
 
-                                <!-- Ratings & Reviews -->
-                                <tr class="section-header">
-                                    <td colspan="@(compared.Count + 1)">Đánh giá & Nhận xét</td>
-                                </tr>
                             
-                                <tr>
-                                    <td class="feature-name">Đánh giá trung bình</td>
-                                    @foreach (var product in compared)
-                                    {
-                                        <td class="feature-value">
-                                            @if (product.Rating > 0)
-                                            {
-                                                <div class="rating-display">
-                                                    <div class="stars">
-                                                        @for (int i = 1; i <= 5; i++)
-                                                        {
-                                                            <span class="star @(i <= Math.Round(product.Rating) ? "filled" : "")">★</span>
-                                                        }
-                                                    </div>
-                                                    <span class="rating-text">@product.Rating.ToString("F1")/5</span>
-                                                </div>
-                                            }
-                                            else
-                                            {
-                                                <span class="text-muted">Chưa có đánh giá</span>
-                                            }
-                                        </td>
-                                    }
-                                </tr>
                             
-                                <tr>
-                                    <td class="feature-name">Phân bố đánh giá</td>
-                                    @foreach (var product in compared)
-                                    {
-                                        <td class="feature-value">
-                                            <div class="rating-breakdown">
-                                                @for (int i = 5; i >= 1; i--)
-                                                {
-                                                    var ratingCount = GetRatingCount(product, i);
-                                                    <div class="rating-bar">
-                                                        <span class="rating-label">@i★</span>
-                                                        <div class="rating-progress">
-                                                            <div class="rating-fill" style="width: @(GetRatingPercentage(product, i))%"></div>
-                                                        </div>
-                                                        <span class="rating-count">@ratingCount</span>
-                                                    </div>
-                                                }
-                                            </div>
-                                        </td>
-                                    }
-                                </tr>
-
                                 <!-- Additional Information -->
                                 <tr class="section-header">
                                     <td colspan="@(compared.Count + 1)">Thông tin bổ sung</td>

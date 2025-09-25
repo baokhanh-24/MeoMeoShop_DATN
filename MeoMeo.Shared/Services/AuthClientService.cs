@@ -1,5 +1,6 @@
 using System.IdentityModel.Tokens.Jwt;
 using MeoMeo.Contract.DTOs.Auth;
+using MeoMeo.Contract.Commons;
 using MeoMeo.Shared.IServices;
 using MeoMeo.Shared.Utilities;
 using Microsoft.AspNetCore.Components.Server.ProtectedBrowserStorage;
@@ -31,10 +32,9 @@ public class AuthClientService : IAuthClientService
             if (authResponse?.ResponseStatus == MeoMeo.Contract.Commons.BaseStatus.Success)
             {
                 await SetTokensAsync(authResponse.AccessToken, authResponse.RefreshToken);
-                return authResponse;
             }
 
-            return null;
+            return authResponse;
         }
         catch (Exception ex)
         {
@@ -164,6 +164,24 @@ public class AuthClientService : IAuthClientService
         catch
         {
             return true;
+        }
+    }
+
+    public async Task<BaseResponse?> ForgotPasswordAsync(ForgotPasswordRequest request)
+    {
+        try
+        {
+            var response = await _apiCaller.PostAsync<ForgotPasswordRequest, BaseResponse>("api/auths/forgot-password", request);
+            return response;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error during forgot password");
+            return new BaseResponse
+            {
+                ResponseStatus = BaseStatus.Error,
+                Message = "Có lỗi xảy ra trong quá trình xử lý. Vui lòng thử lại!"
+            };
         }
     }
 }
