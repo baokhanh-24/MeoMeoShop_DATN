@@ -75,6 +75,13 @@ namespace MeoMeo.Application.Services
             return await SendEmailAsync(userEmail, subject, body);
         }
 
+        public async Task<bool> SendNewPasswordEmailAsync(string userEmail, string newPassword, string userName)
+        {
+            var subject = "Mật khẩu mới - MeoMeo Shop";
+            var body = GetNewPasswordTemplate(userName, newPassword);
+            return await SendEmailAsync(userEmail, subject, body);
+        }
+
         public async Task<bool> SendOrderConfirmationEmailAsync(string customerEmail, string customerName, string orderNumber, decimal totalAmount)
         {
             var subject = $"Xác nhận đơn hàng #{orderNumber} - MeoMeo Shop";
@@ -179,6 +186,61 @@ namespace MeoMeo.Application.Services
                     <li>Để bảo mật, không chia sẻ link này với ai khác</li>
                 </ul>
             </div>
+            <p>Trân trọng,<br>Đội ngũ MeoMeo Shop</p>
+        </div>
+        <div class='footer'>
+            <p>Email này được gửi tự động từ hệ thống MeoMeo Shop</p>
+        </div>
+    </div>
+</body>
+</html>";
+        }
+
+        private string GetNewPasswordTemplate(string userName, string newPassword)
+        {
+            return $@"
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset='utf-8'>
+    <title>Mật khẩu mới</title>
+    <style>
+        body {{ font-family: Arial, sans-serif; line-height: 1.6; color: #333; }}
+        .container {{ max-width: 600px; margin: 0 auto; padding: 20px; }}
+        .header {{ background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 20px; text-align: center; border-radius: 10px 10px 0 0; }}
+        .content {{ background: #f9f9f9; padding: 30px; border-radius: 0 0 10px 10px; }}
+        .password-box {{ background: white; padding: 20px; border-radius: 5px; margin: 20px 0; border-left: 4px solid #667eea; text-align: center; }}
+        .password-text {{ font-size: 24px; font-weight: bold; color: #667eea; letter-spacing: 2px; font-family: monospace; }}
+        .highlight {{ color: #667eea; font-weight: bold; }}
+        .footer {{ text-align: center; margin-top: 20px; color: #666; font-size: 12px; }}
+        .warning {{ background: #fff3cd; border: 1px solid #ffeaa7; padding: 15px; border-radius: 5px; margin: 20px 0; }}
+    </style>
+</head>
+<body>
+    <div class='container'>
+        <div class='header'>
+            <h1>🔐 MeoMeo Shop</h1>
+            <p>Mật khẩu mới</p>
+        </div>
+        <div class='content'>
+            <h2>Xin chào {userName}!</h2>
+            <p>Chúng tôi đã tạo mật khẩu mới cho tài khoản của bạn.</p>
+            
+            <div class='password-box'>
+                <h3>Mật khẩu mới của bạn:</h3>
+                <div class='password-text'>{newPassword}</div>
+            </div>
+            
+            <div class='warning'>
+                <strong>⚠️ Lưu ý quan trọng:</strong>
+                <ul>
+                    <li>Hãy đổi mật khẩu ngay sau khi đăng nhập</li>
+                    <li>Không chia sẻ mật khẩu với ai khác</li>
+                    <li>Để bảo mật, hãy sử dụng mật khẩu mạnh</li>
+                    <li>Lưu mật khẩu ở nơi an toàn</li>
+                </ul>
+            </div>
+            
             <p>Trân trọng,<br>Đội ngũ MeoMeo Shop</p>
         </div>
         <div class='footer'>

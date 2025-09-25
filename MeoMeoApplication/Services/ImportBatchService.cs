@@ -111,6 +111,8 @@ namespace MeoMeo.Application.Services
                     query = query.Where(c => c.ImportDate <= request.ToDate.Value);
                 }
 
+                query = query.OrderByDescending(c => c.CreationTime);
+
                 var filteredImportBatches = await _importBatchRepository.GetPagedAsync(query, request.PageIndex, request.PageSize);
 
                 // Get import batch IDs for the current page
@@ -121,6 +123,7 @@ namespace MeoMeo.Application.Services
                     .Include(ib => ib.InventoryBatches)
                     .Where(ib => importBatchIds.Contains(ib.Id))
                     .ToListAsync();
+
 
                 var dtoItems = _mapper.Map<List<ImportBatchDTO>>(filteredImportBatches.Items);
 

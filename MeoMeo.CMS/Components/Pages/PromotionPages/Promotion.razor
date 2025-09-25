@@ -83,14 +83,28 @@
                 </Button>
             </Tooltip>
 
-            <Popconfirm Title=@($"Bạn có chắc muốn xóa {data.Title}?") OnConfirm="() => DeletePromotion(data.Id.Value)"
-                OkText="Đồng ý" CancelText="Hủy">
-                <Tooltip Title="Xóa">
-                    <Button Size="ButtonSize.Small" Danger Shape="ButtonShape.Circle">
+            @{
+                var promotionStatus = CalculatePromotionStatus(data.StartDate, data.EndDate);
+            }
+            @if (promotionStatus != EPromotionStatus.IsGoingOn)
+            {
+                <Popconfirm Title=@($"Bạn có chắc muốn xóa {data.Title}?") OnConfirm="() => DeletePromotion(data.Id.Value)"
+                    OkText="Đồng ý" CancelText="Hủy">
+                    <Tooltip Title="Xóa">
+                        <Button Size="ButtonSize.Small" Danger Shape="ButtonShape.Circle">
+                            <i class="fas fa-minus"></i>
+                        </Button>
+                    </Tooltip>
+                </Popconfirm>
+            }
+            else
+            {
+                <Tooltip Title="Không thể xóa khuyến mãi đang diễn ra">
+                    <Button Size="ButtonSize.Small" Disabled Shape="ButtonShape.Circle">
                         <i class="fas fa-minus"></i>
                     </Button>
                 </Tooltip>
-            </Popconfirm>
+            }
         </ActionColumn>
     </ChildContent>
     <ExpandTemplate Context="data">
@@ -311,12 +325,6 @@
 
     private string GetProductImageUrl(string? imageUrl)
     {
-        if (string.IsNullOrEmpty(imageUrl))
-            return $"{ApiBaseUrl}/Images/fallback.jpeg";
-
-        if (imageUrl.StartsWith("http"))
-            return imageUrl;
-
-        return $"{ApiBaseUrl}/{imageUrl.TrimStart('/')}";
+        return $"{ApiBaseUrl}/{imageUrl}";
     }
 }
