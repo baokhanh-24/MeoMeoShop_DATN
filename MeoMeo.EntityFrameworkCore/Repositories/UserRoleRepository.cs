@@ -27,5 +27,10 @@ namespace MeoMeo.EntityFrameworkCore.Repositories
             await _context.SaveChangesAsync();
             return userRole;
         }
+
+        public void RemoveUserRole(UserRole userRole)
+        {
+            _context.userRoles.Remove(userRole);
+        }
     }
-} 
+}

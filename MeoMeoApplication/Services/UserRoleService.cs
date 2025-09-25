@@ -2,6 +2,7 @@ using AutoMapper;
 using MeoMeo.Application.IServices;
 using MeoMeo.Contract.Commons;
 using MeoMeo.Contract.DTOs.Permission;
+using MeoMeo.Domain.Commons;
 using MeoMeo.Domain.Entities;
 using MeoMeo.Domain.IRepositories;
 using Microsoft.EntityFrameworkCore;
@@ -14,17 +15,20 @@ namespace MeoMeo.Application.Services
         private readonly IUserRepository _userRepository;
         private readonly IRoleRepository _roleRepository;
         private readonly IMapper _mapper;
+        private readonly IUnitOfWork _unitOfWork;
 
         public UserRoleService(
             IUserRoleRepository userRoleRepository,
             IUserRepository userRepository,
             IRoleRepository roleRepository,
-            IMapper mapper)
+            IMapper mapper,
+            IUnitOfWork unitOfWork)
         {
             _userRoleRepository = userRoleRepository;
             _userRepository = userRepository;
             _roleRepository = roleRepository;
             _mapper = mapper;
+            _unitOfWork = unitOfWork;
         }
 
         public async Task<List<UserWithRolesDTO>> GetAllUsersWithRolesAsync()
@@ -84,34 +88,61 @@ namespace MeoMeo.Application.Services
         {
             try
             {
+                await _unitOfWork.BeginTransactionAsync();
+
                 // Check if user exists
                 var user = await _userRepository.GetByIdAsync(dto.UserId);
                 if (user == null)
+                {
+                    await _unitOfWork.RollbackAsync();
                     return new BaseResponse { ResponseStatus = BaseStatus.Error, Message = "Không tìm thấy người dùng" };
+                }
 
                 // Check if role exists
                 var role = await _roleRepository.GetByIdAsync(dto.RoleId);
                 if (role == null)
+                {
+                    await _unitOfWork.RollbackAsync();
                     return new BaseResponse { ResponseStatus = BaseStatus.Error, Message = "Không tìm thấy vai trò" };
+                }
 
-                // Check if assignment already exists
-                var existingAssignment = await _userRoleRepository.Query()
-                    .FirstOrDefaultAsync(ur => ur.UserId == dto.UserId && ur.RoleId == dto.RoleId);
+                // Get all existing roles for this user
+                var existingRoles = await _userRoleRepository.Query()
+                    .Where(ur => ur.UserId == dto.UserId)
+                    .ToListAsync();
 
-                if (existingAssignment != null)
+                // Check if user already has this role
+                var hasSameRole = existingRoles.Any(ur => ur.RoleId == dto.RoleId);
+                if (hasSameRole && existingRoles.Count == 1)
+                {
+                    await _unitOfWork.RollbackAsync();
                     return new BaseResponse { ResponseStatus = BaseStatus.Error, Message = "Người dùng đã có vai trò này" };
+                }
 
-                var userRole = new UserRole
+                // Remove all existing roles for this user
+                if (existingRoles.Any())
+                {
+                    // Use DeleteRangeAsync for better performance with composite keys
+                    await _userRoleRepository.DeleteRangeAsync(existingRoles);
+                }
+
+                // Add new role
+                var newUserRole = new UserRole
                 {
                     UserId = dto.UserId,
                     RoleId = dto.RoleId
                 };
 
-                await _userRoleRepository.AddAsync(userRole);
-                return new BaseResponse { ResponseStatus = BaseStatus.Success, Message = "Gán vai trò cho người dùng thành công" };
+                await _userRoleRepository.AddAsync(newUserRole);
+
+                await _unitOfWork.SaveChangesAsync();
+                await _unitOfWork.CommitAsync();
+
+                return new BaseResponse { ResponseStatus = BaseStatus.Success, Message = "Cập nhật vai trò cho người dùng thành công" };
             }
             catch (Exception ex)
             {
+                await _unitOfWork.RollbackAsync();
                 return new BaseResponse { ResponseStatus = BaseStatus.Error, Message = ex.Message };
             }
         }
@@ -120,17 +151,28 @@ namespace MeoMeo.Application.Services
         {
             try
             {
+                await _unitOfWork.BeginTransactionAsync();
+
                 var userRole = await _userRoleRepository.Query()
                     .FirstOrDefaultAsync(ur => ur.UserId == userId && ur.RoleId == roleId);
 
                 if (userRole == null)
+                {
+                    await _unitOfWork.RollbackAsync();
                     return new BaseResponse { ResponseStatus = BaseStatus.Error, Message = "Không tìm thấy vai trò của người dùng" };
+                }
 
-                await _userRoleRepository.DeleteAsync(userRole);
+                // Use RemoveUserRole for composite key entity
+                _userRoleRepository.RemoveUserRole(userRole);
+
+                await _unitOfWork.SaveChangesAsync();
+                await _unitOfWork.CommitAsync();
+
                 return new BaseResponse { ResponseStatus = BaseStatus.Success, Message = "Xóa vai trò khỏi người dùng thành công" };
             }
             catch (Exception ex)
             {
+                await _unitOfWork.RollbackAsync();
                 return new BaseResponse { ResponseStatus = BaseStatus.Error, Message = ex.Message };
             }
         }
