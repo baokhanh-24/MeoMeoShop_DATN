@@ -39,6 +39,8 @@
                                 class="navbar-nav text-uppercase justify-content-end align-items-center flex-grow-1 pe-3">
                                 <span @onclick="() => NavigateToPage(0)" class="me-4 custom-link">Trang Chủ</span>
                                 <span @onclick="() => NavigateToPage(3)" class="me-4 custom-link">Sản Phẩm</span>
+                                <span @onclick="() => NavigateToPage(4)" class="me-4 custom-link">So sánh sản
+                                    phẩm</span>
                                 <span @onclick="() => NavigateToPage(5)" class="me-4 custom-link">Giảm giá</span>
                                 <span @onclick="() => NavigateToPage(6)" class="me-4 custom-link">Bài viết</span>
                                 <span @onclick="() => NavigateToPage(7)" class="me-4 custom-link">Chính sách bảo
@@ -91,29 +93,7 @@
                                     d="M4.646 1.646a.5.5 0 0 1 .708 0l6 6a.5.5 0 0 1 0 .708l-6 6a.5.5 0 0 1-.708-.708L10.293 8 4.646 2.354a.5.5 0 0 1 0-.708z" />
                             </symbol>
                         </svg>
-                        <div class="search-popup">
-                            <div class="search-popup-container">
-                                <form role="search" method="get" class="search-form" action="">
-                                    <input type="search" id="search-form" class="search-field"
-                                        placeholder="Type and press enter" value="" name="s" />
-                                    <button type="submit" class="search-submit">
-                                        <svg class="search">
-                                            <use xlink:href="#search"></use>
-                                        </svg>
-                                    </button>
-                                </form>
-                                <h5 class="cat-list-title">Browse Categories</h5>
-                                <ul class="cat-list">
-                                    <li class="cat-list-item"><a href="#" title="Mobile Phones">Mobile Phones</a></li>
-                                    <li class="cat-list-item"><a href="#" title="Smart Watches">Smart Watches</a></li>
-                                    <li class="cat-list-item"><a href="#" title="Headphones">Headphones</a></li>
-                                    <li class="cat-list-item"><a href="#" title="Accessories">Accessories</a></li>
-                                    <li class="cat-list-item"><a href="#" title="Monitors">Monitors</a></li>
-                                    <li class="cat-list-item"><a href="#" title="Speakers">Speakers</a></li>
-                                    <li class="cat-list-item"><a href="#" title="Memory Cards">Memory Cards</a></li>
-                                </ul>
-                            </div>
-                        </div>
+
                     </div>
                 </div>
             </nav>
@@ -305,7 +285,7 @@
                 Navigation.NavigateTo("/#product");
                 break;
             case 4:
-                Navigation.NavigateTo("/#product");
+                Navigation.NavigateTo("/so-sanh");
                 break;
             case 5:
                 Navigation.NavigateTo("/#yearly-sale");

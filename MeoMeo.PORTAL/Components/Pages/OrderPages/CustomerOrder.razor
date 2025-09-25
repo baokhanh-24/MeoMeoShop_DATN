@@ -202,6 +202,33 @@
                                         </div>
                                     </div>
 
+                                    <!-- Thông tin hoàn hàng -->
+                                    @if (order.OrderReturn != null)
+                                    {
+                                        <div class="order-return-info">
+                                            <h6 class="return-title">
+                                                <i class="fas fa-undo"></i>
+                                                Thông tin hoàn hàng
+                                            </h6>
+                                            <div class="return-details">
+                                                <div class="d-flex justify-content-between">
+                                                    <div class="left-content">
+                                                        <strong>Mã hoàn hàng:</strong> @order.OrderReturn.Code
+                                                    </div>
+                                                    <div class="right-content">
+                                                        <span class="badge bg-info">@order.OrderReturn.StatusDisplayName</span>
+                                                        <Button Size="@AntDesign.ButtonSize.Small" 
+                                                                Type="@AntDesign.ButtonType.Primary" 
+                                                                OnClick="@(() => ShowOrderReturnDialog(order.OrderReturn))"
+                                                                Class="ms-2">
+                                                            <i class="fas fa-eye"></i> Xem chi tiết
+                                                        </Button>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    }
+
                                     <!-- Nút thao tác -->
                                     <div class="order-actions">
                                         @if (order.Status == Domain.Commons.Enums.EOrderStatus.Pending)
@@ -466,7 +493,7 @@
                         }
                     </div>
                 }
-                else if (SelectedRefundMethod == (int)Domain.Commons.Enums.ERefundMethod.ViaShipper || SelectedRefundMethod == (int)Domain.Commons.Enums.ERefundMethod.InStore)
+                else if ( SelectedRefundMethod == (int)Domain.Commons.Enums.ERefundMethod.InStore)
                 {
                     <div class="contact-info">
                         <div class="form-group">
@@ -516,6 +543,230 @@
             </div>
         }
     </div>
+</Modal>
+
+<!-- Order Return Dialog -->
+<Modal Title="Chi tiết đơn hoàn hàng" 
+       Visible="@orderReturnDialogVisible"
+       OnCancel="@(() => orderReturnDialogVisible = false)"
+       Footer="null"
+       Width="800">
+    @if (selectedOrderReturn != null)
+    {
+                <div class="order-return-detail">
+                    <!-- Basic Info -->
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <div class="info-item">
+                                <label>Mã đơn hoàn hàng:</label>
+                                <span class="value">@selectedOrderReturn.Code</span>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="info-item">
+                                <label>Trạng thái:</label>
+                                <span class="badge bg-info">@selectedOrderReturn.StatusDisplayName</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <div class="info-item">
+                                <label>Lý do hoàn hàng:</label>
+                                <span class="value">@selectedOrderReturn.Reason</span>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="info-item">
+                                <label>Phương thức hoàn tiền:</label>
+                                <span class="value">@selectedOrderReturn.RefundMethodDisplayName</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <div class="info-item">
+                                <label>Số tiền hoàn:</label>
+                                <span class="value text-success fw-bold">@selectedOrderReturn.TotalRefundAmount.ToString("N0") đ</span>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="info-item">
+                                <label>Số lượng sản phẩm:</label>
+                                <span class="value">@selectedOrderReturn.TotalItemCount</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Products Returned -->
+                    @if (selectedOrderReturn.Items != null && selectedOrderReturn.Items.Any())
+                    {
+                                <div class="mb-3">
+                                    <h6>Sản phẩm hoàn trả</h6>
+                                    <div class="table-responsive">
+                                        <table class="table table-sm table-bordered">
+                                            <thead class="table-light">
+                                                <tr>
+                                                    <th>Sản phẩm</th>
+                                                    <th>Size</th>
+                                                    <th>Màu sắc</th>
+                                                    <th>SKU</th>
+                                                    <th>Số lượng</th>
+                                                    <th>Đơn giá</th>
+                                                    <th>Thành tiền</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                @foreach (var item in selectedOrderReturn.Items)
+                                                {
+                                                            <tr>
+                                                                <td>
+                                                                    <div class="d-flex align-items-center">
+                                                                        @if (!string.IsNullOrEmpty(item.ImageUrl))
+                                                                        {
+                                                                                    <Image Src="@(backendUrl + "/" + item.ImageUrl)" 
+                                                                                           Width="40" 
+                                                                                           Height="40" 
+                                                                                           Class="me-2 rounded"
+                                                                                           Preview="true"/>
+                                                                        }
+                                                                        <span>@item.ProductName</span>
+                                                                    </div>
+                                                                </td>
+                                                                <td>@item.SizeName</td>
+                                                                <td>@item.ColourName</td>
+                                                                <td>@item.Sku</td>
+                                                                <td class="text-center">@item.Quantity</td>
+                                                                <td class="text-end">@item.UnitPrice.ToString("N0") đ</td>
+                                                                <td class="text-end fw-bold">@item.TotalPrice.ToString("N0") đ</td>
+                                                            </tr>
+                                                }
+                                            </tbody>
+                                            <tfoot class="table-light">
+                                                <tr>
+                                                    <td colspan="6" class="text-end fw-bold">Tổng cộng:</td>
+                                                    <td class="text-end fw-bold text-success">@selectedOrderReturn.TotalRefundAmount.ToString("N0") đ</td>
+                                                </tr>
+                                            </tfoot>
+                                        </table>
+                                    </div>
+                                </div>
+                    }
+
+                    <!-- Bank Information -->
+                    @if (selectedOrderReturn.BankInfo != null && selectedOrderReturn.RefundMethod == Domain.Commons.Enums.ERefundMethod.BankTransfer)
+                    {
+                                <div class="mb-3">
+                                    <h6>Thông tin ngân hàng</h6>
+                                    <div class="row">
+                                        <div class="col-md-6">
+                                            <div class="info-item">
+                                                <label>Tên ngân hàng:</label>
+                                                <span class="value">@selectedOrderReturn.BankInfo.BankName</span>
+                                            </div>
+                                        </div>
+                                        <div class="col-md-6">
+                                            <div class="info-item">
+                                                <label>Số tài khoản:</label>
+                                                <span class="value fw-bold">@selectedOrderReturn.BankInfo.AccountNumber</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="row">
+                                        <div class="col-md-6">
+                                            <div class="info-item">
+                                                <label>Tên chủ tài khoản:</label>
+                                                <span class="value">@selectedOrderReturn.BankInfo.AccountHolderName</span>
+                                            </div>
+                                        </div>
+                                        @if (!string.IsNullOrEmpty(selectedOrderReturn.BankInfo.BranchName))
+                                        {
+                                            <div class="col-md-6">
+                                                <div class="info-item">
+                                                    <label>Chi nhánh:</label>
+                                                    <span class="value">@selectedOrderReturn.BankInfo.BranchName</span>
+                                                </div>
+                                            </div>
+                                        }
+                                    </div>
+                                </div>
+                    }
+
+                    <!-- Contact Information for InStore -->
+                    @if (selectedOrderReturn.RefundMethod == Domain.Commons.Enums.ERefundMethod.InStore && 
+                         (!string.IsNullOrEmpty(selectedOrderReturn.ContactName) || !string.IsNullOrEmpty(selectedOrderReturn.ContactPhone)))
+                    {
+                                <div class="mb-3">
+                                    <h6>Thông tin liên hệ</h6>
+                                    <div class="row">
+                                        <div class="col-md-6">
+                                            <div class="info-item">
+                                                <label>Họ tên:</label>
+                                                <span class="value">@selectedOrderReturn.ContactName</span>
+                                            </div>
+                                        </div>
+                                        <div class="col-md-6">
+                                            <div class="info-item">
+                                                <label>Số điện thoại:</label>
+                                                <span class="value fw-bold">@selectedOrderReturn.ContactPhone</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                    }
+
+                    <!-- Files -->
+                    @if (selectedOrderReturn.Files != null && selectedOrderReturn.Files.Any())
+                    {
+                                <div class="mb-3">
+                                    <h6>File đính kèm</h6>
+                                    <div class="order-return-files-grid">
+                                        @foreach (var file in selectedOrderReturn.Files)
+                                        {
+                                                    <div class="file-preview-item">
+                                                        @if (file.ContentType.StartsWith("video/"))
+                                                        {
+                                                                    <div class="video-preview-container">
+                                                                        <video controls class="file-preview-video">
+                                                                            <source src="@file.Url" type="video/mp4"/>
+                                                                            Trình duyệt của bạn không hỗ trợ video.
+                                                                        </video>
+                                                                        <div class="file-info">
+                                                                            <div class="file-name">@file.Name</div>
+                                                                            <div class="file-type">Video</div>
+                                                                        </div>
+                                                                    </div>
+                                                        }
+                                                        else if (file.ContentType.StartsWith("image/"))
+                                                        {
+                                                                    <div class="image-preview-container">
+                                                                        <Image Src="@(backendUrl + "/" + file.Url)" 
+                                                                               Class="file-preview-image" 
+                                                                               Alt="@file.Name"
+                                                                               Preview="true"/>
+                                                                    </div>
+                                                        }
+                                                        else
+                                                        {
+                                                                    <div class="file-preview-container">
+                                                                        <div class="file-icon">
+                                                                            <i class="fas fa-file-alt"></i>
+                                                                        </div>
+                                                                        <div class="file-info">
+                                                                            <div class="file-name">@file.Name</div>
+                                                                            <div class="file-type">File</div>
+                                                                        </div>
+                                                                    </div>
+                                                        }
+                                                    </div>
+                                        }
+                                    </div>
+                                </div>
+                    }
+                </div>
+    }
 </Modal>
 
 @code {
@@ -1096,8 +1347,17 @@
     {
         new() { Value = (int)Domain.Commons.Enums.ERefundMethod.BankTransfer, Label = "Chuyển khoản ngân hàng" },
         new() { Value = (int)Domain.Commons.Enums.ERefundMethod.InStore, Label = "Nhận tại cửa hàng" },
-        new() { Value = (int)Domain.Commons.Enums.ERefundMethod.ViaShipper, Label = "Nhận qua shipper" }
     };
+
+    // Order Return Dialog variables
+    private bool orderReturnDialogVisible = false;
+    private OrderReturnSummaryDTO? selectedOrderReturn = null;
+
+    private void ShowOrderReturnDialog(OrderReturnSummaryDTO orderReturn)
+    {
+        selectedOrderReturn = orderReturn;
+        orderReturnDialogVisible = true;
+    }
 
 }
 
@@ -1704,5 +1964,207 @@
         .order-actions button {
             width: 100%;
         }
+    }
+
+    /* Order Return Dialog Styles */
+    .order-return-detail {
+        padding: 16px;
+    }
+
+    .info-item {
+        margin-bottom: 12px;
+    }
+
+    .info-item label {
+        font-weight: 600;
+        color: #666;
+        display: block;
+        margin-bottom: 4px;
+    }
+
+    .info-item .value {
+        color: #333;
+        font-size: 14px;
+    }
+
+    /* Order Return Products Table */
+    .table-responsive {
+        border-radius: 8px;
+        overflow: hidden;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    }
+
+    .table-sm th,
+    .table-sm td {
+        padding: 8px 12px;
+        vertical-align: middle;
+    }
+
+    .table-light th {
+        background-color: #f8f9fa;
+        font-weight: 600;
+        color: #495057;
+        border-bottom: 2px solid #dee2e6;
+    }
+
+    .table tbody tr:hover {
+        background-color: #f8f9fa;
+    }
+
+    .table tfoot tr {
+        background-color: #e9ecef;
+        font-weight: 600;
+    }
+
+    /* Order Return Files Display */
+    .order-return-files-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+        gap: 12px;
+        margin-top: 8px;
+    }
+
+    .file-preview-item {
+        border: 1px solid #e8e8e8;
+        border-radius: 8px;
+        overflow: hidden;
+        background: #fff;
+        transition: all 0.3s ease;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+    }
+
+    .file-preview-item:hover {
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+        transform: translateY(-2px);
+        border-color: #1890ff;
+    }
+
+    /* Video Preview */
+    .video-preview-container {
+        position: relative;
+    }
+
+    .file-preview-video {
+        width: 100%;
+        height: 120px;
+        object-fit: cover;
+        background: #f5f5f5;
+    }
+
+    /* Image Preview */
+    .image-preview-container {
+        position: relative;
+    }
+
+    .file-preview-image {
+        width: 100%;
+        height: 120px;
+        object-fit: cover;
+        background: #f5f5f5;
+        border-radius: 4px;
+    }
+
+    /* Ant Design Image specific styles */
+    .image-preview-container .ant-image {
+        width: 100%;
+        height: 120px;
+        display: block;
+    }
+
+    .image-preview-container .ant-image-img {
+        width: 100%;
+        height: 120px;
+        object-fit: cover;
+        border-radius: 4px;
+    }
+
+    .image-preview-container .ant-image-placeholder {
+        height: 120px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: #f5f5f5;
+        border-radius: 4px;
+    }
+
+    /* File Preview */
+    .file-preview-container {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        padding: 16px;
+        height: 120px;
+        justify-content: center;
+        position: relative;
+    }
+
+    .file-icon {
+        font-size: 32px;
+        color: #1890ff;
+        margin-bottom: 8px;
+    }
+
+    /* File Info */
+    .file-info {
+        padding: 8px;
+        background: rgba(0, 0, 0, 0.7);
+        color: white;
+        position: absolute;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        font-size: 12px;
+    }
+
+    .file-name {
+        font-weight: 600;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        margin-bottom: 2px;
+    }
+
+    .file-type {
+        opacity: 0.8;
+        font-size: 10px;
+    }
+
+    /* Order Return Info Section */
+    .order-return-info {
+        margin-bottom: 20px;
+        padding: 15px;
+        background: #f0f8ff;
+        border-radius: 8px;
+        border-left: 4px solid #1890ff;
+    }
+
+    .return-title {
+        color: #333;
+        margin-bottom: 10px;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+
+    .return-title i {
+        color: #1890ff;
+    }
+
+    .return-details {
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+        font-size: 14px;
+        color: #666;
+    }
+
+    .left-content {
+        flex: 1;
+    }
+
+    .right-content {
+        display: flex;
+        align-items: center;
+        gap: 8px;
     }
 </style>
