@@ -105,11 +105,6 @@
         <Column TData="DateTime" Title="Ngày kết thúc">
             @data.EndDate.ToString("dd/MM/yyyy")
         </Column>
-        <Column TData="int" Title="Đã sử dụng">
-            <span class="text-info">
-                @(data.MaxTotalUse ?? 0) / @(data.MaxTotalUse > 0 ? data.MaxTotalUse.ToString() : "∞")
-            </span>
-        </Column>
         <Column TData="string" Title="Trạng thái">
             <Tag Color="@GetVoucherStatusColor(GetVoucherStatus(data))">
                 @GetVoucherStatusName(GetVoucherStatus(data))
