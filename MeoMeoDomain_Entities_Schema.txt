@@ -1,0 +1,176 @@
+MeoMeoDomain Entities – Database Schema Summary
+
+Note: Many entities inherit common fields from base classes in `MeoMeo.Domain.Commons` (e.g., `BaseEntity`, `BaseEntityAudited`). Those base classes typically include an `Id` and audit fields. Entities without a base class explicitly declare their `Id`.
+
+1) Brand (no base class)
+- Key: Id (Guid)
+- Properties: Name (string), Code (string), EstablishYear (DateTime), Country (string), Description (string), Logo (string)
+- Navigation: Products (ICollection<Product>)
+
+2) Cart (BaseEntityAudited)
+- FKs: CustomerId (Guid)
+- Properties: TotalPrice (decimal)
+- Navigation: CartDetails (ICollection<CartDetail>), Customers (Customers)
+
+3) CartDetail (BaseEntity)
+- FKs: CartId (Guid), ProductDetailId (Guid), PromotionDetailId (Guid?)
+- Properties: Discount (float), Quantity (int), Price (float)
+- Navigation: Cart (Cart), ProductDetail (ProductDetail), PromotionDetails (PromotionDetail)
+
+4) Category (BaseEntity)
+- Properties: Name (string), Description (string?), Status (bool)
+- Navigation: ProductCategories (ICollection<ProductCategory>)
+
+5) Colour (BaseEntity)
+- Properties: Name (string), Code (string), Status (int)
+- Navigation: ProductDetails (ICollection<ProductDetail>)
+
+6) Customers (BaseEntityAudited)
+- FKs: UserId (Guid?)
+- Properties: Name (string), Code (string), PhoneNumber (string), DateOfBirth (DateTime?), TaxCode (string?), Address (string?), Gender (int), Status (ECustomerStatus)
+- Navigation: User (User), Cart (Cart), Orders (ICollection<Order>), DeliveryAddresses (ICollection<DeliveryAddress>), Wishlists (ICollection<Wishlist>)
+
+7) DeliveryAddress (BaseEntityAudited)
+- FKs: CustomerId (Guid)
+- Properties: ProvinceId (int), DistrictId (int), CommuneId (int), Name (string), PhoneNumber (string), Address (string), FullAddress (string)
+- Navigation: Customers (Customers), Orders (ICollection<Order>)
+
+8) Employee (BaseEntity)
+- FKs: UserId (Guid)
+- Properties: Name (string), Code (string), PhoneNumber (string), DateOfBird (DateTime?), Address (string?), Status (int)
+- Navigation: User (User), Orders (ICollection<Order>)
+
+9) Image (BaseEntity)
+- FKs: ProductId (Guid)
+- Properties: Name (string), Type (int), URL (string)
+- Navigation: Product (Product)
+
+10) ImportBatch (BaseEntityAudited)
+- Properties: Code (string), ImportDate (DateTime), Note (string)
+- Navigation: InventoryBatches (ICollection<InventoryBatch>)
+
+11) InventoryBatch (BaseEntityAudited)
+- FKs: ImportBatchId (Guid?), ProductDetailId (Guid)
+- Properties: OriginalPrice (float), Quantity (int), Status (EInventoryBatchStatus)
+- Navigation: ImportBatch (ImportBatch), ProductDetail (ProductDetail), InventoryTransactions (ICollection<InventoryTransaction>), OrderDetailInventoryBatches (ICollection<OrderDetailInventoryBatch>)
+
+12) InventoryTransaction (no base class)
+- Key: Id (Guid)
+- FKs: InventoryBatchId (Guid)
+- Properties: Quantity (int), CreationTime (DateTime), CreateBy (int), Type (EInventoryTranctionType), Note (string?)
+- Navigation: InventoryBatch (InventoryBatch)
+
+13) Material (BaseEntity)
+- Properties: Name (string), Durability (EMaterialDurability), WaterProof (bool), Weight (EMaterialWeight), Description (string), Status (int)
+- Navigation: ProductMaterials (ICollection<ProductMaterial>)
+
+14) Order (BaseEntity)
+- FKs: CustomerId (Guid), EmployeeId (Guid?), VoucherId (Guid?)
+- Properties: EmployeeName (string?), Code (string), CustomerName (string), EmployeePhoneNumber (string?), CustomerPhoneNumber (string), EmployeeEmail (string?), CustomerEmail (string?), TotalPrice (Decimal), DiscountPrice (Decimal?), ShippingFee (Decimal?), PaymentMethod (EOrderPaymentMethod), DeliveryAddress (string?), DeliveryDate (DateTime?), ReceiveDate (DateTime?), ExpectReceiveDate (DateTime?), Type (EOrderType), ShippingMethod (string?), CreationTime (DateTime), LastModifiedTime (DateTime?), Note (string?), CancelDate (DateTime?), Reason (string?), Status (EOrderStatus)
+- Navigation: Customers (Customers), Employee (Employee), Voucher (Voucher?), OrderDetails (ICollection<OrderDetail>), OrderHistories (ICollection<OrderHistory>)
+
+15) OrderDetail (BaseEntity)
+- FKs: OrderId (Guid), ProductDetailId (Guid), PromotionDetailId (Guid?)
+- Properties: Sku (string), Price (float), OriginalPrice (float), Quantity (int), ProductName (string), Discount (float?), Image (string)
+- Navigation: Order (Order), ProductDetail (ProductDetail), PromotionDetail (PromotionDetail), OrderDetailInventoryBatches (ICollection<OrderDetailInventoryBatch>)
+
+16) OrderDetailInventoryBatch (BaseEntity)
+- FKs: OrderDetailId (Guid), InventoryBatchId (Guid)
+- Properties: Quantity (int)
+- Navigation: OrderDetail (OrderDetail), InventoryBatch (InventoryBatch)
+
+17) OrderHistory (BaseEntityAudited)
+- FKs: OrderId (Guid)
+- Properties: Content (string), Type (EHistoryType)
+- Navigation: Order (Order)
+
+18) OrderReturn (BaseEntity)
+- FKs: OrderId (Guid), CustomerId (Guid)
+- Properties: Code (string), Reason (string), Status (EOrderReturnStatus), RefundMethod (ERefundMethod), PayBackAmount (decimal?), PayBackDate (DateTime?), BankName (string?), BankAccountName (string?), BankAccountNumber (string?), ContactPhone (string?), ContactName (string?), CreationTime (DateTime), LastModifiedTime (DateTime?)
+- Navigation: Order (Order), Customer (Customers), Items (ICollection<OrderReturnItem>), Files (ICollection<OrderReturnFile>)
+
+19) OrderReturnFile (BaseEntity)
+- FKs: OrderReturnId (Guid)
+- Properties: Url (string), Name (string), ContentType (string)
+- Navigation: OrderReturn (OrderReturn)
+
+20) OrderReturnItem (BaseEntity)
+- FKs: OrderReturnId (Guid), OrderDetailId (Guid)
+- Properties: Quantity (int), Reason (string?)
+- Navigation: OrderReturn (OrderReturn), OrderDetail (OrderDetail)
+
+21) Product (BaseEntityAudited)
+- FKs: BrandId (Guid)
+- Properties: Name (string), Thumbnail (string), Description (string?)
+- Navigation: Brand (Brand), ProductDetails (ICollection<ProductDetail>), ProductMaterials (ICollection<ProductMaterial>), ProductCategories (ICollection<ProductCategory>), ProductSeasons (ICollection<ProductSeason>), Images (ICollection<Image>)
+
+22) ProductCategory (no base class)
+- Composite Key (by convention): ProductId (Guid), CategoryId (Guid)
+- Navigation: Product (Product), Category (Category)
+
+23) ProductDetail (BaseEntity)
+- FKs: ProductId (Guid), SizeId (Guid), ColourId (Guid)
+- Properties: Sku (string), Price (float), OutOfStock (int), StockHeight (float), ClosureType (EClosureType), SellNumber (int?), ViewNumber (int?), AllowReturn (bool), CreationTime (DateTime), LastModificationTime (DateTime?), Status (EProductStatus), Weight (int), Length (int), Width (int), Height (int), MaxBuyPerOrder (int?)
+- Navigation: Product (Product), Size (Size), Colour (Colour), OrderDetails (ICollection<OrderDetail>), CartDetails (ICollection<CartDetail>), InventoryBatches (ICollection<InventoryBatch>), PromotionDetails (ICollection<PromotionDetail>), Images (ICollection<Image>), Wishlists (ICollection<Wishlist>)
+
+24) ProductMaterial (no base class)
+- Composite Key (by convention): ProductId (Guid), MaterialId (Guid)
+- Navigation: Product (Product), Material (Material)
+
+25) ProductReview (BaseEntityAudited)
+- FKs: CustomerId (Guid), OrderId (Guid), ProductDetailId (Guid)
+- Properties: Content (string), Answer (string?), ReplyDate (DateTime?), Rating (float), IsHidden (bool)
+- Navigation: Customer (Customers), Order (Order), ProductDetail (ProductDetail), ProductReviewFiles (ICollection<ProductReviewFile>)
+
+26) ProductReviewFile (BaseEntity)
+- FKs: ProductReviewId (Guid)
+- Properties: FileName (string), FileUrl (string), FileType (int)
+- Navigation: ProductReview (ProductReview)
+
+27) ProductSeason (no base class)
+- Composite Key (by convention): SeasonId (Guid), ProductId (Guid)
+- Navigation: Season (Season), Product (Product)
+
+28) Promotion (BaseEntityAudited)
+- Properties: Title (string), StartDate (DateTime?), EndDate (DateTime?), Description (string?)
+- Navigation: PromotionDetails (ICollection<PromotionDetail>)
+
+29) PromotionDetail (no base class)
+- Key: Id (Guid)
+- FKs: PromotionId (Guid), ProductDetailId (Guid)
+- Properties: Discount (float), Note (string?), CreationTime (DateTime), LastModificationTime (DateTime)
+- Navigation: Promotion (Promotion), ProductDetail (ProductDetail), OrderDetails (ICollection<OrderDetail>), CartDetails (ICollection<CartDetail>)
+
+30) Role (BaseEntity)
+- Properties: Status (int?), Description (string), Name (string)
+- Navigation: UserRoles (ICollection<UserRole>)
+
+31) Season (BaseEntity)
+- Properties: Name (string), Description (string), Status (int)
+- Navigation: ProductSeasons (ICollection<ProductSeason>)
+
+32) Size (BaseEntity)
+- Properties: Value (string), Code (string), Status (int)
+- Navigation: ProductDetails (ICollection<ProductDetail>)
+
+33) User (BaseEntityAudited)
+- Properties: UserName (string), PasswordHash (string), Avatar (string), LastLogin (DateTime), Email (string), IsLocked (bool), LockedEndDate (DateTime?), Status (int)
+- Navigation: Customers (Customers), Employee (Employee), UserRoles (ICollection<UserRole>), UserTokens (ICollection<UserToken>)
+
+34) UserRole (no base class)
+- Composite Key (by convention): UserId (Guid), RoleId (Guid)
+- Navigation: User (User), Role (Role)
+
+35) UserToken (BaseEntityAudited)
+- FKs: UserId (Guid)
+- Properties: AccessToken (string), RefreshToken (string), ExpiryDate (DateTime), IsRevoked (bool), IsUsed (bool), IsUpdateToken (bool)
+- Navigation: User (User)
+
+36) Voucher (BaseEntityAudited)
+- Properties: Discount (float), Code (string), StartDate (DateTime), EndDate (DateTime), Type (EVoucherType), MinOrder (Decimal), MaxDiscount (float), MaxTotalUse (int?), MaxTotalUsePerCustomer (int?)
+- Navigation: Orders (ICollection<Order>)
+
+37) Wishlist (no base class)
+- Composite Key (by convention): CustomerId (Guid), ProductDetailId (Guid)
+- Properties: CreationTime (DateTime)
+- Navigation: Customers (Customers), ProductDetails (ProductDetail)
