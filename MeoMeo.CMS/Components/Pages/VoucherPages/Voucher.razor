@@ -121,13 +121,6 @@
                     var isLocked = status == VoucherStatus.Ongoing || status == VoucherStatus.Expired;
                     var isUsed = data.UsedCount > 0; // Assuming UsedCount property exists in VoucherDTO
             }
-
-            <Tooltip Title="Xem chi tiết">
-                <Button Size="ButtonSize.Small" Type="ButtonType.Primary" @onclick="() => ViewVoucherDetail(data.Id)" Shape="ButtonShape.Circle">
-                    <i class="fas fa-eye"></i>
-                </Button>
-            </Tooltip>
-
             @if (!isLocked && !isUsed)
             {
                     <Tooltip Title="Sửa">
@@ -169,11 +162,6 @@
                 </Button>
             </Tooltip>
 
-            <Tooltip Title="Xem đơn hàng đã sử dụng">
-                <Button Size="ButtonSize.Small" @onclick="() => ViewVoucherUsage(data.Id)" Shape="ButtonShape.Circle">
-                    <i class="fas fa-shopping-cart"></i>
-                </Button>
-            </Tooltip>
         </ActionColumn>
     </ChildContent>
 </Table>

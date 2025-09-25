@@ -27,9 +27,6 @@
         <BreadcrumbItem Href="/">Trang chủ</BreadcrumbItem>
         <BreadcrumbItem Href="/inventory-statistics">Thống kê tồn kho</BreadcrumbItem>
     </Breadcrumb>
-    <Button OnClick="ExportInventoryReport" Type="ButtonType.Primary" Class="mb-2">
-        <i class="fas fa-download"></i> Xuất báo cáo
-    </Button>
 </div>
 
 <div class="mb-4">
@@ -82,8 +79,8 @@
     <ChildContent Context="data">
         <Column TData="int" Title="STT" Width="60">
             @{
-                    var index = listOfData.IndexOf(data);
-                    @((filter.PageIndex - 1) * filter.PageSize + index + 1)
+                var index = listOfData.IndexOf(data);
+                @((filter.PageIndex - 1) * filter.PageSize + index + 1)
             }
         </Column>
         <Column TData="string" Title="Ảnh" Width="120">
@@ -115,17 +112,7 @@
                 @GetStockStatusName(data.StockStatus)
             </Tag>
         </Column>
-        <Column TData="DateTime" Title="Cập nhật cuối" Width="120">
-            @data.LastUpdated.ToString("dd/MM/yyyy HH:mm")
-        </Column>
-        <ActionColumn Title="Thao tác" Width="100">
-            <Tooltip Title="Xem lịch sử">
-                <Button Size="ButtonSize.Small" OnClick="() => ViewInventoryHistory(data.ProductDetailId)"
-                    Shape="ButtonShape.Circle">
-                    <i class="fas fa-history"></i>
-                </Button>
-            </Tooltip>
-        </ActionColumn>
+
     </ChildContent>
 </Table>
 
@@ -134,31 +121,31 @@
     <div>
         @if (selectedProductHistory != null)
         {
-                <div class="mb-3">
-                    <Title Level="5">@selectedProductHistory.ProductName (@selectedProductHistory.SKU)</Title>
-                </div>
+            <div class="mb-3">
+                <Title Level="5">@selectedProductHistory.ProductName (@selectedProductHistory.SKU)</Title>
+            </div>
 
-                <Table DataSource="inventoryHistory" TItem="InventoryHistoryItem" Size="TableSize.Small">
-                    <Column TData="DateTime" Title="Thời gian" Width="150">
-                        @context.Date.ToString("dd/MM/yyyy HH:mm")
-                    </Column>
-                    <Column TData="string" Title="Loại giao dịch" Width="120">
-                        <Tag Color="@GetTransactionTypeColor(context.TransactionType)">
-                            @GetTransactionTypeName(context.TransactionType)
-                        </Tag>
-                    </Column>
-                    <Column TData="int" Title="Số lượng thay đổi" Width="120">
-                        <Text Style="@GetQuantityChangeStyle(context.QuantityChange)">
-                            @(context.QuantityChange > 0 ? "+" : "")@context.QuantityChange
-                        </Text>
-                    </Column>
-                    <Column TData="int" Title="Tồn kho sau" Width="100">
-                        <Text Strong>@context.StockAfter</Text>
-                    </Column>
-                    <Column TData="string" Title="Ghi chú">
-                        @context.Note
-                    </Column>
-                </Table>
+            <Table DataSource="inventoryHistory" TItem="InventoryHistoryItem" Size="TableSize.Small">
+                <Column TData="DateTime" Title="Thời gian" Width="150">
+                    @context.Date.ToString("dd/MM/yyyy HH:mm")
+                </Column>
+                <Column TData="string" Title="Loại giao dịch" Width="120">
+                    <Tag Color="@GetTransactionTypeColor(context.TransactionType)">
+                        @GetTransactionTypeName(context.TransactionType)
+                    </Tag>
+                </Column>
+                <Column TData="int" Title="Số lượng thay đổi" Width="120">
+                    <Text Style="@GetQuantityChangeStyle(context.QuantityChange)">
+                        @(context.QuantityChange > 0 ? "+" : "")@context.QuantityChange
+                    </Text>
+                </Column>
+                <Column TData="int" Title="Tồn kho sau" Width="100">
+                    <Text Strong>@context.StockAfter</Text>
+                </Column>
+                <Column TData="string" Title="Ghi chú">
+                    @context.Note
+                </Column>
+            </Table>
         }
     </div>
 </Modal>

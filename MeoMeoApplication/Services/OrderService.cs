@@ -710,13 +710,13 @@ namespace MeoMeo.Application.Services
                 Voucher? validVoucher = null;
                 if (request.VoucherId.HasValue)
                 {
+                    var currentTime = DateTime.Now;
                     validVoucher = await _voucherRepository.Query()
                         .Include(v => v.Orders)
                         .Where(v => v.Id == request.VoucherId.Value &&
-                                   v.StartDate <= DateTime.Now &&
-                                   v.EndDate >= DateTime.Now)
+                                   v.StartDate <= currentTime &&
+                                   v.EndDate >= currentTime)
                         .FirstOrDefaultAsync();
-
                     if (validVoucher == null)
                     {
                         return new CreateOrderResultDTO
@@ -967,11 +967,12 @@ namespace MeoMeo.Application.Services
                 Voucher? validVoucher = null;
                 if (!string.IsNullOrEmpty(request.DiscountCode))
                 {
+                    var currentTime = DateTime.Now;
                     validVoucher = await _voucherRepository.Query()
                         .Include(v => v.Orders)
                         .Where(v => v.Code == request.DiscountCode &&
-                                   v.StartDate <= DateTime.Now &&
-                                   v.EndDate >= DateTime.Now)
+                                   v.StartDate <= currentTime &&
+                                   v.EndDate >= currentTime)
                         .FirstOrDefaultAsync();
 
                     if (validVoucher == null)
@@ -1523,6 +1524,98 @@ namespace MeoMeo.Application.Services
                         await _orderDetailRepository.AddAsync(orderDetail);
                     }
                 }
+
+                // Calculate total price and apply voucher discount
+                decimal totalPrice = 0m;
+                if (request.Items?.Any() == true)
+                {
+                    foreach (var item in request.Items)
+                    {
+                        var lineTotal = (decimal)item.Price * item.Quantity;
+                        totalPrice += lineTotal;
+                    }
+                }
+
+                // Apply voucher discount if available
+                decimal voucherDiscountAmount = 0m;
+                Voucher? validVoucher = null;
+                if (!string.IsNullOrEmpty(request.DiscountCode))
+                {
+                    var currentTime = DateTime.Now;
+                    validVoucher = await _voucherRepository.Query()
+                        .Include(v => v.Orders)
+                        .Where(v => v.Code == request.DiscountCode &&
+                                    v.StartDate <= currentTime &&
+                                    v.EndDate >= currentTime)
+                        .FirstOrDefaultAsync();
+                    if (validVoucher != null)
+                    {
+                        // Check MaxTotalUse limit - chỉ đếm các đơn hàng đã hoàn thành
+                        if (validVoucher.MaxTotalUse.HasValue)
+                        {
+                            var totalUsageCount = validVoucher.Orders?.Count(o => o.Status == EOrderStatus.Completed) ?? 0;
+                            if (totalUsageCount >= validVoucher.MaxTotalUse.Value)
+                            {
+                                return new CreatePosOrderResultDTO
+                                {
+                                    Message = "Voucher này đã hết lượt sử dụng",
+                                    ResponseStatus = BaseStatus.Error
+                                };
+                            }
+                        }
+
+                        // Check MaxTotalUsePerCustomer limit - chỉ đếm các đơn hàng đã hoàn thành của khách hàng này
+                        if (validVoucher.MaxTotalUsePerCustomer.HasValue && request.CustomerId != Guid.Empty)
+                        {
+                            var customerUsageCount = validVoucher.Orders?.Count(o => o.Status == EOrderStatus.Completed && o.CustomerId == request.CustomerId) ?? 0;
+                            if (customerUsageCount >= validVoucher.MaxTotalUsePerCustomer.Value)
+                            {
+                                return new CreatePosOrderResultDTO
+                                {
+                                    Message = "Bạn đã sử dụng hết lượt voucher này",
+                                    ResponseStatus = BaseStatus.Error
+                                };
+                            }
+                        }
+
+                        // Check minimum order requirement
+                        if (totalPrice >= validVoucher.MinOrder)
+                        {
+                            if (validVoucher.Type == EVoucherType.byPercentage)
+                            {
+                                // Percentage discount
+                                voucherDiscountAmount = totalPrice * (decimal)validVoucher.Discount / 100m;
+                                // Apply max discount limit if set
+                                if (validVoucher.MaxDiscount > 0 && voucherDiscountAmount > (decimal)validVoucher.MaxDiscount)
+                                {
+                                    voucherDiscountAmount = (decimal)validVoucher.MaxDiscount;
+                                }
+                            }
+                            else
+                            {
+                                // Fixed amount discount
+                                voucherDiscountAmount = (decimal)validVoucher.Discount;
+                                // Ensure discount doesn't exceed order total
+                                if (voucherDiscountAmount > totalPrice)
+                                {
+                                    voucherDiscountAmount = totalPrice;
+                                }
+                            }
+                        }
+                        else
+                        {
+                            return new CreatePosOrderResultDTO
+                            {
+                                Message = $"Đơn hàng cần tối thiểu {validVoucher.MinOrder:N0} đ để áp dụng voucher này",
+                                ResponseStatus = BaseStatus.Error
+                            };
+                        }
+                    }
+                }
+
+                // Update order with discount information
+                existingOrder.DiscountPrice = voucherDiscountAmount > 0 ? voucherDiscountAmount : null;
+                existingOrder.TotalPrice = Math.Max(0, totalPrice - voucherDiscountAmount);
 
                 // Only deduct inventory if order status changes to completed
                 if (request.Status == EOrderStatus.Completed && existingOrder.Status != EOrderStatus.Completed)

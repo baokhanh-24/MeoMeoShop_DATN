@@ -79,7 +79,11 @@
                 {
                     <div class="order-item">
                         <div class="item-image">
-                            <img src="@item.OrderDetail.Image" alt="@item.OrderDetail.ProductName" />
+                                            <Image Width="60" Height="60" 
+                                                           Src="@(backendUrl + "/" + item.OrderDetail.Image)" 
+                                                          Fallback="@(backendUrl + "/Images/fallback.jpeg")"
+                                                           PreviewVisible="false"
+                                                           Class="product-img" />
                         </div>
                         <div class="item-info">
                             <div class="item-name">@item.OrderDetail.ProductName</div>

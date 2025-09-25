@@ -2204,7 +2204,7 @@ namespace MeoMeo.Application.Services
         {
             try
             {
-                var productDetail = await _productDetailRepository.Query()
+                var productDetail = await _productDetailRepository.Query().Where(c=>c.Status== EProductStatus.Selling)
                     .Include(pd => pd.Product)
                     .Include(pd => pd.Size)
                     .Include(pd => pd.Colour)

@@ -180,7 +180,7 @@
                                     <div class="order-summary">
                                         <div class="summary-row">
                                             <span>Tổng tiền sản phẩm:</span>
-                                            <span>@order.TotalPrice.ToString("N0") đ</span>
+                                            <span>@GetOrderItemsSubtotal(order).ToString("N0") đ</span>
                                         </div>
                                         @if (order.DiscountPrice > 0)
                                         {
@@ -198,7 +198,7 @@
                                         }
                                         <div class="summary-row total">
                                             <span><b>Tổng thanh toán:</b></span>
-                                            <span><b>@((order.TotalPrice - (order.DiscountPrice ?? 0) + (order.ShippingFee ?? 0)).ToString("N0")) đ</b></span>
+                                            <span><b>@((order.TotalPrice).ToString("N0")) đ</b></span>
                                         </div>
                                     </div>
 
@@ -1028,6 +1028,14 @@
             Domain.Commons.Enums.EOrderPaymentMethod.Transfer => "Chuyển khoản ngân hàng",
             _ => paymentMethod.ToString()
         };
+    }
+
+    private decimal GetOrderItemsSubtotal(OrderDTO order)
+    {
+        if (order?.OrderDetails == null || order.OrderDetails.Count() == 0)
+            return 0;
+
+        return order.OrderDetails.Sum(d => (decimal)d.GrandTotal);
     }
 
     // Return order methods

@@ -857,7 +857,7 @@
                 Note = "", // Không có note cho giao trực tiếp
                 ShippingFee = 0, // Không có phí vận chuyển cho giao trực tiếp
                 Status = isDraft ? EOrderStatus.Pending : EOrderStatus.Completed,
-                DiscountCode = string.IsNullOrWhiteSpace(DiscountCode) ? null : DiscountCode,
+                DiscountCode = string.IsNullOrWhiteSpace(SelectedVoucherCode) ? null : SelectedVoucherCode,
                 CustomerId = SelectedCustomer?.Id ?? Guid.Empty,
                 Delivery = null, // Không có delivery cho giao trực tiếp
                 Items = Products.Select(p => new MeoMeo.Contract.DTOs.Order.CreatePosOrderItemDTO
@@ -901,16 +901,15 @@
                 {
                     MessageService.Info("Đơn hàng đã được lưu tạm. Bạn có thể tiếp tục chỉnh sửa hoặc thanh toán.");
                     // Không clear dữ liệu khi lưu tạm, chỉ load lại danh sách pending orders
-                    await LoadPendingOrders();
+                 
                 }
                 else
                 {
                     MessageService.Info("Đơn hàng đã được hoàn thành thành công. Bạn có thể in hóa đơn hoặc tạo đơn mới.");
-
-                    // Clear toàn bộ dữ liệu để chuẩn bị đơn hàng mới
-                    ClearAllData();
-                    await LoadPendingOrders();
+                    
                 }
+                ClearAllData();
+                await LoadPendingOrders();
             }
             else
             {
@@ -947,7 +946,7 @@
                 Note = "", // Không có note cho giao trực tiếp
                 ShippingFee = 0, // Không có phí vận chuyển cho giao trực tiếp
                 Status = EOrderStatus.Completed, // Luôn Completed khi thanh toán
-                DiscountCode = string.IsNullOrWhiteSpace(DiscountCode) ? null : DiscountCode,
+                DiscountCode = string.IsNullOrWhiteSpace(SelectedVoucherCode) ? null : SelectedVoucherCode,
                 CustomerId = SelectedCustomer?.Id ?? Guid.Empty,
                 Delivery = null, // Không có delivery cho giao trực tiếp
                 Items = Products.Select(p => new MeoMeo.Contract.DTOs.Order.CreatePosOrderItemDTO
@@ -1390,50 +1389,7 @@
         }
     }
 
-    private async Task StartBarcodeScan()
-    {
-        try
-        {
-            IsBarcodeScanning = true;
-            MessageService.Info("Đang khởi động camera quét barcode...");
-
-            // Gọi JavaScript để khởi động camera
-            var barcode = await JSRuntime.InvokeAsync<string>("startBarcodeScan");
-            if (!string.IsNullOrEmpty(barcode))
-            {
-                // Tìm sản phẩm theo barcode bằng SearchProductsAsync
-                var barcodeRequest = new ProductSearchRequestDTO
-                {
-                    PageIndex = 1,
-                    PageSize = 1,
-                    SearchKeyword = barcode,
-                    InStockOnly = true
-                };
-
-                var result = await ProductClientService.SearchProductsAsync(barcodeRequest);
-                var product = result.Items?.FirstOrDefault();
-
-                if (product != null)
-                {
-                    await AddProductToOrder(product);
-                }
-                else
-                {
-                    MessageService.Warning($"Không tìm thấy sản phẩm với barcode: {barcode}");
-                }
-            }
-        }
-        catch (Exception ex)
-        {
-            MessageService.Error("Không thể khởi động camera: " + ex.Message);
-        }
-        finally
-        {
-            IsBarcodeScanning = false;
-            StateHasChanged();
-        }
-    }
-
+   
     private async Task StartQRCodeScan()
     {
         try

@@ -92,7 +92,9 @@ namespace MeoMeo.Contract
             CreateMap<Material, CreateOrUpdateMaterialResponse>();
             CreateMap<Size, SizeDTO>();
             CreateMap<Voucher, VoucherDTO>();
-            CreateMap<Employee, CreateOrUpdateEmployeeDTO>();
+            CreateMap<Employee, CreateOrUpdateEmployeeDTO>()
+                .ForMember(dest => dest.UserName, opt => opt.MapFrom(src => src.User.UserName))
+                .ForMember(dest => dest.Email, opt => opt.MapFrom(src => src.User.Email));
             CreateMap<CreateOrUpdateEmployeeDTO, Employee>();
             CreateMap<CreateOrUpdateEmployeeResponseDTO, Employee>();
             CreateMap<Employee, CreateOrUpdateEmployeeResponseDTO>()

@@ -248,7 +248,8 @@ namespace MeoMeo.Application.Services
         {
             try
             {
-                var query = _repository.Query();
+                IQueryable<Employee> query = _repository.Query().Include(e => e.User);
+
                 if (!string.IsNullOrEmpty(requestDTO.NameFilter))
                 {
                     query = query.Where(c => EF.Functions.Like(c.Name, $"%{requestDTO.NameFilter}%"));
@@ -256,12 +257,22 @@ namespace MeoMeo.Application.Services
 
                 if (!string.IsNullOrEmpty(requestDTO.CodeFilter))
                 {
-                    query = query.Where(c => EF.Functions.Like(c.Name, $"%{requestDTO.CodeFilter}%"));
+                    query = query.Where(c => EF.Functions.Like(c.Code, $"%{requestDTO.CodeFilter}%"));
                 }
 
                 if (!string.IsNullOrEmpty(requestDTO.PhoneNumberFilter))
                 {
                     query = query.Where(c => EF.Functions.Like(c.PhoneNumber, $"%{requestDTO.PhoneNumberFilter}%"));
+                }
+
+                if (!string.IsNullOrEmpty(requestDTO.EmailFilter))
+                {
+                    query = query.Where(c => EF.Functions.Like(c.User.Email, $"%{requestDTO.EmailFilter}%"));
+                }
+
+                if (!string.IsNullOrEmpty(requestDTO.UserNameFilter))
+                {
+                    query = query.Where(c => EF.Functions.Like(c.User.UserName, $"%{requestDTO.UserNameFilter}%"));
                 }
 
                 if (requestDTO.DateOfBirthFilter != null)
@@ -280,7 +291,7 @@ namespace MeoMeo.Application.Services
                     query = query.Where(c => c.Status == (int)requestDTO.StatusFilter.Value);
                 }
 
-                query = query.OrderByDescending(c => c.Name);
+                query = query.OrderByDescending(c => c.User.CreationTime);
                 var fileteredEmployees = await _repository.GetPagedAsync(query, requestDTO.PageIndex, requestDTO.PageSize);
                 var dtoItems = _mapper.Map<List<CreateOrUpdateEmployeeDTO>>(fileteredEmployees.Items);
 

@@ -13,6 +13,8 @@ namespace MeoMeo.Contract.DTOs
         public string? NameFilter { get; set; }
         public string? CodeFilter { get; set; }
         public string? PhoneNumberFilter { get; set; }
+        public string? EmailFilter { get; set; }
+        public string? UserNameFilter { get; set; }
         public DateTime? DateOfBirthFilter { get; set; }
         public string? AddressFilter { get; set; }
         public EEmployeesStatus? StatusFilter { get; set; }

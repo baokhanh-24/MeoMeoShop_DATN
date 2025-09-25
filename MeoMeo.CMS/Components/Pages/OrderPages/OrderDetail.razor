@@ -79,10 +79,6 @@
                             <span>@OrderData.CreationTime.ToString("dd/MM/yyyy HH:mm")</span>
                         </div>
                         <div class="info-item">
-                            <label>Ngày cập nhật cuối:</label>
-                            <span>@(OrderData.LastModifiedTime?.ToString("dd/MM/yyyy HH:mm") ?? "Chưa cập nhật")</span>
-                        </div>
-                        <div class="info-item">
                             <label>Trạng thái:</label>
                             <Tag Color="@GetStatusColor(OrderData.Status)">
                                 @GetStatusDisplayName(OrderData.Status)
