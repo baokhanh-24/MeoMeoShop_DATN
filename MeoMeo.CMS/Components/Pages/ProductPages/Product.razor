@@ -39,7 +39,7 @@
                 <i class="fa-solid fa-circle-check"></i> Kích hoạt
             </Button>
             <Button Class="mb-2" OnClick="() => ShowPopUpConfirm(EProductStatus.StopSelling)">
-                <i class="fa-solid fa-pause"></i> Tạm ngưng
+                <i class="fa-solid fa-pause"></i> Ngừng bán
             </Button>
         }
         <Button OnClick="() => ExpandCollapseProduct()" Type="ButtonType.Primary" Class="mb-2">
@@ -91,7 +91,7 @@
 <Tabs DefaultActiveKey="All" @bind-ActiveKey="@activeTab" OnChange="OnTabChange">
     <TabPane Key="All" Tab=@($"Tất cả ({metaData.TotalAll})")/>
     <TabPane Key="Selling" Tab=@($"Đang bán ({metaData.Selling})")/>
-    <TabPane Key="StopSelling" Tab=@($"Tạm ngưng ({metaData.StopSelling})")/>
+    <TabPane Key="StopSelling" Tab=@($"Ngừng bán ({metaData.StopSelling})")/>
     <TabPane Key="Pending" Tab=@($"Chờ duyệt ({metaData.Pending})")/>
 </Tabs>
 
@@ -242,11 +242,6 @@
                     <i class="fa-solid fa-edit text-primary"></i>
                 </Button>
             </Tooltip>
-            <Tooltip Title="Xem chi tiết">
-                <Button Size="ButtonSize.Small" Shape="ButtonShape.Circle" OnClick="@(() => ViewProduct(context.Id))">
-                    <i class="fa-solid fa-eye text-info"></i>
-                </Button>
-            </Tooltip>
             <Tooltip Title="Xóa">
                 <Button Size="ButtonSize.Small" Shape="ButtonShape.Circle" OnClick="@(() => DeleteProduct(context.Id))">
                     <i class="fa-solid fa-trash text-danger"></i>
@@ -270,7 +265,6 @@
                     <PropertyColumn Property="p => p.OutOfStock" Title="Số lượng cảnh báo hết hàng"/>
                     <PropertyColumn Property="p => GetClosureTypeName(p.ClosureType)" Title="Kiểu đóng"/>
                     <PropertyColumn Property="p => p.SellNumber" Title="Số lượng đã bán"/>
-                    <PropertyColumn Property="p => p.ViewNumber" Title="Lượt xem"/>
                   
                     <Column TData="ProductDetailGrid" Title="Cho phép trả">
                         @(context.AllowReturn? "Có":"Không")
@@ -285,12 +279,7 @@
                                 <i class="fa-solid fa-edit text-primary"></i>
                             </Button>
                         </Tooltip>
-                        <Tooltip Title="Tạo QR Code">
-                            <Button Size="ButtonSize.Small" Shape="ButtonShape.Circle" 
-                                    OnClick="@(() => ShowVariantQRCode(context, expandedData.Data))">
-                                <i class="fa-solid fa-qrcode text-info"></i>
-                            </Button>
-                        </Tooltip>
+                        
                     </ActionColumn>
                 </ColumnDefinitions>
             </Table>
@@ -508,7 +497,7 @@
         string actionText = status switch
         {
             EProductStatus.Selling => "kích hoạt",
-            EProductStatus.StopSelling => "tạm ngưng",
+            EProductStatus.StopSelling => "ngừng bán",
             EProductStatus.Pending => "chuyển về chờ duyệt",
             EProductStatus.Rejected => "từ chối",
             EProductStatus.Draft => "lưu tạm",

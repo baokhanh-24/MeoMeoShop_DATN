@@ -13,9 +13,6 @@
     <AuthorizeView Roles="Admin,Employee">
         <RadzenPanelMenuItem Text="Quản lý sản phẩm" Expanded="false">
             <RadzenPanelMenuItem Text="Danh sách sản phẩm" Path="manage-product" Icon="list" />
-            <AuthorizeView Roles="Admin" Context="adminContext">
-                <RadzenPanelMenuItem Text="Tạo QR Code Sản Phẩm" Path="product-qr-code" Icon="qr_code" />
-            </AuthorizeView>
             <RadzenPanelMenuItem Text="Quản lý đánh giá" Path="product-reviews" Icon="rate_review" />
         </RadzenPanelMenuItem>
     </AuthorizeView>
