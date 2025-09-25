@@ -987,7 +987,7 @@ namespace MeoMeo.Application.Services
 
                 // Batch queries for related data
                 var variantsDict = await _productDetailRepository.Query()
-                    .Where(pd => productIds.Contains(pd.ProductId))
+                    .Where(pd => productIds.Contains(pd.ProductId) && pd.Status == EProductStatus.Selling)
                     .Include(pd => pd.Size)
                     .Include(pd => pd.Colour)
                     .GroupBy(pd => pd.ProductId)
@@ -1306,7 +1306,7 @@ namespace MeoMeo.Application.Services
 
                 // Batch queries for related data
                 var variants = await _productDetailRepository.Query()
-                    .Where(pd => pd.ProductId == id)
+                    .Where(pd => pd.ProductId == id && pd.Status == EProductStatus.Selling)
                     .Include(pd => pd.Size)
                     .Include(pd => pd.Colour)
                     .ToListAsync();
@@ -1680,7 +1680,7 @@ namespace MeoMeo.Application.Services
             var productIds = products.Select(p => p.Id).ToList();
 
             var variantsDict = await _productDetailRepository.Query()
-                .Where(pd => productIds.Contains(pd.ProductId))
+                .Where(pd => productIds.Contains(pd.ProductId) && pd.Status == EProductStatus.Selling)
                 .GroupBy(pd => pd.ProductId)
                 .ToDictionaryAsync(g => g.Key, g => g.ToList());
 
@@ -2204,7 +2204,7 @@ namespace MeoMeo.Application.Services
         {
             try
             {
-                var productDetail = await _productDetailRepository.Query().Where(c=>c.Status== EProductStatus.Selling)
+                var productDetail = await _productDetailRepository.Query().Where(c => c.Status == EProductStatus.Selling)
                     .Include(pd => pd.Product)
                     .Include(pd => pd.Size)
                     .Include(pd => pd.Colour)

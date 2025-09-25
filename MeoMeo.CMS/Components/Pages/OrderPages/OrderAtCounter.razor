@@ -138,15 +138,15 @@
                 <AntDesign.Col Lg="16">
                     <FormItem Label="Tìm kiếm sản phẩm">
                         <div class="search-controls">
-                            <Button Type="@AntDesign.ButtonType.Default" Icon="qr_code" OnClick="StartQRCodeScan"
+                            @* <Button Type="@AntDesign.ButtonType.Default" Icon="qr_code" OnClick="StartQRCodeScan"
                                     class="qr-scan-btn" Disabled="@IsQRCodeScanning">
                                 <Icon Type="qr_code"/>
                                 Quét QR Code
-                            </Button>
+                            </Button> *@
                             <div class="order-section-product-search-input">
-                                <Tooltip Title="Tìm kiếm sản phẩm (F1)">
+                                <Tooltip Title="Tìm kiếm sản phẩm">
                                     <Search @bind-Value="@ProductSearchKeyword" Width="600"
-                                            Placeholder="Nhập barcode, mã sản phẩm, tên sản phẩm để tìm kiếm"
+                                            Placeholder="Nhập mã sản phẩm, tên sản phẩm để tìm kiếm"
                                             OnSearch="OnProductSearch" OnClear="OnSearchClear"
                                             Loading="@SearchingProduct"
                                             class="order-search-input" Id="product-search-input"/>

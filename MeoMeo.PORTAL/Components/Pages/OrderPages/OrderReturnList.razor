@@ -14,131 +14,124 @@
         <div class="d-flex justify-content-between" style="align-items: center;">
             <div class="title">Yêu cầu hoàn trả của tôi</div>
             <div class="search-container">
-                <Search Placeholder="Tìm theo mã hoàn trả"
-                        @bind-Value="SearchValue"
-                        OnSearch="OnSearch"
-                        EnterButton="true"
-                        Loading="IsLoading" />
+                <Search Placeholder="Tìm theo mã hoàn trả" @bind-Value="SearchValue" OnSearch="OnSearch"
+                    EnterButton="true" Loading="IsLoading" />
             </div>
         </div>
 
         <div style="margin-top: 20px;">
             @if (!IsLoading)
             {
-                    @if (OrderReturns.Count == 0)
-                    {
-                            <div class="row">
-                                <div class="col-12">
-                                    <div class="space-coverage text-center">
-                                        <img class="empty-cart" src="/images/Cart.svg" alt="" />
-                                        <div class="empty-text mt-4">Bạn chưa có yêu cầu hoàn trả nào.</div>
-                                        <div class="d-flex justify-content-center">
-                                            <button class="shopping-now mt-1" @onclick="@(() => Navigation.NavigateTo("/orders"))">Xem đơn hàng</button>
-                                        </div>
-                                    </div>
+                @if (OrderReturns.Count == 0)
+                {
+                    <div class="row">
+                        <div class="col-12">
+                            <div class="space-coverage text-center">
+                                <img class="empty-cart" src="/images/Cart.svg" alt="" />
+                                <div class="empty-text mt-4">Bạn chưa có yêu cầu hoàn trả nào.</div>
+                                <div class="d-flex justify-content-center">
+                                    <button class="shopping-now mt-1" @onclick="@(() => Navigation.NavigateTo("/orders"))">Xem
+                                        đơn hàng</button>
                                 </div>
                             </div>
-                    }
-                    else
+                        </div>
+                    </div>
+                }
+                else
+                {
+                    @foreach (var returnRequest in OrderReturns)
                     {
-                            @foreach (var returnRequest in OrderReturns)
-                            {
-                                    <div class="return-card">
-                                        <!-- Header -->
-                                        <div class="return-header">
-                                            <div class="return-info">
-                                                <div class="return-code">
-                                                    <i class="fas fa-undo"></i>
-                                                    <span><b>Mã hoàn trả:</b> @returnRequest.Code</span>
-                                                </div>
-                                                <div class="order-code">
-                                                    <i class="fas fa-receipt"></i>
-                                                    <span><b>Mã đơn hàng:</b> @returnRequest.OrderCode</span>
-                                                </div>
-                                                <div class="return-date">
-                                                    <i class="fas fa-calendar-alt"></i>
-                                                    <span><b>Ngày tạo:</b> @returnRequest.CreationTime.ToString("dd/MM/yyyy HH:mm")</span>
-                                                </div>
-                                            </div>
-                                            <div class="return-status">
-                                                <Tag Color="@GetStatusColor(returnRequest.Status)">
-                                                    @returnRequest.StatusDisplayName
-                                                </Tag>
-                                            </div>
-                                        </div>
-
-                                        <!-- Financial Info -->
-                                        <div class="return-financial">
-                                            <div class="financial-row">
-                                                <span>Số tiền dự kiến hoàn:</span>
-                                                <span class="amount estimated">@returnRequest.TotalRefundAmount.ToString("N0") đ</span>
-                                            </div>
-                                            @if (returnRequest.PayBackAmount.HasValue)
-                                            {
-                                                    <div class="financial-row actual">
-                                                        <span>Số tiền đã hoàn:</span>
-                                                        <span class="amount actual">@returnRequest.PayBackAmount.Value.ToString("N0") đ</span>
-                                                    </div>
-                                                    @if (returnRequest.PayBackDate.HasValue)
-                                                    {
-                                                            <div class="financial-row">
-                                                                <span>Ngày hoàn tiền:</span>
-                                                                <span>@returnRequest.PayBackDate.Value.ToString("dd/MM/yyyy HH:mm")</span>
-                                                            </div>
-                                                    }
-                                            }
-                                        </div>
-
-                                        <!-- Summary Info -->
-                                        <div class="return-summary-info">
-                                            <div class="summary-item">
-                                                <span class="label">Số sản phẩm:</span>
-                                                <span class="value">@returnRequest.TotalItemCount</span>
-                                            </div>
-                                            <div class="summary-item">
-                                                <span class="label">Phương thức hoàn tiền:</span>
-                                                <span class="value">@returnRequest.RefundMethodDisplayName</span>
-                                            </div>
-                                        </div>
-
-                                        <!-- Actions -->
-                                        <div class="return-actions">
-                                            <Button Type="@AntDesign.ButtonType.Primary" 
-                                                    Size="@AntDesign.ButtonSize.Small" 
-                                                    OnClick="@(() => Navigation.NavigateTo($"/order-return/{returnRequest.Id}"))"
-                                                    Icon="eye">
-                                                Xem chi tiết
-                                            </Button>
-                                            @if (returnRequest.Status == Domain.Commons.Enums.EOrderReturnStatus.Pending)
-                                            {
-                                                    <Button Type="@AntDesign.ButtonType.Default" 
-                                                            Size="@AntDesign.ButtonSize.Small" 
-                                                            OnClick="@(() => CancelReturn(returnRequest.Id))"
-                                                            Icon="close"
-                                                            Danger="true">
-                                                        Hủy yêu cầu
-                                                    </Button>
-                                            }
-                                        </div>
+                        <div class="return-card">
+                            <!-- Header -->
+                            <div class="return-header">
+                                <div class="return-info">
+                                    <div class="return-code">
+                                        <i class="fas fa-undo"></i>
+                                        <span><b>Mã hoàn trả:</b> @returnRequest.Code</span>
                                     </div>
-                            }
+                                    <div class="order-code">
+                                        <i class="fas fa-receipt"></i>
+                                        <span><b>Mã đơn hàng:</b> @returnRequest.OrderCode</span>
+                                    </div>
+                                    <div class="return-date">
+                                        <i class="fas fa-calendar-alt"></i>
+                                        <span><b>Ngày tạo:</b> @returnRequest.CreationTime.ToString("dd/MM/yyyy HH:mm")</span>
+                                    </div>
+                                </div>
+                                <div class="return-status">
+                                    <Tag Color="@GetStatusColor(returnRequest.Status)">
+                                        @returnRequest.StatusDisplayName
+                                    </Tag>
+                                </div>
+                            </div>
+
+                            <!-- Financial Info -->
+                            <div class="return-financial">
+                                <div class="financial-row">
+                                    <span>Số tiền dự kiến hoàn:</span>
+                                    <span class="amount estimated">@returnRequest.TotalRefundAmount.ToString("N0") đ</span>
+                                </div>
+                                @if (returnRequest.PayBackAmount.HasValue)
+                                {
+                                    <div class="financial-row actual">
+                                        <span>Số tiền đã hoàn:</span>
+                                        <span class="amount actual">@returnRequest.PayBackAmount.Value.ToString("N0") đ</span>
+                                    </div>
+                                    @if (returnRequest.PayBackDate.HasValue)
+                                    {
+                                        <div class="financial-row">
+                                            <span>Ngày hoàn tiền:</span>
+                                            <span>@returnRequest.PayBackDate.Value.ToString("dd/MM/yyyy HH:mm")</span>
+                                        </div>
+                                    }
+                                }
+                            </div>
+
+                            <!-- Summary Info -->
+                            <div class="return-summary-info">
+                                <div class="summary-item">
+                                    <span class="label">Số sản phẩm:</span>
+                                    <span class="value">@returnRequest.TotalItemCount</span>
+                                </div>
+                                <div class="summary-item">
+                                    <span class="label">Phương thức hoàn tiền:</span>
+                                    <span class="value">@returnRequest.RefundMethodDisplayName</span>
+                                </div>
+                            </div>
+
+                            <!-- Actions -->
+                            <div class="return-actions">
+                                <Button Type="@AntDesign.ButtonType.Primary" Size="@AntDesign.ButtonSize.Small"
+                                    OnClick="@(() => Navigation.NavigateTo($"/order-return/{returnRequest.Id}"))" Icon="eye">
+                                    Xem chi tiết
+                                </Button>
+                                @if (returnRequest.Status == Domain.Commons.Enums.EOrderReturnStatus.Pending)
+                                {
+                                    <Button Type="@AntDesign.ButtonType.Default" Size="@AntDesign.ButtonSize.Small"
+                                        OnClick="@(() => CancelReturn(returnRequest.Id))" Icon="close" Danger="true">
+                                        Hủy yêu cầu
+                                    </Button>
+                                }
+                            </div>
+                        </div>
                     }
+                }
             }
             else
             {
-                    <Skeleton Active/>
-                    <Skeleton Active/>
+                <Skeleton Active />
+                <Skeleton Active />
             }
         </div>
 
         @if (OrderReturns.Count < TotalRecords)
         {
-                <div class="text-center mt-3 mb-3">
-                    <i class="fas fa-chevron-down"></i>
-                    <span style="cursor: pointer; font-size: 14px;" class="view-more" @onclick="LoadMore">
-                        Xem thêm @(TotalRecords - OrderReturns.Count) yêu cầu hoàn trả
-                    </span>
-                </div>
+            <div class="text-center mt-3 mb-3">
+                <i class="fas fa-chevron-down"></i>
+                <span style="cursor: pointer; font-size: 14px;" class="view-more" @onclick="LoadMore">
+                    Xem thêm @(TotalRecords - OrderReturns.Count) yêu cầu hoàn trả
+                </span>
+            </div>
         }
     </div>
 </div>
@@ -228,19 +221,55 @@
 }
 
 <style>
-    .title { font-size: 24px; font-weight: bold; color: #00833D; }
-    .search-container { width: 300px; }
-    .empty-cart { width: 120px; height: 120px; margin: 0 auto; }
-    .empty-text { font-size: 16px; color: #666; margin-top: 16px; }
-    .shopping-now { background-color: #00833D; color: white; border: none; padding: 8px 16px; border-radius: 4px; cursor: pointer; margin-top: 8px; }
-    .shopping-now:hover { background-color: #006b32; }
-    .view-more { color: #00833D; font-weight: 500; }
-    .view-more:hover { text-decoration: underline; }
+    .title {
+        font-size: 24px;
+        font-weight: bold;
+        color: #00833D;
+    }
+
+    .search-container {
+        width: 300px;
+    }
+
+    .empty-cart {
+        width: 120px;
+        height: 120px;
+        margin: 0 auto;
+    }
+
+    .empty-text {
+        font-size: 16px;
+        color: #666;
+        margin-top: 16px;
+    }
+
+    .shopping-now {
+        background-color: #00833D;
+        color: white;
+        border: none;
+        padding: 8px 16px;
+        border-radius: 4px;
+        cursor: pointer;
+        margin-top: 8px;
+    }
+
+    .shopping-now:hover {
+        background-color: #006b32;
+    }
+
+    .view-more {
+        color: #00833D;
+        font-weight: 500;
+    }
+
+    .view-more:hover {
+        text-decoration: underline;
+    }
 
     .return-card {
         background: white;
         border-radius: 12px;
-        box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
         padding: 20px;
         margin-bottom: 16px;
         border: 1px solid #e8e8e8;
@@ -261,7 +290,9 @@
         gap: 8px;
     }
 
-    .return-code, .order-code, .return-date {
+    .return-code,
+    .order-code,
+    .return-date {
         display: flex;
         align-items: center;
         gap: 8px;
@@ -269,7 +300,9 @@
         color: #666;
     }
 
-    .return-code i, .order-code i, .return-date i {
+    .return-code i,
+    .order-code i,
+    .return-date i {
         color: #00833D;
         width: 16px;
     }
